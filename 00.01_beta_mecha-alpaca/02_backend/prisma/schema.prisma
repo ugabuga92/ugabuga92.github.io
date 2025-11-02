@@ -1,0 +1,47 @@
+// Minimal Prisma Schema for Inventory demo (not wired to frontend prototype yet)
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "sqlite"; url = env("DATABASE_URL") }
+
+model User {
+  id     String @id @default(cuid())
+  email  String @unique
+  hash   String
+  players Player[]
+}
+
+model Player {
+  id       String @id @default(cuid())
+  userId   String
+  name     String
+  level    Int    @default(1)
+  zone     String @default("Stahlsteppe")
+  Inventory Inventory?
+}
+
+model Inventory {
+  id       String @id @default(cuid())
+  playerId String @unique
+  credits  Int @default(0)
+  energy   Int @default(0)
+  items    InventoryItem[]
+}
+
+model Item {
+  id        String @id @default(cuid())
+  key       String @unique
+  name      String
+  type      String
+  rarity    String
+  stackable Boolean @default(true)
+  maxStack  Int @default(99)
+  slots     InventoryItem[]
+}
+
+model InventoryItem {
+  id          String @id @default(cuid())
+  inventoryId String
+  itemId      String
+  qty         Int @default(1)
+  inventory   Inventory @relation(fields:[inventoryId], references:[id])
+  item        Item @relation(fields:[itemId], references:[id])
+}
