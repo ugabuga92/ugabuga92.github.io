@@ -3,15 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Cockpit Racing Game</title>
+    <title>Retro Cockpit Racer</title>
     <style>
-        body { margin: 0; overflow: hidden; }
+        body { margin: 0; overflow: hidden; font-family: 'Arial Black', Arial, sans-serif; }
         canvas { display: block; }
-        #hud { position: absolute; bottom: 20px; left: 20px; color: white; font-family: Arial; font-size: 24px; text-shadow: 2px 2px 4px black; }
+        #start-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://thumbs.dreamstime.com/b/colorful-sunset-highway-sleek-car-palm-trees-surreal-highly-detailed-scene-electrifying-neon-colors-sports-races-down-377068965.jpg') center/cover no-repeat;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ff00ff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+        }
+        #title {
+            font-size: 80px;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        #instructions {
+            font-size: 30px;
+            margin-bottom: 50px;
+            text-align: center;
+        }
+        #start-button {
+            padding: 20px 60px;
+            font-size: 50px;
+            background: #ff00ff;
+            color: white;
+            border: 5px solid #00ffff;
+            cursor: pointer;
+            box-shadow: 0 0 20px #00ffff;
+            transition: all 0.3s;
+        }
+        #start-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 40px #00ffff;
+        }
+        #hud { position: absolute; bottom: 20px; left: 20px; color: white; font-family: Arial; font-size: 24px; text-shadow: 2px 2px 4px black; display: none; }
+        #game-container { position: relative; }
     </style>
 </head>
 <body>
-    <div id="hud">Speed: 0 km/h</div>
+    <div id="game-container">
+        <div id="start-screen">
+            <div id="title">COCKPIT RACER</div>
+            <div id="instructions">W / ↑ : Accelerate<br>S / ↓ : Brake<br>A/D or ←/→ : Steer</div>
+            <button id="start-button">START GAME</button>
+        </div>
+        <div id="hud">Speed: 0 km/h</div>
+    </div>
     <script type="module" src="main.js"></script>
 </body>
 </html>
