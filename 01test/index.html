@@ -16,9 +16,18 @@
         #view-container { width: 100%; flex-grow: 1; display: flex; justify-content: center; align-items: center; background-color: var(--pip-bg); border-bottom: 2px solid var(--pip-green); position: relative; overflow: hidden; }
         
         .header-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; border-bottom: 2px solid var(--pip-green); background: rgba(57, 255, 20, 0.05); flex-shrink: 0; }
+        
         .action-button { background-color: #0f150f; color: var(--pip-green); border: 1px solid var(--pip-green); padding: 5px 10px; margin: 2px; cursor: pointer; text-transform: uppercase; font-size: 1.1rem; transition: all 0.1s; }
         .action-button:hover { background-color: var(--pip-dim); color: white; }
         .action-button:disabled { opacity: 0.3; cursor: not-allowed; border-color: #1a4d1a; color: #1a4d1a; background-color: #050505; }
+        
+        /* NEU: AKTIVER BUTTON STYLE (Highlight) */
+        .action-button.active {
+            background-color: var(--pip-green);
+            color: #000;
+            font-weight: bold;
+            box-shadow: 0 0 10px var(--pip-green);
+        }
         
         ::-webkit-scrollbar { width: 6px; } 
         ::-webkit-scrollbar-thumb { background: var(--pip-green); border-radius: 3px; }
@@ -76,14 +85,11 @@
                     <span id="val-hp">--/--</span>
                     <div class="w-16 md:w-24 bg-gray-900 h-3 border border-[#1a4d1a]"><div id="bar-hp" class="bg-[#39ff14] h-full" style="width: 100%"></div></div>
                 </div>
-                
                 <span>LVL: <span id="val-lvl">-</span></span>
-                
                 <div class="flex items-center gap-1">
                     <span>XP:</span>
                     <div class="w-16 md:w-24 bg-gray-900 h-3 border border-yellow-900"><div id="bar-exp-top" class="bg-yellow-500 h-full" style="width: 0%"></div></div>
                 </div>
-
                 <span>MUN: <span id="val-ammo">-</span></span>
             </div>
             <span id="val-caps" class="text-yellow-400 font-bold">--- KK</span>
