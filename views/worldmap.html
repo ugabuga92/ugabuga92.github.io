@@ -1,0 +1,41 @@
+<div id="worldmap-view" class="view justify-center items-center" style="flex-direction: column; gap: 1rem;">
+    <h1 class="city-header text-center text-3xl mb-4">GLOBALER SEKTOR-SCAN (10x10)</h1>
+    <div id="world-map-grid" class="w-4/5 max-w-lg aspect-square grid grid-cols-10 gap-1 p-2 border-2 border-pip-green bg-pip-dark">
+        </div>
+    <button class="action-button mt-4 mb-2" onclick="UI.switchView('map')">Zurück zum lokalen Sektor</button>
+    
+    <style>
+        .sector-tile {
+            aspect-ratio: 1 / 1;
+            background-color: var(--pip-dim);
+            border: 1px solid var(--pip-green);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.7rem;
+            color: var(--pip-green);
+            position: relative;
+        }
+        
+        .sector-tile.explored {
+            background-color: var(--color-arid);
+            color: #000;
+        }
+        
+        .sector-tile.current-sector {
+            background-color: #39ff14 !important;
+            box-shadow: 0 0 10px var(--pip-green);
+            color: #000;
+            font-weight: bold;
+        }
+        
+        .sector-tile .marker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1rem;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</div>
