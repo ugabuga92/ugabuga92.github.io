@@ -1327,6 +1327,57 @@
         
         draw();
     }
+    
+        // NEU: Funktion zum Wechseln des Sektors / Generieren der nächsten Map
+    function confirmSectorChange(change) {
+        els.btns.innerHTML = ''; 
+        
+        if (change) {
+            log("Tor durchschritten. Sektorwechsel beginnt...", "text-yellow-400");
+            
+            // Speichern des aktuellen Zustands, den wir behalten wollen
+            const savedState = {
+                stats: gameState.stats,
+                equipment: gameState.equipment,
+                health: gameState.health,
+                ammo: gameState.ammo,
+                caps: gameState.caps,
+                level: gameState.level,
+                exp: gameState.exp,
+                statPoints: gameState.statPoints,
+            };
+            
+            // Generiere neue Map (wie bei initNewGame)
+            const { layout, startX, startY } = generateRandomMap();
+            mapLayout = layout.map(row => row.split(''));
+            
+            // Neuen GameState setzen, aber alte Werte beibehalten
+            gameState = {
+                ...gameState, // Behält alle UI/View-Flags (z.B. currentView='map')
+                ...savedState, // Überschreibt mit den behaltenen Werten
+                player: { x: startX, y: startY }, // Neuer Startpunkt
+                explored: {}, // Neue Karte ist unerforscht
+                inDialog: false,
+                currentZone: "Neues Ödland",
+            };
+            
+            els.text.textContent = "Neuer Sektor! Die Landschaft ist anders...";
+            revealMap(startX, startY);
+            updateUI();
+            draw();
+            log("Sektorwechsel abgeschlossen. Neue Zone erkunden.", "text-yellow-400");
+            
+        } else {
+            gameState.inDialog = false;
+            els.text.textContent = "Ödland Ebene.";
+            updateUI();
+        }
+    }
+    
+    // ... (Fügen Sie diese Funktion auch in das window-Objekt ein, damit sie im HTML aufgerufen werden kann)
+    window.confirmSectorChange = confirmSectorChange;
+    // ...
+
 
     initNewGame();
 </script>
