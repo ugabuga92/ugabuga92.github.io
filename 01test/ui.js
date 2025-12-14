@@ -7,7 +7,7 @@ const UI = {
             log: document.getElementById('log-area'),
             hp: document.getElementById('val-hp'),
             hpBar: document.getElementById('bar-hp'),
-            expBarTop: document.getElementById('bar-exp-top'), // NEU
+            expBarTop: document.getElementById('bar-exp-top'),
             lvl: document.getElementById('val-lvl'),
             ammo: document.getElementById('val-ammo'),
             caps: document.getElementById('val-caps'),
@@ -30,9 +30,13 @@ const UI = {
         };
 
         this.els.btnNew.onclick = () => Game.init();
-        this.els.btnWiki.onclick = () => this.switchView('wiki');
-        this.els.btnMap.onclick = () => this.switchView('worldmap');
-        this.els.btnChar.onclick = () => this.switchView('char');
+        
+        // --- TOGGLE LOGIK ---
+        // Wenn man auf Wiki klickt und Wiki ist schon offen -> Map
+        // Sonst -> Wiki öffnen
+        this.els.btnWiki.onclick = () => this.toggleView('wiki');
+        this.els.btnMap.onclick = () => this.switchView('worldmap'); // Map Button ist speziell (worldmap vs map)
+        this.els.btnChar.onclick = () => this.toggleView('char');
 
         this.els.btnUp.onclick = () => Game.move(0, -1);
         this.els.btnDown.onclick = () => Game.move(0, 1);
@@ -50,6 +54,15 @@ const UI = {
         
         window.Game = Game; 
         window.UI = this;
+    },
+
+    // Neue Hilfsfunktion für Toggle
+    toggleView: function(name) {
+        if (Game.state.view === name) {
+            this.switchView('map');
+        } else {
+            this.switchView(name);
+        }
     },
 
     switchView: async function(name) {
@@ -88,22 +101,32 @@ const UI = {
     update: function() {
         if (!Game.state) return;
         
+        // Status Werte
         this.els.lvl.textContent = Game.state.lvl;
         this.els.ammo.textContent = Game.state.ammo;
         this.els.caps.textContent = `${Game.state.caps} KK`;
         this.els.zone.textContent = Game.state.zone;
         
-        // HP Balken
         const maxHp = 100 + (Game.state.stats.END - 5) * 10;
         this.els.hp.textContent = `${Math.round(Game.state.hp)}/${maxHp}`;
         this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`;
 
-        // EXP Balken (Header)
         const nextXp = Game.expToNextLevel(Game.state.lvl);
         const expPct = Math.min(100, (Game.state.xp / nextXp) * 100);
         if(this.els.expBarTop) this.els.expBarTop.style.width = `${expPct}%`;
         
-        // Level Up Indicator
+        // --- BUTTON HIGHLIGHTING ---
+        // Alle Buttons zurücksetzen
+        this.els.btnWiki.classList.remove('active');
+        this.els.btnMap.classList.remove('active');
+        this.els.btnChar.classList.remove('active');
+
+        // Aktiven Button markieren
+        if (Game.state.view === 'wiki') this.els.btnWiki.classList.add('active');
+        if (Game.state.view === 'worldmap') this.els.btnMap.classList.add('active');
+        if (Game.state.view === 'char') this.els.btnChar.classList.add('active');
+
+        // Level Up Indicator (übertrumpft das normale Highlighting bei Char)
         if(Game.state.statPoints > 0) {
             this.els.btnChar.classList.add('level-up-alert');
             this.els.btnChar.innerHTML = "CHAR <span class='text-yellow-400'>!</span>";
@@ -112,7 +135,7 @@ const UI = {
             this.els.btnChar.textContent = "CHAR";
         }
 
-        // Buttons Sperren
+        // Disable im Kampf
         const inCombat = Game.state.view === 'combat';
         this.els.btnWiki.disabled = inCombat;
         this.els.btnMap.disabled = inCombat;
@@ -172,20 +195,18 @@ const UI = {
         const grid = document.getElementById('stat-grid');
         if(!grid) return;
         
-        // Stats
         grid.innerHTML = Object.keys(Game.state.stats).map(k => {
             const val = Game.getStat(k);
             const btn = Game.state.statPoints > 0 ? `<button class="border border-green-500 px-1 ml-2" onclick="Game.upgradeStat('${k}')">+</button>` : '';
             return `<div class="flex justify-between"><span>${k}: ${val}</span>${btn}</div>`;
         }).join('');
         
-        // EXP im Char Screen (FIXED)
         const nextXp = Game.expToNextLevel(Game.state.lvl);
         const expPct = Math.min(100, (Game.state.xp / nextXp) * 100);
         
         document.getElementById('char-exp').textContent = Game.state.xp;
         document.getElementById('char-next').textContent = nextXp;
-        document.getElementById('char-exp-bar').style.width = `${expPct}%`; // Hier war der Fehler!
+        document.getElementById('char-exp-bar').style.width = `${expPct}%`;
         
         document.getElementById('char-points').textContent = Game.state.statPoints;
         const btn = document.getElementById('btn-assign');
@@ -199,9 +220,11 @@ const UI = {
         if(!content) return;
         content.innerHTML = Object.keys(Game.monsters).map(k => {
             const m = Game.monsters[k];
+            // Zeige XP Range an
+            const xpText = Array.isArray(m.xp) ? `${m.xp[0]}-${m.xp[1]}` : m.xp;
             return `<div class="border-b border-green-900 pb-1">
                 <div class="font-bold text-yellow-400">${m.name}</div>
-                <div class="text-xs opacity-70">${m.desc} (HP: ~${m.hp})</div>
+                <div class="text-xs opacity-70">${m.desc} (HP: ~${m.hp}, XP: ${xpText})</div>
             </div>`;
         }).join('');
     },
