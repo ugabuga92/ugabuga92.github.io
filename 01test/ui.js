@@ -16,29 +16,37 @@ const UI = {
             dialog: document.getElementById('dialog-buttons'),
             text: document.getElementById('encounter-text'),
             
+            // Header Buttons
             btnNew: document.getElementById('btn-new'),
             btnWiki: document.getElementById('btn-wiki'),
             btnMap: document.getElementById('btn-map'),
             btnChar: document.getElementById('btn-char'),
             
+            // Movement Buttons
             btnUp: document.getElementById('btn-up'),
             btnDown: document.getElementById('btn-down'),
             btnLeft: document.getElementById('btn-left'),
-            btnRight: document.getElementById('btn-right')
+            btnRight: document.getElementById('btn-right'),
+            
+            // Game Over Screen
+            gameOver: document.getElementById('game-over-screen')
         };
 
+        // Header
         this.els.btnNew.onclick = () => Game.init();
         this.els.btnWiki.onclick = () => this.switchView('wiki');
         this.els.btnMap.onclick = () => this.switchView('worldmap');
         this.els.btnChar.onclick = () => this.switchView('char');
 
+        // Movement
         this.els.btnUp.onclick = () => Game.move(0, -1);
         this.els.btnDown.onclick = () => Game.move(0, 1);
         this.els.btnLeft.onclick = () => Game.move(-1, 0);
         this.els.btnRight.onclick = () => Game.move(1, 0);
 
+        // Keys
         window.addEventListener('keydown', (e) => {
-            if (Game.state.view === 'map' && !Game.state.inDialog) {
+            if (Game.state.view === 'map' && !Game.state.inDialog && !Game.state.isGameOver) {
                 if(e.key === 'w' || e.key === 'ArrowUp') Game.move(0, -1);
                 if(e.key === 's' || e.key === 'ArrowDown') Game.move(0, 1);
                 if(e.key === 'a' || e.key === 'ArrowLeft') Game.move(-1, 0);
@@ -89,7 +97,7 @@ const UI = {
         this.els.caps.textContent = `${Game.state.caps} KK`;
         this.els.zone.textContent = Game.state.zone;
         
-        const maxHp = Game.state.maxHp || 100;
+        const maxHp = 100 + (Game.state.stats.END - 5) * 10;
         this.els.hp.textContent = `${Math.round(Game.state.hp)}/${maxHp}`;
         this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`;
         
@@ -111,6 +119,11 @@ const UI = {
         this.els.dpad.style.visibility = show ? 'visible' : 'hidden';
         if (!show) this.els.dialog.innerHTML = '';
     },
+    
+    // NEU: GAME OVER ANZEIGEN
+    showGameOver: function() {
+        this.els.gameOver.classList.remove('hidden');
+    },
 
     // --- RENDERERS ---
 
@@ -118,7 +131,7 @@ const UI = {
         const grid = document.getElementById('stat-grid');
         if(!grid) return;
         grid.innerHTML = Object.keys(Game.state.stats).map(k => {
-            const val = Game.getStat(k);
+            const val = Game.state.stats[k];
             const btn = Game.state.statPoints > 0 ? `<button class="border border-green-500 px-1 ml-2" onclick="Game.upgradeStat('${k}')">+</button>` : '';
             return `<div class="flex justify-between"><span>${k}: ${val}</span>${btn}</div>`;
         }).join('');
@@ -169,7 +182,7 @@ const UI = {
         const addBtn = (txt, cb, disabled=false) => {
             const b = document.createElement('button');
             b.className = "action-button w-full mb-2 text-left p-3 flex justify-between";
-            b.innerHTML = txt; 
+            b.innerHTML = txt; // Allow HTML
             b.onclick = cb;
             if(disabled) { b.disabled = true; b.style.opacity = 0.5; }
             con.appendChild(b);
@@ -182,7 +195,7 @@ const UI = {
     },
 
     renderShop: function(container) {
-        container.innerHTML = ''; 
+        container.innerHTML = '';
         const backBtn = document.createElement('button');
         backBtn.className = "action-button w-full mb-4 text-center border-yellow-400 text-yellow-400";
         backBtn.textContent = "ZURÜCK ZUM PLATZ";
