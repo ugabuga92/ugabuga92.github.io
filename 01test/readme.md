@@ -1,8 +1,6 @@
 
 
 - Grafiken verbessern
-- Scaden angleichen je nach Ausrüstung. Fäuste weniger wie Messer, Pistole mehr wie messer. Implementierung üver Str? Str Stats soll schaden beeinflussen. 
-- Button "Neu" oben rechts gleiche größe, aber in ROT, wie Wiki + umbenennen in "Neues Spiel starten"
 
 - EXP Anzeige Balken fehlt im CHAR Menü + auf dem Overlay rechts vn der TP, ist aufgeführt aber kein Balken.
 - Benötige EXP steigt mit den Leveln an
