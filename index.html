@@ -26,7 +26,7 @@
 <div id="error-log"></div>
 <script>
     window.onerror = function(msg, url, line) {
-        document.getElementById('error-log').innerHTML += `FEHLER: ${msg}<br>Zeile: ${line}<br>`;
+        document.getElementById('error-log').innerHTML += `FEHLER: ${msg} (Zeile ${line})<br>`;
         return false;
     };
 </script>
@@ -38,9 +38,12 @@
                 <div class="font-bold text-xl leading-none">PIP-BOY 3000 <span class="text-xs opacity-70">MK-V</span></div>
                 <div id="current-zone-display" class="text-xs sm:text-lg opacity-80 leading-none">Lade System...</div>
             </div>
-            <div class="w-1/3 flex justify-center"><span class="text-sm opacity-70 tracking-widest">beta 0.1a</span></div>
+            <div class="w-1/3 flex justify-center text-center">
+                <span class="text-yellow-400 font-bold tracking-widest text-lg">beta 0.1a</span>
+            </div>
             <div class="flex items-center justify-end gap-1 w-1/3">
                 <button id="new-game-btn" class="action-button px-2 py-1 text-xs bg-red-900 border-red-500">NEU</button>
+                <button id="quit-btn" class="action-button px-2 py-1 text-xs bg-gray-700 border-gray-500">EXIT</button>
                 <button id="wiki-btn" class="action-button px-2 py-1 text-sm">WIKI</button>
                 <button id="map-btn" class="action-button px-2 py-1 text-sm">MAP</button>
                 <button id="char-btn" class="action-button px-2 py-1 text-sm">CHAR</button>
@@ -60,7 +63,7 @@
         <div id="main-content" class="flex flex-grow overflow-hidden">
             <div id="main-panel" class="flex flex-col flex-grow overflow-hidden">
                 <div class="flex flex-col md:flex-row flex-grow overflow-hidden">
-                    <div id="view-content-area" class="flex-grow md:w-2/3"></div>
+                    <div id="view-content-area" class="flex-grow md:w-2/3 relative"></div>
                     <div id="log-panel" class="flex flex-col border-t-2 md:border-l-2 border-[#39ff14] md:w-1/3 min-h-[100px] bg-gray-900">
                         <h2 class="bg-[#39ff14] text-black font-bold px-2">LOG</h2>
                         <div id="log-area" class="flex-grow overflow-y-auto p-2 text-sm flex flex-col-reverse"></div>
@@ -85,26 +88,22 @@
 <script src="ui.js"></script>
 <script src="game.js"></script>
 <script>
-    // Sicherheits-Check
     window.onload = function() {
-        try {
-            if (typeof UI === 'undefined') throw new Error("UI.js konnte nicht geladen werden.");
-            if (typeof Game === 'undefined') throw new Error("Game.js konnte nicht geladen werden.");
-            
+        if (typeof UI !== 'undefined' && typeof Game !== 'undefined') {
             UI.init();
             Game.initNewGame();
-        } catch (e) {
-            document.getElementById('error-log').innerHTML += `<br>CRITICAL START ERROR: ${e.message}`;
+        } else {
+            console.error("Module nicht geladen");
         }
     };
 
     window.addEventListener('keydown', (e) => {
-        if (!window.Game || !Game.gameState) return;
-        if (Game.gameState.currentView !== 'map' || Game.gameState.inDialog || Game.gameState.isGameOver) return;
-        if(e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') Game.movePlayer(0, -1);
-        if(e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') Game.movePlayer(0, 1);
-        if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') Game.movePlayer(-1, 0);
-        if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') Game.movePlayer(1, 0);
+        if (window.Game && Game.gameState && Game.gameState.currentView === 'map' && !Game.gameState.inDialog && !Game.gameState.isGameOver) {
+            if(e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') Game.movePlayer(0, -1);
+            if(e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') Game.movePlayer(0, 1);
+            if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') Game.movePlayer(-1, 0);
+            if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') Game.movePlayer(1, 0);
+        }
     });
 </script>
 </body>
