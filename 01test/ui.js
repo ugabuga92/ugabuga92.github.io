@@ -98,6 +98,15 @@ const UI = {
         this.els.hp.textContent = `${Math.round(Game.state.hp)}/${maxHp}`;
         this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`;
         
+        // --- LEVEL UP INDICATOR ---
+        if(Game.state.statPoints > 0) {
+            this.els.btnChar.classList.add('level-up-alert');
+            this.els.btnChar.innerHTML = "CHAR <span class='text-yellow-400'>!</span>";
+        } else {
+            this.els.btnChar.classList.remove('level-up-alert');
+            this.els.btnChar.textContent = "CHAR";
+        }
+
         // --- BUTTONS SPERREN IM KAMPF ---
         const inCombat = Game.state.view === 'combat';
         this.els.btnWiki.disabled = inCombat;
