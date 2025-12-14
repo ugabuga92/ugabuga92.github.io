@@ -37,7 +37,7 @@ const UI = {
 
         window.addEventListener('resize', () => this.handleResize());
         
-        // --- FIX FÜR DEN FEHLER: DIREKTE ZUWEISUNG STATT BIND ---
+        // --- GLOBALE FUNKTIONEN (OHNE BIND) ---
         window.increaseTempStat = (k, b) => UI.increaseTempStat(k, b);
         window.applyStatPoint = () => UI.applyStatPoint();
         window.enterCity = () => UI.enterCity();
@@ -77,14 +77,15 @@ const UI = {
     },
     
     loadView: async function(viewName) {
-        const path = `views/${viewName}.html`; 
+        // Cache-Busting für Views
+        const path = `./views/${viewName}.html?v=${Date.now()}`; 
         try {
             const response = await fetch(path);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return await response.text();
         } catch (error) {
             this.log(`Fehler bei ${path}: ${error.message}`, 'text-red-500');
-            return `<div class="p-4 text-red-500">Fehler beim Laden von View: ${viewName}</div>`;
+            return `<div class="p-4 text-red-500">Konnte View '${viewName}' nicht laden.<br>Pfad: ${path}<br>Fehler: ${error.message}</div>`;
         }
     },
 
