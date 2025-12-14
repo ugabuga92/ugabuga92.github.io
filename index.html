@@ -193,7 +193,7 @@
         <header class="header-bar">
             <div class="flex flex-col sm:flex-row sm:items-baseline gap-1">
                 <div class="font-bold tracking-widest text-lg sm:text-xl leading-none">PIP-BOY 3000 <span class="text-xs align-top opacity-70">MK-V</span></div>
-                <div id="current-zone-display" class="text-xs sm:text-lg opacity-80 leading-none">Ödland</div>
+                <div id="current-zone-display" class="text-xs sm:text-lg opacity-80 leading-none">System initialisiert...</div>
             </div>
             
             <div class="flex items-center gap-1 sm:gap-2">
@@ -209,7 +209,7 @@
             <div id="health-ammo-group" class="flex items-center gap-4">
                 <div class="flex items-center gap-1">
                     <span class="font-bold">TP:</span>
-                    <span id="health-display" class="pip-stat-value">100/100</span>
+                    <span id="health-display" class="pip-stat-value">---/---</span>
                     <div class="w-24 bg-gray-900 h-3 border border-[#1a4d1a]">
                         <div id="hp-bar" class="bg-[#39ff14] h-full" style="width: 100%"></div>
                     </div>
@@ -217,20 +217,20 @@
 
                 <div class="flex items-center gap-1">
                     <span class="font-bold">LVL:</span>
-                    <span id="level-display" class="pip-stat-value">1</span>
+                    <span id="level-display" class="pip-stat-value">---</span>
                 </div>
                 <div class="flex items-center gap-1">
                     <span class="font-bold">EXP:</span>
-                    <span id="exp-current-display" class="pip-stat-value">0</span>
+                    <span id="exp-current-display" class="pip-stat-value">---</span>
                 </div>
                 <div class="flex items-center gap-1">
                     <span class="font-bold">MUN:</span>
-                    <span id="ammo-display" class="pip-stat-value">10</span>
+                    <span id="ammo-display" class="pip-stat-value">---</span>
                 </div>
             </div>
 
             <div id="caps-group" class="text-yellow-400 font-bold text-lg">
-                <span id="caps-display">0 Kronenkorken</span>
+                <span id="caps-display">--- Kronenkorken</span>
             </div>
         </div>
 
@@ -258,7 +258,7 @@
                 </div>
 
                 <div id="action-area" class="flex gap-4 p-2 flex-shrink-0"> 
-                    <div id="movement-container" class="flex-shrink-0">
+                    <div id="movement-container" class="flex-shrink-0" style="visibility: hidden;">
                         <div id="movement-buttons" class="grid grid-cols-3 gap-1 w-32">
                              <div></div>
                              <button class="action-button p-0 h-10 w-10 text-xl" onclick="Game.movePlayer(0, -1)">▲</button>
