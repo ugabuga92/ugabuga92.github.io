@@ -23,8 +23,6 @@ const Game = {
 
     init: function() {
         this.worldData = {};
-        
-        // ZUFÄLLIGE STARTPOSITION (Sichere Zone 1-18, 1-10)
         const startX = Math.floor(Math.random() * (this.MAP_W - 2)) + 1;
         const startY = Math.floor(Math.random() * (this.MAP_H - 2)) + 1;
 
@@ -37,9 +35,9 @@ const Game = {
             view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, explored: {}, 
             tempStatIncrease: {},
             
-            // NEU: AUFGABEN LISTE
+            // NEU: read: false hinzugefügt
             quests: [
-                { id: "q1", title: "Der Weg nach Hause", text: "Willkommen im einsamen Ödland einer längst vergessenen Zeit.\n\nDeine Aufgabe in der freien Wildbahn ist es, den Weg nach Hause zu finden!\n\nViel Erfolg!!!" }
+                { id: "q1", title: "Der Weg nach Hause", text: "Willkommen im einsamen Ödland einer längst vergessenen Zeit.\n\nDeine Aufgabe in der freien Wildbahn ist es, den Weg nach Hause zu finden!\n\nViel Erfolg!!!", read: false }
             ]
         };
         
@@ -84,11 +82,9 @@ const Game = {
             if(sy>0) map[0][10]='G'; if(sy<9) map[this.MAP_H-1][10]='G';
             if(sx>0) map[6][0]='G'; if(sx<9) map[6][this.MAP_W-1]='G';
             
-            // Random Start: Nur wenn wir im Startsektor sind, setzen wir kein V an eine feste Stelle
             if(sx===5 && sy===5) {
-                // Vault unter dem Spieler platzieren
                 map[this.state.player.y][this.state.player.x] = 'V';
-            } else if(Math.random() < 0.3) { // 30% CHANCE FÜR STADT
+            } else if(Math.random() < 0.3) { 
                 map[5][10]='C'; 
             }
             
@@ -209,7 +205,7 @@ const Game = {
                     this.state.enemy.hp = 0;
                     this.state.caps += this.state.enemy.loot;
                     UI.log(`Sieg! ${this.state.enemy.loot} KK.`, "text-yellow-400");
-                    this.gainExp(this.state.enemy.xp[0]); // Einfachheitshalber min XP
+                    this.gainExp(this.state.enemy.xp[0]); 
                     this.endCombat();
                     return;
                 }
