@@ -660,7 +660,10 @@ const Game = {
         canvas = document.getElementById('game-canvas');
         if (!canvas) {
              // Warte, bis die Map View geladen wurde
-             UI.switchView('map', true).then(() => Game.initNewGame());
+             UI.switchView('map', true).then(() => {
+                 // Führe die Initialisierung erneut aus, sobald die View geladen ist
+                 Game.initNewGame(); 
+             });
              return;
         }
 
@@ -678,6 +681,7 @@ const Game = {
         
         UI.handleResize(); 
         UI.updateUI(); 
+        UI.log(`Ziel-Sektor auf (${GOAL_SECTOR.x},${GOAL_SECTOR.y}) festgelegt.`, "text-gray-500");
         UI.log("Neues Spiel gestartet. Du verlässt den Vault.", "text-yellow-400");
     },
     
