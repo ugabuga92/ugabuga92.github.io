@@ -31,11 +31,8 @@ const UI = {
 
         this.els.btnNew.onclick = () => Game.init();
         
-        // --- TOGGLE LOGIK ---
-        // Wenn man auf Wiki klickt und Wiki ist schon offen -> Map
-        // Sonst -> Wiki öffnen
         this.els.btnWiki.onclick = () => this.toggleView('wiki');
-        this.els.btnMap.onclick = () => this.switchView('worldmap'); // Map Button ist speziell (worldmap vs map)
+        this.els.btnMap.onclick = () => this.switchView('worldmap'); 
         this.els.btnChar.onclick = () => this.toggleView('char');
 
         this.els.btnUp.onclick = () => Game.move(0, -1);
@@ -56,7 +53,6 @@ const UI = {
         window.UI = this;
     },
 
-    // Neue Hilfsfunktion für Toggle
     toggleView: function(name) {
         if (Game.state.view === name) {
             this.switchView('map');
@@ -101,7 +97,6 @@ const UI = {
     update: function() {
         if (!Game.state) return;
         
-        // Status Werte
         this.els.lvl.textContent = Game.state.lvl;
         this.els.ammo.textContent = Game.state.ammo;
         this.els.caps.textContent = `${Game.state.caps} KK`;
@@ -115,18 +110,16 @@ const UI = {
         const expPct = Math.min(100, (Game.state.xp / nextXp) * 100);
         if(this.els.expBarTop) this.els.expBarTop.style.width = `${expPct}%`;
         
-        // --- BUTTON HIGHLIGHTING ---
-        // Alle Buttons zurücksetzen
+        // Buttons Highlighting
         this.els.btnWiki.classList.remove('active');
         this.els.btnMap.classList.remove('active');
         this.els.btnChar.classList.remove('active');
 
-        // Aktiven Button markieren
         if (Game.state.view === 'wiki') this.els.btnWiki.classList.add('active');
         if (Game.state.view === 'worldmap') this.els.btnMap.classList.add('active');
         if (Game.state.view === 'char') this.els.btnChar.classList.add('active');
 
-        // Level Up Indicator (übertrumpft das normale Highlighting bei Char)
+        // Level Up Alert
         if(Game.state.statPoints > 0) {
             this.els.btnChar.classList.add('level-up-alert');
             this.els.btnChar.innerHTML = "CHAR <span class='text-yellow-400'>!</span>";
@@ -135,7 +128,6 @@ const UI = {
             this.els.btnChar.textContent = "CHAR";
         }
 
-        // Disable im Kampf
         const inCombat = Game.state.view === 'combat';
         this.els.btnWiki.disabled = inCombat;
         this.els.btnMap.disabled = inCombat;
@@ -194,7 +186,6 @@ const UI = {
     renderChar: function() {
         const grid = document.getElementById('stat-grid');
         if(!grid) return;
-        
         grid.innerHTML = Object.keys(Game.state.stats).map(k => {
             const val = Game.getStat(k);
             const btn = Game.state.statPoints > 0 ? `<button class="border border-green-500 px-1 ml-2" onclick="Game.upgradeStat('${k}')">+</button>` : '';
@@ -220,7 +211,7 @@ const UI = {
         if(!content) return;
         content.innerHTML = Object.keys(Game.monsters).map(k => {
             const m = Game.monsters[k];
-            // Zeige XP Range an
+            // XP Anzeige als Range wenn Array
             const xpText = Array.isArray(m.xp) ? `${m.xp[0]}-${m.xp[1]}` : m.xp;
             return `<div class="border-b border-green-900 pb-1">
                 <div class="font-bold text-yellow-400">${m.name}</div>
@@ -302,7 +293,17 @@ const UI = {
     renderCombat: function() {
         const enemy = Game.state.enemy;
         if(!enemy) return;
-        document.getElementById('enemy-name').textContent = enemy.name;
+        
+        const nameEl = document.getElementById('enemy-name');
+        nameEl.textContent = enemy.name;
+        
+        // --- OPTIK FÜR LEGENDÄRE ---
+        if (enemy.isLegendary) {
+            nameEl.className = "text-3xl font-extrabold mb-2 text-yellow-400 animate-pulse";
+        } else {
+            nameEl.className = "text-3xl font-extrabold text-white mb-2";
+        }
+
         document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`;
         document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`;
     }
