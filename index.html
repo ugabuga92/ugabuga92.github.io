@@ -136,10 +136,13 @@
             filter: blur(5px);
         }
 
+        /* WICHTIG: Das Canvas muss absolute positioniert werden, um vom JS skaliert zu werden */
         #game-canvas {
             image-rendering: pixelated; 
             box-shadow: 0 0 10px rgba(57, 255, 20, 0.1);
             position: absolute;
+            /* Starte mit transform(0,0) und scale(1), wird durch JS korrigiert */
+            transform-origin: top left;
         }
         
         /* --- WORLD MAP STYLES --- */
@@ -495,25 +498,26 @@
     const WORLD_SIZE = 10; // 10x10 Raster
     const START_SECTOR_X = 5;
     const START_SECTOR_Y = 5;
-    // Das Ziel wird zufällig auf den äußeren Rand gelegt
-    const GOAL_SECTOR = { x: 0, y: 0 }; // Wird in initNewGame gesetzt
+    const GOAL_SECTOR = { x: 0, y: 0 }; 
 
+    // Referenzen erst im globalen Scope holen, dann initNewGame() am Ende aufrufen
     const canvas = document.getElementById('game-canvas');
     const ctx = canvas.getContext('2d'); 
 
+    // WICHTIG: Die Canvas-Größe muss hier festgelegt werden, bevor sie in draw() skaliert wird
     canvas.width = MAP_WIDTH * TILE_SIZE;
     canvas.height = MAP_HEIGHT * TILE_SIZE;
     
-    let mapLayout = []; // Die aktuelle 20x12 Karte
-    let worldState = {}; // Speichert die Informationen aller 10x10 Sektoren
-    let animationFrameId = null; // Für den Draw-Loop
+    let mapLayout = []; 
+    let worldState = {}; 
+    let animationFrameId = null; 
 
     
     const mapColors = {
         'V': '#39ff14', 
-        'C': '#7a661f', // Stadt
-        'X': '#ff3914', // Ziel (Goal)
-        'G': '#00ffff', // Tor zum Sektorwechsel
+        'C': '#7a661f', 
+        'X': '#ff3914', 
+        'G': '#00ffff', 
         '.': '#4a3d34', 
         '#': '#8b7d6b', 
         '^': '#5c544d', 
@@ -773,7 +777,6 @@
         const key = getSectorKey(sectorX, sectorY);
         let sectorData = worldState[key];
         
-        // 1. Wenn der Sektor schon existiert, lade seine Layout-Daten
         if (sectorData && sectorData.layout) {
              return { layout: sectorData.layout.map(row => row.split('')), startX: MAP_WIDTH / 2, startY: MAP_HEIGHT / 2 };
         }
@@ -781,7 +784,7 @@
         let newMap = Array(MAP_HEIGHT).fill(0).map(() => Array(MAP_WIDTH).fill('.'));
         const spots = [];
 
-        // 2. Mauern um die Map ziehen
+        // 1. Mauern um die Map ziehen
         for (let y = 0; y < MAP_HEIGHT; y++) {
             newMap[y][0] = '^';
             newMap[y][MAP_WIDTH - 1] = '^';
@@ -791,7 +794,7 @@
             newMap[MAP_HEIGHT - 1][x] = '^';
         }
         
-        // 3. Tore ('G') an den Rändern
+        // 2. Tore ('G') an den Rändern
         
         const placeGate = (x, y, borderIndex) => {
             const range = borderIndex === 0 || borderIndex === 1 ? MAP_WIDTH - 2 : MAP_HEIGHT - 2;
@@ -808,19 +811,18 @@
         }
 
 
-        // 4. Besondere Orte: Vault (V), Ziel (X), Stadt (C)
+        // 3. Besondere Orte: Vault (V), Ziel (X), Stadt (C)
         const minDistance = 5; 
         let hasPOI = false;
         let poiMarkers = [];
 
         if (sectorX === START_SECTOR_X && sectorY === START_SECTOR_Y) {
-            poiMarkers.push('V'); // Nur Vault am Startpunkt
+            poiMarkers.push('V'); 
         }
         if (sectorX === GOAL_SECTOR.x && sectorY === GOAL_SECTOR.y) {
-            poiMarkers.push('X'); // Nur Ziel am Zielpunkt
+            poiMarkers.push('X'); 
         }
         
-        // Städte: 40% Chance auf einer nicht-Vault/Ziel Kachel
         if (poiMarkers.length === 0 && Math.random() < 0.4) {
             poiMarkers.push('C');
         }
@@ -852,8 +854,8 @@
             }
         }
         
-        // 5. Wasser und Pfade (optional)
-        if (!hasPOI) { // Wenn keine POIs, etwas Terrain hinzufügen
+        // 4. Wasser und Pfade (optional)
+        if (!hasPOI) { 
             const waterSize = Math.floor(Math.random() * 2) + 2; 
             const waterStart = { x: Math.floor(Math.random() * (MAP_WIDTH - waterSize - 1)) + 1, 
                                  y: Math.floor(Math.random() * (MAP_HEIGHT - waterSize - 1)) + 1 };
@@ -874,17 +876,17 @@
         };
         worldState[key] = sectorData;
 
-        // Finde einen Startpunkt abseits des Tors und der Mauer
+        // Finde einen Startpunkt
         let startX = Math.floor(MAP_WIDTH / 2);
         let startY = Math.floor(MAP_HEIGHT / 2);
 
-        // Wenn Vault existiert, starte daneben
         const vaultSpot = spots.find(s => s.marker === 'V');
         if (vaultSpot) { startX = vaultSpot.x; startY = vaultSpot.y + 1; }
 
         return { layout: generatedMap, startX, startY };
     }
     
+    // KORRIGIERTER DRAW-LOOP
     function draw() {
         if (gameState.currentView !== 'map' || gameState.isGameOver) {
              if (animationFrameId) {
@@ -897,15 +899,15 @@
         const containerWidth = els.gameView.offsetWidth;
         const containerHeight = els.gameView.offsetHeight;
         
-        let scale, offsetX, offsetY;
+        // Berechnung des Skalierungsfaktors
+        let scaleX = containerWidth / canvas.width;
+        let scaleY = containerHeight / canvas.height;
+        let scale = Math.min(scaleX, scaleY);
         
-        const scaleX = containerWidth / canvas.width;
-        const scaleY = containerHeight / canvas.height;
-        scale = Math.min(scaleX, scaleY);
+        let offsetX = (containerWidth - canvas.width * scale) / 2;
+        let offsetY = (containerHeight - canvas.height * scale) / 2;
         
-        offsetX = (containerWidth - canvas.width * scale) / 2;
-        offsetY = (containerHeight - canvas.height * scale) / 2;
-
+        // Anwendung der Transformation und Zentrierung
         ctx.canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -931,12 +933,13 @@
                     ctx.font = `${TILE_SIZE * 0.4}px 'VT323'`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    let symbol = tile === 'V' ? 'VAULT' : tile === 'C' ? 'CITY' : tile === 'X' ? 'GOAL' : 'GATE';
+                    let symbol = tile === 'V' ? 'VLT' : tile === 'C' ? 'CITY' : tile === 'X' ? 'GOAL' : 'GATE';
                     ctx.fillText(symbol, x * TILE_SIZE + TILE_SIZE/2, y * TILE_SIZE + TILE_SIZE/2);
                 }
             }
         }
         
+        // Spieler zeichnen
         ctx.fillStyle = mapColors.player;
         ctx.beginPath();
         ctx.arc(
@@ -997,13 +1000,13 @@
         const oldViewEl = document.getElementById(gameState.currentView + '-view');
         const newViewEl = document.getElementById(newView + '-view');
         
-        // Alle Navigationsbuttons deaktivieren
         els.charBtn.disabled = true; 
         els.wikiBtn.disabled = true;
         els.mapBtn.disabled = true;
         
         if (oldViewEl) {
             oldViewEl.classList.add('transition-out');
+            // Stoppe den Draw-Loop, wenn die Karte verlassen wird
             if (animationFrameId) {
                 cancelAnimationFrame(animationFrameId);
                 animationFrameId = null;
@@ -1019,7 +1022,6 @@
             gameState.currentView = newView;
             
             setTimeout(() => {
-                // Alle Navigationsbuttons re-aktivieren
                 els.charBtn.disabled = false; 
                 els.wikiBtn.disabled = false;
                 els.mapBtn.disabled = false;
@@ -1028,7 +1030,7 @@
                     els.text.textContent = "Zurück im Ödland.";
                     gameState.currentZone = "Ödland";
                     closeCityDialog();
-                    draw(); // Startet den Loop neu
+                    if (!animationFrameId) draw(); // Startet den Loop neu, falls er gestoppt war
                 } else if (newView === 'worldmap') { 
                     els.text.textContent = "Globalen Sektor-Scan aufgerufen.";
                     gameState.currentZone = "WELTKARTE";
@@ -1152,27 +1154,23 @@
             const nextX = gameState.currentSector.x + dx;
             const nextY = gameState.currentSector.y + dy;
             
-            // Speichere den aktuellen Fortschritt im Sektor (Erkundung)
             const currentSectorKey = getSectorKey(gameState.currentSector.x, gameState.currentSector.y);
             worldState[currentSectorKey].explored = true; 
             
-            // Lade/Generiere den neuen Sektor
             const { layout, startX, startY } = generateRandomMap(nextX, nextY);
             mapLayout = layout.map(row => row.split(''));
             
-            // Setze den Spieler an die korrekte Position
             let newPlayerX = startX;
             let newPlayerY = startY;
-            if (dx === 1) newPlayerX = 1; // Westrand
-            else if (dx === -1) newPlayerX = MAP_WIDTH - 2; // Ostrand
-            else if (dy === 1) newPlayerY = 1; // Nordrand
-            else if (dy === -1) newPlayerY = MAP_HEIGHT - 2; // Südrand
+            if (dx === 1) newPlayerX = 1; 
+            else if (dx === -1) newPlayerX = MAP_WIDTH - 2; 
+            else if (dy === 1) newPlayerY = 1; 
+            else if (dy === -1) newPlayerY = MAP_HEIGHT - 2; 
 
             gameState.currentSector = { x: nextX, y: nextY };
             gameState.player = { x: newPlayerX, y: newPlayerY }; 
-            gameState.explored = {}; // Neue Karte ist unerforscht
+            gameState.explored = {}; 
 
-            // Aktualisiere HP und UI
             gameState.maxHealth = calculateMaxHP(getStat('END'));
 
             els.text.textContent = `Neuer Sektor (${nextX},${nextY})! Die Landschaft ist anders...`;
@@ -1183,7 +1181,6 @@
         } else {
             gameState.inDialog = false;
             els.text.textContent = "Ödland Ebene.";
-            // Wenn der Spieler sich gegen den Wechsel entscheidet, stelle die Position des Spielers auf das Feld vor dem Tor zurück.
             gameState.player.x = playerX;
             gameState.player.y = playerY;
             updateUI();
@@ -1216,15 +1213,13 @@
         }
 
         if (tile === 'G') { 
-            // Berechne die Richtung des Sektorwechsels basierend auf der Position des Tors
             let sectorDx = 0;
             let sectorDy = 0;
-            if (ny === 0) sectorDy = -1; // Nord (Obere Kante)
-            else if (ny === MAP_HEIGHT - 1) sectorDy = 1; // Süd (Untere Kante)
-            else if (nx === 0) sectorDx = -1; // West (Linke Kante)
-            else if (nx === MAP_WIDTH - 1) sectorDx = 1; // Ost (Rechte Kante)
+            if (ny === 0) sectorDy = -1; 
+            else if (ny === MAP_HEIGHT - 1) sectorDy = 1; 
+            else if (nx === 0) sectorDx = -1; 
+            else if (nx === MAP_WIDTH - 1) sectorDx = 1; 
 
-            // Prüfe, ob der Wechsel innerhalb der Weltgrenzen liegt
             const nextX = gameState.currentSector.x + sectorDx;
             const nextY = gameState.currentSector.y + sectorDy;
             
@@ -1233,7 +1228,6 @@
                 return;
             }
 
-            // Der Spieler darf das Tor betreten
             gameState.player.x = nx;
             gameState.player.y = ny;
             revealMap(nx, ny);
@@ -1546,10 +1540,15 @@
         updateUI();
     }
 
+    // WICHTIG: Draw-Loop bei Größenänderung neu starten/anpassen
     function handleResize() {
-        // Stellt sicher, dass draw immer neu startet, wenn es nötig ist
-        if (gameState.currentView === 'map' && !animationFrameId) {
-             draw();
+        if (gameState.currentView === 'map') {
+             // Einmaliges Zeichnen anfordern, um Skalierung anzupassen
+             if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            draw();
         }
         updateUI();
     }
@@ -1584,22 +1583,22 @@
 
     function initNewGame() {
         els.log.innerHTML = '';
-        worldState = {}; // Globaler Zustand der Welt zurücksetzen
+        worldState = {}; 
 
-        // 1. Ziel-Sektor festlegen (eine zufällige äußere Kachel, nicht die Startkachel)
+        // 1. Ziel-Sektor festlegen
         let goalX, goalY;
         do {
-            const edge = Math.floor(Math.random() * 4); // 0=N, 1=S, 2=W, 3=O
-            if (edge === 0) { // N
+            const edge = Math.floor(Math.random() * 4); 
+            if (edge === 0) { 
                 goalY = 0;
                 goalX = Math.floor(Math.random() * (WORLD_SIZE - 2)) + 1;
-            } else if (edge === 1) { // S
+            } else if (edge === 1) { 
                 goalY = WORLD_SIZE - 1;
                 goalX = Math.floor(Math.random() * (WORLD_SIZE - 2)) + 1;
-            } else if (edge === 2) { // W
+            } else if (edge === 2) { 
                 goalX = 0;
                 goalY = Math.floor(Math.random() * (WORLD_SIZE - 2)) + 1;
-            } else { // O
+            } else { 
                 goalX = WORLD_SIZE - 1;
                 goalY = Math.floor(Math.random() * (WORLD_SIZE - 2)) + 1;
             }
@@ -1607,8 +1606,6 @@
         
         GOAL_SECTOR.x = goalX;
         GOAL_SECTOR.y = goalY;
-        // log(`Ziel-Sektor auf (${GOAL_SECTOR.x},${GOAL_SECTOR.y}) festgelegt.`, 'text-blue-400'); // ENTFERNT
-
         
         // 2. Erzeuge die Startkarte (Sektor 5,5)
         const { layout, startX, startY } = generateRandomMap(START_SECTOR_X, START_SECTOR_Y);
@@ -1622,11 +1619,11 @@
             weapon: items.fists
         };
 
-        const initialEndurance = getStat('END'); // Base 5 + Body +1 = 6
+        const initialEndurance = 5 + 1; // Base 5 + Vault Suit 1
         const initialMaxHp = calculateMaxHP(initialEndurance);
 
         gameState = {
-            currentSector: { x: START_SECTOR_X, y: START_SECTOR_Y }, // NEU: Aktueller Sektor
+            currentSector: { x: START_SECTOR_X, y: START_SECTOR_Y }, 
             player: { x: startX, y: startY },
             stats: {...BASE_STATS},
             equipment: initialEquipment,
@@ -1634,7 +1631,7 @@
             maxHealth: initialMaxHp, 
             ammo: 10,
             caps: 50,
-            explored: {}, // Lokale Map-Erkundung (wird bei Sektorwechsel zurückgesetzt)
+            explored: {}, 
             inDialog: false,
             isGameOver: false,
             currentView: 'map', 
@@ -1662,7 +1659,7 @@
         if (animationFrameId) {
              cancelAnimationFrame(animationFrameId);
         }
-        draw(); // Startet den Draw-Loop sofort
+        draw(); // Startet den Draw-Loop
         
         handleResize(); 
         updateUI(); 
@@ -1670,7 +1667,8 @@
     }
 
     // Beim Laden des Skripts initNewGame aufrufen
-    initNewGame(); 
+    // Wichtig: Auf window.onload warten oder Funktion ans Ende des Skripts verschieben.
+    window.onload = initNewGame;
 </script>
 </body>
 </html>
