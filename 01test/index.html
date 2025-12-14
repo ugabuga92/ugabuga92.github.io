@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -12,9 +12,7 @@
         
         #pipboy-case { background-color: #1a1a1a; padding: 10px; border-radius: 20px; box-shadow: inset 0 0 20px #000, 0 0 15px #333; width: 100%; max-width: 1200px; height: 98vh; display: flex; flex-direction: column; }
         #game-screen { background-color: var(--pip-dark); border: 2px solid var(--pip-green); border-radius: 10px; flex-grow: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; }
-        
-        /* CONTAINER FÜR VIEWS */
-        #view-container { width: 100%; flex-grow: 1; display: flex; justify-content: center; align-items: center; background-color: var(--pip-bg); border-bottom: 2px solid var(--pip-green); overflow: hidden; position: relative; }
+        #view-container { width: 100%; flex-grow: 1; display: flex; justify-content: center; align-items: center; background-color: var(--pip-bg); border-bottom: 2px solid var(--pip-green); position: relative; overflow: hidden; }
         
         .header-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; border-bottom: 2px solid var(--pip-green); background: rgba(57, 255, 20, 0.05); flex-shrink: 0; }
         .action-button { background-color: #0f150f; color: var(--pip-green); border: 1px solid var(--pip-green); padding: 5px 10px; margin: 2px; cursor: pointer; text-transform: uppercase; font-size: 1.1rem; transition: all 0.1s; }
@@ -29,44 +27,26 @@
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } }
         .damage-flash { animation: flash-red 0.1s; }
         @keyframes flash-red { 0% { box-shadow: inset 0 0 30px rgba(255, 0, 0, 0.5); } }
-
-        /* --- Grafisches Overlay - CRT & SCANLINE EFFEKTE --- */
-            body::before {
-                content: " ";
-                display: block;
-                position: absolute;
-                top: 0; left: 0; bottom: 0; right: 0;
-                background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-                z-index: 999;
-                background-size: 100% 2px, 3px 100%;
-                pointer-events: none; /* Klicks gehen durch */
-            }
-            
-            #game-screen {
-                /* Fügt einen leichten grünen Schein nach innen hinzu */
-                box-shadow: inset 0 0 5rem rgba(0, 255, 0, 0.1);
-                animation: flicker 0.15s infinite;
-            }
-            
-            @keyframes flicker {
-                0% { opacity: 0.97; }
-                50% { opacity: 1.0; }
-                100% { opacity: 0.98; }
-            }
-       
+        
+        /* Loading Animation */
+        @keyframes blink { 50% { opacity: 0; } }
+        .loading-text { animation: blink 1s infinite; }
     </style>
 </head>
 <body>
 
 <div id="pipboy-case">
     <div id="game-screen">
-        
         <header class="header-bar">
             <div class="flex flex-col sm:flex-row gap-1 w-1/3">
                 <div class="font-bold text-xl leading-none">PIP-BOY 3000 <span class="text-xs opacity-70">MK-V</span></div>
-                <div id="current-zone-display" class="text-xs sm:text-lg opacity-80 leading-none">Systemstart...</div>
+                <div id="current-zone-display" class="text-xs sm:text-lg opacity-80 leading-none">Booting...</div>
             </div>
-            <div class="w-1/3 flex justify-center"><span class="text-yellow-400 font-bold tracking-widest">beta 0.2</span></div>
+            
+            <div class="w-1/3 flex justify-center">
+                <span id="game-version" class="text-yellow-400 font-bold tracking-widest loading-text">CONNECTING...</span>
+            </div>
+            
             <div class="flex items-center justify-end gap-1 w-1/3">
                 <button id="btn-new" class="action-button px-2 py-1 text-xs bg-red-900 border-red-500">NEU</button>
                 <button id="btn-wiki" class="action-button px-2 py-1 text-sm">WIKI</button>
@@ -89,11 +69,12 @@
         <div id="main-content" class="flex flex-grow overflow-hidden">
             <div id="main-panel" class="flex flex-col flex-grow overflow-hidden">
                 <div class="flex flex-col md:flex-row flex-grow overflow-hidden">
-                    
                     <div id="view-container" class="flex-grow md:w-2/3 relative">
-                        <div class="text-green-500 animate-pulse p-10">Lade Module...</div>
+                        <div class="p-10 text-green-500 font-mono">
+                            > SYSTEM CHECK... OK<br>
+                            > LOADING CORE MODULES...
+                        </div>
                     </div>
-                    
                     <div id="log-panel" class="flex flex-col border-t-2 md:border-l-2 border-[#39ff14] md:w-1/3 min-h-[100px] bg-gray-900">
                         <h2 class="bg-[#39ff14] text-black font-bold px-2">LOG</h2>
                         <div id="log-area" class="flex-grow overflow-y-auto p-2 text-sm flex flex-col-reverse font-mono"></div>
@@ -115,17 +96,58 @@
     </div>
 </div>
 
-<script src="ui.js?v=20"></script>
-<script src="game.js?v=20"></script>
 <script>
-    window.onload = () => {
-        if(typeof UI !== 'undefined' && typeof Game !== 'undefined') {
-            UI.init();
-            Game.init();
-        } else {
-            document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%'>FATAL ERROR: Scripte nicht geladen. Prüfe ui.js und game.js</h1>";
-        }
+    window.onload = function() {
+        const versionEl = document.getElementById('game-version');
+        
+        // 1. Hole die Versionsnummer aus der Datei 'Version'
+        // ?t=Date.now() verhindert, dass der Browser die Versionsdatei selbst aus dem Cache lädt
+        fetch('Version?t=' + Date.now())
+            .then(response => {
+                if (!response.ok) throw new Error("Keine Version Datei");
+                return response.text();
+            })
+            .then(ver => {
+                const cleanVer = ver.trim();
+                versionEl.textContent = cleanVer;
+                versionEl.classList.remove('loading-text');
+                
+                console.log("Lade Spiel Version:", cleanVer);
+
+                // 2. Lade ui.js und game.js mit der Versionsnummer als Parameter
+                // Das zwingt den Browser, die neuen Dateien zu laden!
+                return loadScript('ui.js?v=' + cleanVer)
+                    .then(() => loadScript('game.js?v=' + cleanVer));
+            })
+            .then(() => {
+                // 3. Starten
+                if(typeof UI !== 'undefined' && typeof Game !== 'undefined') {
+                    UI.init();
+                    Game.init();
+                } else {
+                    throw new Error("Module nicht initialisiert");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                versionEl.textContent = "OFFLINE MODE";
+                versionEl.style.color = "red";
+                // Notfall: Versuche ohne Version zu laden
+                loadScript('ui.js').then(() => loadScript('game.js')).then(() => {
+                    UI.init(); Game.init();
+                });
+            });
     };
+
+    function loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = src;
+            s.onload = resolve;
+            s.onerror = reject;
+            document.body.appendChild(s);
+        });
+    }
 </script>
 </body>
 </html>
