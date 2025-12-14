@@ -85,8 +85,9 @@
     </div>
 </div>
 
-<script src="ui.js"></script>
-<script src="game.js"></script>
+<script src="ui.js?v=beta2"></script>
+<script src="game.js?v=beta2"></script>
+
 <script>
     window.onload = function() {
         if (typeof UI !== 'undefined' && typeof Game !== 'undefined') {
@@ -94,6 +95,7 @@
             Game.initNewGame();
         } else {
             console.error("Module nicht geladen");
+            document.getElementById('error-log').innerHTML += "Fehler: ui.js oder game.js nicht geladen.<br>";
         }
     };
 
