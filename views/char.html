@@ -1,0 +1,41 @@
+<div id="character-view" class="view justify-start items-start p-2 sm:p-6" style="overflow-y: auto;">
+    <div id="char-display-area" class="w-full flex flex-col items-center">
+        <h1 class="city-header text-center text-3xl mb-4">CHARACTER STATUS</h1>
+        
+        <div class="char-section w-full border border-opacity-30 border-pip-green p-2 mb-4">
+            <h2 class="section-header">LEVEL & EXP</h2>
+            <div class="pip-text text-lg">
+                Level: <span id="level-display-char" class="pip-stat-value">1</span>
+            </div>
+            <div class="pip-text text-sm mb-1">
+                EXP: <span id="exp-display-char" class="pip-stat-value">0</span> / <span id="exp-needed-char" class="pip-stat-value">100</span>
+            </div>
+            <div class="level-bar">
+                <div id="exp-bar" class="level-progress" style="width: 0%"></div>
+            </div>
+            <div class="mt-2 flex justify-between items-center pip-text text-lg">
+                <span>Stat-Punkte: <span id="stat-points-display" class="pip-stat-value text-red-500">0</span></span>
+                <button id="apply-stat-btn" class="action-button px-2 py-1 text-sm disabled:opacity-50" onclick="applyStatPoint()" disabled>ZUWEISEN</button>
+            </div>
+        </div>
+
+        <div class="char-section w-full border border-opacity-30 border-pip-green p-2 mb-4">
+            <h2 class="section-header">S.P.E.C.I.A.L.</h2>
+            <div class="stat-grid grid grid-cols-3 gap-2 text-lg" id="stat-display">
+                </div>
+        </div>
+        
+        <div class="char-section w-full border border-opacity-30 border-pip-green p-2 mb-4">
+            <h2 class="section-header">AUSRÜSTUNG</h2>
+            <div class="pip-text text-lg leading-tight" id="equipment-display">
+                </div>
+        </div>
+        
+        <button class="action-button mt-4 mb-2 w-full max-w-sm" onclick="UI.switchView('map')">Zurück zur Karte</button>
+    </div>
+    <style>
+        .char-section { border: 1px solid var(--pip-dim); padding: 0.5rem; margin-bottom: 1rem; }
+        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem 1rem; font-size: 1.2rem; }
+        .stat-item { display: flex; justify-content: space-between; align-items: center; }
+    </style>
+</div>
