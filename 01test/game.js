@@ -1,13 +1,15 @@
 const Game = {
+    // Config
     TILE: 30, MAP_W: 20, MAP_H: 12,
+    
     colors: { 'V':'#39ff14', 'C':'#7a661f', 'X':'#ff3914', 'G':'#00ffff', '.':'#4a3d34', '#':'#8b7d6b', '^':'#5c544d', '~':'#224f80', 'fog':'#000', 'player':'#ff3914' },
 
-    // XP angepasst für bessere Kurve
+    // NEU: XP RANGES [min, max]
     monsters: {
-        moleRat: { name: "Maulwurfsratte", hp: 30, dmg: 5, xp: 25, loot: 5, minLvl: 1, desc: "Nervige Nager." },
-        mutantRose: { name: "Mutanten Rose", hp: 45, dmg: 15, loot: 15, xp: 50, minLvl: 1, desc: "Dornige Pflanze." },
-        raider: { name: "Raider", hp: 70, dmg: 15, loot: 25, xp: 80, minLvl: 2, desc: "Wahnsinniger." },
-        deathclaw: { name: "Todesklaue", hp: 200, dmg: 50, loot: 100, xp: 500, minLvl: 5, desc: "LAUF!" }
+        moleRat: { name: "Maulwurfsratte", hp: 30, dmg: 5, xp: [20, 30], loot: 5, minLvl: 1, desc: "Nervige Nager." },
+        mutantRose: { name: "Mutanten Rose", hp: 45, dmg: 15, loot: 15, xp: [45, 60], minLvl: 1, desc: "Dornige Pflanze." },
+        raider: { name: "Raider", hp: 70, dmg: 15, loot: 25, xp: [70, 90], minLvl: 2, desc: "Wahnsinniger." },
+        deathclaw: { name: "Todesklaue", hp: 200, dmg: 50, loot: 100, xp: [450, 550], minLvl: 5, desc: "LAUF!" }
     },
 
     items: {
@@ -52,7 +54,6 @@ const Game = {
         return val;
     },
 
-    // NEUE XP KURVE: Pro Level steigt Anforderung um 100
     expToNextLevel: function(l) { return 100 * l; },
 
     gainExp: function(amount) {
@@ -175,6 +176,14 @@ const Game = {
         UI.log(`${template.name} greift an!`, "text-red-500");
     },
 
+    // NEU: HILFSFUNKTION FÜR RANDOM XP
+    getRandomXP: function(xpData) {
+        if (Array.isArray(xpData)) {
+            return Math.floor(Math.random() * (xpData[1] - xpData[0] + 1)) + xpData[0];
+        }
+        return xpData; // Fallback falls kein Array
+    },
+
     combatAction: function(act) {
         if(this.state.isGameOver) return;
         if(!this.state.enemy) return;
@@ -199,7 +208,11 @@ const Game = {
                     this.state.enemy.hp = 0;
                     this.state.caps += this.state.enemy.loot;
                     UI.log(`Sieg! ${this.state.enemy.loot} KK.`, "text-yellow-400");
-                    this.gainExp(this.state.enemy.xp);
+                    
+                    // ZUFALLS XP BERECHNEN UND GEBEN
+                    const randomXp = this.getRandomXP(this.state.enemy.xp);
+                    this.gainExp(randomXp);
+                    
                     this.endCombat();
                     return;
                 }
@@ -266,8 +279,9 @@ const Game = {
         if(this.state.caps >= item.cost) {
             this.state.caps -= item.cost;
             this.state.equip[item.slot] = item;
-            this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
-            if(this.state.hp > this.state.maxHp) this.state.hp = this.state.maxHp;
+            const max = this.calculateMaxHP(this.getStat('END'));
+            this.state.maxHp = max;
+            if(this.state.hp > this.state.maxHp) this.state.hp = max;
             UI.log(`Gekauft: ${item.name}`, "text-green-400");
             UI.renderCity();
             UI.update();
