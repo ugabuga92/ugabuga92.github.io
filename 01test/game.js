@@ -11,15 +11,15 @@ const Game = {
         deathclaw: { name: "Todesklaue", hp: 150, dmg: 45, loot: 50, xp: 300, minLvl: 5, desc: "LAUF!" }
     },
 
-    // Mehr Items für den Händler hinzugefügt
     items: {
         fists: { name: "Fäuste", slot: 'weapon', bonus: {}, cost: 0, requiredLevel: 0 },
         vault_suit: { name: "Vault-Anzug", slot: 'body', bonus: { END: 1 }, cost: 0, requiredLevel: 0 },
         knife: { name: "Messer", slot: 'weapon', bonus: { STR: 1 }, cost: 15, requiredLevel: 1 },
-        pistol: { name: "10mm Pistole", slot: 'weapon', bonus: { AGI: 2 }, cost: 50, requiredLevel: 1 },
+        // Pistole ist jetzt Ranged (Fernkampf)
+        pistol: { name: "10mm Pistole", slot: 'weapon', bonus: { AGI: 2 }, cost: 50, requiredLevel: 1, isRanged: true },
         leather_armor: { name: "Lederharnisch", slot: 'body', bonus: { END: 2 }, cost: 30, requiredLevel: 1 },
         metal_helmet: { name: "Metallhelm", slot: 'head', bonus: { END: 1 }, cost: 20, requiredLevel: 1 },
-        laser_rifle: { name: "Laser-Gewehr", slot: 'weapon', bonus: { PER: 3 }, cost: 300, requiredLevel: 5 },
+        laser_rifle: { name: "Laser-Gewehr", slot: 'weapon', bonus: { PER: 3 }, cost: 300, requiredLevel: 5, isRanged: true },
         combat_armor: { name: "Kampf-Rüstung", slot: 'body', bonus: { END: 4 }, cost: 150, requiredLevel: 5 }
     },
 
@@ -37,10 +37,9 @@ const Game = {
             equip: { weapon: this.items.fists, body: this.items.vault_suit, head: null, feet: null },
             hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0,
             view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, explored: {},
-            tempStatIncrease: {} // Wichtig für Stat-Vergabe
+            tempStatIncrease: {}
         };
         
-        // HP initial berechnen
         this.state.hp = this.calculateMaxHP(this.getStat('END'));
         this.state.maxHp = this.state.hp;
 
@@ -50,16 +49,13 @@ const Game = {
         });
     },
 
-    // --- HILFSFUNKTIONEN (WIEDERHERGESTELLT) ---
     calculateMaxHP: function(end) { return 100 + (end - 5) * 10; },
     
     getStat: function(k) {
         let val = this.state.stats[k] || 0;
-        // Check Equipment
         for(let slot in this.state.equip) {
             if(this.state.equip[slot] && this.state.equip[slot].bonus[k]) val += this.state.equip[slot].bonus[k];
         }
-        // Temp Stat beim Leveln
         if(this.state.tempStatIncrease.key === k) val += 1;
         return val;
     },
@@ -77,16 +73,12 @@ const Game = {
             this.state.statPoints++;
             this.state.xp -= need;
             need = this.expToNextLevel(this.state.lvl);
-            
-            // Heilung bei Level Up
             this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
             this.state.hp = this.state.maxHp;
-            
             UI.log(`LEVEL UP! Level ${this.state.lvl}. +1 Stat-Punkt!`, 'text-yellow-400');
         }
     },
 
-    // --- MAP LOGIK ---
     loadSector: function(sx, sy) {
         const key = `${sx},${sy}`;
         if(!this.worldData[key]) {
@@ -156,8 +148,10 @@ const Game = {
         this.state.player.y = ny;
         this.reveal(nx, ny);
         
+        // Interaktionen
         if(tile === 'G') this.changeSector(nx, ny);
         else if(tile === 'C') UI.switchView('city');
+        else if(tile === 'V') UI.enterVault(); // NEU: Vault Event
         else if(Math.random()<0.1 && tile === '.') this.startCombat();
         UI.update();
     },
@@ -185,12 +179,9 @@ const Game = {
         UI.log(`Sektor: ${sx},${sy}`, "text-blue-400");
     },
 
-    // --- KAMPF ---
     startCombat: function() {
-        // Monster erstellen (Kopie)
         const templates = Object.values(this.monsters).filter(m => this.state.lvl >= m.minLvl);
         const template = templates[Math.floor(Math.random() * templates.length)];
-        
         this.state.enemy = { ...template, maxHp: template.hp };
         this.state.inDialog = true;
         UI.switchView('combat');
@@ -201,13 +192,26 @@ const Game = {
         if(this.state.isGameOver) return;
 
         if(act === 'attack') {
-            // Spieler greift an (Trefferchance 70%)
+            // Check Ammo für Fernkampfwaffen
+            const weapon = this.state.equip.weapon;
+            if(weapon.isRanged) {
+                if(this.state.ammo > 0) {
+                    this.state.ammo--;
+                } else {
+                    UI.log("Klick! Keine Munition!", "text-red-500");
+                    UI.log("Du wechselst auf Fäuste.", "text-yellow-500");
+                    this.state.equip.weapon = this.items.fists;
+                    // Angriff fällt diese Runde aus
+                    this.enemyTurn();
+                    return;
+                }
+            }
+
+            // Spieler Angriff
             if(Math.random() > 0.3) {
-                // Waffenschaden + STR Bonus
                 const weaponDmg = (this.state.equip.weapon.bonus.STR || 0) * 2; 
                 const dmg = 5 + (this.getStat('STR') * 1.5) + weaponDmg;
                 const finalDmg = Math.floor(dmg);
-                
                 this.state.enemy.hp -= finalDmg;
                 UI.log(`Du triffst für ${finalDmg} Schaden!`, "text-green-400");
                 
@@ -216,24 +220,21 @@ const Game = {
                     UI.log(`Sieg! ${this.state.enemy.loot} KK gefunden.`, "text-yellow-400");
                     this.gainExp(this.state.enemy.xp);
                     this.endCombat();
-                    return; // Kampf vorbei, Gegner darf nicht mehr angreifen
+                    return;
                 }
             } else {
                 UI.log("Du hast verfehlt!", "text-gray-400");
             }
-            
-            // Gegner greift an (wenn er noch lebt)
             this.enemyTurn();
 
         } else if (act === 'flee') {
-            // Flucht Logik: AGI basierend
             const chance = 0.4 + (this.getStat('AGI') * 0.05);
             if(Math.random() < chance) {
                 UI.log("Erfolgreich geflohen!", "text-green-400");
                 this.endCombat();
             } else {
                 UI.log("Flucht fehlgeschlagen!", "text-red-500");
-                this.enemyTurn(); // Strafe: Gegner greift an
+                this.enemyTurn();
             }
         }
         
@@ -242,15 +243,11 @@ const Game = {
     },
 
     enemyTurn: function() {
-        // Gegner trifft zu 80%
         if(Math.random() < 0.8) {
-            // Schaden minus Rüstung
             const armor = (this.getStat('END') * 0.5); 
             const dmg = Math.max(1, Math.floor(this.state.enemy.dmg - armor));
-            
             this.state.hp -= dmg;
             UI.log(`${this.state.enemy.name} trifft dich für ${dmg} TP!`, "text-red-400");
-            
             this.checkDeath();
         } else {
             UI.log(`${this.state.enemy.name} verfehlt dich.`, "text-gray-500");
@@ -261,9 +258,7 @@ const Game = {
         if(this.state.hp <= 0) {
             this.state.hp = 0;
             this.state.isGameOver = true;
-            UI.log("KRITISCHER STATUS: LEBENSZEICHEN ERLOSCHEN.", "text-red-700 font-bold");
-            UI.renderCombat(); // Update HP display
-            setTimeout(() => alert("DU BIST GESTORBEN. Lade die Seite neu."), 100);
+            UI.showGameOver(); // NEU: Ruft das Overlay auf
         }
     },
 
@@ -276,8 +271,26 @@ const Game = {
     heal: function() {
         if(this.state.caps >= 25) {
             this.state.caps -= 25;
-            this.state.hp = this.calculateMaxHP(this.getStat('END'));
+            this.rest(); // Benutze Rest Logik für Full Heal
             UI.log("Vollständig geheilt.", "text-green-500");
+        } else {
+            UI.log("Nicht genug Kronenkorken.", "text-red-500");
+        }
+    },
+
+    // NEU: Ausruhen (Gratis Full Heal)
+    rest: function() {
+        this.state.hp = this.state.maxHp;
+        UI.log("Du fühlst dich wie neu geboren.", "text-blue-400 font-bold");
+        UI.update();
+    },
+
+    // NEU: Munition kaufen
+    buyAmmo: function() {
+        if(this.state.caps >= 10) {
+            this.state.caps -= 10;
+            this.state.ammo += 10;
+            UI.log("10 Patronen gekauft.", "text-green-400");
             UI.update();
         } else {
             UI.log("Nicht genug Kronenkorken.", "text-red-500");
@@ -288,12 +301,9 @@ const Game = {
         if(this.state.statPoints > 0) {
             this.state.stats[key]++;
             this.state.statPoints--;
-            
-            // Recalculate HP if END changed
             if(key === 'END') {
                 this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
             }
-            
             UI.renderChar();
             UI.update();
         }
@@ -304,13 +314,10 @@ const Game = {
         if(this.state.caps >= item.cost) {
             this.state.caps -= item.cost;
             this.state.equip[item.slot] = item;
-            
-            // Update Stats (HP might change via END)
             this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
             if(this.state.hp > this.state.maxHp) this.state.hp = this.state.maxHp;
-            
-            UI.log(`${item.name} gekauft und ausgerüstet!`, "text-green-400");
-            UI.renderCity(); // Shop refreshen
+            UI.log(`${item.name} gekauft!`, "text-green-400");
+            UI.renderCity(); 
             UI.update();
         } else {
             UI.log("Zu wenig Kronenkorken.", "text-red-500");
