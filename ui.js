@@ -2,7 +2,6 @@ const UI = {
     els: {},
     
     init: function() {
-        // Elemente holen
         this.els = {
             hp: document.getElementById('health-display'),
             hpBar: document.getElementById('hp-bar'),
@@ -15,7 +14,6 @@ const UI = {
             moveContainer: document.getElementById('movement-container'),
             viewContentArea: document.getElementById('view-content-area'),
             
-            // Buttons
             newGameBtn: document.getElementById('new-game-btn'),
             wikiBtn: document.getElementById('wiki-btn'),
             mapBtn: document.getElementById('map-btn'),
@@ -27,17 +25,20 @@ const UI = {
             expCurrentDisplay: document.getElementById('exp-current-display'), 
         };
 
-        // Event Listener sicher anhängen
+        // Event Listener
         if(this.els.newGameBtn) this.els.newGameBtn.onclick = () => Game.initNewGame();
         if(this.els.quitBtn) this.els.quitBtn.onclick = () => Game.quitGame();
         if(this.els.wikiBtn) this.els.wikiBtn.onclick = () => this.switchView('wiki');
         if(this.els.mapBtn) this.els.mapBtn.onclick = () => this.switchView('worldmap');
-        if(this.els.charBtn) this.els.charBtn.onclick = () => this.switchView('character');
+        
+        // KORREKTUR: switchView('char') statt 'character', da die Datei char.html heißt
+        if(this.els.charBtn) this.els.charBtn.onclick = () => this.switchView('char');
+        
         if(this.els.restart) this.els.restart.onclick = () => Game.initNewGame();
 
         window.addEventListener('resize', () => this.handleResize());
         
-        // --- GLOBALE FUNKTIONEN (OHNE BIND) ---
+        // Globale Wrapper
         window.increaseTempStat = (k, b) => UI.increaseTempStat(k, b);
         window.applyStatPoint = () => UI.applyStatPoint();
         window.enterCity = () => UI.enterCity();
@@ -68,7 +69,7 @@ const UI = {
         if(this.els.caps) this.els.caps.textContent = `${Game.gameState.caps} KK`;
         if(this.els.zoneDisplay) this.els.zoneDisplay.textContent = Game.gameState.currentZone;
 
-        if (Game.gameState.currentView === 'character') this.updateCharView(maxHp);
+        if (Game.gameState.currentView === 'char') this.updateCharView(maxHp); // Auch hier 'char'
         if (Game.gameState.currentView === 'combat') this.updateCombatView();
 
         const showControls = !Game.gameState.inDialog && !Game.gameState.isGameOver && Game.gameState.currentView === 'map';
@@ -77,7 +78,7 @@ const UI = {
     },
     
     loadView: async function(viewName) {
-        // Cache-Busting für Views
+        // Cache Busting für Views
         const path = `./views/${viewName}.html?v=${Date.now()}`; 
         try {
             const response = await fetch(path);
@@ -85,7 +86,7 @@ const UI = {
             return await response.text();
         } catch (error) {
             this.log(`Fehler bei ${path}: ${error.message}`, 'text-red-500');
-            return `<div class="p-4 text-red-500">Konnte View '${viewName}' nicht laden.<br>Pfad: ${path}<br>Fehler: ${error.message}</div>`;
+            return `<div class="p-4 text-red-500">Konnte View '${viewName}' nicht laden.<br>Fehler: ${error.message}</div>`;
         }
     },
 
@@ -118,7 +119,7 @@ const UI = {
         } else if (newView === 'city') {
             Game.gameState.currentZone = "Stadt";
             this.enterCity();
-        } else if (newView === 'character') {
+        } else if (newView === 'char') { // KORREKTUR: 'char'
             Game.gameState.currentZone = "Status";
             this.updateCharView(Game.calculateMaxHP(Game.getStat('END')));
         } else if (newView === 'wiki') {
@@ -130,8 +131,24 @@ const UI = {
         this.updateUI();
     },
     
+    // --- DIALOG & BUTTONS ---
+    // Diese Funktion war in der Fehlermeldung als "undefined" markiert. Sie ist hier definitiv vorhanden.
+    setDialogButtons: function(html) {
+        if(this.els.btns) {
+            this.els.btns.innerHTML = html;
+            this.els.btns.style.display = 'flex';
+            Game.gameState.inDialog = true;
+            this.updateUI();
+        } else {
+            console.error("Button Container nicht gefunden!");
+        }
+    },
+
     clearDialog: function() {
-        if(this.els.btns) this.els.btns.innerHTML = '';
+        if(this.els.btns) {
+            this.els.btns.innerHTML = '';
+            this.els.btns.style.display = 'none';
+        }
         const cityHeader = document.querySelector('.city-header');
         if (cityHeader) cityHeader.textContent = "RUSTY SPRINGS";
         Game.gameState.inDialog = false;
@@ -154,7 +171,7 @@ const UI = {
 
     updateCharView: function(maxHp) {
         const statsEl = document.getElementById('stat-display');
-        if (!statsEl) return;
+        if (!statsEl) return; // View noch nicht geladen
 
         document.getElementById('level-display-char').textContent = Game.gameState.level;
         document.getElementById('exp-display-char').textContent = Game.gameState.exp;
