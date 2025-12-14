@@ -70,7 +70,7 @@ const Game = {
     mapColors: mapColors,
     animationFrameId: animationFrameId,
     
-    // Hilfsfunktionen (ausgelagert aus der Hauptdatei)
+    // Hilfsfunktionen
     calculateMaxHP: function(endurance) {
         return 100 + (endurance - 5) * 10;
     },
@@ -125,7 +125,6 @@ const Game = {
         let sectorData = Game.worldState[key];
         
         if (sectorData && sectorData.layout) {
-             // Konvertiere die Layout-Zeichenkette zurück in ein Array von Arrays
              return { layout: sectorData.layout.map(row => row.split('')), startX: MAP_WIDTH / 2, startY: MAP_HEIGHT / 2 };
         }
         
@@ -147,14 +146,14 @@ const Game = {
             const range = borderIndex === 0 || borderIndex === 1 ? MAP_WIDTH - 2 : MAP_HEIGHT - 2;
             const pos = Math.floor(Math.random() * range) + 1;
             
-            if (borderIndex === 0 && sectorY > 0) newMap[0][pos] = 'G'; // Oben (nach Nord)
-            if (borderIndex === 1 && sectorY < WORLD_SIZE - 1) newMap[MAP_HEIGHT - 1][pos] = 'G'; // Unten (nach Süd)
-            if (borderIndex === 2 && sectorX > 0) newMap[pos][0] = 'G'; // Links (nach West)
-            if (borderIndex === 3 && sectorX < WORLD_SIZE - 1) newMap[pos][MAP_WIDTH - 1] = 'G'; // Rechts (nach Ost)
+            if (borderIndex === 0 && sectorY > 0) newMap[0][pos] = 'G'; // Oben
+            if (borderIndex === 1 && sectorY < WORLD_SIZE - 1) newMap[MAP_HEIGHT - 1][pos] = 'G'; // Unten
+            if (borderIndex === 2 && sectorX > 0) newMap[pos][0] = 'G'; // Links
+            if (borderIndex === 3 && sectorX < WORLD_SIZE - 1) newMap[pos][MAP_WIDTH - 1] = 'G'; // Rechts
         };
         for (let i = 0; i < 4; i++) { placeGate(i); }
 
-        // 3. Besondere Orte: Vault (V), Ziel (X), Stadt (C)
+        // 3. Besondere Orte
         const minDistance = 5; 
         let hasPOI = false;
         let poiMarkers = [];
@@ -187,7 +186,7 @@ const Game = {
             }
         }
         
-        // 4. Wasser und Pfade (optional)
+        // 4. Wasser und Pfade
         if (!hasPOI) { 
             const waterSize = Math.floor(Math.random() * 2) + 2; 
             const waterStart = { x: Math.floor(Math.random() * (MAP_WIDTH - waterSize - 1)) + 1, 
@@ -200,7 +199,6 @@ const Game = {
             }
         }
 
-        // Speichern als String-Array, um die Datenstruktur sauber zu halten
         const generatedMap = newMap.map(row => row.join(''));
         
         sectorData = {
@@ -210,10 +208,8 @@ const Game = {
         };
         Game.worldState[key] = sectorData;
 
-        // Finde einen Startpunkt
         let startX = Math.floor(MAP_WIDTH / 2);
         let startY = Math.floor(MAP_HEIGHT / 2);
-
         const vaultSpot = spots.find(s => s.marker === 'V');
         if (vaultSpot) { startX = vaultSpot.x; startY = vaultSpot.y + 1; }
 
@@ -369,7 +365,6 @@ const Game = {
             
             let newPlayerX = mapResult.startX;
             let newPlayerY = mapResult.startY;
-            // Position am Tor korrigieren
             if (dx === 1) newPlayerX = 1; 
             else if (dx === -1) newPlayerX = MAP_WIDTH - 2; 
             else if (dy === 1) newPlayerY = 1; 
@@ -485,7 +480,6 @@ const Game = {
         let currentWeapon = Game.gameState.equipment.weapon;
         const isRanged = currentWeapon.isRanged;
         
-        // Munitionscheck
         if (isRanged && Game.gameState.ammo <= 0) {
             if (currentWeapon.name !== 'Fäuste') {
                 Game.gameState.originalWeaponDuringCombat = currentWeapon;
@@ -499,7 +493,6 @@ const Game = {
             Game.gameState.ammo--;
         }
 
-        // Spieler greift an
         const weaponBonusDamage = currentWeapon.bonus.STR || currentWeapon.bonus.AGI || 0;
         const playerDamage = Game.getStat('AGI') * 3 + Math.floor(Math.random() * Game.getStat('STR')) + weaponBonusDamage * 5;
         
@@ -523,7 +516,6 @@ const Game = {
             return;
         }
 
-        // Gegner greift an
         const defense = Game.getStat('END') * 2;
         const rawEnemyDamage = Game.gameState.currentEnemy.damage;
         const actualDamage = Math.max(1, rawEnemyDamage - defense); 
@@ -569,10 +561,8 @@ const Game = {
         if (Game.gameState.originalWeaponDuringCombat) {
             Game.gameState.equipment.weapon = Game.gameState.originalWeaponDuringCombat;
             Game.gameState.originalWeaponDuringCombat = null;
-            
             const newMaxHp = Game.calculateMaxHP(Game.getStat('END'));
             Game.gameState.maxHealth = newMaxHp;
-            
             UI.log(`Zurück zur Waffe: ${Game.gameState.equipment.weapon.name}.`, 'text-green-500');
         }
 
@@ -582,7 +572,6 @@ const Game = {
         UI.els.text.textContent = "Ödland Ebene.";
         
         if(Game.gameState.currentView === 'combat') {
-            // WICHTIG: Auf Umschalten warten, BEVOR UI aktualisiert wird, um D-Pad zu zeigen
             UI.switchView('map').then(() => { 
                  UI.updateUI(); 
             });
@@ -614,104 +603,4 @@ const Game = {
         do {
             const edge = Math.floor(Math.random() * 4); 
             if (edge === 0) { goalY = 0; goalX = Math.floor(Math.random() * (WORLD_SIZE - 2)) + 1; } 
-            else if (edge === 1) { goalY = WORLD_SIZE - 1; goalX = Math.floor(Math.random() * (WORLD_SIZE - 2)) + 1; } 
-            else if (edge === 2) { goalX = 0; goalY = Math.floor(Math.random() * (WORLD_SIZE - 2)) + 1; } 
-            else { goalX = WORLD_SIZE - 1; goalY = Math.floor(Math.random() * (WORLD_SIZE - 2)) + 1; }
-        } while (goalX === START_SECTOR_X && goalY === START_SECTOR_Y);
-        
-        GOAL_SECTOR.x = goalX;
-        GOAL_SECTOR.y = goalY;
-        
-        // 2. Erzeuge die Startkarte (Sektor 5,5)
-        const mapResult = Game.generateRandomMap(START_SECTOR_X, START_SECTOR_Y);
-        mapLayout = mapResult.layout;
-
-        // 3. Initialisiere GameState
-        const initialEquipment = { 
-            head: Game.items.none_head, 
-            body: Game.items.armor_vault, 
-            feet: Game.items.none_feet,
-            weapon: Game.items.fists
-        };
-
-        const initialEndurance = 5 + 1; 
-        const initialMaxHp = Game.calculateMaxHP(initialEndurance);
-
-        Game.gameState = {
-            currentSector: { x: START_SECTOR_X, y: START_SECTOR_Y }, 
-            player: { x: mapResult.startX, y: mapResult.startY },
-            stats: {...BASE_STATS},
-            equipment: initialEquipment,
-            health: initialMaxHp, 
-            maxHealth: initialMaxHp, 
-            ammo: 10,
-            caps: 50,
-            explored: {}, 
-            inDialog: false,
-            isGameOver: false,
-            currentView: 'map', 
-            currentZone: "Ödland",
-            currentEnemy: null,
-            level: 1,
-            exp: 0,
-            statPoints: 0,
-            tempStatIncrease: {},
-            originalWeaponDuringCombat: null 
-        };
-        
-        // 4. Initialisiere Canvas
-        canvas = document.getElementById('game-canvas');
-        if (!canvas) {
-             // WICHTIG: Wenn Canvas nicht gefunden, lade View und rufe initNewGame erneut auf.
-             // Die `UI.switchView` wartet, bis die View im DOM ist, und löst DANN das Promise auf.
-             UI.switchView('map', true).then(() => {
-                 Game.initNewGame(); 
-             }).catch(err => UI.log(`Initialisierungsfehler beim Canvas: ${err}`, "text-red-700"));
-             return;
-        }
-        
-        // Jetzt, da Canvas im DOM ist, initialisiere den Kontext
-        ctx = canvas.getContext('2d');
-        if (!ctx) {
-            UI.log("FEHLER: Konnte 2D-Context des Canvas nicht erstellen.", "text-red-700");
-            return;
-        }
-
-        canvas.width = MAP_WIDTH * TILE_SIZE;
-        canvas.height = MAP_HEIGHT * TILE_SIZE;
-        
-        // 5. Spiel starten
-        Game.revealMap(Game.gameState.player.x, Game.gameState.player.y);
-        
-        if (Game.animationFrameId) {
-             cancelAnimationFrame(Game.animationFrameId);
-        }
-        Game.draw(); 
-        
-        UI.handleResize(); 
-        UI.updateUI(); 
-        UI.log(`Ziel-Sektor auf (${GOAL_SECTOR.x},${GOAL_SECTOR.y}) festgelegt.`, "text-gray-500");
-        UI.log("Neues Spiel gestartet. Du verlässt den Vault.", "text-yellow-400");
-    },
-    
-    quitGame: function(isDeath = false) {
-        if (Game.gameState.isGameOver) return;
-        
-        Game.gameState.isGameOver = true;
-        Game.gameState.health = Math.max(0, Game.gameState.health);
-        
-        if (isDeath) {
-            UI.els.text.innerHTML = "<b>STATUS: KRITISCH</b>";
-            UI.log("SYSTEMAUSFALL. Das Ödland hat dich verschluckt.", "text-red-700");
-        } else {
-            UI.els.text.innerHTML = "<b>SPIEL BEENDET</b>.";
-            UI.log("Spiel manuell beendet. Starte neu, um fortzufahren.", "text-gray-500");
-        }
-        
-        Game.endCombat(); 
-        UI.updateUI();
-    },
-};
-
-// Exportiere Game, damit es global zugänglich ist
-window.Game = Game;
+            else if (edge
