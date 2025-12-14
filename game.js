@@ -19,6 +19,20 @@ const Game = {
         pistol: { name: "10mm Pistole", slot: 'weapon', bonus: { AGI: 2 }, requiredLevel: 1, cost: 50, isRanged: true }
     },
 
+    // --- FARBEN REPARIERT (Hex statt CSS Var) ---
+    mapColors: {
+        'V': '#39ff14', 
+        'C': '#7a661f', 
+        'X': '#ff3914', 
+        'G': '#00ffff', 
+        '.': '#4a3d34', // War vorher var(--color-arid) -> Fehler!
+        '#': '#8b7d6b', // War vorher var(--color-path) -> Fehler!
+        '^': '#5c544d', // War vorher var(--color-rock) -> Fehler!
+        '~': '#224f80', // War vorher var(--color-water) -> Fehler!
+        'fog': '#000000', 
+        'player': '#ff3914' 
+    },
+
     calculateMaxHP: function(end) { return 100 + (end - 5) * 10; },
     getStat: function(k) { return (this.gameState.stats[k] || 0) + (this.gameState.tempStatIncrease.key === k ? 1 : 0) + (this.gameState.equipment.body.bonus[k] || 0); },
     expToNextLevel: function(l) { return 100 + l * 50; },
@@ -81,7 +95,7 @@ const Game = {
         this.ctx.canvas.style.transform = `translate(${ox}px, ${oy}px) scale(${scale})`;
         this.ctx.canvas.style.transformOrigin = "top left";
         
-        // HINTERGRUND SCHWARZ FÜLLEN (gegen roten Bildschirm)
+        // Hintergrund schwarz löschen
         this.ctx.fillStyle = '#000000';
         this.ctx.fillRect(0, 0, MAP_WIDTH*TILE_SIZE, MAP_HEIGHT*TILE_SIZE);
 
@@ -89,20 +103,43 @@ const Game = {
         for(let y=0; y<MAP_HEIGHT; y++) {
             for(let x=0; x<MAP_WIDTH; x++) {
                 const t = this.mapLayout[y][x];
-                this.ctx.fillStyle = (t === '.') ? '#4a3d34' : (t === '^') ? '#5c544d' : (t === 'C') ? '#7a661f' : '#000';
+                
+                // Hier verwenden wir jetzt die korrekten Hex-Farben
+                let color = this.mapColors[t] || '#000000'; 
+                
+                // Nebel des Krieges
+                if (!this.gameState.explored[`${x},${y}`]) {
+                    color = this.mapColors['fog'];
+                }
+
+                this.ctx.fillStyle = color;
+                this.ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
                 
                 if(this.gameState.explored[`${x},${y}`]) {
-                    this.ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
                     this.ctx.strokeStyle = '#222';
                     this.ctx.strokeRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
-                    if(t === 'C') { this.ctx.fillStyle='#fff'; this.ctx.fillText("CITY", x*TILE_SIZE+2, y*TILE_SIZE+15); }
-                    if(t === 'G') { this.ctx.fillStyle='#0ff'; this.ctx.fillText("GATE", x*TILE_SIZE+2, y*TILE_SIZE+15); }
+                    
+                    if(t === 'C') { 
+                        this.ctx.fillStyle='#fff'; 
+                        this.ctx.font = '10px monospace';
+                        this.ctx.fillText("CITY", x*TILE_SIZE+2, y*TILE_SIZE+15); 
+                    }
+                    if(t === 'G') { 
+                        this.ctx.fillStyle='#000'; 
+                        this.ctx.font = '10px monospace';
+                        this.ctx.fillText("GATE", x*TILE_SIZE+2, y*TILE_SIZE+15); 
+                    }
+                    if(t === 'V') { 
+                        this.ctx.fillStyle='#000'; 
+                        this.ctx.font = '10px monospace';
+                        this.ctx.fillText("VLT", x*TILE_SIZE+5, y*TILE_SIZE+15); 
+                    }
                 }
             }
         }
 
         // Spieler
-        this.ctx.fillStyle = '#ff3914';
+        this.ctx.fillStyle = this.mapColors['player'];
         this.ctx.beginPath();
         this.ctx.arc(this.gameState.player.x*TILE_SIZE + 15, this.gameState.player.y*TILE_SIZE + 15, 10, 0, Math.PI*2);
         this.ctx.fill();
