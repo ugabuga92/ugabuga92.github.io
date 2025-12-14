@@ -1,11 +1,7 @@
-// ui.js
-// Enthält alle DOM-Referenzen, UI-Aktualisierungslogik und View-Management.
-
 const UI = {
     els: {},
     
     init: function() {
-        // Initiiere alle DOM-Referenzen einmalig
         this.els = {
             hp: document.getElementById('health-display'),
             hpBar: document.getElementById('hp-bar'),
@@ -16,540 +12,259 @@ const UI = {
             log: document.getElementById('log-area'),
             restart: document.getElementById('restart-button'),
             moveContainer: document.getElementById('movement-container'),
-            pipBoyCase: document.getElementById('pipboy-case'),
-            gameScreen: document.getElementById('game-screen'),
-            viewContentArea: document.getElementById('view-content-area'), 
+            viewContentArea: document.getElementById('view-content-area'),
             
-            charBtn: document.getElementById('char-btn'),
-            mapBtn: document.getElementById('map-btn'), 
-            wikiBtn: document.getElementById('wiki-btn'),
+            // Buttons sicher abrufen
             newGameBtn: document.getElementById('new-game-btn'),
-            quitBtn: document.getElementById('quit-btn'),
+            wikiBtn: document.getElementById('wiki-btn'),
+            mapBtn: document.getElementById('map-btn'),
+            charBtn: document.getElementById('char-btn'),
             
             zoneDisplay: document.getElementById('current-zone-display'),
             levelDisplay: document.getElementById('level-display'),
             expCurrentDisplay: document.getElementById('exp-current-display'), 
         };
+
+        // Event Listeners (Sicher)
+        this.els.newGameBtn?.addEventListener('click', () => Game.initNewGame());
+        this.els.wikiBtn?.addEventListener('click', () => this.switchView('wiki'));
+        this.els.mapBtn?.addEventListener('click', () => this.switchView('worldmap'));
+        this.els.charBtn?.addEventListener('click', () => this.switchView('character'));
+
+        window.addEventListener('resize', () => this.handleResize());
         
-        // Event Listener für die Header-Buttons (Fix für defekte Buttons)
-        if (this.els.newGameBtn) this.els.newGameBtn.addEventListener('click', () => Game.initNewGame());
-        if (this.els.quitBtn) this.els.quitBtn.addEventListener('click', () => Game.quitGame());
-        if (this.els.wikiBtn) this.els.wikiBtn.addEventListener('click', () => this.switchView('wiki'));
-        if (this.els.mapBtn) this.els.mapBtn.addEventListener('click', () => this.switchView('worldmap'));
-        if (this.els.charBtn) this.els.charBtn.addEventListener('click', () => this.switchView('character'));
-        if (this.els.restart) this.els.restart.addEventListener('click', () => Game.initNewGame());
-
-        window.addEventListener('resize', this.handleResize.bind(this));
-        window.addEventListener('orientationchange', this.handleResize.bind(this));
-
-        // Erstelle globale Funktionen für die Views (Stat-Buttons, City-Actions)
+        // Globale Hilfsfunktionen für Inline-HTML
         window.increaseTempStat = this.increaseTempStat.bind(this);
         window.applyStatPoint = this.applyStatPoint.bind(this);
         window.enterCity = this.enterCity.bind(this);
         window.showBuyMenu = this.showBuyMenu.bind(this);
         window.showWiki = this.showWiki.bind(this);
         window.showMonsterDetails = this.showMonsterDetails.bind(this);
-        window.showWorldMap = this.showWorldMap.bind(this); 
     },
     
     log: function(msg, colorClass = '') {
+        if (!this.els.log) return;
         const div = document.createElement('div');
-        div.className = `mb-1 ${colorClass} pip-text`;
+        div.className = `mb-1 ${colorClass}`;
         div.innerHTML = `> ${msg}`;
         this.els.log.insertBefore(div, this.els.log.firstChild); 
     },
     
     updateUI: function() {
-        if (!Game.gameState.level) return; // Warten auf Initialisierung
+        if (!Game.gameState || !Game.gameState.level) return;
 
-        const currentMaxHp = Game.calculateMaxHP(Game.getStat('END'));
+        const maxHp = Game.calculateMaxHP(Game.getStat('END'));
+        const hpPercent = Math.max(0, (Game.gameState.health / maxHp) * 100); 
         
-        // Header Status Bar
-        this.els.levelDisplay.textContent = Game.gameState.level;
-        this.els.expCurrentDisplay.textContent = Game.gameState.exp;
-        this.els.hp.textContent = `${Math.round(Game.gameState.health)}/${currentMaxHp}`; 
-        const hpPercent = Math.max(0, (Game.gameState.health / currentMaxHp) * 100); 
-        this.els.hpBar.style.width = `${hpPercent}%`;
-        this.els.hpBar.className = Game.gameState.health < (currentMaxHp * 0.3) ? 'bg-red-500 h-full' : 'bg-[#39ff14] h-full';
-        
-        this.els.ammo.textContent = Game.gameState.ammo;
-        this.els.caps.textContent = `${Game.gameState.caps} Kronenkorken`;
-        this.els.zoneDisplay.textContent = `${Game.gameState.currentZone} (${Game.gameState.currentSector.x},${Game.gameState.currentSector.y})`;
+        if(this.els.hp) this.els.hp.textContent = `${Math.round(Game.gameState.health)}/${maxHp}`;
+        if(this.els.hpBar) this.els.hpBar.style.width = `${hpPercent}%`;
+        if(this.els.levelDisplay) this.els.levelDisplay.textContent = Game.gameState.level;
+        if(this.els.expCurrentDisplay) this.els.expCurrentDisplay.textContent = Game.gameState.exp;
+        if(this.els.ammo) this.els.ammo.textContent = Game.gameState.ammo;
+        if(this.els.caps) this.els.caps.textContent = `${Game.gameState.caps} KK`;
+        if(this.els.zoneDisplay) this.els.zoneDisplay.textContent = Game.gameState.currentZone;
 
-        // View-spezifische Updates
-        const currentView = document.getElementById(Game.gameState.currentView + '-view');
-        
-        if (currentView) {
-            switch (Game.gameState.currentView) {
-                case 'character':
-                    this.updateCharView(currentMaxHp);
-                    break;
-                case 'combat':
-                    this.updateCombatView();
-                    break;
-                case 'wiki':
-                    // Wiki muss nur bei switchView aktualisiert werden
-                    break;
-                case 'worldmap':
-                    // Worldmap muss nur bei switchView aktualisiert werden
-                    break;
-            }
-        }
+        // View Updates
+        if (Game.gameState.currentView === 'character') this.updateCharView(maxHp);
+        if (Game.gameState.currentView === 'combat') this.updateCombatView();
 
-        // Steuerung und Game Over
-        const isControlHidden = Game.gameState.inDialog || Game.gameState.isGameOver || Game.gameState.currentView !== 'map';
-        
-        if (this.els.moveContainer) {
-            this.els.moveContainer.style.visibility = isControlHidden ? 'hidden' : 'visible';
-        }
-        
-        this.els.btns.style.display = Game.gameState.inDialog ? 'flex' : 'none'; 
-        this.els.restart.style.display = Game.gameState.isGameOver ? 'block' : 'none';
-
-        // Stellt sicher, dass die Stat-Buttons in der Char-Ansicht sichtbar sind
-        if (Game.gameState.currentView === 'character' && Game.gameState.statPoints > 0) {
-            this.updateCharView(currentMaxHp);
-        }
+        // Sichtbarkeit der Steuerung
+        const showControls = !Game.gameState.inDialog && !Game.gameState.isGameOver && Game.gameState.currentView === 'map';
+        if (this.els.moveContainer) this.els.moveContainer.style.visibility = showControls ? 'visible' : 'hidden';
+        if (this.els.btns) this.els.btns.style.display = Game.gameState.inDialog ? 'flex' : 'none';
     },
     
-    // --- VIEW MANAGEMENT ---
     loadView: async function(viewName) {
-        const path = `views/${viewName}.html`; 
+        // Pfad: ./views/name.html
+        const path = `./views/${viewName}.html`; 
         try {
             const response = await fetch(path);
-            if (!response.ok) throw new Error(`View ${path} not found. Status: ${response.status}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return await response.text();
         } catch (error) {
-            this.log(`FEHLER beim Laden der View ${viewName}: ${error.message}`, 'text-red-500');
-            return `<div id="${viewName}-view" class="view justify-center items-center text-red-500" style="display: flex;">FEHLER: View ${viewName} konnte nicht geladen werden. Prüfen Sie den views/-Ordner und die Pfade.</div>`;
+            this.log(`Fehler beim Laden von ${path}: ${error.message}`, 'text-red-500');
+            return `<div class="p-4 text-red-500">Konnte View '${viewName}' nicht laden.<br>Pfad: ${path}<br>Fehler: ${error.message}</div>`;
         }
     },
 
     switchView: async function(newView, forceReload = false) {
+        if (!this.els.viewContentArea) return;
         if (Game.gameState.currentView === newView && !forceReload) return;
 
-        const oldViewEl = document.getElementById(Game.gameState.currentView + '-view');
-        let newViewEl = document.getElementById(newView + '-view');
-        
-        // Buttons deaktivieren
-        if(this.els.charBtn) this.els.charBtn.disabled = true; 
-        if(this.els.wikiBtn) this.els.wikiBtn.disabled = true;
-        if(this.els.mapBtn) this.els.mapBtn.disabled = true;
-        
-        // Fade Out
-        if (oldViewEl && oldViewEl.classList.contains('active')) {
-            oldViewEl.classList.add('transition-out');
-            oldViewEl.classList.remove('active');
-        }
-
-        // Stoppe den Draw-Loop
+        // Stoppe Loop wenn wir Map verlassen
         if (newView !== 'map' && Game.animationFrameId) {
             cancelAnimationFrame(Game.animationFrameId);
             Game.animationFrameId = null;
         }
 
-        // Lade neue View
-        if (!newViewEl || forceReload) {
-            const htmlContent = await this.loadView(newView);
-            
-            if (newViewEl) {
-                newViewEl.remove();
-            }
-            
-            this.els.viewContentArea.insertAdjacentHTML('beforeend', htmlContent);
-            newViewEl = document.getElementById(newView + '-view');
-            
-            if (!newViewEl) {
-                 this.log(`KRITISCH: View ${newView} konnte nicht im DOM gefunden werden.`, 'text-red-700');
-                 if(this.els.charBtn) this.els.charBtn.disabled = false; 
-                 if(this.els.wikiBtn) this.els.wikiBtn.disabled = false;
-                 if(this.els.mapBtn) this.els.mapBtn.disabled = false;
-                 return Promise.reject(`View ${newView} not found after insert.`);
-            }
-        }
+        const html = await this.loadView(newView);
+        this.els.viewContentArea.innerHTML = html;
         
-        // Nach der Transition
-        return new Promise(resolve => {
-            setTimeout(() => {
-                if (oldViewEl) {
-                    oldViewEl.style.display = 'none';
-                    oldViewEl.classList.remove('transition-out');
-                }
-                
-                if (newViewEl) {
-                    newViewEl.style.display = 'flex';
-                    newViewEl.classList.add('active');
-                }
-                
-                Game.gameState.currentView = newView;
-                
-                // Spezialaktionen
-                this.postSwitchActions(newView);
-                
-                // Buttons reaktivieren
-                setTimeout(() => {
-                    if(this.els.charBtn) this.els.charBtn.disabled = false; 
-                    if(this.els.wikiBtn) this.els.wikiBtn.disabled = false;
-                    if(this.els.mapBtn) this.els.mapBtn.disabled = false;
-                }, 50);
-                
-                resolve(); 
-            }, 300);
-        });
+        // Element muss im DOM sein, bevor wir Klasse setzen
+        const newEl = document.getElementById(newView + '-view');
+        if (newEl) {
+            newEl.style.display = 'flex'; // Sicherstellen, dass es angezeigt wird
+            setTimeout(() => newEl.classList.add('active'), 10);
+        }
+
+        Game.gameState.currentView = newView;
+        this.postSwitchActions(newView);
     },
 
     postSwitchActions: function(newView) {
         Game.gameState.inDialog = false;
         
         if (newView === 'map') {
-            this.els.text.textContent = "Zurück im Ödland.";
-            Game.gameState.currentZone = "Ödland";
-            this.clearCityDialog();
-            Game.draw(); // Startet den Loop neu
-        } else if (newView === 'worldmap') { 
-            this.els.text.textContent = "Globalen Sektor-Scan aufgerufen.";
+            if(this.els.text) this.els.text.textContent = "Ödland Ebene.";
+            this.clearDialog();
+            Game.draw(); // Loop starten
+        } else if (newView === 'worldmap') {
             Game.gameState.currentZone = "WELTKARTE";
             this.showWorldMap();
         } else if (newView === 'city') {
-            this.els.text.textContent = "Willkommen in Rusty Springs.";
-            Game.gameState.currentZone = "Rusty Springs";
+            Game.gameState.currentZone = "Stadt";
             this.enterCity();
-            Game.gameState.inDialog = true;
-        } else if (newView === 'character') { 
-            this.els.text.textContent = "Charakter Status überprüft.";
+        } else if (newView === 'character') {
             Game.gameState.currentZone = "Status";
             this.updateCharView(Game.calculateMaxHP(Game.getStat('END')));
         } else if (newView === 'wiki') {
-            this.els.text.textContent = "Ödland Wiki aufgerufen.";
-            Game.gameState.currentZone = "WIKI";
+            Game.gameState.currentZone = "Datenbank";
             this.showWiki();
         } else if (newView === 'combat') {
-            Game.gameState.currentZone = "Kampf!";
-            Game.gameState.inDialog = true;
+            Game.gameState.inDialog = true; // Wichtig: D-Pad ausblenden
         }
         this.updateUI();
     },
-    
-    // --- Dialog/Button Management ---
+
     setDialogButtons: function(html) {
-        this.els.btns.innerHTML = html;
-        this.els.btns.style.display = 'flex';
-        Game.gameState.inDialog = true;
+        if(this.els.btns) {
+            this.els.btns.innerHTML = html;
+            Game.gameState.inDialog = true;
+            this.updateUI();
+        }
     },
 
-    clearDialogButtons: function() {
-        this.els.btns.innerHTML = '';
-        this.els.btns.style.display = 'none';
+    clearDialog: function() {
+        if(this.els.btns) this.els.btns.innerHTML = '';
+        const cityHeader = document.querySelector('.city-header');
+        if (cityHeader) cityHeader.textContent = "RUSTY SPRINGS";
         Game.gameState.inDialog = false;
-    },
-    
-    handleResize: function() {
-        if (Game.gameState.currentView === 'map') {
-             if (Game.animationFrameId) {
-                cancelAnimationFrame(Game.animationFrameId);
-                Game.animationFrameId = null;
-            }
-            Game.draw();
-        }
         this.updateUI();
     },
-    
-    // --- View-Spezifische Update Funktionen ---
+
+    handleResize: function() {
+        if (Game.gameState.currentView === 'map') Game.draw();
+        this.updateUI();
+    },
+
+    // --- SUB-VIEWS ---
     updateCombatView: function() {
-        const enemyNameEl = document.getElementById('enemy-name-center');
-        const enemyHpEl = document.getElementById('enemy-hp-display-center');
-        if (enemyNameEl && Game.gameState.currentEnemy) {
-             enemyNameEl.textContent = Game.gameState.currentEnemy.name.toUpperCase();
-             enemyHpEl.textContent = `TP: ${Math.max(0, Game.gameState.currentEnemy.hp)}/${Game.gameState.currentEnemy.maxHp}`;
+        const nameEl = document.getElementById('enemy-name-center');
+        const hpEl = document.getElementById('enemy-hp-display-center');
+        if (nameEl && Game.gameState.currentEnemy) {
+            nameEl.textContent = Game.gameState.currentEnemy.name;
+            hpEl.textContent = `TP: ${Math.max(0, Game.gameState.currentEnemy.hp)}`;
         }
     },
 
-    updateCharView: function(currentMaxHp) {
-        const charEls = {
-            levelDisplayChar: document.getElementById('level-display-char'),
-            expDisplayChar: document.getElementById('exp-display-char'),
-            expNeededChar: document.getElementById('exp-needed-char'),
-            expBar: document.getElementById('exp-bar'),
-            statPointsDisplay: document.getElementById('stat-points-display'),
-            applyStatBtn: document.getElementById('apply-stat-btn'),
-            stats: document.getElementById('stat-display'), 
-            equip: document.getElementById('equipment-display')
-        };
-        
-        if (!charEls.stats) return; 
+    updateCharView: function(maxHp) {
+        const statsEl = document.getElementById('stat-display');
+        if (!statsEl) return;
 
-        charEls.levelDisplayChar.textContent = Game.gameState.level;
-        charEls.expDisplayChar.textContent = Game.gameState.exp;
+        document.getElementById('level-display-char').textContent = Game.gameState.level;
+        document.getElementById('exp-display-char').textContent = Game.gameState.exp;
+        document.getElementById('exp-needed-char').textContent = Game.expToNextLevel(Game.gameState.level);
+        document.getElementById('stat-points-display').textContent = Game.gameState.statPoints;
         
-        const expNeeded = Game.expToNextLevel(Game.gameState.level);
-        charEls.expNeededChar.textContent = expNeeded;
-        
-        const progressPercent = (Game.gameState.exp / expNeeded) * 100;
-        charEls.expBar.style.width = `${progressPercent}%`;
-        
-        charEls.statPointsDisplay.textContent = Game.gameState.statPoints;
-        charEls.applyStatBtn.disabled = !(Game.gameState.statPoints > 0 && Game.gameState.tempStatIncrease.key);
-
-        charEls.stats.innerHTML = Object.keys(BASE_STATS).map(k => {
-            const baseVal = Game.gameState.stats[k];
-            const finalVal = Game.getStat(k);
-            const isTempIncreased = Game.gameState.tempStatIncrease.key === k;
-            
-            let displayVal = finalVal;
-            if (finalVal !== baseVal) {
-                const diff = finalVal - baseVal;
-                displayVal = `${finalVal} (${baseVal}${diff > 0 ? '+' : ''}${diff})`; 
-            }
-            
+        // Stats rendern
+        statsEl.innerHTML = Object.keys(Game.gameState.stats).map(k => {
+            const val = Game.getStat(k);
             let btn = '';
-            if (Game.gameState.statPoints > 0 && !isTempIncreased) {
-                 btn = `<button class="action-button p-0 h-6 w-6 text-base leading-none" data-stat-key="${k}" onclick="increaseTempStat('${k}', this)">+</button>`;
-            } else if (isTempIncreased) {
-                 btn = `<span class="pip-stat-value text-red-500">[+TEMP]</span>`; 
+            if (Game.gameState.statPoints > 0) {
+                btn = `<button class="action-button text-xs" onclick="increaseTempStat('${k}', this)">+</button>`;
             }
-            
-            let extraInfo = '';
-            if (k === 'END') {
-                extraInfo = `<br><span class="text-xs opacity-70">Max TP: ${currentMaxHp}</span>`;
-            }
-
-            return `
-                <div class="stat-item">
-                    <span>${k}: <span class="pip-stat-value">${displayVal}</span>${extraInfo}</span>
-                    ${btn}
-                </div>
-            `;
+            return `<div class="flex justify-between items-center"><span>${k}: <span class="text-white">${val}</span></span> ${btn}</div>`;
         }).join('');
-
-        charEls.equip.innerHTML = `
-            <div>Helm: <span class="pip-stat-value">${Game.gameState.equipment.head.name}</span></div>
-            <div>Körper: <span class="pip-stat-value">${Game.gameState.equipment.body.name}</span></div>
-            <div>Füße: <span class="pip-stat-value">${Game.gameState.equipment.feet.name}</span></div>
-            <div>Waffe: <span class="pip-stat-value">${Game.gameState.equipment.weapon.name}</span></div>
-        `;
+        
+        // Button Logik
+        const applyBtn = document.getElementById('apply-stat-btn');
+        if(applyBtn) applyBtn.disabled = !(Game.gameState.statPoints > 0 && Game.gameState.tempStatIncrease.key);
+        
+        // Equip
+        document.getElementById('equipment-display').innerHTML = 
+            `Waffe: <span class="text-white">${Game.gameState.equipment.weapon.name}</span>`;
     },
-    
-    // --- Stat Logic ---
-    increaseTempStat: function(key, buttonElement) {
-        if (Game.gameState.statPoints > 0) {
-            if (Game.gameState.tempStatIncrease.key && Game.gameState.tempStatIncrease.key !== key) {
-                const prevButton = document.querySelector(`[data-stat-key="${Game.gameState.tempStatIncrease.key}"]`);
-                if (prevButton) prevButton.disabled = false;
-            }
-            
-            Game.gameState.tempStatIncrease.key = key;
-            Game.gameState.tempStatIncrease.value = 1;
-            buttonElement.disabled = true;
-            this.updateUI();
-        } else {
-            this.log("Keine Stat-Punkte verfügbar.", 'text-gray-500');
-        }
+
+    increaseTempStat: function(key, btn) {
+        Game.gameState.tempStatIncrease = { key: key, value: 1 };
+        this.updateUI();
     },
 
     applyStatPoint: function() {
-        if (Game.gameState.statPoints > 0 && Game.gameState.tempStatIncrease.key) {
-            const statKey = Game.gameState.tempStatIncrease.key;
-            Game.gameState.stats[statKey]++; 
-            Game.gameState.statPoints--; 
-            
-            if (statKey === 'END') {
-                const newMaxHp = Game.calculateMaxHP(Game.getStat('END'));
-                Game.gameState.maxHealth = newMaxHp;
-                this.log(`Max HP auf ${newMaxHp} erhöht (+10)!`, 'text-green-400');
-            }
-            
-            this.log(`${statKey} permanent auf ${Game.gameState.stats[statKey]} erhöht.`, 'text-yellow-400');
-            Game.gameState.tempStatIncrease = {}; 
+        const key = Game.gameState.tempStatIncrease.key;
+        if(key) {
+            Game.gameState.stats[key]++;
+            Game.gameState.statPoints--;
+            Game.gameState.tempStatIncrease = {};
             this.updateUI();
         }
     },
-    
-    // --- City/Shop Logic ---
-    showCityDialog: function(options) {
-        const cityOptionsEl = document.getElementById('city-options');
-        if (!cityOptionsEl) return;
-        
+
+    enterCity: function() {
+        const dialog = [
+            { text: "Heilen (25 KK)", cost: 25, action: () => { Game.gameState.health = Game.calculateMaxHP(Game.getStat('END')); this.log("Geheilt.", "text-green-400"); this.enterCity(); } },
+            { text: "Verlassen", action: () => this.switchView('map') }
+        ];
+        this.showCityDialog(dialog);
+    },
+
+    showCityDialog: function(opts) {
+        const container = document.getElementById('city-options');
+        if(!container) return;
+        container.innerHTML = '';
         Game.gameState.inDialog = true;
-        cityOptionsEl.innerHTML = '';
         
-        options.forEach(opt => {
+        opts.forEach(o => {
             const btn = document.createElement('button');
-            btn.className = 'action-button w-full text-base';
-            btn.innerHTML = opt.text;
-            
-            let isDisabled = opt.isDisabled || false;
-            
-            if (opt.cost && Game.gameState.caps < opt.cost) {
-                isDisabled = true;
-                if (!opt.isDisabled) { 
-                    btn.innerHTML += `<br> (Fehlt ${opt.cost-Game.gameState.caps} KK)`;
-                }
-            }
-
-            btn.disabled = isDisabled;
-
-            btn.onclick = () => {
-                if (opt.cost) {
-                    Game.gameState.caps -= opt.cost;
-                }
-                opt.action();
-                this.updateUI(); 
-            };
-            cityOptionsEl.appendChild(btn);
+            btn.className = "action-button w-full mb-2";
+            btn.innerHTML = o.text;
+            if(o.cost && Game.gameState.caps < o.cost) btn.disabled = true;
+            btn.onclick = () => { if(o.cost) Game.gameState.caps -= o.cost; o.action(); };
+            container.appendChild(btn);
         });
         this.updateUI();
     },
 
-    clearCityDialog: function() {
-        const cityOptionsEl = document.getElementById('city-options');
-        const cityHeader = document.getElementById('city-view-content').querySelector('.city-header');
-        if (cityOptionsEl) cityOptionsEl.innerHTML = '';
-        if (cityHeader) cityHeader.textContent = "RUSTY SPRINGS";
-        Game.gameState.inDialog = false;
-    },
-
-    enterCity: function() {
-        const cityHeader = document.getElementById('city-view-content').querySelector('.city-header');
-        if (cityHeader) cityHeader.textContent = "RUSTY SPRINGS";
-
-        this.showCityDialog([
-            { text: "Arzt (25 KK) | TP vollst.", cost: 25, action: () => {
-                Game.gameState.health = Game.gameState.maxHealth; 
-                this.log("Vollständig geheilt.", "text-green-400"); 
-                this.enterCity();
-            }, isDisabled: Game.gameState.health === Game.gameState.maxHealth }, 
-            { text: "Händler | Munition (+5) 10 KK", cost: 10, action: () => {
-                Game.gameState.ammo += 5; this.log("+5 Munition gekauft.", "text-green-400"); this.enterCity();
-            }},
-            { text: "Ausrüstung kaufen/ansehen", action: () => this.showBuyMenu() },
-            { text: "Stat Punkte Zuweisen", action: () => this.switchView('character') },
-            { text: "Stadt verlassen", action: () => this.switchView('map') }
-        ]);
-    },
-    
-    showBuyMenu: function() {
-        const cityHeader = document.getElementById('city-view-content').querySelector('.city-header');
-        if (cityHeader) cityHeader.textContent = "HÄNDLER";
-        
-        const allPricedItems = Object.values(Game.items).filter(item => item.cost > 0);
-
-        const dialogOptions = allPricedItems.map(opt => {
-            const currentItem = Game.gameState.equipment[opt.slot];
-            const isEquipped = currentItem && currentItem.name === opt.name;
-            const isLevelTooLow = Game.gameState.level < opt.requiredLevel;
-
-            if (Game.gameState.level < opt.requiredLevel - 5) return null;
-            if (isEquipped) return null;
-
-            const statBonus = Object.entries(opt.bonus).map(([k, v]) => `[${k}${v > 0 ? '+' : ''}${v}]`).join(' ');
-            
-            let text = `${opt.name} (${opt.cost} KK) ${statBonus}`;
-            let isDisabled = false;
-            
-            if (isLevelTooLow) {
-                text += `<br> [LVL ${opt.requiredLevel} nötig]`;
-                isDisabled = true;
-            } 
-
-            return {
-                text: text,
-                cost: opt.cost,
-                isDisabled: isDisabled,
-                action: () => {
-                    Game.gameState.equipment[opt.slot] = opt; 
-                    const newMaxHp = Game.calculateMaxHP(Game.getStat('END'));
-                    Game.gameState.maxHealth = newMaxHp;
-
-                    this.log(`${opt.name} ausgerüstet und gekauft.`, 'text-yellow-400');
-                    this.showBuyMenu();
-                }
-            };
-        }).filter(Boolean);
-
-        dialogOptions.push({ text: "Zurück zum Markt", action: () => this.enterCity() });
-
-        this.showCityDialog(dialogOptions);
-    },
-    
-    // --- World Map Logic ---
     showWorldMap: function() {
-        const gridEl = document.getElementById('world-map-grid');
-        if (!gridEl) return;
-        
-        gridEl.innerHTML = '';
-        
-        for (let y = 0; y < WORLD_SIZE; y++) {
-            for (let x = 0; x < WORLD_SIZE; x++) {
-                const key = Game.getSectorKey(x, y);
-                const sector = Game.worldState[key];
-                const tile = document.createElement('div');
-                tile.className = 'sector-tile';
-                
-                let isExplored = sector && sector.explored;
-                let markers = sector ? sector.markers : [];
-                
-                if (isExplored) {
-                    tile.classList.add('explored');
+        const grid = document.getElementById('world-map-grid');
+        if(!grid) return;
+        grid.innerHTML = '';
+        for(let y=0; y<10; y++) {
+            for(let x=0; x<10; x++) {
+                const d = document.createElement('div');
+                d.className = "border border-green-900 flex justify-center items-center text-xs";
+                d.style.aspectRatio = "1";
+                if(x===Game.gameState.currentSector.x && y===Game.gameState.currentSector.y) {
+                    d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.textContent = "YOU";
+                } else if (Game.worldState[`${x},${y}`]?.explored) {
+                    d.style.backgroundColor = "#4a3d34";
                 }
-                
-                if (x === Game.gameState.currentSector.x && y === Game.gameState.currentSector.y) {
-                    tile.classList.add('current-sector');
-                    tile.textContent = 'YOU';
-                }
-
-                if (markers.length > 0) {
-                    const markerEl = document.createElement('span');
-                    markerEl.className = 'marker';
-                    if (markers.includes('V')) markerEl.textContent = 'VLT';
-                    else if (markers.includes('X')) markerEl.textContent = 'GOAL';
-                    else if (markers.includes('C')) markerEl.textContent = 'CITY';
-                    tile.appendChild(markerEl);
-                }
-                
-                gridEl.appendChild(tile);
+                grid.appendChild(d);
             }
         }
     },
 
-    // --- Wiki Logic ---
     showWiki: function() {
-        const wikiContentEl = document.getElementById('wiki-content');
-        if (!wikiContentEl) return;
-        
-        let html = '<h2 class="section-header mb-3">BEKANNTE MONSTER</h2><ul class="space-y-2">';
-        
-        Object.keys(Game.monsters).forEach(key => {
-            const monster = Game.monsters[key];
-            html += `
-                <li class="pip-text border-b border-gray-700 pb-1 flex justify-between items-center">
-                    <span>${monster.name} (LVL ${monster.minLevel}+)</span>
-                    <button class="action-button px-2 py-1 text-xs" onclick="showMonsterDetails('${key}')">DETAILS</button>
-                </li>
-            `;
-        });
-        
-        html += '</ul>';
-        wikiContentEl.innerHTML = html;
+        const c = document.getElementById('wiki-content');
+        if(!c) return;
+        c.innerHTML = Object.keys(Game.monsters).map(k => 
+            `<div class="border-b border-gray-700 py-1 flex justify-between"><span>${Game.monsters[k].name}</span><button class="action-button text-xs" onclick="showMonsterDetails('${k}')">INFO</button></div>`
+        ).join('');
     },
 
-    showMonsterDetails: function(key) {
-        const monster = Game.monsters[key];
-        const wikiContentEl = document.getElementById('wiki-content');
-        if (!monster || !wikiContentEl) return;
-
-        const html = `
-            <h2 class="section-header mb-3">${monster.name.toUpperCase()}</h2>
-            <div class="pip-text space-y-2 text-sm md:text-base">
-                <div><span class="font-bold">Beschreibung:</span> ${monster.description}</div>
-                <div><span class="font-bold">Erscheinung (Min. Level):</span> LVL ${monster.minLevel}</div>
-                <div><span class="font-bold">Geschätzte TP:</span> ${monster.hp}</div>
-                <div><span class="font-bold">Typ. Schaden:</span> ${monster.damage}</div>
-                <div><span class="font-bold">EXP/Loot:</span> ${monster.exp} EXP / ${monster.loot} KK</div>
-            </div>
-            <button class="action-button mt-4 w-full" onclick="showWiki()">Zurück zur Liste</button>
-        `;
-        wikiContentEl.innerHTML = html;
+    showMonsterDetails: function(k) {
+        const m = Game.monsters[k];
+        const c = document.getElementById('wiki-content');
+        c.innerHTML = `<h2 class="text-xl font-bold">${m.name}</h2><p>${m.description}</p><p>TP: ${m.hp}</p><button class="action-button mt-4 w-full" onclick="showWiki()">Zurück</button>`;
     }
 };
-
-window.UI = UI;
