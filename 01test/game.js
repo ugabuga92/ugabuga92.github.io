@@ -5,17 +5,17 @@ const Game = {
     colors: { 'V':'#39ff14', 'C':'#7a661f', 'X':'#ff3914', 'G':'#00ffff', '.':'#4a3d34', '#':'#8b7d6b', '^':'#5c544d', '~':'#224f80', 'fog':'#000', 'player':'#ff3914' },
 
     monsters: {
-        moleRat: { name: "Maulwurfsratte", hp: 30, dmg: 5, xp: 20, desc: "Nervige Nager." },
-        raider: { name: "Raider", hp: 60, dmg: 10, xp: 50, desc: "Wahnsinniger." },
-        deathclaw: { name: "Todesklaue", hp: 150, dmg: 30, xp: 200, desc: "LAUF!" }
+        moleRat: { name: "Maulwurfsratte", hp: 30, dmg: 5, xp: 20, loot: 5, minLvl: 1, desc: "Nervige Nager." },
+        raider: { name: "Raider", hp: 60, dmg: 10, xp: 50, loot: 15, minLvl: 2, desc: "Wahnsinniger." },
+        deathclaw: { name: "Todesklaue", hp: 150, dmg: 30, xp: 200, loot: 50, minLvl: 5, desc: "LAUF!" }
     },
+
     items: {
-        fists: { name: "Fäuste", slot: 'weapon', bonus: {}, cost: 0, requiredLevel: 0 },
+        fists: { name: "Fäuste", slot: 'weapon', bonus: {}, cost: 0, requiredLevel: 0, isRanged: false },
         vault_suit: { name: "Vault-Anzug", slot: 'body', bonus: { END: 1 }, cost: 0, requiredLevel: 0 },
-        knife: { name: "Messer", slot: 'weapon', bonus: { STR: 1 }, cost: 15, requiredLevel: 1 },
+        knife: { name: "Messer", slot: 'weapon', bonus: { STR: 1 }, cost: 15, requiredLevel: 1, isRanged: false },
         pistol: { name: "10mm Pistole", slot: 'weapon', bonus: { AGI: 2 }, cost: 50, requiredLevel: 1, isRanged: true },
         leather_armor: { name: "Lederharnisch", slot: 'body', bonus: { END: 2 }, cost: 30, requiredLevel: 1 },
-        metal_helmet: { name: "Metallhelm", slot: 'head', bonus: { END: 1 }, cost: 20, requiredLevel: 1 },
         laser_rifle: { name: "Laser-Gewehr", slot: 'weapon', bonus: { PER: 3 }, cost: 300, requiredLevel: 5, isRanged: true },
         combat_armor: { name: "Kampf-Rüstung", slot: 'body', bonus: { END: 4 }, cost: 150, requiredLevel: 5 }
     },
@@ -32,35 +32,54 @@ const Game = {
             player: {x: 10, y: 6},
             stats: { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 },
             equip: { weapon: this.items.fists, body: this.items.vault_suit, head: null, feet: null },
-            hp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0,
-            view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, explored: {}
+            hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0,
+            view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, explored: {},
+            tempStatIncrease: {}
         };
         
-        // Start HP basierend auf Stats
         this.state.hp = this.calculateMaxHP(this.getStat('END'));
-        
+        this.state.maxHp = this.state.hp;
+
         this.loadSector(5, 5);
         UI.switchView('map').then(() => {
-            // Verstecke Game Over Screen falls er an war
-            document.getElementById('game-over-screen').classList.add('hidden');
+            // Overlay verstecken falls noch da
+            if(UI.els.gameOver) UI.els.gameOver.classList.add('hidden');
             UI.log("System bereit. Vault verlassen.", "text-green-400");
         });
     },
 
-    // Utils
+    // --- UTILS ---
     calculateMaxHP: function(end) { return 100 + (end - 5) * 10; },
     
-    getStat: function(k) { 
-        let val = this.state.stats[k];
-        for(let s in this.state.equip) {
-            if(this.state.equip[s]?.bonus[k]) val += this.state.equip[s].bonus[k];
+    getStat: function(k) {
+        let val = this.state.stats[k] || 0;
+        for(let slot in this.state.equip) {
+            if(this.state.equip[slot] && this.state.equip[slot].bonus[k]) val += this.state.equip[slot].bonus[k];
         }
+        if(this.state.tempStatIncrease.key === k) val += 1;
         return val;
     },
-    
+
     expToNextLevel: function(l) { return 100 + l * 50; },
 
-    // Map & Movement
+    gainExp: function(amount) {
+        if (this.state.isGameOver) return;
+        this.state.xp += amount;
+        UI.log(`+${amount} EXP erhalten.`, 'text-blue-400');
+        
+        let need = this.expToNextLevel(this.state.lvl);
+        while(this.state.xp >= need) {
+            this.state.lvl++;
+            this.state.statPoints++;
+            this.state.xp -= need;
+            need = this.expToNextLevel(this.state.lvl);
+            this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
+            this.state.hp = this.state.maxHp;
+            UI.log(`LEVEL UP! Level ${this.state.lvl}. +1 Stat-Punkt!`, 'text-yellow-400');
+        }
+    },
+
+    // --- MAP ---
     loadSector: function(sx, sy) {
         const key = `${sx},${sy}`;
         if(!this.worldData[key]) {
@@ -88,7 +107,7 @@ const Game = {
     },
 
     drawLoop: function() {
-        if(this.state.view !== 'map') return;
+        if(this.state.view !== 'map' || this.state.isGameOver) return;
         this.draw();
         this.loopId = requestAnimationFrame(() => this.drawLoop());
     },
@@ -132,7 +151,7 @@ const Game = {
         
         if(tile === 'G') this.changeSector(nx, ny);
         else if(tile === 'C') UI.switchView('city');
-        else if(tile === 'V') UI.enterVault(); // NEU: Vault Event
+        else if(tile === 'V') UI.enterVault();
         else if(Math.random()<0.1 && tile === '.') this.startCombat();
         UI.update();
     },
@@ -160,45 +179,68 @@ const Game = {
         UI.log(`Sektor: ${sx},${sy}`, "text-blue-400");
     },
 
-    // --- COMBAT ---
+    // --- KAMPF SYSTEM (HIER WAR DAS PROBLEM) ---
     startCombat: function() {
-        const template = Object.values(this.monsters)[Math.floor(Math.random() * Object.keys(this.monsters).length)];
-        this.state.enemy = { ...template, maxHp: template.hp };
+        const templates = Object.values(this.monsters).filter(m => this.state.lvl >= m.minLvl);
+        const template = templates[Math.floor(Math.random() * templates.length)];
+        
+        // Gegner Klonen
+        this.state.enemy = { 
+            name: template.name,
+            hp: template.hp,
+            maxHp: template.hp,
+            dmg: template.dmg,
+            xp: template.xp,
+            loot: template.loot
+        };
+        
         this.state.inDialog = true;
-        UI.switchView('combat');
-        UI.log(`Kampf gegen ${template.name}`, "text-red-500");
+        UI.switchView('combat').then(() => {
+            // Sobald View geladen ist, Gegner anzeigen
+            UI.renderCombat();
+        });
+        UI.log(`${template.name} greift an!`, "text-red-500");
     },
 
     combatAction: function(act) {
         if(this.state.isGameOver) return;
+        if(!this.state.enemy) return;
 
         if(act === 'attack') {
-            // Check Ammo
+            // Munitions Check
             const wpn = this.state.equip.weapon;
             if(wpn.isRanged) {
                 if(this.state.ammo > 0) this.state.ammo--;
                 else {
-                    UI.log("Keine Munition! Wechsel auf Fäuste.", "text-red-500");
+                    UI.log("Klick! Leer! Nutze Fäuste.", "text-red-500");
                     this.state.equip.weapon = this.items.fists;
-                    this.enemyTurn(); return;
+                    this.enemyTurn(); 
+                    return;
                 }
             }
 
+            // Treffer?
             if(Math.random() > 0.3) {
-                const dmg = 5 + (this.getStat('STR') * 1.5) + ((wpn.bonus.STR||0)*2);
-                this.state.enemy.hp -= Math.floor(dmg);
-                UI.log(`Treffer! ${Math.floor(dmg)} Schaden.`, "text-green-400");
+                const bonus = (this.state.equip.weapon.bonus.STR || 0) * 2;
+                const dmg = Math.floor(5 + (this.getStat('STR') * 1.5) + bonus);
                 
+                this.state.enemy.hp -= dmg;
+                UI.log(`Treffer! ${dmg} Schaden.`, "text-green-400");
+                
+                // TOT CHECK
                 if(this.state.enemy.hp <= 0) {
-                    this.state.xp += this.state.enemy.xp;
+                    this.state.enemy.hp = 0;
                     this.state.caps += this.state.enemy.loot;
-                    this.gainExp(this.state.enemy.xp); // Check Levelup
-                    UI.log("Sieg!", "text-yellow-400");
+                    UI.log(`Sieg! ${this.state.enemy.loot} KK gefunden.`, "text-yellow-400");
+                    this.gainExp(this.state.enemy.xp);
                     this.endCombat();
-                    return;
+                    return; // Wichtig: Hier abbrechen, damit Gegner nicht mehr zurückschlägt
                 }
-            } else UI.log("Verfehlt!", "text-gray-500");
+            } else {
+                UI.log("Verfehlt!", "text-gray-500");
+            }
             
+            // Wenn Gegner noch lebt -> Gegenschlag
             this.enemyTurn();
 
         } else if (act === 'flee') {
@@ -210,24 +252,32 @@ const Game = {
                 this.enemyTurn();
             }
         }
+        
         UI.update();
         if(this.state.view === 'combat') UI.renderCombat();
     },
 
     enemyTurn: function() {
+        if(this.state.enemy.hp <= 0) return; // Sicherheit
+
         if(Math.random() < 0.8) {
-            const dmg = Math.max(1, this.state.enemy.dmg - (this.getStat('END')*0.5));
-            this.state.hp -= Math.floor(dmg);
-            UI.log(`Gegner trifft für ${Math.floor(dmg)} TP.`, "text-red-400");
+            const armor = (this.getStat('END') * 0.5);
+            const dmg = Math.max(1, Math.floor(this.state.enemy.dmg - armor));
+            
+            this.state.hp -= dmg;
+            UI.log(`Gegner trifft: -${dmg} TP.`, "text-red-400");
+            
             this.checkDeath();
-        } else UI.log("Gegner verfehlt.", "text-gray-500");
+        } else {
+            UI.log("Gegner verfehlt.", "text-gray-500");
+        }
     },
 
     checkDeath: function() {
         if(this.state.hp <= 0) {
             this.state.hp = 0;
             this.state.isGameOver = true;
-            UI.showGameOver(); // Hier wird der Screen aufgerufen!
+            UI.showGameOver(); // Overlay anzeigen
         }
     },
 
@@ -237,10 +287,10 @@ const Game = {
         UI.switchView('map');
     },
 
-    // --- OTHER ACTIONS ---
+    // --- ACTIONS ---
     rest: function() {
-        this.state.hp = this.calculateMaxHP(this.getStat('END'));
-        UI.log("Ausgeruht und geheilt.", "text-blue-400");
+        this.state.hp = this.state.maxHp;
+        UI.log("Ausgeruht. TP voll.", "text-blue-400");
         UI.update();
     },
 
@@ -255,7 +305,7 @@ const Game = {
         if(this.state.caps >= 10) {
             this.state.caps -= 10;
             this.state.ammo += 10;
-            UI.log("Munition gekauft.", "text-green-400");
+            UI.log("10x Munition gekauft.", "text-green-400");
             UI.update();
         } else UI.log("Zu wenig KK.", "text-red-500");
     },
@@ -265,11 +315,11 @@ const Game = {
         if(this.state.caps >= item.cost) {
             this.state.caps -= item.cost;
             this.state.equip[item.slot] = item;
-            // HP Update falls Rüstung gewechselt
             const max = this.calculateMaxHP(this.getStat('END'));
+            this.state.maxHp = max;
             if(this.state.hp > max) this.state.hp = max;
             
-            UI.log("Gekauft & Ausgerüstet.", "text-green-400");
+            UI.log(`Gekauft: ${item.name}`, "text-green-400");
             UI.renderCity();
             UI.update();
         } else UI.log("Zu wenig KK.", "text-red-500");
@@ -279,6 +329,9 @@ const Game = {
         if(this.state.statPoints > 0) {
             this.state.stats[key]++;
             this.state.statPoints--;
+            if(key === 'END') {
+                this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
+            }
             UI.renderChar();
             UI.update();
         }
