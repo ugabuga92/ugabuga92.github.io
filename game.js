@@ -8,7 +8,6 @@ const Game = {
     mapLayout: [],
     animationFrameId: null,
     
-    // Daten
     monsters: {
         moleRat: { name: "Maulwurfsratte", hp: 30, damage: 15, loot: 10, minLevel: 1, description: "Nervige Nager." }, 
         mutantRose: { name: "Mutanten Rose", hp: 45, damage: 20, loot: 15, minLevel: 1, description: "Dornige Pflanze." },
@@ -16,7 +15,8 @@ const Game = {
     },
     items: {
         fists: { name: "Fäuste", slot: 'weapon', bonus: {}, isRanged: false, cost: 0 },
-        armor_vault: { name: "Vault-Anzug", slot: 'body', bonus: { END: 1 }, cost: 0 }
+        armor_vault: { name: "Vault-Anzug", slot: 'body', bonus: { END: 1 }, cost: 0 },
+        pistol: { name: "10mm Pistole", slot: 'weapon', bonus: { AGI: 2 }, requiredLevel: 1, cost: 50, isRanged: true }
     },
 
     calculateMaxHP: function(end) { return 100 + (end - 5) * 10; },
@@ -26,7 +26,6 @@ const Game = {
     initNewGame: function() {
         this.worldState = {};
         
-        // Initiale Stats
         const initialStats = { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 };
         const initialEquip = { body: this.items.armor_vault, weapon: this.items.fists, head: {name:"-", bonus:{}}, feet: {name:"-", bonus:{}} };
         
@@ -42,13 +41,11 @@ const Game = {
             tempStatIncrease: {}
         };
 
-        // Generiere erste Map
         const mapData = this.generateMap(5, 5);
         this.mapLayout = mapData.layout;
         this.gameState.player.x = mapData.startX;
         this.gameState.player.y = mapData.startY;
 
-        // UI Starten - Mit Verzögerung für Canvas
         UI.switchView('map', true).then(() => {
             setTimeout(() => {
                 this.startDrawLoop();
@@ -61,7 +58,7 @@ const Game = {
     startDrawLoop: function() {
         const canvas = document.getElementById('game-canvas');
         if (!canvas) {
-            UI.log("CANVAS NICHT GEFUNDEN!", "text-red-500");
+            UI.log("CANVAS FEHLT - Versuche neustart...", "text-red-500");
             return;
         }
         canvas.width = MAP_WIDTH * TILE_SIZE;
@@ -86,12 +83,11 @@ const Game = {
         
         this.ctx.clearRect(0, 0, MAP_WIDTH*TILE_SIZE, MAP_HEIGHT*TILE_SIZE);
 
-        // Map zeichnen
         for(let y=0; y<MAP_HEIGHT; y++) {
             for(let x=0; x<MAP_WIDTH; x++) {
                 const t = this.mapLayout[y][x];
-                // Einfache Farben
                 this.ctx.fillStyle = (t === '.') ? '#4a3d34' : (t === '^') ? '#5c544d' : (t === 'C') ? '#7a661f' : '#000';
+                
                 if(this.gameState.explored[`${x},${y}`]) {
                     this.ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
                     this.ctx.strokeStyle = '#222';
@@ -102,7 +98,6 @@ const Game = {
             }
         }
 
-        // Spieler
         this.ctx.fillStyle = '#ff3914';
         this.ctx.beginPath();
         this.ctx.arc(this.gameState.player.x*TILE_SIZE + 15, this.gameState.player.y*TILE_SIZE + 15, 10, 0, Math.PI*2);
@@ -113,22 +108,18 @@ const Game = {
 
     generateMap: function(sx, sy) {
         let layout = Array(MAP_HEIGHT).fill().map(() => Array(MAP_WIDTH).fill('.'));
-        
-        // Ränder
         for(let i=0; i<MAP_WIDTH; i++) { layout[0][i] = '^'; layout[MAP_HEIGHT-1][i] = '^'; }
         for(let i=0; i<MAP_HEIGHT; i++) { layout[i][0] = '^'; layout[i][MAP_WIDTH-1] = '^'; }
 
-        // Tore
-        if(sy > 0) layout[0][10] = 'G'; // Nord
-        if(sy < 9) layout[MAP_HEIGHT-1][10] = 'G'; // Süd
-        if(sx > 0) layout[6][0] = 'G'; // West
-        if(sx < 9) layout[6][MAP_WIDTH-1] = 'G'; // Ost
+        if(sy > 0) layout[0][10] = 'G'; 
+        if(sy < 9) layout[MAP_HEIGHT-1][10] = 'G'; 
+        if(sx > 0) layout[6][0] = 'G'; 
+        if(sx < 9) layout[6][MAP_WIDTH-1] = 'G'; 
 
-        // City Chance
         if(Math.random() > 0.6) layout[5][10] = 'C';
 
         const key = `${sx},${sy}`;
-        if(this.worldState[key]) return this.worldState[key]; // Laden wenn vorhanden
+        if(this.worldState[key]) return this.worldState[key];
 
         const data = { layout: layout, startX: 10, startY: 6 };
         this.worldState[key] = data;
@@ -172,7 +163,6 @@ const Game = {
         const mapData = this.generateMap(this.gameState.currentSector.x, this.gameState.currentSector.y);
         this.mapLayout = mapData.layout;
         
-        // Spieler auf die gegenüberliegende Seite setzen
         if(dy===-1) this.gameState.player.y = MAP_HEIGHT-2;
         if(dy===1) this.gameState.player.y = 1;
         if(dx===-1) this.gameState.player.x = MAP_WIDTH-2;
@@ -180,15 +170,15 @@ const Game = {
 
         this.gameState.explored = {};
         this.revealMap(this.gameState.player.x, this.gameState.player.y);
-        UI.log(`Sektor gewechselt: ${this.gameState.currentSector.x},${this.gameState.currentSector.y}`, "text-yellow-400");
+        UI.log(`Sektor: ${this.gameState.currentSector.x},${this.gameState.currentSector.y}`, "text-yellow-400");
         UI.updateUI();
     },
 
     triggerCombat: function() {
-        this.gameState.currentEnemy = { ...this.monsters.moleRat }; // Einfacher Testgegner
+        this.gameState.currentEnemy = { ...this.monsters.moleRat };
         this.gameState.currentEnemy.maxHp = 30;
         UI.switchView('combat');
-        UI.setDialogButtons(`<button class="action-button" onclick="Game.attack()">Angriff</button>`);
+        UI.setDialogButtons(`<button class="action-button w-full" onclick="Game.attack()">Angriff</button>`);
         UI.log("Kampf gestartet!", "text-red-500");
     },
 
@@ -199,7 +189,7 @@ const Game = {
             UI.log("Sieg!", "text-green-500");
             this.endCombat();
         } else {
-            UI.log("Gegner getroffen.", "text-yellow-500");
+            UI.log("Treffer!", "text-yellow-500");
             UI.updateUI();
         }
     },
@@ -209,9 +199,13 @@ const Game = {
         this.gameState.inDialog = false;
         UI.clearDialog();
         UI.switchView('map').then(() => {
-            this.startDrawLoop(); // WICHTIG: Loop neu starten
+            this.startDrawLoop(); 
             UI.updateUI();
         });
+    },
+    
+    quitGame: function() {
+        alert("Spiel beendet. Tab schließen oder neu laden.");
     }
 };
 window.Game = Game;
