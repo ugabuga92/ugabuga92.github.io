@@ -4,7 +4,6 @@ const Game = {
     
     colors: { 'V':'#39ff14', 'C':'#7a661f', 'X':'#ff3914', 'G':'#00ffff', '.':'#4a3d34', '#':'#8b7d6b', '^':'#5c544d', '~':'#224f80', 'fog':'#000', 'player':'#ff3914' },
 
-    // NEU: XP RANGES [min, max]
     monsters: {
         moleRat: { name: "Maulwurfsratte", hp: 30, dmg: 5, xp: [20, 30], loot: 5, minLvl: 1, desc: "Nervige Nager." },
         mutantRose: { name: "Mutanten Rose", hp: 45, dmg: 15, loot: 15, xp: [45, 60], minLvl: 1, desc: "Dornige Pflanze." },
@@ -59,7 +58,7 @@ const Game = {
     gainExp: function(amount) {
         if (this.state.isGameOver) return;
         this.state.xp += amount;
-        UI.log(`+${amount} EXP.`, 'text-blue-400');
+        UI.log(`+${amount} EXP erhalten.`, 'text-blue-400');
         
         let need = this.expToNextLevel(this.state.lvl);
         while(this.state.xp >= need) {
@@ -67,10 +66,9 @@ const Game = {
             this.state.statPoints++;
             this.state.xp -= need;
             need = this.expToNextLevel(this.state.lvl);
-            
             this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
             this.state.hp = this.state.maxHp;
-            UI.log(`LEVEL UP! LVL ${this.state.lvl}`, 'text-yellow-400 font-bold');
+            UI.log(`LEVEL UP! LVL ${this.state.lvl}. +1 Stat-Punkt!`, 'text-yellow-400 font-bold');
         }
     },
 
@@ -167,21 +165,51 @@ const Game = {
         UI.log(`Sektor: ${sx},${sy}`, "text-blue-400");
     },
 
+    // --- KAMPF MIT LEGENDÄREN MOBS ---
     startCombat: function() {
         const templates = Object.values(this.monsters).filter(m => this.state.lvl >= m.minLvl);
         const template = templates[Math.floor(Math.random() * templates.length)];
-        this.state.enemy = { name: template.name, hp: template.hp, maxHp: template.hp, dmg: template.dmg, xp: template.xp, loot: template.loot };
+        
+        // Gegner-Kopie erstellen
+        let enemy = { ...template };
+        
+        // 10% Chance auf Legendär
+        const isLegendary = Math.random() < 0.1;
+        
+        if(isLegendary) {
+            enemy.isLegendary = true;
+            enemy.name = "Legendäre " + enemy.name;
+            enemy.hp = Math.floor(enemy.hp * 2.0); // 2x Leben
+            enemy.maxHp = enemy.hp;
+            enemy.dmg = Math.floor(enemy.dmg * 1.5); // 1.5x Schaden
+            enemy.loot = Math.floor(enemy.loot * 3.0); // 3x Loot
+            // XP skalieren
+            if(Array.isArray(enemy.xp)) {
+                enemy.xp = [enemy.xp[0]*3, enemy.xp[1]*3]; // 3x XP
+            } else {
+                enemy.xp = enemy.xp * 3;
+            }
+        } else {
+            enemy.maxHp = enemy.hp;
+        }
+        
+        this.state.enemy = enemy;
         this.state.inDialog = true;
+        
         UI.switchView('combat').then(() => UI.renderCombat());
-        UI.log(`${template.name} greift an!`, "text-red-500");
+        
+        if(isLegendary) {
+            UI.log("ACHTUNG: LEGENDÄRE PRÄSENZ!", "text-yellow-400 font-bold");
+        } else {
+            UI.log(`${enemy.name} greift an!`, "text-red-500");
+        }
     },
 
-    // NEU: HILFSFUNKTION FÜR RANDOM XP
     getRandomXP: function(xpData) {
         if (Array.isArray(xpData)) {
             return Math.floor(Math.random() * (xpData[1] - xpData[0] + 1)) + xpData[0];
         }
-        return xpData; // Fallback falls kein Array
+        return xpData;
     },
 
     combatAction: function(act) {
@@ -200,19 +228,18 @@ const Game = {
             }
 
             if(Math.random() > 0.3) {
-                const bonus = (this.state.equip.weapon.bonus.STR || 0) * 2;
-                const dmg = Math.floor(5 + (this.getStat('STR') * 1.5) + bonus);
+                const baseDmg = wpn.baseDmg || 2;
+                const strBonus = this.getStat('STR') * 1.5;
+                const dmg = Math.floor(baseDmg + strBonus);
                 this.state.enemy.hp -= dmg;
                 UI.log(`Treffer! ${dmg} Schaden.`, "text-green-400");
+                
                 if(this.state.enemy.hp <= 0) {
                     this.state.enemy.hp = 0;
                     this.state.caps += this.state.enemy.loot;
                     UI.log(`Sieg! ${this.state.enemy.loot} KK.`, "text-yellow-400");
-                    
-                    // ZUFALLS XP BERECHNEN UND GEBEN
                     const randomXp = this.getRandomXP(this.state.enemy.xp);
                     this.gainExp(randomXp);
-                    
                     this.endCombat();
                     return;
                 }
