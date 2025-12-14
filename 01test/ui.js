@@ -94,10 +94,17 @@ const UI = {
         this.els.caps.textContent = `${Game.state.caps} KK`;
         this.els.zone.textContent = Game.state.zone;
         
-        const maxHp = Game.state.maxHp || 100;
+        const maxHp = 100 + (Game.state.stats.END - 5) * 10;
         this.els.hp.textContent = `${Math.round(Game.state.hp)}/${maxHp}`;
         this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`;
         
+        // --- BUTTONS SPERREN IM KAMPF ---
+        const inCombat = Game.state.view === 'combat';
+        this.els.btnWiki.disabled = inCombat;
+        this.els.btnMap.disabled = inCombat;
+        this.els.btnChar.disabled = inCombat;
+        this.els.btnNew.disabled = inCombat;
+
         if(Game.state.view === 'map') {
             const show = !Game.state.inDialog && !Game.state.isGameOver;
             this.els.dpad.style.visibility = show ? 'visible' : 'hidden';
@@ -251,14 +258,8 @@ const UI = {
     renderCombat: function() {
         const enemy = Game.state.enemy;
         if(!enemy) return;
-        
-        // Element Check (Wichtig falls View noch nicht geladen)
-        const nameEl = document.getElementById('enemy-name');
-        const hpTextEl = document.getElementById('enemy-hp-text');
-        const hpBarEl = document.getElementById('enemy-hp-bar');
-        
-        if (nameEl) nameEl.textContent = enemy.name;
-        if (hpTextEl) hpTextEl.textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`;
-        if (hpBarEl) hpBarEl.style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`;
+        document.getElementById('enemy-name').textContent = enemy.name;
+        document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`;
+        document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`;
     }
 };
