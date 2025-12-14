@@ -1,10 +1,13 @@
-<div class="flex flex-col items-center justify-center h-full w-full p-4 border-4 border-red-600 bg-red-900/20 text-red-500">
-    <h1 class="text-4xl font-bold mb-4 animate-pulse">GEFAHR!</h1>
-    <div class="text-2xl mb-2" id="enemy-name">Gegner</div>
-    <div class="text-xl mb-8" id="enemy-hp">---</div>
+<div class="w-full h-full flex flex-col items-center justify-center p-4 border-4 border-red-900/50">
+    <h1 class="text-4xl text-red-500 font-bold mb-8 animate-pulse">GEFAHR!</h1>
     
-    <div class="flex gap-4 w-full">
-        <button class="flex-1 border border-red-500 p-4 hover:bg-red-900/50" onclick="gameAction('attack')">ANGRIFF</button>
-        <button class="flex-1 border border-red-500 p-4 hover:bg-red-900/50" onclick="gameAction('flee')">FLUCHT</button>
+    <div class="text-center mb-8">
+        <div id="enemy-name" class="text-2xl font-bold">Gegner</div>
+        <div id="enemy-hp" class="text-xl">-- TP</div>
+    </div>
+
+    <div class="flex gap-4 w-full max-w-sm">
+        <button class="action-button flex-1 py-4 border-red-500 text-red-500 hover:bg-red-900/20" onclick="Game.combatAction('attack')">ANGRIFF</button>
+        <button class="action-button flex-1 py-4 border-red-500 text-red-500 hover:bg-red-900/20" onclick="Game.combatAction('flee')">FLUCHT</button>
     </div>
 </div>
