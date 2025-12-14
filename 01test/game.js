@@ -1,222 +1,232 @@
 const Game = {
-    // Konfiguration
-    TILE_SIZE: 30,
-    MAP_W: 20,
-    MAP_H: 12,
-    WORLD_SIZE: 10,
+    // Config
+    TILE: 30, MAP_W: 20, MAP_H: 12,
     
-    // Farben (FIX: Hex Codes statt CSS Vars für Canvas)
     colors: {
         'V': '#39ff14', 'C': '#7a661f', 'X': '#ff3914', 'G': '#00ffff',
         '.': '#4a3d34', '#': '#8b7d6b', '^': '#5c544d', '~': '#224f80',
         'fog': '#000000', 'player': '#ff3914'
     },
 
-    // Daten
     monsters: {
-        moleRat: { name: "Maulwurfsratte", hp: 30, dmg: 15, loot: 10, minLvl: 1, desc: "Nervige Nager." }, 
-        mutantRose: { name: "Mutanten Rose", hp: 45, dmg: 20, loot: 15, minLvl: 1, desc: "Dornige Pflanze." },
-        deathclaw: { name: "Todesklaue", hp: 120, dmg: 45, loot: 50, minLvl: 5, desc: "Der Tod." }
+        moleRat: { name: "Maulwurfsratte", hp: 30, dmg: 5, xp: 20, desc: "Klein aber gemein." },
+        raider: { name: "Raider", hp: 60, dmg: 10, xp: 50, desc: "Wahnsinniger." },
+        deathclaw: { name: "Todesklaue", hp: 150, dmg: 30, xp: 200, desc: "LAUF!" }
     },
+
     items: {
-        fists: { name: "Fäuste", slot: 'weapon', bonus: {}, cost: 0 },
-        vault_suit: { name: "Vault-Anzug", slot: 'body', bonus: { END: 1 }, cost: 0 },
-        knife: { name: "Messer", slot: 'weapon', bonus: { STR: 1 }, cost: 15 },
-        stimpack: { name: "Stimpack", cost: 25, isConsumable: true }
+        fists: { name: "Fäuste", bonus: {} },
+        vault_suit: { name: "Vault-Suit", bonus: { END: 1 } }
     },
 
-    // Status
-    state: {},
-    mapLayout: [],
-    worldData: {},
+    state: null,
+    worldData: {}, // Speichert besuchte Sektoren
     ctx: null,
-    animId: null,
+    loopId: null,
 
-    // Initialisierung
     init: function() {
         this.worldData = {};
         this.state = {
             sector: {x: 5, y: 5},
             player: {x: 10, y: 6},
             stats: { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 },
-            equip: { weapon: this.items.fists, body: this.items.vault_suit, head: null, feet: null },
-            hp: 100, maxHp: 100,
-            xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0,
-            view: 'map', zone: 'Ödland',
-            explored: {}, inDialog: false, isGameOver: false,
-            enemy: null
+            equip: { weapon: this.items.fists, body: this.items.vault_suit },
+            hp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0,
+            view: 'map', zone: 'Ödland', inDialog: false,
+            explored: {} // Nebel des Krieges für aktuellen Sektor
         };
-        
-        // Start-Map generieren
+
+        // Startkarte laden
         this.loadSector(5, 5);
         
-        // UI starten
+        // UI auf Map schalten
         UI.switchView('map').then(() => {
-            UI.log("System initialisiert. Willkommen im Ödland.", "text-yellow-400");
-            this.update();
+            UI.log("Neues Spiel gestartet.", "text-yellow-400");
         });
     },
 
-    // Map Logik
+    // --- MAP LOGIK ---
+    initCanvas: function() {
+        const cvs = document.getElementById('game-canvas');
+        if (!cvs) return;
+        
+        cvs.width = this.MAP_W * this.TILE;
+        cvs.height = this.MAP_H * this.TILE;
+        this.ctx = cvs.getContext('2d');
+        
+        // Starte Render Loop
+        if (this.loopId) cancelAnimationFrame(this.loopId);
+        this.drawLoop();
+    },
+
+    drawLoop: function() {
+        if (this.state.view !== 'map') return; // Nur zeichnen wenn auf Map
+        
+        this.draw();
+        this.loopId = requestAnimationFrame(() => this.drawLoop());
+    },
+
+    draw: function() {
+        if (!this.ctx) return;
+        
+        // 1. Alles schwarz machen
+        this.ctx.fillStyle = "#000";
+        this.ctx.fillRect(0, 0, this.MAP_W * this.TILE, this.MAP_H * this.TILE);
+
+        // 2. Map Tiles zeichnen
+        const layout = this.state.currentMap;
+        
+        for (let y = 0; y < this.MAP_H; y++) {
+            for (let x = 0; x < this.MAP_W; x++) {
+                // Nebel des Krieges prüfen
+                if (this.state.explored[`${x},${y}`]) {
+                    const char = layout[y][x];
+                    this.ctx.fillStyle = this.colors[char] || '#fff';
+                    this.ctx.fillRect(x * this.TILE, y * this.TILE, this.TILE, this.TILE);
+                    
+                    // Gitter
+                    this.ctx.strokeStyle = '#111';
+                    this.ctx.strokeRect(x * this.TILE, y * this.TILE, this.TILE, this.TILE);
+
+                    // Labels
+                    if (char === 'C') this.drawLabel(x, y, "CITY", "#fff");
+                    if (char === 'V') this.drawLabel(x, y, "VLT", "#000");
+                    if (char === 'G') this.drawLabel(x, y, "GATE", "#000");
+                }
+            }
+        }
+
+        // 3. Spieler zeichnen
+        this.ctx.fillStyle = this.colors['player'];
+        this.ctx.beginPath();
+        this.ctx.arc(
+            this.state.player.x * this.TILE + this.TILE/2,
+            this.state.player.y * this.TILE + this.TILE/2,
+            this.TILE / 3, 0, Math.PI * 2
+        );
+        this.ctx.fill();
+    },
+
+    drawLabel: function(x, y, text, color) {
+        this.ctx.fillStyle = color;
+        this.ctx.font = '10px monospace';
+        this.ctx.fillText(text, x * this.TILE + 2, y * this.TILE + 20);
+    },
+
+    // --- GAMEPLAY ---
     loadSector: function(sx, sy) {
         const key = `${sx},${sy}`;
-        if(this.worldData[key]) {
-            this.mapLayout = this.worldData[key].layout;
-            // Bekannte Orte bleiben bekannt
-        } else {
-            this.generateMap(sx, sy);
+        
+        if (!this.worldData[key]) {
+            // Neuen Sektor generieren
+            let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('.'));
+            
+            // Wände
+            for(let i=0; i<this.MAP_W; i++) { map[0][i] = '^'; map[this.MAP_H-1][i] = '^'; }
+            for(let i=0; i<this.MAP_H; i++) { map[i][0] = '^'; map[i][this.MAP_W-1] = '^'; }
+            
+            // Tore
+            if (sy > 0) map[0][10] = 'G'; // Nord
+            if (sy < 9) map[this.MAP_H-1][10] = 'G'; // Süd
+            if (sx > 0) map[6][0] = 'G'; // West
+            if (sx < 9) map[6][this.MAP_W-1] = 'G'; // Ost
+
+            // Features
+            if (sx===5 && sy===5) map[5][10] = 'V'; // Vault
+            else if (Math.random() > 0.7) map[5][10] = 'C'; // Stadt
+
+            this.worldData[key] = { layout: map, explored: {} };
         }
-        this.state.explored = this.worldData[key].explored || {};
+
+        this.state.currentMap = this.worldData[key].layout;
+        this.state.explored = this.worldData[key].explored;
+        this.state.zone = `Sektor ${sx},${sy}`;
     },
 
-    generateMap: function(sx, sy) {
-        let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('.'));
-        
-        // Ränder
-        for(let x=0; x<this.MAP_W; x++) { map[0][x] = '^'; map[this.MAP_H-1][x] = '^'; }
-        for(let y=0; y<this.MAP_H; y++) { map[y][0] = '^'; map[y][this.MAP_W-1] = '^'; }
-
-        // Tore
-        if(sy > 0) map[0][10] = 'G'; // Nord
-        if(sy < 9) map[this.MAP_H-1][10] = 'G'; // Süd
-        if(sx > 0) map[6][0] = 'G'; // West
-        if(sx < 9) map[6][this.MAP_W-1] = 'G'; // Ost
-
-        // Features
-        if(sx===5 && sy===5) map[5][10] = 'V'; // Vault Start
-        else if(Math.random() > 0.6) map[5][10] = 'C'; // Stadt Chance
-
-        this.mapLayout = map;
-        this.worldData[`${sx},${sy}`] = { layout: map, explored: {} };
-    },
-
-    // Gameplay
     move: function(dx, dy) {
-        if(this.state.inDialog) return;
-        
         const nx = this.state.player.x + dx;
         const ny = this.state.player.y + dy;
-        const tile = this.mapLayout[ny][nx];
+        const tile = this.state.currentMap[ny][nx];
 
-        if(tile === '^') { UI.log("Wand.", "text-gray-500"); return; }
-        
+        // Kollision
+        if (tile === '^') { UI.log("Wand.", "text-gray-500"); return; }
+
         this.state.player.x = nx;
         this.state.player.y = ny;
-        this.revealFog(nx, ny);
+        this.reveal(nx, ny);
 
-        if(tile === 'G') this.changeSector(nx, ny);
-        else if(tile === 'C') UI.enterCity();
-        else if(Math.random() < 0.15 && tile === '.') this.triggerCombat();
-        
-        this.update();
+        // Events
+        if (tile === 'G') this.useGate(nx, ny);
+        else if (tile === 'C') UI.switchView('city');
+        else if (Math.random() < 0.1 && tile === '.') this.startCombat();
     },
 
-    changeSector: function(px, py) {
-        let dx=0, dy=0;
-        if(py===0) dy=-1; else if(py===this.MAP_H-1) dy=1;
-        if(px===0) dx=-1; else if(px===this.MAP_W-1) dx=1;
-
-        this.state.sector.x += dx;
-        this.state.sector.y += dy;
-        this.loadSector(this.state.sector.x, this.state.sector.y);
-
-        // Spieler gegenüber aufstellen
-        if(dy===-1) this.state.player.y = this.MAP_H-2;
-        if(dy===1) this.state.player.y = 1;
-        if(dx===-1) this.state.player.x = this.MAP_W-2;
-        if(dx===1) this.state.player.x = 1;
-
-        this.revealFog(this.state.player.x, this.state.player.y);
-        UI.log(`Sektor gewechselt: ${this.state.sector.x},${this.state.sector.y}`, "text-blue-400");
-        this.update();
-    },
-
-    revealFog: function(px, py) {
-        const key = `${this.state.sector.x},${this.state.sector.y}`;
+    reveal: function(px, py) {
         for(let y=py-2; y<=py+2; y++) {
             for(let x=px-2; x<=px+2; x++) {
-                if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) {
+                if(x>=0 && y>=0 && x<this.MAP_W && y<this.MAP_H) {
                     this.state.explored[`${x},${y}`] = true;
                 }
             }
         }
-        this.worldData[key].explored = this.state.explored;
     },
 
-    // Rendering
-    update: function() {
-        UI.updateStats();
-        if(this.state.view === 'map') this.drawMap();
-    },
-
-    drawMap: function() {
-        const cvs = document.getElementById('game-canvas');
-        if(!cvs) return; // Canvas noch nicht geladen
+    useGate: function(px, py) {
+        let sx = this.state.sector.x;
+        let sy = this.state.sector.y;
         
-        // Canvas Größe setzen (wichtig!)
-        cvs.width = this.MAP_W * this.TILE_SIZE;
-        cvs.height = this.MAP_H * this.TILE_SIZE;
-        const ctx = cvs.getContext('2d');
+        // Richtung bestimmen
+        if (py === 0) sy--;        // Nord
+        else if (py === 11) sy++;  // Süd
+        else if (px === 0) sx--;   // West
+        else if (px === 19) sx++;  // Ost
 
-        // Schwarz füllen
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, cvs.width, cvs.height);
+        this.state.sector = {x: sx, y: sy};
+        this.loadSector(sx, sy);
 
-        for(let y=0; y<this.MAP_H; y++) {
-            for(let x=0; x<this.MAP_W; x++) {
-                const t = this.mapLayout[y][x];
-                
-                // Explored check
-                if(this.state.explored[`${x},${y}`]) {
-                    ctx.fillStyle = this.colors[t] || '#fff';
-                    ctx.fillRect(x*this.TILE_SIZE, y*this.TILE_SIZE, this.TILE_SIZE, this.TILE_SIZE);
-                    
-                    // Gitter
-                    ctx.strokeStyle = '#111';
-                    ctx.strokeRect(x*this.TILE_SIZE, y*this.TILE_SIZE, this.TILE_SIZE, this.TILE_SIZE);
+        // Spieler auf gegenüberliegende Seite setzen
+        if (py === 0) this.state.player.y = 10;
+        if (py === 11) this.state.player.y = 1;
+        if (px === 0) this.state.player.x = 18;
+        if (px === 19) this.state.player.x = 1;
 
-                    // Text
-                    if(['V','C','G'].includes(t)) {
-                        ctx.fillStyle = '#000';
-                        ctx.font = '10px monospace';
-                        ctx.fillText(t, x*this.TILE_SIZE+10, y*this.TILE_SIZE+20);
-                    }
-                }
-            }
-        }
-
-        // Spieler
-        ctx.fillStyle = this.colors['player'];
-        ctx.beginPath();
-        ctx.arc(this.state.player.x*this.TILE_SIZE + 15, this.state.player.y*this.TILE_SIZE + 15, 8, 0, Math.PI*2);
-        ctx.fill();
+        this.reveal(this.state.player.x, this.state.player.y);
+        UI.log(`Sektor gewechselt: ${sx},${sy}`, "text-blue-400");
     },
 
-    // Combat
-    triggerCombat: function() {
-        this.state.enemy = { ...this.monsters.moleRat }; // Dummy
-        this.state.enemy.maxHp = 30;
+    // --- KAMPF ---
+    startCombat: function() {
+        this.state.enemy = { ...this.monsters.moleRat, hp: 30, maxHp: 30 };
+        this.state.inDialog = true; // Blockiert Movement
         UI.switchView('combat');
-        UI.log("Kampf beginnt!", "text-red-500");
+        UI.log("Ein Gegner taucht auf!", "text-red-500");
     },
 
-    combatAction: function(type) {
-        if(type === 'attack') {
+    combatAction: function(action) {
+        if (action === 'attack') {
             this.state.enemy.hp -= 10;
-            UI.log("Gegner getroffen (-10)", "text-green-400");
-            if(this.state.enemy.hp <= 0) {
-                UI.log("Sieg! +XP", "text-yellow-400");
-                this.state.xp += 20;
+            UI.log("Treffer! (-10)", "text-green-400");
+            
+            if (this.state.enemy.hp <= 0) {
+                this.state.xp += this.state.enemy.xp;
+                this.state.caps += 5;
+                UI.log("Sieg! XP erhalten.", "text-yellow-400");
                 this.endCombat();
             } else {
-                this.state.hp -= 5;
-                UI.log("Gegner greift an (-5 TP)", "text-red-400");
+                this.state.hp -= this.state.enemy.dmg;
+                UI.log("Gegner greift an!", "text-red-400");
             }
         } else {
-            UI.log("Geflohen.", "text-blue-400");
+            UI.log("Geflohen.", "text-gray-400");
             this.endCombat();
         }
-        UI.updateStats();
+        UI.update();
+        if (this.state.view === 'combat') UI.renderCombat();
+        
+        if (this.state.hp <= 0) {
+            alert("GAME OVER");
+            location.reload();
+        }
     },
 
     endCombat: function() {
@@ -224,7 +234,25 @@ const Game = {
         this.state.inDialog = false;
         UI.switchView('map');
     },
-    
-    // Utils
-    getMaxHp: function() { return 100 + (this.state.stats.END * 5); }
+
+    // --- CHARAKTER ---
+    upgradeStat: function(key) {
+        if (this.state.statPoints > 0) {
+            this.state.stats[key]++;
+            this.state.statPoints--;
+            UI.renderChar();
+            UI.update();
+        }
+    },
+
+    heal: function() {
+        if (this.state.caps >= 25) {
+            this.state.caps -= 25;
+            this.state.hp = 100 + (this.state.stats.END - 5) * 10;
+            UI.log("Vollständig geheilt.", "text-green-500");
+            UI.update();
+        } else {
+            UI.log("Nicht genug Kronenkorken.", "text-red-500");
+        }
+    }
 };
