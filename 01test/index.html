@@ -37,47 +37,43 @@
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: var(--pip-green); border-radius: 3px; } ::-webkit-scrollbar-track { background: #020a02; }
         .blink-red { animation: blink-red-anim 1s infinite; }
         @keyframes blink-red-anim { 0%, 100% { opacity: 1; color: red; } 50% { opacity: 0.5; } }
+        
+        /* LOGIN OVERLAY STYLES */
+        #login-screen { position: absolute; inset: 0; z-index: 999; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .login-box { border: 2px solid var(--pip-green); padding: 40px; text-align: center; box-shadow: 0 0 20px var(--pip-dim); max-width: 90%; }
+        #survivor-id-input { background: #000; border: 2px solid var(--pip-green); color: var(--pip-green); font-family: inherit; font-size: 24px; padding: 10px; margin: 20px 0; text-align: center; text-transform: uppercase; outline: none; }
+        #survivor-id-input:focus { box-shadow: 0 0 15px var(--pip-green); }
     </style>
-    
-    <script>
-        window.onerror = function(msg, url, lineNo, columnNo, error) {
-            const errorMsg = `SYSTEM ERROR: ${msg} (Line ${lineNo})`;
-            console.error("WATCHDOG CAUGHT:", errorMsg);
-            
-            // Versuch, es ins UI Log zu schreiben, wenn UI schon geladen ist
-            if(typeof UI !== 'undefined' && UI.error) {
-                UI.error(errorMsg);
-            } else {
-                // Fallback: Ins HTML schreiben falls UI tot ist
-                setTimeout(() => {
-                    const logArea = document.getElementById('log-area');
-                    if(logArea) {
-                        const div = document.createElement('div');
-                        div.className = "text-red-500 font-bold blink-red";
-                        div.textContent = "> CRITICAL: " + msg;
-                        logArea.prepend(div);
-                    }
-                }, 1000);
-            }
-            return false;
-        };
-    </script>
+    <script>window.onerror=function(m,u,l){console.error("ERR:",m);if(typeof UI!=='undefined'&&UI.error)UI.error(m);return false;};</script>
 </head>
 <body>
 <div id="pipboy-case">
+    <div id="login-screen">
+        <div class="login-box crt-effect-container">
+            <h1 class="text-6xl font-bold glow-text mb-2">PIP-BOY 3000</h1>
+            <div class="text-xl mb-8 opacity-80">AUTHENTICATION REQUIRED</div>
+            
+            <div class="text-lg">BITTE SURVIVOR-ID EINGEBEN:</div>
+            <input type="text" id="survivor-id-input" placeholder="Z.B. MAX_POWER" maxlength="15">
+            <br>
+            <button id="btn-login" class="action-button px-8 py-3 text-2xl font-bold" onclick="UI.attemptLogin()">VERBINDEN</button>
+            <div id="login-status" class="mt-4 text-yellow-400 min-h-[1.5em]"></div>
+        </div>
+    </div>
+
     <div id="game-over-screen" class="absolute inset-0 z-50 bg-black/95 flex flex-col justify-center items-center hidden">
         <h1 class="text-6xl text-red-600 font-bold border-4 border-red-600 p-6 mb-6 blink-red tracking-widest">CRITICAL FAILURE</h1>
         <button onclick="location.reload()" class="border-2 border-red-500 text-red-500 px-8 py-3 hover:bg-red-900 text-xl font-bold uppercase cursor-pointer">SYSTEM REBOOT</button>
     </div>
-    <div id="game-screen">
-        <header class="header-bar">
+    
+    <div id="game-screen" class="hidden opacity-0 transition-opacity duration-1000"> <header class="header-bar">
             <div class="flex flex-col sm:flex-row gap-1 w-1/4">
                 <div class="font-bold text-xl leading-none" style="text-shadow: 0 0 5px var(--pip-green);">PIP-BOY 3000 <span class="text-xs opacity-70">MK-V</span></div>
                 <div id="current-zone-display" class="text-xs sm:text-lg opacity-90 leading-none text-[#aaffaa]">Initializing...</div>
             </div>
             <div class="w-1/4 flex justify-center"><span id="version-display" class="text-yellow-400 font-bold tracking-widest animate-pulse">...</span></div>
             <div class="flex items-center justify-end gap-1 w-1/2">
-                <button id="btn-new" class="action-button px-2 py-1 text-sm bg-red-900/50 border-red-500 text-white font-bold whitespace-nowrap">RESET</button>
+                <button id="btn-save" class="action-button px-2 py-1 text-sm border-blue-500 text-blue-400 font-bold" onclick="Game.saveGame(true)">SPEICHERN</button>
                 <button id="btn-wiki" class="action-button px-2 py-1 text-sm">WIKI</button>
                 <button id="btn-map" class="action-button px-2 py-1 text-sm">WELT</button>
                 <button id="btn-char" class="action-button px-2 py-1 text-sm">CHAR</button>
@@ -129,25 +125,17 @@
     function loadScript(src) { return new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject; document.body.appendChild(s); }); }
     window.onload = function() {
         const verDisplay = document.getElementById('version-display');
-        function startGame(ver) {
-            console.log("Starte Spiel...", ver);
-            verDisplay.textContent = ver; verDisplay.classList.remove('animate-pulse');
-            if(typeof UI !== 'undefined') { 
-                try {
-                    UI.init(); 
-                    Game.init(); 
-                    if(typeof Network !== 'undefined') Network.init();
-                } catch(e) {
-                    // Fang Fehler beim Init ab
-                    console.error("FATAL INIT ERROR:", e);
-                    if(UI.error) UI.error("CRITICAL INIT FAIL: " + e.message);
-                }
-            }
-        }
         fetch('Version?t=' + Date.now()).then(res => res.text()).then(v => {
             const ver = v.trim();
-            loadScript('network.js?v=' + ver).then(() => loadScript('ui.js?v=' + ver)).then(() => loadScript('game.js?v=' + ver)).then(() => startGame(ver)).catch(e => { console.error("Script Load Error:", e); startGame("OFFLINE (Rescue Mode)"); });
-        }).catch(err => { console.warn("Ver Check Fail", err); loadScript('network.js').then(()=>loadScript('ui.js')).then(()=>loadScript('game.js')).then(() => startGame("OFFLINE")); });
+            // Lade die Skripte, aber STARTE das Spiel noch nicht (das macht jetzt UI.attemptLogin)
+            loadScript('network.js?v=' + ver).then(() => loadScript('ui.js?v=' + ver)).then(() => loadScript('game.js?v=' + ver)).then(() => {
+                if(typeof UI !== 'undefined') UI.init(); // UI init für Event Listener
+                // Game.init() wird jetzt erst NACH Login aufgerufen!
+                console.log("System bereit für Login.");
+                verDisplay.textContent = ver;
+                verDisplay.classList.remove('animate-pulse');
+            });
+        });
     };
 </script>
 </body>
