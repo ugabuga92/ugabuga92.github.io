@@ -105,11 +105,39 @@
     function loadScript(src) { return new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject; document.body.appendChild(s); }); }
     window.onload = function() {
         const verDisplay = document.getElementById('version-display');
-        fetch('Version?t=' + Date.now()).then(res => res.text()).then(v => {
-            const ver = v.trim(); verDisplay.textContent = ver; verDisplay.classList.remove('animate-pulse'); console.log("Loading V:", ver);
-            return loadScript('network.js?v=' + ver).then(() => loadScript('ui.js?v=' + ver)).then(() => loadScript('game.js?v=' + ver));
-        }).then(() => { if(typeof UI !== 'undefined') { UI.init(); Game.init(); } })
-        .catch(err => { console.warn(err); verDisplay.textContent = "OFFLINE"; loadScript('network.js').then(()=>loadScript('ui.js')).then(()=>loadScript('game.js')).then(()=>{ UI.init(); Game.init(); }); });
+        
+        // FIX: Startet das Spiel IMMER, auch wenn Firebase hakt
+        function startGame(ver) {
+            console.log("Starte Spiel...", ver);
+            verDisplay.textContent = ver; 
+            verDisplay.classList.remove('animate-pulse');
+            if(typeof UI !== 'undefined') { 
+                UI.init(); 
+                Game.init(); 
+                // Versuch Netzwerk zu starten, falls geladen
+                if(typeof Network !== 'undefined') Network.init();
+            }
+        }
+
+        fetch('Version?t=' + Date.now()).then(res => res.text())
+        .then(v => {
+            const ver = v.trim();
+            // Lade Skripte sequenziell
+            loadScript('network.js?v=' + ver)
+                .then(() => loadScript('ui.js?v=' + ver))
+                .then(() => loadScript('game.js?v=' + ver))
+                .then(() => startGame(ver))
+                .catch(e => {
+                    console.error("Ladefehler:", e);
+                    // Notfall Start
+                    startGame("OFFLINE (Rescue)");
+                });
+        })
+        .catch(err => { 
+            console.warn("Versionscheck fehlgeschlagen:", err); 
+            // Fallback ohne Version Cache-Busting
+            loadScript('network.js').then(()=>loadScript('ui.js')).then(()=>loadScript('game.js')).then(() => startGame("OFFLINE"));
+        });
     };
 </script>
 </body>
