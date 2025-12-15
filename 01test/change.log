@@ -1,5 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
+[v0.0.5e] - 2025-12-15 (Restoration Update)
+-------------------------------------------
+- LAYOUT: Zurückgesetzt auf klassisches Design: Karte LINKS, Log RECHTS (wie v0.0.4c).
+- GRAFIK: Farbpalette auf "Wasteland"-Look (Braun/Grün) zurückgerollt, da der dunkle Modus zu kontrastarm war.
+- GRAFIK: Schimmer-Effekte (Pulse) auf die hellere Palette übertragen.
+- FIX: Dice Overlay Logik bleibt funktional und repariert.
 
 [v0.0.5d] - 2025-12-15 (Critical Hotfix)
 ----------------------------------------
