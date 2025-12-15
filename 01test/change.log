@@ -1,27 +1,25 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.7b] - 2025-12-15 (Readability Update)
+-------------------------------------------
+- UI: CRT-Effekte (Scanlines/Flimmern) wurden vom globalen Bildschirm auf das Karten-Fenster beschränkt. Log, Stats und Buttons sind jetzt klar und ohne Störungen lesbar.
+- UI: Kontrast im Log-Bereich durch dunkleren Hintergrund erhöht.
+- GRAFIK: Scanline-Intensität auf der Karte leicht reduziert, um die neuen Vektor-Symbole nicht zu verschlucken.
+
 [v0.0.7a] - 2025-12-15 (Graphics Overhaul & CRT Effect)
 -------------------------------------------------------
 - GRAFIK: Komplettes CSS-Update für einen realistischen "Pip-Boy" Look.
 - CRT: Scanlines, Vignette, Flimmern und Wölbung via CSS hinzugefügt.
-- VECTOR: `game.js` nutzt nun Canvas-Pfade (`moveTo`, `lineTo`) statt simpler Rechtecke (`fillRect`) für Symbole (Vault = Zahnrad, Stadt = Haus, Player = Pfeil).
-- UI: Alle Buttons und Texte haben jetzt einen "Phosphor-Glow" Effekt.
+- VECTOR: `game.js` nutzt nun Canvas-Pfade statt simpler Rechtecke für Symbole.
+- UI: Phosphor-Glow Effekt.
 
 [v0.0.6a] - 2025-12-15 (Content Update)
 ---------------------------------------
-- NEU: Städte (Biome City) generieren jetzt garantiert Händler-Spots ('C').
-- NEU: Wüsten (Biome Desert) generieren jetzt Höhlen ('H') als Mini-Dungeons.
-- NEU: 3 Neue Monster: Wilder Ghul, Radskorpion, Supermutant.
-- UPDATE: Todeskrallen sind nun seltene Encounter (High-Level oder Bad Luck) und nicht mehr Standard.
-- GRAFIK: Höhlen haben eigene Farbe auf der Karte.
+- NEU: Städte (Händler) und Höhlen (Dungeons).
+- NEU: 3 Neue Monster.
+- UPDATE: Todeskrallen selten.
 
 [v0.0.5f] - 2025-12-15 (Interactive Bugfix)
 -------------------------------------------
-- FIX: Kritischer Fehler im `update()`-Loop behoben, der Dialogfenster (z.B. beim Betreten der Vault) sofort wieder geschlossen hat.
-
-[v0.0.5e] - 2025-12-15 (Restoration & Polish)
----------------------------------------------
-- LAYOUT: Zurückgesetzt auf klassisches Design: Karte LINKS, Log RECHTS.
-- WORLDMAP: Legende Links.
-- FIX: Dice Overlay Logik bleibt funktional und repariert.
+- FIX: Dialogfenster schließen nicht mehr sofort.
