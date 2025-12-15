@@ -5,7 +5,7 @@ Das gesamt Overlay ist aber auf Mobiltelefonen zu klein. Idee wäre es das D Pay
 
 - Legende soll links von der Karte sein
 - Legendäre Mobs geben einem ein coolen Boni, nächster Kampf mehr Agi (prozentual zu dem jeweiligen Level aktuell), oder Muniton?, verhältnismäßig halt, ordentlich Kronkorken?
-
+- Startpunkt ist IMMER die Vault, man solte eine möglichkeit der Heilung am Anfang haben, sost ist man sehr schnell frustriert.... Glaub mir!!!
 
 Vorgeschlagen von Gemini : 
 Hier sind 3 Vorschläge für den nächsten Schritt. Sag mir, worauf du Lust hast, und ich liefere dir den Code:
