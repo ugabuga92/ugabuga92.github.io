@@ -19,7 +19,7 @@ const UI = {
             dpad: document.getElementById('overlay-controls'),
             dpadToggle: document.getElementById('btn-toggle-dpad'),
             dialog: document.getElementById('dialog-overlay'),
-            diceOverlay: document.getElementById('dice-overlay'), // NEU
+            diceOverlay: document.getElementById('dice-overlay'),
             
             text: document.getElementById('encounter-text'),
             timer: document.getElementById('game-timer'),
@@ -44,10 +44,13 @@ const UI = {
         this.els.btnChar.onclick = () => this.toggleView('char');
         this.els.btnQuests.onclick = () => this.toggleView('quests');
 
-        this.els.dpadToggle.onclick = () => {
-            const current = this.els.dpad.style.display;
-            this.els.dpad.style.display = (current === 'none' || current === '') ? 'grid' : 'none';
-        };
+        // D-Pad Toggle Logic
+        if(this.els.dpadToggle) {
+            this.els.dpadToggle.onclick = () => {
+                const current = this.els.dpad.style.display;
+                this.els.dpad.style.display = (current === 'none' || current === '') ? 'grid' : 'none';
+            };
+        }
 
         this.els.btnUp.onclick = () => Game.move(0, -1);
         this.els.btnDown.onclick = () => Game.move(0, 1);
@@ -100,8 +103,13 @@ const UI = {
 
             if(name === 'map') {
                 Game.initCanvas();
-                this.restoreOverlay();
+                this.restoreOverlay(); // Hier wird das Overlay wieder eingefügt
                 this.toggleControls(true);
+            } else if (name === 'combat') {
+                // Auch im Kampf brauchen wir das Overlay für den Sieg-Screen!
+                this.restoreOverlay();
+                this.toggleControls(false); 
+                // Controls ausblenden, aber Overlay Struktur da lassen
             } else {
                 this.toggleControls(false);
             }
@@ -118,21 +126,25 @@ const UI = {
     
     // UI Dice Funktionen
     showDiceOverlay: function() {
+        // Wir suchen das Element neu, da es durch switchView neu erstellt worden sein könnte
         this.els.diceOverlay = document.getElementById('dice-overlay');
         if(this.els.diceOverlay) {
             this.els.diceOverlay.classList.remove('hidden');
+            this.els.diceOverlay.style.display = 'flex'; // Jetzt explizit anzeigen
             document.getElementById('dice-1').textContent = "?";
             document.getElementById('dice-2').textContent = "?";
             document.getElementById('dice-3').textContent = "?";
-            document.getElementById('btn-roll').disabled = false;
+            const btn = document.getElementById('btn-roll');
+            if(btn) btn.disabled = false;
+        } else {
+            console.error("Dice Overlay nicht gefunden!");
         }
     },
 
     rollDiceAnim: function() {
         const btn = document.getElementById('btn-roll');
-        btn.disabled = true;
+        if(btn) btn.disabled = true;
         
-        // Simulation Animation
         let count = 0;
         const interval = setInterval(() => {
             document.getElementById('dice-1').textContent = Math.floor(Math.random()*6)+1;
@@ -149,14 +161,13 @@ const UI = {
     finishRoll: function() {
         const result = Game.rollLegendaryLoot();
         
-        // Wir faken die Würfelanzeige passend zum Ergebnis, damit es cool aussieht
-        // Wir teilen result einfach durch 3 (grob)
+        // Optische Aufteilung des Ergebnisses auf 3 Würfel
         let v1 = Math.floor(result.val / 3);
         let v2 = Math.floor(result.val / 3);
         let v3 = result.val - v1 - v2;
-        // Sicherstellen dass keine > 6 ist (kann bei 18 passieren)
-        if(v3 > 6) { v3=6; v2++; }
-        if(v2 > 6) { v2=6; v1++; }
+        // Kosmetik: Keine Zahl > 6
+        while(v3 > 6) { v3--; v2++; }
+        while(v2 > 6) { v2--; v1++; }
         
         document.getElementById('dice-1').textContent = v1;
         document.getElementById('dice-2').textContent = v2;
@@ -165,15 +176,16 @@ const UI = {
         this.log(result.msg, "text-yellow-400 font-bold");
         
         setTimeout(() => {
-            if(this.els.diceOverlay) this.els.diceOverlay.classList.add('hidden');
-            Game.endCombat();
+            if(this.els.diceOverlay) {
+                this.els.diceOverlay.classList.add('hidden');
+                this.els.diceOverlay.style.display = 'none';
+            }
+            Game.endCombat(); // Erst NACH dem Rollen beenden
         }, 2000);
     },
     
     restoreOverlay: function() {
-        // Das Overlay muss wieder in den Container rein, weil switchView alles löscht
-        // ... (HTML Struktur wie in index.html, hier gekürzt für Lesbarkeit)
-        // WICHTIG: Das neue Dice Overlay muss hier auch rein!
+        // FIX: style="... display: flex" ENTFERNT aus dem dice-overlay div!
         const overlayHTML = `
         <button id="btn-toggle-dpad" style="position: absolute; bottom: 20px; left: 20px; z-index: 60; width: 50px; height: 50px; border-radius: 50%; background: rgba(0, 0, 0, 0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 0 10px #000;">🎮</button>
         
@@ -184,7 +196,7 @@ const UI = {
         </div>
         <div id="dialog-overlay" style="position: absolute; bottom: 20px; right: 20px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; max-width: 50%;"></div>
         
-        <div id="dice-overlay" class="hidden" style="position: absolute; inset: 0; z-index: 70; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <div id="dice-overlay" class="hidden" style="position: absolute; inset: 0; z-index: 70; background: rgba(0,0,0,0.95); flex-direction: column; justify-content: center; align-items: center;">
             <h2 class="text-4xl text-yellow-400 mb-8 font-bold animate-pulse">LEGENDÄRER FUND!</h2>
             <div class="flex gap-4 mb-8">
                 <div id="dice-1" class="dice-box" style="width: 60px; height: 60px; border: 4px solid #39ff14; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: bold; background: #000; color: #39ff14;">?</div>
@@ -202,17 +214,17 @@ const UI = {
         
         this.els.view.insertAdjacentHTML('beforeend', overlayHTML);
         
-        // Neu verknüpfen
         this.els.dpad = document.getElementById('overlay-controls');
         this.els.dpadToggle = document.getElementById('btn-toggle-dpad');
         this.els.dialog = document.getElementById('dialog-overlay');
         this.els.diceOverlay = document.getElementById('dice-overlay');
         
-        // Events
-        this.els.dpadToggle.onclick = () => {
-            const current = this.els.dpad.style.display;
-            this.els.dpad.style.display = (current === 'none' || current === '') ? 'grid' : 'none';
-        };
+        if(this.els.dpadToggle) {
+            this.els.dpadToggle.onclick = () => {
+                const current = this.els.dpad.style.display;
+                this.els.dpad.style.display = (current === 'none' || current === '') ? 'grid' : 'none';
+            };
+        }
         
         document.getElementById('btn-up').onclick = () => Game.move(0, -1);
         document.getElementById('btn-down').onclick = () => Game.move(0, 1);
@@ -227,14 +239,12 @@ const UI = {
         this.els.caps.textContent = `${Game.state.caps} Kronkorken`;
         this.els.zone.textContent = Game.state.zone;
         
-        // BUFF ANZEIGE IM HEADER?
-        // Wir machen den HP Balken gelb wenn Buff aktiv
         const buffActive = Date.now() < Game.state.buffEndTime;
         if(buffActive) {
-            this.els.hpBar.style.backgroundColor = "#ffff00"; // Gelb
+            this.els.hpBar.style.backgroundColor = "#ffff00"; 
             this.els.hpBar.parentElement.style.borderColor = "#ffff00";
         } else {
-            this.els.hpBar.style.backgroundColor = "#39ff14"; // Grün
+            this.els.hpBar.style.backgroundColor = "#39ff14"; 
             this.els.hpBar.parentElement.style.borderColor = "#1a4d1a";
         }
         
@@ -246,9 +256,6 @@ const UI = {
         const expPct = Math.min(100, (Game.state.xp / nextXp) * 100);
         if(this.els.expBarTop) this.els.expBarTop.style.width = `${expPct}%`;
         
-        // ... (Rest bleibt gleich) ...
-        
-        // WICHTIG: Button States
         this.els.btnWiki.classList.remove('active');
         this.els.btnMap.classList.remove('active');
         this.els.btnChar.classList.remove('active');
@@ -283,7 +290,6 @@ const UI = {
         this.els.btnQuests.disabled = inCombat;
         this.els.btnNew.disabled = inCombat;
         
-        // Wenn Buff aktiv, Level Anzeige blinken lassen
         if(buffActive) this.els.lvl.classList.add('blink-red');
         else this.els.lvl.classList.remove('blink-red');
 
@@ -305,10 +311,12 @@ const UI = {
 
     toggleControls: function(show) {
         if (!show && this.els.dialog) this.els.dialog.innerHTML = '';
-        if (this.els.diceOverlay && !show) this.els.diceOverlay.classList.add('hidden');
+        if (this.els.diceOverlay && !show) {
+            this.els.diceOverlay.classList.add('hidden');
+            this.els.diceOverlay.style.display = 'none';
+        }
     },
     
-    // ... restliche Funktionen (showGameOver, enterVault, renderQuests etc.) bleiben unverändert ...
     showGameOver: function() {
         if(this.els.gameOver) this.els.gameOver.classList.remove('hidden');
         this.toggleControls(false);
