@@ -1,23 +1,10 @@
 const Game = {
-    TILE: 40, // Größere Tiles für Details
-    MAP_W: 40, // Viel größere Karte (Scrolling!)
-    MAP_H: 40,
-    
-    // Farbcodes für Automap / Fallback
-    colors: { 
-        'V':'#39ff14', 'C':'#eab308', 'G':'#00ffff', 
-        '.':'#5d5345', // Ödland Boden
-        '_':'#eecfa1', // Wüste Boden
-        ',':'#1a3300', // Dschungel Boden
-        '=':'#333333', // Stadt Straße
-        'T':'#1a4d1a', 'R':'#5c544d', '~':'#224f80',
-        'B':'#1a1a1a', // Gebäude Wand
-        'S':'#ff0000', // Supermarkt Eingang
-        '#':'#000000'  // Interior Boden
-    },
+    TILE: 30, MAP_W: 20, MAP_H: 12,
+    colors: { 'V':'#39ff14', 'C':'#eab308', 'G':'#00ffff', '.':'#5d5345', '_':'#eecfa1', ',':'#1a3300', '=':'#333333', 'T':'#1a4d1a', 'R':'#5c544d', '~':'#224f80', 'B':'#1a1a1a', 'S':'#ff0000', '#':'#000000' },
 
     monsters: {
         moleRat: { name: "Maulwurfsratte", hp: 30, dmg: 5, xp: [20, 30], loot: 5, minLvl: 1 },
+        mutantRose: { name: "Mutanten Rose", hp: 45, dmg: 15, loot: 15, xp: [45, 60], minLvl: 1 },
         raider: { name: "Raider", hp: 70, dmg: 15, loot: 25, xp: [70, 90], minLvl: 2 },
         deathclaw: { name: "Todesklaue", hp: 200, dmg: 50, loot: 100, xp: [450, 550], minLvl: 5 }
     },
@@ -32,40 +19,36 @@ const Game = {
         combat_armor: { name: "Kampf-Rüstung", slot: 'body', bonus: { END: 4 }, cost: 150, requiredLevel: 5 }
     },
 
-    state: null, worldData: {}, ctx: null, loopId: null,
-    
-    // Kamera Position
-    camera: { x: 0, y: 0 },
+    state: null, worldData: {}, ctx: null, loopId: null, camera: { x: 0, y: 0 },
 
     init: function() {
         this.worldData = {};
-        
-        // Random Startsektor (Sichere Zone 3-6)
         const startSecX = Math.floor(Math.random() * 4) + 3;
         const startSecY = Math.floor(Math.random() * 4) + 3;
 
         this.state = {
             sector: {x: startSecX, y: startSecY}, 
-            player: {x: 20, y: 20}, // Mitte der Map
+            player: {x: 20, y: 20},
             stats: { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 },
             equip: { weapon: this.items.fists, body: this.items.vault_suit },
             hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0,
             view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, explored: {}, 
             tempStatIncrease: {},
-            quests: [ { id: "q1", title: "Der Weg nach Hause", text: "Finde den Weg nach Hause!", read: false } ]
+            quests: [ { id: "q1", title: "Der Weg nach Hause", text: "Willkommen im einsamen Ödland einer längst vergessenen Zeit.\n\nDeine Aufgabe in der freien Wildbahn ist es, den Weg nach Hause zu finden!\n\nViel Erfolg!!!", read: false } ],
+            
+            // NEU: TIMER STARTZEIT
+            startTime: Date.now()
         };
         
         this.state.hp = this.calculateMaxHP(this.getStat('END'));
         this.state.maxHp = this.state.hp;
         
         this.loadSector(this.state.sector.x, this.state.sector.y);
-        
-        // Sicherstellen, dass wir nicht im Wald spawnen
         this.findSafeSpawn();
 
         UI.switchView('map').then(() => {
             if(UI.els.gameOver) UI.els.gameOver.classList.add('hidden');
-            UI.log("System bereit. Kamera-System aktiviert.", "text-green-400");
+            UI.log("System bereit. Timer gestartet.", "text-green-400");
         });
     },
 
@@ -91,79 +74,51 @@ const Game = {
         }
     },
 
-    // Sucht einen freien Platz für den Spieler
     findSafeSpawn: function() {
         let safe = false;
         while(!safe) {
             const tile = this.state.currentMap[this.state.player.y][this.state.player.x];
-            // Erlaubte Böden
-            if(['.', '_', ',', '='].includes(tile)) {
-                safe = true;
-            } else {
+            if(['.', '_', ',', '='].includes(tile)) safe = true;
+            else {
                 this.state.player.x = Math.floor(Math.random() * (this.MAP_W-2)) + 1;
                 this.state.player.y = Math.floor(Math.random() * (this.MAP_H-2)) + 1;
             }
         }
     },
 
-    // --- BIOME & MAP GEN ---
     loadSector: function(sx, sy, isInterior = false) {
         const key = `${sx},${sy}`;
-        
-        // Dungeon / Interior Logik
         if (isInterior) {
             this.generateDungeon();
             this.state.zone = "Supermarkt (Gefahr!)";
             return;
         }
-
         if(!this.worldData[key]) {
-            // Biome bestimmen anhand Koordinaten (einfaches Clustering)
             let biome = 'wasteland';
             if (sx < 3 && sy < 3) biome = 'jungle';
             else if (sx > 6 && sy > 6) biome = 'desert';
-            else if (Math.random() < 0.3) biome = 'city'; // 30% Stadt Chance
+            else if (Math.random() < 0.3) biome = 'city';
 
-            let groundChar = '.';
-            if(biome === 'desert') groundChar = '_';
-            if(biome === 'jungle') groundChar = ',';
-            if(biome === 'city') groundChar = '=';
+            let gc = '.';
+            if(biome === 'desert') gc = '_';
+            if(biome === 'jungle') gc = ',';
+            if(biome === 'city') gc = '=';
 
-            let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill(groundChar));
-            
-            // Rand
+            let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill(gc));
             for(let i=0; i<this.MAP_W; i++) { map[0][i] = '^'; map[this.MAP_H-1][i] = '^'; }
             for(let i=0; i<this.MAP_H; i++) { map[i][0] = '^'; map[i][this.MAP_W-1] = '^'; }
 
-            // Generierung je nach Biome
-            if (biome === 'wasteland') {
-                this.addClusters(map, 'T', 15, 2); // Wenig Wald
-                this.addClusters(map, 'R', 10, 2); // Felsen
-            } 
-            else if (biome === 'jungle') {
-                this.addClusters(map, 'T', 40, 4); // Viel Wald
-                this.addClusters(map, '~', 10, 3); // Wasser
-            }
-            else if (biome === 'desert') {
-                this.addClusters(map, 'R', 20, 1); // Viele kleine Felsen
-                // Kakteen simulieren wir später im Draw als 'T' auf Sand
-                if(Math.random() > 0.5) this.addClusters(map, 'T', 5, 1); 
-            }
-            else if (biome === 'city') {
-                this.generateCityLayout(map);
-            }
+            if (biome === 'wasteland') { this.addClusters(map, 'T', 15, 2); this.addClusters(map, 'R', 10, 2); } 
+            else if (biome === 'jungle') { this.addClusters(map, 'T', 40, 4); this.addClusters(map, '~', 10, 3); }
+            else if (biome === 'desert') { this.addClusters(map, 'R', 20, 1); if(Math.random() > 0.5) this.addClusters(map, 'T', 5, 1); }
+            else if (biome === 'city') { this.generateCityLayout(map); }
 
-            // Vault (nur einmalig im Start)
-            // Hier vereinfacht: Wenn Sektor 5,5 -> Vault
-            if(sx===5 && sy===5) {
-                map[20][20] = 'V';
-            }
+            if(sx===5 && sy===5) map[20][20] = 'V';
 
-            // Tore
-            if(sy>0) this.clearGate(map, Math.floor(this.MAP_W/2), 0, 'G', groundChar);
-            if(sy<9) this.clearGate(map, Math.floor(this.MAP_W/2), this.MAP_H-1, 'G', groundChar);
-            if(sx>0) this.clearGate(map, 0, Math.floor(this.MAP_H/2), 'G', groundChar);
-            if(sx<9) this.clearGate(map, this.MAP_W-1, Math.floor(this.MAP_H/2), 'G', groundChar);
+            if(sy>0) this.clearGate(map, Math.floor(this.MAP_W/2), 0, 'G', gc);
+            if(sy<9) this.clearGate(map, Math.floor(this.MAP_W/2), this.MAP_H-1, 'G', gc);
+            if(sx>0) this.clearGate(map, 0, Math.floor(this.MAP_H/2), 'G', gc);
+            if(sx<9) this.clearGate(map, this.MAP_W-1, Math.floor(this.MAP_H/2), 'G', gc);
 
             this.worldData[key] = { layout: map, explored: {}, biome: biome };
         }
@@ -171,69 +126,38 @@ const Game = {
         const data = this.worldData[key];
         this.state.currentMap = data.layout;
         this.state.explored = data.explored;
-        
-        let zoneName = "Ödland";
-        if(data.biome === 'city') zoneName = "Ruinenstadt";
-        if(data.biome === 'desert') zoneName = "Glühende Wüste";
-        if(data.biome === 'jungle') zoneName = "Überwucherte Zone";
-        this.state.zone = `${zoneName} (${sx},${sy})`;
+        let zn = "Ödland";
+        if(data.biome === 'city') zn = "Ruinenstadt";
+        if(data.biome === 'desert') zn = "Glühende Wüste";
+        if(data.biome === 'jungle') zn = "Überwucherte Zone";
+        this.state.zone = `${zn} (${sx},${sy})`;
     },
 
     generateCityLayout: function(map) {
-        // Straßen Raster
-        for(let x=4; x<this.MAP_W; x+=8) {
-            for(let y=1; y<this.MAP_H-1; y++) map[y][x] = '=';
-        }
-        for(let y=4; y<this.MAP_H; y+=8) {
-            for(let x=1; x<this.MAP_W-1; x++) map[y][x] = '=';
-        }
-
-        // Gebäude (B) in den Lücken
+        for(let x=4; x<this.MAP_W; x+=8) for(let y=1; y<this.MAP_H-1; y++) map[y][x] = '=';
+        for(let y=4; y<this.MAP_H; y+=8) for(let x=1; x<this.MAP_W-1; x++) map[y][x] = '=';
         for(let y=1; y<this.MAP_H-1; y++) {
             for(let x=1; x<this.MAP_W-1; x++) {
-                if(map[y][x] === '=') {
-                    // 10% Chance auf Schutt auf der Straße
-                    if(Math.random() < 0.1) map[y][x] = 'R'; 
-                } else {
-                    // Gebäude füllen
-                    map[y][x] = 'B';
-                }
+                if(map[y][x] !== '=') map[y][x] = 'B';
+                else if(Math.random() < 0.1) map[y][x] = 'R'; 
             }
         }
-
-        // Supermarkt platzieren
         let placed = false;
         while(!placed) {
             let rx = Math.floor(Math.random() * (this.MAP_W-4)) + 2;
             let ry = Math.floor(Math.random() * (this.MAP_H-4)) + 2;
-            // Muss an Straße liegen
-            if(map[ry][rx] === 'B' && (map[ry+1][rx]==='=' || map[ry-1][rx]==='=')) {
-                map[ry][rx] = 'S';
-                placed = true;
-            }
+            if(map[ry][rx] === 'B' && (map[ry+1][rx]==='=' || map[ry-1][rx]==='=')) { map[ry][rx] = 'S'; placed = true; }
         }
     },
 
     generateDungeon: function() {
-        // Simpler Raum voller Gegner
-        let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('B')); // Alles Wand
-        
-        // Innenraum aushöhlen
-        for(let y=10; y<30; y++) {
-            for(let x=10; x<30; x++) {
-                map[y][x] = '#'; // Boden
-            }
-        }
-        // Ausgang
+        let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('B'));
+        for(let y=10; y<30; y++) for(let x=10; x<30; x++) map[y][x] = '#';
         map[29][20] = 'G'; 
-        
         this.state.currentMap = map;
-        this.state.player.x = 20;
-        this.state.player.y = 28;
-        // In Dungeons sieht man alles sofort (oder auch nicht, hier: ja)
+        this.state.player.x = 20; this.state.player.y = 28;
         this.state.explored = {}; 
-        for(let y=0; y<this.MAP_H; y++) 
-            for(let x=0; x<this.MAP_W; x++) this.state.explored[`${x},${y}`] = true;
+        for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.state.explored[`${x},${y}`] = true;
     },
 
     addClusters: function(map, type, count, size) {
@@ -254,24 +178,18 @@ const Game = {
 
     clearGate: function(map, x, y, char, ground) {
         map[y][x] = char;
-        for(let dy=-1; dy<=1; dy++) {
-            for(let dx=-1; dx<=1; dx++) {
-                let ny = y+dy, nx = x+dx;
-                if(ny>0 && ny<this.MAP_H-1 && nx>0 && nx<this.MAP_W-1) {
-                    if(map[ny][nx] !== 'V') map[ny][nx] = ground;
-                }
-            }
+        for(let dy=-1; dy<=1; dy++) for(let dx=-1; dx<=1; dx++) {
+            let ny = y+dy, nx = x+dx;
+            if(ny>0 && ny<this.MAP_H-1 && nx>0 && nx<this.MAP_W-1) if(map[ny][nx] !== 'V') map[ny][nx] = ground;
         }
     },
 
     initCanvas: function() {
         const cvs = document.getElementById('game-canvas');
         if(!cvs) return;
-        // Canvas Größe bleibt fest (Fenstergröße), aber wir zeichnen nur einen Ausschnitt
         const viewContainer = document.getElementById('view-container');
         cvs.width = viewContainer.offsetWidth;
         cvs.height = viewContainer.offsetHeight;
-        
         this.ctx = cvs.getContext('2d');
         if(this.loopId) cancelAnimationFrame(this.loopId);
         this.drawLoop();
@@ -283,33 +201,19 @@ const Game = {
         this.loopId = requestAnimationFrame(() => this.drawLoop());
     },
 
-    // --- KAMERA & RENDER ---
     draw: function() {
         if(!this.ctx) return;
-        const ctx = this.ctx;
-        const cvs = ctx.canvas;
-
-        // Kamera berechnen (Spieler zentrieren)
-        // Ziel: Player Pixel Position - Halbe Canvas Breite
+        const ctx = this.ctx; const cvs = ctx.canvas;
         let targetCamX = (this.state.player.x * this.TILE) - (cvs.width / 2);
         let targetCamY = (this.state.player.y * this.TILE) - (cvs.height / 2);
-
-        // Clamping (Kamera darf nicht aus der Map rausfahren)
         const maxCamX = (this.MAP_W * this.TILE) - cvs.width;
         const maxCamY = (this.MAP_H * this.TILE) - cvs.height;
-        
         this.camera.x = Math.max(0, Math.min(targetCamX, maxCamX));
         this.camera.y = Math.max(0, Math.min(targetCamY, maxCamY));
 
-        // Hintergrund (Schwarz)
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, cvs.width, cvs.height);
+        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cvs.width, cvs.height);
+        ctx.save(); ctx.translate(-this.camera.x, -this.camera.y);
 
-        // Transformation speichern und verschieben
-        ctx.save();
-        ctx.translate(-this.camera.x, -this.camera.y);
-
-        // Sichtbaren Bereich berechnen (Performance!)
         const startCol = Math.floor(this.camera.x / this.TILE);
         const endCol = startCol + (cvs.width / this.TILE) + 1;
         const startRow = Math.floor(this.camera.y / this.TILE);
@@ -318,77 +222,36 @@ const Game = {
         for(let y = startRow; y <= endRow; y++) {
             for(let x = startCol; x <= endCol; x++) {
                 if(y >= 0 && y < this.MAP_H && x >= 0 && x < this.MAP_W) {
-                    if(this.state.explored[`${x},${y}`]) {
-                        this.drawTile(ctx, x, y, this.state.currentMap[y][x]);
-                    } else {
-                        // Optional: Fog of War Style
-                        // ctx.fillStyle = "#111"; ctx.fillRect(x*this.TILE, y*this.TILE, this.TILE, this.TILE);
-                    }
+                    if(this.state.explored[`${x},${y}`]) this.drawTile(ctx, x, y, this.state.currentMap[y][x]);
                 }
             }
         }
-
-        // Spieler
         const px = this.state.player.x * this.TILE + this.TILE/2;
         const py = this.state.player.y * this.TILE + this.TILE/2;
         ctx.shadowBlur = 15; ctx.shadowColor = "#ff3914";
-        ctx.fillStyle = "#ff3914";
-        ctx.beginPath(); ctx.arc(px, py, this.TILE/3, 0, Math.PI*2); ctx.fill();
-        ctx.shadowBlur = 0;
-
-        ctx.restore();
+        ctx.fillStyle = "#ff3914"; ctx.beginPath(); ctx.arc(px, py, this.TILE/3, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0; ctx.restore();
     },
 
     drawTile: function(ctx, x, y, type) {
-        const ts = this.TILE;
-        const px = x * ts;
-        const py = y * ts;
-
-        // Bodenfarben je nach Biome/Tile
+        const ts = this.TILE; const px = x * ts; const py = y * ts;
         let bg = this.colors['.'];
-        if(type === '_') bg = this.colors['_']; // Wüste
-        if(type === ',') bg = this.colors[',']; // Dschungel
-        if(type === '=' || type === 'B' || type === 'S') bg = this.colors['=']; // Stadt
-        if(type === '#') bg = this.colors['#']; // Dungeon
+        if(type === '_') bg = this.colors['_'];
+        if(type === ',') bg = this.colors[','];
+        if(type === '=' || type === 'B' || type === 'S') bg = this.colors['='];
+        if(type === '#') bg = this.colors['#'];
 
-        // Wasser hat keinen Boden drunter
-        if (type !== '~') {
-            ctx.fillStyle = bg;
-            ctx.fillRect(px, py, ts, ts);
-        }
+        if (type !== '~') { ctx.fillStyle = bg; ctx.fillRect(px, py, ts, ts); }
 
-        // Objekte
         switch(type) {
-            case '^': // Wand
-                ctx.fillStyle = "#222"; ctx.fillRect(px, py, ts, ts);
-                ctx.strokeStyle = "#555"; ctx.strokeRect(px, py, ts, ts);
-                break;
-            case 'T': // Baum
-                ctx.fillStyle = "#1b5e20"; // Grün
-                if(bg === this.colors['_']) ctx.fillStyle = "#2e7d32"; // Kaktus Farbe
-                ctx.beginPath(); ctx.moveTo(px+ts/2, py+2); ctx.lineTo(px+ts-2, py+ts-2); ctx.lineTo(px+2, py+ts-2); ctx.fill();
-                break;
-            case '~': // Wasser
-                ctx.fillStyle = this.colors['~']; ctx.fillRect(px, py, ts, ts);
-                break;
-            case 'R': // Fels
-                ctx.fillStyle = "#555"; ctx.beginPath(); ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill();
-                break;
-            case 'B': // Hauswand
-                ctx.fillStyle = "#333"; ctx.fillRect(px+2, py+2, ts-4, ts-4);
-                ctx.fillStyle = "#000"; ctx.fillRect(px+5, py+5, ts-10, ts-10); // Dach
-                break;
-            case 'S': // Supermarkt
-                ctx.fillStyle = "#ef4444"; // Rot
-                ctx.fillRect(px, py, ts, ts);
-                ctx.fillStyle = "#fff"; ctx.font="bold 20px monospace"; ctx.fillText("M", px+10, py+28);
-                break;
-            case 'V': 
-                ctx.fillStyle = this.colors['V']; ctx.beginPath(); ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill();
-                break;
-            case 'G':
-                ctx.fillStyle = this.colors['G']; ctx.fillRect(px+5, py+5, ts-10, ts-10);
-                break;
+            case '^': ctx.fillStyle = "#222"; ctx.fillRect(px, py, ts, ts); ctx.strokeStyle = "#555"; ctx.strokeRect(px, py, ts, ts); break;
+            case 'T': ctx.fillStyle = "#1b5e20"; if(bg === this.colors['_']) ctx.fillStyle = "#2e7d32"; ctx.beginPath(); ctx.moveTo(px+ts/2, py+2); ctx.lineTo(px+ts-2, py+ts-2); ctx.lineTo(px+2, py+ts-2); ctx.fill(); break;
+            case '~': ctx.fillStyle = this.colors['~']; ctx.fillRect(px, py, ts, ts); break;
+            case 'R': ctx.fillStyle = "#555"; ctx.beginPath(); ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); break;
+            case 'B': ctx.fillStyle = "#333"; ctx.fillRect(px+2, py+2, ts-4, ts-4); ctx.fillStyle = "#000"; ctx.fillRect(px+5, py+5, ts-10, ts-10); break;
+            case 'S': ctx.fillStyle = "#ef4444"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#fff"; ctx.font="bold 20px monospace"; ctx.fillText("M", px+10, py+28); break;
+            case 'V': ctx.fillStyle = this.colors['V']; ctx.beginPath(); ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); break;
+            case 'G': ctx.fillStyle = this.colors['G']; ctx.fillRect(px+5, py+5, ts-10, ts-10); break;
         }
     },
 
@@ -396,16 +259,9 @@ const Game = {
         if(this.state.inDialog || this.state.isGameOver) return;
         const nx = this.state.player.x + dx;
         const ny = this.state.player.y + dy;
-        
-        // Map Grenzen
         if(nx < 0 || nx >= this.MAP_W || ny < 0 || ny >= this.MAP_H) return;
-
         const tile = this.state.currentMap[ny][nx];
-        
-        // Kollision (Wände, Wasser, Bäume, Felsen, Gebäude)
-        if(['^', 'T', '~', 'R', 'B'].includes(tile)) { 
-            UI.log("Weg blockiert.", "text-gray-500"); return; 
-        }
+        if(['^', 'T', '~', 'R', 'B'].includes(tile)) { UI.log("Weg blockiert.", "text-gray-500"); return; }
         
         this.state.player.x = nx;
         this.state.player.y = ny;
@@ -413,14 +269,10 @@ const Game = {
         
         if(tile === 'G') {
             if(this.state.zone.includes("Supermarkt")) {
-                // Raus aus Dungeon
                 this.loadSector(this.state.sector.x, this.state.sector.y);
                 UI.log("Zurück an der Oberfläche.", "text-green-400");
-                // Platziere Spieler neben Supermarkt (quick fix)
                 this.findSafeSpawn(); 
-            } else {
-                this.changeSector(nx, ny);
-            }
+            } else this.changeSector(nx, ny);
         }
         else if(tile === 'S') UI.enterSupermarket();
         else if(tile === 'V') UI.enterVault();
@@ -429,50 +281,32 @@ const Game = {
     },
 
     reveal: function(px, py) {
-        for(let y=py-2; y<=py+2; y++) {
-            for(let x=px-2; x<=px+2; x++) {
-                if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) this.state.explored[`${x},${y}`] = true;
-            }
-        }
+        for(let y=py-2; y<=py+2; y++) for(let x=px-2; x<=px+2; x++) if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) this.state.explored[`${x},${y}`] = true;
     },
 
     changeSector: function(px, py) {
         let sx=this.state.sector.x, sy=this.state.sector.y;
         if(py===0) sy--; else if(py===this.MAP_H-1) sy++;
         if(px===0) sx--; else if(px===this.MAP_W-1) sx++;
-        
-        // World Bounds Check (0-7 bei 8x8)
-        if(sx < 0 || sx > 7 || sy < 0 || sy > 7) {
-            UI.log("Ende der Weltkarte.", "text-red-500");
-            // Spieler zurücksetzen
-            this.state.player.x -= (px===0 ? -1 : 1);
-            return;
-        }
-
+        if(sx < 0 || sx > 7 || sy < 0 || sy > 7) { UI.log("Ende der Weltkarte.", "text-red-500"); this.state.player.x -= (px===0 ? -1 : 1); return; }
         this.state.sector = {x: sx, y: sy};
         this.loadSector(sx, sy);
-        
-        // Spieler Position auf neuer Map
         if(py===0) this.state.player.y=this.MAP_H-2; else if(py===this.MAP_H-1) this.state.player.y=1;
         if(px===0) this.state.player.x=this.MAP_W-2; else if(px===this.MAP_W-1) this.state.player.x=1;
-        
-        this.findSafeSpawn(); // Sicherheitshalber
+        this.findSafeSpawn();
         this.reveal(this.state.player.x, this.state.player.y);
         UI.log(`Sektorwechsel: ${sx},${sy}`, "text-blue-400");
     },
 
     startCombat: function() {
-        // Monster Auswahl basierend auf Biome
         let pool = [];
         if(this.state.zone.includes("Wüste")) pool = [this.monsters.moleRat, this.monsters.raider];
-        else if(this.state.zone.includes("Supermarkt")) pool = [this.monsters.raider, this.monsters.raider]; // Viele Raider
+        else if(this.state.zone.includes("Supermarkt")) pool = [this.monsters.raider, this.monsters.raider]; 
         else if(this.state.zone.includes("Dschungel")) pool = [this.monsters.mutantRose];
         else pool = [this.monsters.moleRat];
-
         if(this.state.lvl >= 5) pool.push(this.monsters.deathclaw);
 
         const template = pool[Math.floor(Math.random()*pool.length)];
-        
         let enemy = { ...template };
         const isLegendary = Math.random() < 0.1;
         if(isLegendary) {
@@ -516,7 +350,7 @@ const Game = {
                 UI.log(`Treffer: ${dmg} Schaden.`, "text-green-400");
                 if(this.state.enemy.hp <= 0) {
                     this.state.caps += this.state.enemy.loot;
-                    UI.log(`Sieg! ${this.state.enemy.loot} KK.`, "text-yellow-400");
+                    UI.log(`Sieg! ${this.state.enemy.loot} Kronkorken.`, "text-yellow-400");
                     this.gainExp(this.getRandomXP(this.state.enemy.xp));
                     this.endCombat();
                     return;
@@ -571,12 +405,12 @@ const Game = {
 
     heal: function() {
         if(this.state.caps >= 25) { this.state.caps -= 25; this.rest(); } 
-        else UI.log("Zu wenig KK.", "text-red-500");
+        else UI.log("Zu wenig Kronkorken.", "text-red-500");
     },
 
     buyAmmo: function() {
         if(this.state.caps >= 10) { this.state.caps -= 10; this.state.ammo += 10; UI.log("Munition gekauft.", "text-green-400"); UI.update(); } 
-        else UI.log("Zu wenig KK.", "text-red-500");
+        else UI.log("Zu wenig Kronkorken.", "text-red-500");
     },
 
     buyItem: function(key) {
@@ -589,7 +423,7 @@ const Game = {
             UI.log(`Gekauft: ${item.name}`, "text-green-400");
             UI.renderCity();
             UI.update();
-        } else UI.log("Zu wenig KK.", "text-red-500");
+        } else UI.log("Zu wenig Kronkorken.", "text-red-500");
     },
 
     upgradeStat: function(key) {
