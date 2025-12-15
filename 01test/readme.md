@@ -3,7 +3,8 @@
 für Tablet & Laptop funktioniert soweit alles. 
 Das gesamt Overlay ist aber auf Mobiltelefonen zu klein. Idee wäre es das D Pay als "Overlay" reinzumachen links unten und somit den Karten abschnitt zu vergrößern. Desweiteren ist der Logbereich scheinbar nicht Fixiert, er wird varriabel bei mehr und mehr tätigkeiten immer größer bis er den ganzen bildschirm ausfüllt.
 
-Legende soll links von der Karte sein
+- Legende soll links von der Karte sein
+- Legendäre Mobs geben einem ein coolen Boni, nächster Kampf mehr Agi (prozentual zu dem jeweiligen Level aktuell), oder Muniton?, verhältnismäßig halt, ordentlich Kronkorken?
 
 
 Vorgeschlagen von Gemini : 
