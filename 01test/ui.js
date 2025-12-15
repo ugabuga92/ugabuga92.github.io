@@ -2,6 +2,14 @@ const UI = {
     els: {},
     timerInterval: null,
 
+    // Mapping von Biomen zu Farben für die Weltkarte
+    biomeColors: {
+        'wasteland': '#5d5345', // Braun
+        'desert': '#eecfa1',    // Sandfarben
+        'jungle': '#1a3300',    // Dunkelgrün
+        'city': '#555555'       // Grau
+    },
+
     init: function() {
         this.els = {
             view: document.getElementById('view-container'),
@@ -14,10 +22,8 @@ const UI = {
             caps: document.getElementById('val-caps'),
             zone: document.getElementById('current-zone-display'),
             
-            // NEUE IDs
             dpad: document.getElementById('overlay-controls'),
             dialog: document.getElementById('dialog-overlay'),
-            
             text: document.getElementById('encounter-text'),
             timer: document.getElementById('game-timer'),
             
@@ -77,7 +83,7 @@ const UI = {
         const h = Math.floor(diff / 3600).toString().padStart(2,'0');
         const m = Math.floor((diff % 3600) / 60).toString().padStart(2,'0');
         const s = (diff % 60).toString().padStart(2,'0');
-        this.els.timer.textContent = `${h}:${m}:${s}`;
+        if(this.els.timer) this.els.timer.textContent = `${h}:${m}:${s}`;
     },
 
     switchView: async function(name) {
@@ -180,7 +186,6 @@ const UI = {
 
     toggleControls: function(show) {
         this.els.dpad.style.visibility = show ? 'visible' : 'hidden';
-        // Dialog nicht leeren, nur ausblenden, sonst sind Buttons weg wenn wir zurückkehren
         if (!show) this.els.dialog.style.display = 'none';
     },
     
@@ -298,6 +303,7 @@ const UI = {
         }).join('');
     },
 
+    // --- NEU: FARBIGE WELTKARTE ---
     renderWorldMap: function() {
         const grid = document.getElementById('world-grid');
         if(!grid) return;
@@ -305,9 +311,21 @@ const UI = {
         for(let y=0; y<8; y++) {
             for(let x=0; x<8; x++) {
                 const d = document.createElement('div');
-                d.className = "border border-green-900/50 flex justify-center items-center text-xs";
-                if(x===Game.state.sector.x && y===Game.state.sector.y) { d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.textContent = "YOU"; } 
-                else if(Game.worldData[`${x},${y}`]) { d.style.backgroundColor = "#4a3d34"; }
+                d.className = "border border-green-900/30 flex justify-center items-center text-xs relative";
+                
+                // SPIELER
+                if(x===Game.state.sector.x && y===Game.state.sector.y) { 
+                    d.style.backgroundColor = "#39ff14"; 
+                    d.style.color = "black"; 
+                    d.style.fontWeight = "bold";
+                    d.textContent = "YOU"; 
+                } 
+                // ERKUNDETE BEREICHE
+                else if(Game.worldData[`${x},${y}`]) { 
+                    const biome = Game.worldData[`${x},${y}`].biome;
+                    d.style.backgroundColor = this.biomeColors[biome] || '#4a3d34';
+                }
+                
                 grid.appendChild(d);
             }
         }
