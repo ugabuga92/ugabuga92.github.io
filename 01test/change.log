@@ -1,38 +1,28 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.6a] - 2025-12-15 (Content Update)
+---------------------------------------
+- NEU: Städte (Biome City) generieren jetzt garantiert Händler-Spots ('C').
+- NEU: Wüsten (Biome Desert) generieren jetzt Höhlen ('H') als Mini-Dungeons.
+- NEU: 3 Neue Monster: Wilder Ghul, Radskorpion, Supermutant.
+- UPDATE: Todeskrallen sind nun seltene Encounter (High-Level oder Bad Luck) und nicht mehr Standard.
+- GRAFIK: Höhlen haben eigene Farbe auf der Karte.
+
 [v0.0.5f] - 2025-12-15 (Interactive Bugfix)
 -------------------------------------------
-- FIX: Kritischer Fehler im `update()`-Loop behoben, der Dialogfenster (z.B. beim Betreten der Vault) sofort wieder geschlossen hat. Die Steuerung bleibt nicht mehr hängen ("Game freezes").
-- LOGIK: Dialog-Sichtbarkeit wird nun strikt durch Event-Trigger gesteuert, nicht mehr durch den Update-Zyklus überschrieben.
+- FIX: Kritischer Fehler im `update()`-Loop behoben, der Dialogfenster (z.B. beim Betreten der Vault) sofort wieder geschlossen hat.
 
 [v0.0.5e] - 2025-12-15 (Restoration & Polish)
 ---------------------------------------------
-- LAYOUT: Zurückgesetzt auf klassisches Design: Karte LINKS, Log RECHTS (entsprechend v0.0.4c).
-- WORLDMAP: Legende im "Welt"-Menü befindet sich nun LINKS neben dem Grid.
-- GRAFIK: Farbpalette auf "Wasteland"-Look (Braun/Oliv) zurückgesetzt, da der dunkle Modus zu kontrastarm war.
-- GRAFIK: Schimmer-Effekte (Pulse) auf die hellere Palette übertragen.
-- FIX: Dice Overlay Logik bleibt funktional und repariert.
+- LAYOUT: Zurückgesetzt auf klassisches Design: Karte LINKS, Log RECHTS.
+- WORLDMAP: Legende Links.
+- GRAFIK: Farbpalette zurückgesetzt.
 
 [v0.0.5d] - 2025-12-15 (Critical Hotfix)
 ----------------------------------------
-- FIX: Kritischer CSS-Fehler behoben, durch den das Würfel-Overlay (Dice) permanent sichtbar war.
-- CODE: `display: flex` aus dem ID-Selektor `#dice-overlay` entfernt.
+- FIX: Dice Overlay bug fixed.
 
-[v0.0.5c] - 2025-12-15
-----------------------
-- DOKUMENTATION: Aufsplittung in readme.md und change.log.
-
-[v0.0.5b] - 2025-12-15 (Hotfix)
--------------------------------
-- FIX: Kampfbildschirm bleibt sichtbar, bis das Würfeln abgeschlossen ist.
-
-[v0.0.5a] - 2025-12-15 (Legendary Update)
------------------------------------------
-- NEU: Legendäre Gegner (15% Chance) & Dice-Minigame.
-- GRAFIK: Neuer Kontrast & Schimmer-Effekte.
-
-[v0.0.4c] - 2025-12-15
-----------------------
-- LAYOUT: Log Links, Karte Rechts (Experimentell).
-- MOBILE: D-Pad Overlay.
+[v0.0.5a - v0.0.5c] - Legendary Update
+--------------------------------------
+- Legendäres System, Dice Minigame, Buffs.
