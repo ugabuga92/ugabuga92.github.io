@@ -1,6 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.10b] - 2025-12-15 (Hotfix: Login Crash)
+---------------------------------------------
+- FIX: Kritischer Fehler im Login-Prozess behoben ("UI.log is not a function").
+- UI: Versionsnummer wird nun im Login-Feld angezeigt (unten mittig).
+- INFO: Firebase-Warnung im Dashboard bezüglich "öffentliche Regeln" ist beabsichtigt und korrekt für den Testbetrieb.
+
 [v0.0.10a] - 2025-12-15 (Savegame System)
 -----------------------------------------
 - SYSTEM: Login-Screen implementiert. Spieler müssen nun eine "Survivor-ID" wählen.
