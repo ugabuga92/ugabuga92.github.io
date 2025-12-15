@@ -1,52 +1,33 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
-[v0.0.5e] - 2025-12-15 (Restoration Update)
--------------------------------------------
-- LAYOUT: Zurückgesetzt auf klassisches Design: Karte LINKS, Log RECHTS (wie v0.0.4c).
-- GRAFIK: Farbpalette auf "Wasteland"-Look (Braun/Grün) zurückgerollt, da der dunkle Modus zu kontrastarm war.
+
+[v0.0.5e] - 2025-12-15 (Restoration & Polish)
+---------------------------------------------
+- LAYOUT: Zurückgesetzt auf klassisches Design: Karte LINKS, Log RECHTS (entsprechend v0.0.4c).
+- WORLDMAP: Legende im "Welt"-Menü befindet sich nun LINKS neben dem Grid.
+- GRAFIK: Farbpalette auf "Wasteland"-Look (Braun/Oliv) zurückgesetzt, da der dunkle Modus zu kontrastarm war.
 - GRAFIK: Schimmer-Effekte (Pulse) auf die hellere Palette übertragen.
 - FIX: Dice Overlay Logik bleibt funktional und repariert.
 
 [v0.0.5d] - 2025-12-15 (Critical Hotfix)
 ----------------------------------------
-- FIX: Kritischer CSS-Fehler behoben, durch den das Würfel-Overlay (Dice) permanent sichtbar war und das Spiel blockierte.
+- FIX: Kritischer CSS-Fehler behoben, durch den das Würfel-Overlay (Dice) permanent sichtbar war.
 - CODE: `display: flex` aus dem ID-Selektor `#dice-overlay` entfernt.
-- UI: Die Steuerung des Overlays in `ui.js` nutzt nun sauber `classList.add/remove` für `.hidden` und `.flex`.
 
 [v0.0.5c] - 2025-12-15
 ----------------------
 - DOKUMENTATION: Aufsplittung in readme.md und change.log.
-- STRUKTUR: Versionierungssystem gefestigt.
 
 [v0.0.5b] - 2025-12-15 (Hotfix)
 -------------------------------
 - FIX: Kampfbildschirm bleibt sichtbar, bis das Würfeln abgeschlossen ist.
-- UI: Würfel-Logik robuster gestaltet.
 
 [v0.0.5a] - 2025-12-15 (Legendary Update)
 -----------------------------------------
-- NEU: Legendäre Gegner (15% Spawn-Rate) mit erhöhtem Schwierigkeitsgrad (HP x2, DMG x1.5).
-- NEU: Loot-Würfel-System (Dice Overlay) nach Sieg über legendäre Gegner.
-- NEU: Zeitbasierter Buff "Overdrive" (Erhöht Stats für 5 Minuten massiv).
-- UPDATE: Startpunkt-Logik überarbeitet. Zufälliger Sektor, aber Spieler startet immer sicher auf dem Vault-Feld (20,20).
-- GRAFIK: Verbesserter Kontrast für Bodenfliesen (dunkler) und Steine (heller).
-- GRAFIK: Pulsierende/Schimmernde Effekte für wichtige Orte (Vault, Stadt, Tor) auf der Karte.
+- NEU: Legendäre Gegner (15% Chance) & Dice-Minigame.
+- GRAFIK: Neuer Kontrast & Schimmer-Effekte.
 
-[v0.0.4c] - 2025-12-15 (Layout & Mobile)
-----------------------------------------
-- LAYOUT: Tausch der Hauptbereiche -> Log jetzt Links, Karte Rechts.
-- MOBILE: D-Pad Overlay hinzugefügt.
-- UI: Log-Bereich fixiert (kein unendliches Wachsen mehr, scrollt jetzt).
-- ENGINE: Umstellung auf Canvas-Rendering für die Karte statt DOM-Grid (Performance Boost).
-
-[v0.0.4b] - 2025-12-15
+[v0.0.4c] - 2025-12-15
 ----------------------
-- GAMEPLAY: Einführung des Buff-Systems für den nächsten Kampf.
-- GAMEPLAY: Erste Iteration der legendären Drop-Chancen.
-
-[v0.0.1 - v0.0.3] - Initial Phase
----------------------------------
-- Grundgerüst (HTML/JS/Tailwind).
-- Erstes Kampfsystem.
-- Inventar- und Händler-Basislogik.
-- Implementierung der Views-Struktur.
+- LAYOUT: Log Links, Karte Rechts (Experimentell).
+- MOBILE: D-Pad Overlay.
