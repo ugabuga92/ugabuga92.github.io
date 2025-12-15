@@ -15,16 +15,28 @@
         
         #main-content { flex-grow: 1; display: flex; overflow: hidden; min-height: 0; }
         #main-panel { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+        
+        /* LAYOUT: Standard Flex (Links nach Rechts) */
         #layout-split { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; min-height: 0; }
         @media (min-width: 768px) { #layout-split { flex-direction: row; } }
 
-        /* KARTE RECHTS (Korrektur) */
-        #view-container { position: relative; flex-grow: 1; display: flex; justify-content: center; align-items: center; background-color: var(--pip-bg); overflow: hidden; height: 70%; }
-        @media (min-width: 768px) { #view-container { width: 66%; height: 100%; border-bottom: none; border-left: 2px solid var(--pip-green); order: 2; } }
+        /* KARTE (LINKS) */
+        #view-container { 
+            position: relative; flex-grow: 1; display: flex; justify-content: center; align-items: center; 
+            background-color: var(--pip-bg); overflow: hidden; height: 60%; 
+        }
+        @media (min-width: 768px) { 
+            #view-container { width: 70%; height: 100%; border-right: 2px solid var(--pip-green); border-bottom: none; } 
+        }
 
-        /* LOG LINKS (Korrektur) */
-        #log-panel { display: flex; flex-direction: column; background-color: var(--pip-dark); flex-shrink: 0; border-top: 2px solid var(--pip-green); height: 30%; min-height: 100px; }
-        @media (min-width: 768px) { #log-panel { width: 34%; height: 100%; border-top: none; border-right: none; order: 1; } }
+        /* LOG (RECHTS) */
+        #log-panel { 
+            display: flex; flex-direction: column; background-color: var(--pip-dark); flex-shrink: 0; 
+            border-top: 2px solid var(--pip-green); height: 40%; min-height: 150px; 
+        }
+        @media (min-width: 768px) { 
+            #log-panel { width: 30%; height: 100%; border-top: none; border-left: none; } 
+        }
 
         .header-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; border-bottom: 2px solid var(--pip-green); background: rgba(57, 255, 20, 0.05); flex-shrink: 0; }
         
@@ -41,25 +53,10 @@
             font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer;
             box-shadow: 0 0 10px #000;
         }
-        #overlay-controls {
-            position: absolute; bottom: 80px; left: 20px; z-index: 50;
-            display: none; grid-template-columns: repeat(3, 1fr); gap: 5px;
-        }
-        .dpad-btn {
-            width: 50px; height: 50px; background: rgba(0, 0, 0, 0.8); border: 2px solid var(--pip-green);
-            color: var(--pip-green); font-size: 24px; display: flex; justify-content: center; align-items: center;
-            cursor: pointer; border-radius: 8px; user-select: none; box-shadow: 0 0 5px #000;
-        }
         
-        #dialog-overlay {
-            position: absolute; bottom: 20px; right: 20px; z-index: 50;
-            display: flex; flex-direction: column; align-items: flex-end; gap: 5px; max-width: 50%;
-        }
-        
-        /* DICE OVERLAY CSS FIX: display: flex entfernt! */
+        /* Dice Overlay: Standard HIDDEN via Klasse, KEIN display:flex hier */
         #dice-overlay {
             position: absolute; inset: 0; z-index: 70; background: rgba(0,0,0,0.9);
-            /* display: flex;  <-- ENTFERNT, damit .hidden funktioniert! */
             flex-direction: column; justify-content: center; align-items: center;
         }
         .dice-box {
@@ -69,10 +66,10 @@
             box-shadow: 0 0 15px var(--pip-green);
         }
 
+        /* Scrollbar & Animationen */
         ::-webkit-scrollbar { width: 6px; } 
         ::-webkit-scrollbar-thumb { background: var(--pip-green); border-radius: 3px; }
         ::-webkit-scrollbar-track { background: var(--pip-dark); }
-
         .blink-red { animation: blink-red-anim 1s infinite; }
         @keyframes blink-red-anim { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         @keyframes flash-gold { 0%, 100% { color: var(--pip-green); border-color: var(--pip-green); } 50% { color: #ffd700; border-color: #ffd700; box-shadow: 0 0 8px #ffd700; } }
@@ -125,21 +122,14 @@
         <div id="main-content">
             <div id="main-panel">
                 <div id="layout-split">
-                    <div id="log-panel">
-                        <div class="bg-[#39ff14] text-black font-bold px-2 flex justify-between items-center flex-shrink-0">
-                            <h2>LOG</h2>
-                            <span id="game-timer" class="font-mono text-sm">00:00:00</span>
-                        </div>
-                        <div id="log-area" class="flex-grow overflow-y-auto p-2 text-sm flex flex-col-reverse font-mono"></div>
-                    </div>
-
+                    
                     <div id="view-container">
                         <button id="btn-toggle-dpad">🎮</button>
 
-                        <div id="overlay-controls">
-                             <div></div><button class="dpad-btn" id="btn-up">▲</button><div></div>
-                             <button class="dpad-btn" id="btn-left">◀</button><div class="flex items-center justify-center">●</div><button class="dpad-btn" id="btn-right">▶</button>
-                             <div></div><button class="dpad-btn" id="btn-down">▼</button><div></div>
+                        <div id="overlay-controls" style="display:none; position: absolute; bottom: 80px; left: 20px; z-index: 50; grid-template-columns: repeat(3, 1fr); gap: 5px;">
+                             <div></div><button class="dpad-btn" id="btn-up" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▲</button><div></div>
+                             <button class="dpad-btn" id="btn-left" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">◀</button><div class="flex items-center justify-center text-[#39ff14]">●</div><button class="dpad-btn" id="btn-right" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▶</button>
+                             <div></div><button class="dpad-btn" id="btn-down" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▼</button><div></div>
                         </div>
 
                         <div id="dialog-overlay"></div>
@@ -163,6 +153,15 @@
                             > SYSTEM CHECK... OK<br>> LADE MODUL...
                         </div>
                     </div>
+
+                    <div id="log-panel">
+                        <div class="bg-[#39ff14] text-black font-bold px-2 flex justify-between items-center flex-shrink-0">
+                            <h2>LOG</h2>
+                            <span id="game-timer" class="font-mono text-sm">00:00:00</span>
+                        </div>
+                        <div id="log-area" class="flex-grow overflow-y-auto p-2 text-sm flex flex-col-reverse font-mono"></div>
+                    </div>
+
                 </div>
                 <div class="px-4 pt-1 pb-1 text-center italic min-h-[1.5em] flex-shrink-0 bg-black border-t border-[#1a4d1a]" id="encounter-text">...</div>
             </div>
