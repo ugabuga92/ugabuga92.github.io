@@ -17,8 +17,10 @@ const UI = {
             zone: document.getElementById('current-zone-display'),
             
             dpad: document.getElementById('overlay-controls'),
-            dpadToggle: document.getElementById('btn-toggle-dpad'), // Neuer Button
+            dpadToggle: document.getElementById('btn-toggle-dpad'),
             dialog: document.getElementById('dialog-overlay'),
+            diceOverlay: document.getElementById('dice-overlay'), // NEU
+            
             text: document.getElementById('encounter-text'),
             timer: document.getElementById('game-timer'),
             
@@ -42,7 +44,6 @@ const UI = {
         this.els.btnChar.onclick = () => this.toggleView('char');
         this.els.btnQuests.onclick = () => this.toggleView('quests');
 
-        // TOGGLE LOGIK
         this.els.dpadToggle.onclick = () => {
             const current = this.els.dpad.style.display;
             this.els.dpad.style.display = (current === 'none' || current === '') ? 'grid' : 'none';
@@ -81,6 +82,9 @@ const UI = {
         const m = Math.floor((diff % 3600) / 60).toString().padStart(2,'0');
         const s = (diff % 60).toString().padStart(2,'0');
         if(this.els.timer) this.els.timer.textContent = `${h}:${m}:${s}`;
+        
+        // Regelmäßiges UI Update für Buff Anzeige
+        if(Game.state.view === 'map') this.update(); 
     },
 
     switchView: async function(name) {
@@ -96,7 +100,6 @@ const UI = {
 
             if(name === 'map') {
                 Game.initCanvas();
-                // Wir müssen das Overlay wieder einfügen (Toggle-Button + D-Pad + Dialog)
                 this.restoreOverlay();
                 this.toggleControls(true);
             } else {
@@ -113,13 +116,64 @@ const UI = {
         } catch (e) { this.log(`Fehler: ${name} (404).`, "text-red-500"); }
     },
     
-    restoreOverlay: function() {
-        // Da switchView den Inhalt löscht, fügen wir die Controls neu ein.
-        // WICHTIG: Den aktuellen State des D-Pads (sichtbar/versteckt) merken wir uns eigentlich nicht,
-        // hier setzen wir es auf 'none' zurück (Standard).
-        // Wenn man es perfekt machen will, speichert man den State in einer Variable.
-        // Für jetzt reicht: Reset auf Hidden.
+    // UI Dice Funktionen
+    showDiceOverlay: function() {
+        this.els.diceOverlay = document.getElementById('dice-overlay');
+        if(this.els.diceOverlay) {
+            this.els.diceOverlay.classList.remove('hidden');
+            document.getElementById('dice-1').textContent = "?";
+            document.getElementById('dice-2').textContent = "?";
+            document.getElementById('dice-3').textContent = "?";
+            document.getElementById('btn-roll').disabled = false;
+        }
+    },
+
+    rollDiceAnim: function() {
+        const btn = document.getElementById('btn-roll');
+        btn.disabled = true;
         
+        // Simulation Animation
+        let count = 0;
+        const interval = setInterval(() => {
+            document.getElementById('dice-1').textContent = Math.floor(Math.random()*6)+1;
+            document.getElementById('dice-2').textContent = Math.floor(Math.random()*6)+1;
+            document.getElementById('dice-3').textContent = Math.floor(Math.random()*6)+1;
+            count++;
+            if(count > 15) {
+                clearInterval(interval);
+                this.finishRoll();
+            }
+        }, 100);
+    },
+
+    finishRoll: function() {
+        const result = Game.rollLegendaryLoot();
+        
+        // Wir faken die Würfelanzeige passend zum Ergebnis, damit es cool aussieht
+        // Wir teilen result einfach durch 3 (grob)
+        let v1 = Math.floor(result.val / 3);
+        let v2 = Math.floor(result.val / 3);
+        let v3 = result.val - v1 - v2;
+        // Sicherstellen dass keine > 6 ist (kann bei 18 passieren)
+        if(v3 > 6) { v3=6; v2++; }
+        if(v2 > 6) { v2=6; v1++; }
+        
+        document.getElementById('dice-1').textContent = v1;
+        document.getElementById('dice-2').textContent = v2;
+        document.getElementById('dice-3').textContent = v3;
+
+        this.log(result.msg, "text-yellow-400 font-bold");
+        
+        setTimeout(() => {
+            if(this.els.diceOverlay) this.els.diceOverlay.classList.add('hidden');
+            Game.endCombat();
+        }, 2000);
+    },
+    
+    restoreOverlay: function() {
+        // Das Overlay muss wieder in den Container rein, weil switchView alles löscht
+        // ... (HTML Struktur wie in index.html, hier gekürzt für Lesbarkeit)
+        // WICHTIG: Das neue Dice Overlay muss hier auch rein!
         const overlayHTML = `
         <button id="btn-toggle-dpad" style="position: absolute; bottom: 20px; left: 20px; z-index: 60; width: 50px; height: 50px; border-radius: 50%; background: rgba(0, 0, 0, 0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 0 10px #000;">🎮</button>
         
@@ -129,6 +183,21 @@ const UI = {
              <div></div><button class="dpad-btn" id="btn-down" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▼</button><div></div>
         </div>
         <div id="dialog-overlay" style="position: absolute; bottom: 20px; right: 20px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; max-width: 50%;"></div>
+        
+        <div id="dice-overlay" class="hidden" style="position: absolute; inset: 0; z-index: 70; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <h2 class="text-4xl text-yellow-400 mb-8 font-bold animate-pulse">LEGENDÄRER FUND!</h2>
+            <div class="flex gap-4 mb-8">
+                <div id="dice-1" class="dice-box" style="width: 60px; height: 60px; border: 4px solid #39ff14; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: bold; background: #000; color: #39ff14;">?</div>
+                <div id="dice-2" class="dice-box" style="width: 60px; height: 60px; border: 4px solid #39ff14; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: bold; background: #000; color: #39ff14;">?</div>
+                <div id="dice-3" class="dice-box" style="width: 60px; height: 60px; border: 4px solid #39ff14; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: bold; background: #000; color: #39ff14;">?</div>
+            </div>
+            <div class="text-xl mb-4 text-center">
+                <div class="text-cyan-400">3-7: KRONKORKEN</div>
+                <div class="text-cyan-400">8-12: MUNITION</div>
+                <div class="text-yellow-400 font-bold">13-18: OVERDRIVE BUFF</div>
+            </div>
+            <button id="btn-roll" class="action-button px-8 py-4 text-2xl border-yellow-400 text-yellow-400 hover:bg-yellow-900" onclick="UI.rollDiceAnim()">WÜRFELN</button>
+        </div>
         `;
         
         this.els.view.insertAdjacentHTML('beforeend', overlayHTML);
@@ -137,6 +206,7 @@ const UI = {
         this.els.dpad = document.getElementById('overlay-controls');
         this.els.dpadToggle = document.getElementById('btn-toggle-dpad');
         this.els.dialog = document.getElementById('dialog-overlay');
+        this.els.diceOverlay = document.getElementById('dice-overlay');
         
         // Events
         this.els.dpadToggle.onclick = () => {
@@ -157,7 +227,17 @@ const UI = {
         this.els.caps.textContent = `${Game.state.caps} Kronkorken`;
         this.els.zone.textContent = Game.state.zone;
         
-        // FIX: Nutze Game.state.maxHp (die korrekte 110) statt der Neuberechnung
+        // BUFF ANZEIGE IM HEADER?
+        // Wir machen den HP Balken gelb wenn Buff aktiv
+        const buffActive = Date.now() < Game.state.buffEndTime;
+        if(buffActive) {
+            this.els.hpBar.style.backgroundColor = "#ffff00"; // Gelb
+            this.els.hpBar.parentElement.style.borderColor = "#ffff00";
+        } else {
+            this.els.hpBar.style.backgroundColor = "#39ff14"; // Grün
+            this.els.hpBar.parentElement.style.borderColor = "#1a4d1a";
+        }
+        
         const maxHp = Game.state.maxHp; 
         this.els.hp.textContent = `${Math.round(Game.state.hp)}/${maxHp}`;
         this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`;
@@ -166,6 +246,9 @@ const UI = {
         const expPct = Math.min(100, (Game.state.xp / nextXp) * 100);
         if(this.els.expBarTop) this.els.expBarTop.style.width = `${expPct}%`;
         
+        // ... (Rest bleibt gleich) ...
+        
+        // WICHTIG: Button States
         this.els.btnWiki.classList.remove('active');
         this.els.btnMap.classList.remove('active');
         this.els.btnChar.classList.remove('active');
@@ -199,14 +282,16 @@ const UI = {
         this.els.btnChar.disabled = inCombat;
         this.els.btnQuests.disabled = inCombat;
         this.els.btnNew.disabled = inCombat;
+        
+        // Wenn Buff aktiv, Level Anzeige blinken lassen
+        if(buffActive) this.els.lvl.classList.add('blink-red');
+        else this.els.lvl.classList.remove('blink-red');
 
         if(Game.state.view === 'map') {
             const show = !Game.state.inDialog && !Game.state.isGameOver;
-            // Wir verstecken den Toggle Button nicht, er soll immer da sein
             if(this.els.dpadToggle) this.els.dpadToggle.style.display = 'flex';
             if(!show && this.els.dialog) this.els.dialog.style.display = 'none';
         } else {
-            // In anderen Views (Wiki, Char, Combat) Toggle verstecken
             if(this.els.dpadToggle) this.els.dpadToggle.style.display = 'none';
         }
     },
@@ -219,10 +304,11 @@ const UI = {
     },
 
     toggleControls: function(show) {
-        // Hier machen wir nichts mehr, das Toggle übernimmt der User
         if (!show && this.els.dialog) this.els.dialog.innerHTML = '';
+        if (this.els.diceOverlay && !show) this.els.diceOverlay.classList.add('hidden');
     },
     
+    // ... restliche Funktionen (showGameOver, enterVault, renderQuests etc.) bleiben unverändert ...
     showGameOver: function() {
         if(this.els.gameOver) this.els.gameOver.classList.remove('hidden');
         this.toggleControls(false);
@@ -333,7 +419,7 @@ const UI = {
         content.innerHTML = Object.keys(Game.monsters).map(k => {
             const m = Game.monsters[k];
             const xpText = Array.isArray(m.xp) ? `${m.xp[0]}-${m.xp[1]}` : m.xp;
-            return `<div class="border-b border-green-900 pb-1"><div class="font-bold text-yellow-400">${m.name}</div><div class="text-xs opacity-70">${m.desc} (HP: ~${m.hp}, XP: ${xpText})</div></div>`;
+            return `<div class="border-b border-green-900 pb-1"><div class="font-bold text-yellow-400">${m.name}</div><div class="text-xs opacity-70">HP: ~${m.hp}, XP: ${xpText}</div></div>`;
         }).join('');
     },
 
