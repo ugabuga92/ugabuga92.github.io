@@ -1,6 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.10f] - 2025-12-15 (Mobile UI & Nav Update)
+------------------------------------------------
+- MOBILE: Responsive Navigation implementiert. Auf kleinen Bildschirmen sind die Navigations-Buttons nun in einem "Hamburger-Menü" (☰) versteckt, um Platz zu sparen.
+- UI: "SPEICHERN" Button ist auch auf Mobile immer direkt sichtbar.
+- UI: Menü schließt sich automatisch nach Auswahl eines Punkts.
+- CODE: Button-Container im Header ist nun flexibel und bricht auf Mobile nicht mehr um.
+
 [v0.0.10b] - 2025-12-15 (Hotfix: Login Crash)
 ---------------------------------------------
 - FIX: Kritischer Fehler im Login-Prozess behoben ("UI.log is not a function").
