@@ -1,6 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.7a] - 2025-12-15 (Graphics Overhaul & CRT Effect)
+-------------------------------------------------------
+- GRAFIK: Komplettes CSS-Update für einen realistischen "Pip-Boy" Look.
+- CRT: Scanlines, Vignette, Flimmern und Wölbung via CSS hinzugefügt.
+- VECTOR: `game.js` nutzt nun Canvas-Pfade (`moveTo`, `lineTo`) statt simpler Rechtecke (`fillRect`) für Symbole (Vault = Zahnrad, Stadt = Haus, Player = Pfeil).
+- UI: Alle Buttons und Texte haben jetzt einen "Phosphor-Glow" Effekt.
+
 [v0.0.6a] - 2025-12-15 (Content Update)
 ---------------------------------------
 - NEU: Städte (Biome City) generieren jetzt garantiert Händler-Spots ('C').
@@ -17,12 +24,4 @@ CHANGE LOG - PIP-BOY 3000 Mk-V
 ---------------------------------------------
 - LAYOUT: Zurückgesetzt auf klassisches Design: Karte LINKS, Log RECHTS.
 - WORLDMAP: Legende Links.
-- GRAFIK: Farbpalette zurückgesetzt.
-
-[v0.0.5d] - 2025-12-15 (Critical Hotfix)
-----------------------------------------
-- FIX: Dice Overlay bug fixed.
-
-[v0.0.5a - v0.0.5c] - Legendary Update
---------------------------------------
-- Legendäres System, Dice Minigame, Buffs.
+- FIX: Dice Overlay Logik bleibt funktional und repariert.
