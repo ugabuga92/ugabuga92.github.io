@@ -120,12 +120,11 @@ const UI = {
         } catch (e) { this.log(`Fehler: ${name} (404).`, "text-red-500"); }
     },
     
-    // UI Dice Funktionen - FIXED
     showDiceOverlay: function() {
         this.els.diceOverlay = document.getElementById('dice-overlay');
         if(this.els.diceOverlay) {
             this.els.diceOverlay.classList.remove('hidden');
-            this.els.diceOverlay.classList.add('flex'); // Zeige mit Flexbox
+            this.els.diceOverlay.classList.add('flex'); 
             
             document.getElementById('dice-1').textContent = "?";
             document.getElementById('dice-2').textContent = "?";
@@ -177,7 +176,6 @@ const UI = {
     },
     
     restoreOverlay: function() {
-        // FIX: style für Dice Overlay entfernt, nur Tailwind Klassen benutzt
         const overlayHTML = `
         <button id="btn-toggle-dpad" style="position: absolute; bottom: 20px; left: 20px; z-index: 60; width: 50px; height: 50px; border-radius: 50%; background: rgba(0, 0, 0, 0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 0 10px #000;">🎮</button>
         
@@ -206,7 +204,6 @@ const UI = {
         
         this.els.view.insertAdjacentHTML('beforeend', overlayHTML);
         
-        // Neu verknüpfen
         this.els.dpad = document.getElementById('overlay-controls');
         this.els.dpadToggle = document.getElementById('btn-toggle-dpad');
         this.els.dialog = document.getElementById('dialog-overlay');
@@ -249,8 +246,6 @@ const UI = {
         const expPct = Math.min(100, (Game.state.xp / nextXp) * 100);
         if(this.els.expBarTop) this.els.expBarTop.style.width = `${expPct}%`;
         
-        // ... (Buttons, Quests etc. bleiben gleich) ...
-        // Button States
         this.els.btnWiki.classList.remove('active');
         this.els.btnMap.classList.remove('active');
         this.els.btnChar.classList.remove('active');
@@ -288,10 +283,21 @@ const UI = {
         if(buffActive) this.els.lvl.classList.add('blink-red');
         else this.els.lvl.classList.remove('blink-red');
 
+        // FIX: Hier lag der Fehler!
+        // Dialog-Overlay Management:
+        // Wir verstecken es NUR, wenn wir sicher wissen, dass wir NICHT in einem Dialog sind.
+        // Wenn Game.state.inDialog == true ist, muss es sichtbar bleiben.
+        
         if(Game.state.view === 'map') {
-            const show = !Game.state.inDialog && !Game.state.isGameOver;
             if(this.els.dpadToggle) this.els.dpadToggle.style.display = 'flex';
-            if(!show && this.els.dialog) this.els.dialog.style.display = 'none';
+            
+            // WICHTIG: Die Zeile, die das Dialogfeld fälschlicherweise versteckt hat, ist weg.
+            // Die Sichtbarkeit wird jetzt ausschließlich über enterVault/leaveDialog gesteuert.
+            
+            // Zur Sicherheit: Wenn wir NICHT im Dialog sind, und der Dialog aber noch offen ist (z.B. durch Fehler), schließen wir ihn.
+            if(!Game.state.inDialog && this.els.dialog && this.els.dialog.innerHTML === '') {
+                 this.els.dialog.style.display = 'none';
+            }
         } else {
             if(this.els.dpadToggle) this.els.dpadToggle.style.display = 'none';
         }
