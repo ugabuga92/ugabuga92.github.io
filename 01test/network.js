@@ -1,10 +1,10 @@
-// network.js - v0.0.9a
+// network.js - v0.0.9c
 const Network = {
     db: null,
     myId: null,
     otherPlayers: {},
     active: false,
-    initialJoinDone: false, // Damit wir nur EINMAL am Anfang springen
+    initialJoinDone: false,
 
     config: {
         apiKey: "AIzaSyCgSK4nJ3QOVMBd7m9RSmURflSRWN4ejBY",
@@ -35,53 +35,44 @@ const Network = {
 
                 this.db.ref('players/' + this.myId).onDisconnect().remove();
                 
-                // DATA LISTENER
                 this.db.ref('players').on('value', (snapshot) => {
                     const data = snapshot.val() || {};
-                    
-                    // 1. UPDATE PLAYER COUNT (inklusive mir selbst)
                     const count = Object.keys(data).length;
+                    
                     if(typeof UI !== 'undefined') {
                         const el = document.getElementById('val-players');
                         if(el) el.textContent = `${count} ONLINE`;
                     }
 
-                    // 2. INITIAL TELEPORT (Jump to Buddy)
-                    // Wenn ich gerade erst reingekommen bin (initialJoinDone = false)
-                    // UND es gibt andere Spieler...
                     if (!this.initialJoinDone && count > 1) {
                         this.initialJoinDone = true;
-                        
-                        // Finde den ersten anderen Spieler
                         const ids = Object.keys(data);
                         for(let id of ids) {
                             if(id !== this.myId) {
                                 const buddy = data[id];
                                 if(buddy.sector && buddy.x) {
                                     UI.log(`>> Signal gefunden! Teleportiere zu ${id}...`, "text-cyan-400");
-                                    // Teleport Game Function aufrufen
                                     if(typeof Game !== 'undefined') {
-                                        Game.teleportTo(buddy.sector, buddy.x, buddy.y);
+                                        // Timeout, damit Game sicher geladen ist
+                                        setTimeout(() => Game.teleportTo(buddy.sector, buddy.x, buddy.y), 500);
                                     }
-                                    break; // Nur zum ersten springen
+                                    break;
                                 }
                             }
                         }
                     } else if (!this.initialJoinDone) {
-                        // Ich bin der Erste
                         this.initialJoinDone = true;
-                        UI.log(">> Keine anderen Signale. Du bist der Host.", "text-gray-500");
                     }
 
-                    // 3. STORE OTHERS
                     delete data[this.myId]; 
                     this.otherPlayers = data;
-                    if(Game && Game.draw) Game.draw(); 
+                    if(typeof Game !== 'undefined' && Game.draw) Game.draw(); 
                 });
                 
             } catch (e) {
                 console.error("Firebase Error:", e);
                 if(typeof UI !== 'undefined') UI.setConnectionState('offline');
+                this.active = false; // Sicherstellen dass es aus ist
             }
         } else {
             if(typeof UI !== 'undefined') UI.setConnectionState('offline');
@@ -89,7 +80,7 @@ const Network = {
     },
 
     sendMove: function(x, y, level, sector) {
-        if (!this.active) return;
+        if (!this.active || !this.db) return; // Sicherung!
         this.db.ref('players/' + this.myId).set({
             x: x,
             y: y,
