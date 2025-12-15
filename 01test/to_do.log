@@ -1,1 +1,29 @@
 Spiel startet nicht richtig, würfel Präsent wenn das Spiel läd, keine map - siehe Screenshot Priorität HOCH
+
+
+OLD LOG
+
+
+
+- Grafiken verbessern, sieht wieder grausam aus. Liegt am Perofrmance modus? Vielleicht andere Engine überlegen?!
+
+für Tablet & Laptop funktioniert soweit alles. 
+Das gesamt Overlay ist aber auf Mobiltelefonen zu klein. Idee wäre es das D Pay als "Overlay" reinzumachen links unten und somit den Karten abschnitt zu vergrößern. Desweiteren ist der Logbereich scheinbar nicht Fixiert, er wird varriabel bei mehr und mehr tätigkeiten immer größer bis er den ganzen bildschirm ausfüllt.
+
+- Legende soll links von der Karte sein
+- Legendäre Mobs geben einem ein coolen Boni, nächster Kampf mehr Agi (prozentual zu dem jeweiligen Level aktuell), oder Muniton?, verhältnismäßig halt, ordentlich Kronkorken?
+- Startpunkt ist IMMER die Vault, man solte eine möglichkeit der Heilung am Anfang haben, sost ist man sehr schnell frustriert.... Glaub mir!!!
+Gelber Punkt ist was? Das sollte die Legende bei der Karte vielleicht auch beinhalten, was auf den Karten an Interaktiven Punkten rumfährt. Jedenfalls hat der Gelbe punkt nichts gemacht, er hat das Spiel angehalten und es ging ncht mehr weiter ohne neu start.
+Die symbole und Bilder sollten wir alle nochmal irgendwie überarbeiten. Der Boden und die Steine sind auch nicht leicht auseinander zu halten, man läuft oft dagegen. Evtl Schwarzer Rand als kontrast um die Sachen?
+
+
+Vorgeschlagen von Gemini : 
+Hier sind 3 Vorschläge für den nächsten Schritt. Sag mir, worauf du Lust hast, und ich liefere dir den Code:
+
+    Das Inventar-System: Aktuell hast du nur feste Slots. Wir könnten ein echtes Inventar ("Backpack") bauen, in dem man Items (Stimpacks, Schrott, bessere Waffen) sammeln, ansehen und benutzen kann.
+    stimpacks zum heilen sind wichtig.
+    schrott für späteres crafting
+
+    V.A.T.S. Kampf-System: Der Kampf ist aktuell reines Glück. Wir könnten ein System einbauen, bei dem man Körperteile anvisiert (Kopf, Torso, Beine) mit unterschiedlichen Trefferchancen.
+
+    Speichern & Laden: Damit dein Fortschritt (Level, Position) erhalten bleibt, wenn du den Browser schließt (via localStorage).
