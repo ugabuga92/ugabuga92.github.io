@@ -1,20 +1,20 @@
 const Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     
-    // ZURÜCK ZUR ALTEN PALETTE (v0.0.4c Style)
+    // ZURÜCK ZUR ALTEN PALETTE (Heller/Besser lesbar)
     colors: { 
-        'V':'#39ff14', // Vault (Neon Grün - Schimmert)
-        'C':'#eab308', // Stadt (Gelb - Schimmert)
-        'G':'#00ffff', // Tor (Cyan - Schimmert)
-        'S':'#ff0000', // Supermarkt (Rot - Schimmert)
+        'V':'#39ff14', // Vault (Neon Grün)
+        'C':'#eab308', // Stadt (Gelb)
+        'G':'#00ffff', // Tor (Cyan)
+        'S':'#ff0000', // Supermarkt (Rot)
         
-        '.':'#5d5345', // Boden: Ödland-Braun (War vorher #111)
-        '_':'#eecfa1', // Wüste: Sandfarben (War vorher #a05a2c)
+        '.':'#5d5345', // Boden: Ödland-Braun (War kurzzeitig schwarz)
+        '_':'#eecfa1', // Wüste: Sandfarben
         ',':'#1a3300', // Dschungel: Dunkelgrün
         '=':'#333333', // Straße: Dunkelgrau
         
         'T':'#1a4d1a', // Baum: Grün
-        'R':'#5c544d', // Stein: Felsgrau (War vorher #666)
+        'R':'#5c544d', // Stein: Felsgrau
         '~':'#224f80', // Wasser: Blau
         'B':'#1a1a1a', // Gebäude: Fast Schwarz
         '#':'#000000'  // Wand: Schwarz
@@ -119,7 +119,7 @@ const Game = {
             else if (biome === 'desert') { this.addClusters(map, 'R', 20, 1); if(Math.random() > 0.5) this.addClusters(map, 'T', 5, 1); }
             else if (biome === 'city') { this.generateCityLayout(map); }
             
-            // Vault Platzierung
+            // Vault beim Startsektor
             if(sx === this.state.startSector.x && sy === this.state.startSector.y) map[20][20] = 'V';
             
             if(sy>0) this.clearGate(map, Math.floor(this.MAP_W/2), 0, 'G', gc);
@@ -186,14 +186,14 @@ const Game = {
             case 'R': ctx.fillStyle = this.colors['R']; ctx.beginPath(); ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle="#333"; ctx.lineWidth=1; ctx.stroke(); break; 
             case 'B': ctx.fillStyle = "#333"; ctx.fillRect(px+2, py+2, ts-4, ts-4); ctx.fillStyle = "#000"; ctx.fillRect(px+5, py+5, ts-10, ts-10); break; 
             
-            // Pulsierende POIs mit alten Farben
+            // Pulsierende POIs
             case 'S': ctx.globalAlpha = pulse; ctx.fillStyle = "#ef4444"; ctx.fillRect(px, py, ts, ts); ctx.globalAlpha = 1; ctx.fillStyle = "#fff"; ctx.font="bold 20px monospace"; ctx.fillText("M", px+10, py+28); break; 
             case 'V': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['V']; ctx.beginPath(); ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle="#fff"; ctx.stroke(); ctx.globalAlpha = 1; break; 
             case 'G': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['G']; ctx.fillRect(px+5, py+5, ts-10, ts-10); ctx.globalAlpha = 1; break; 
         } 
     },
     
-    // ... [Rest of Logic stays same] ...
+    // ... [Rest der Logik bleibt gleich] ...
     move: function(dx, dy) { if(this.state.inDialog || this.state.isGameOver) return; const nx = this.state.player.x + dx; const ny = this.state.player.y + dy; if(nx < 0 || nx >= this.MAP_W || ny < 0 || ny >= this.MAP_H) return; const tile = this.state.currentMap[ny][nx]; if(['^', 'T', '~', 'R', 'B'].includes(tile)) { UI.log("Weg blockiert.", "text-gray-500"); return; } this.state.player.x = nx; this.state.player.y = ny; this.reveal(nx, ny); if(tile === 'G') { if(this.state.zone.includes("Supermarkt")) { this.loadSector(this.state.sector.x, this.state.sector.y); UI.log("Zurück an der Oberfläche.", "text-green-400"); if(this.state.sector.x === this.state.startSector.x && this.state.sector.y === this.state.startSector.y) { this.state.player.x = 20; this.state.player.y = 20; } else this.findSafeSpawn(); } else this.changeSector(nx, ny); } else if(tile === 'S') UI.enterSupermarket(); else if(tile === 'V') UI.enterVault(); else if(Math.random()<0.1 && tile !== 'S' && tile !== 'G') this.startCombat(); UI.update(); },
     reveal: function(px, py) { for(let y=py-2; y<=py+2; y++) for(let x=px-2; x<=px+2; x++) if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) this.state.explored[`${x},${y}`] = true; },
     changeSector: function(px, py) { let sx=this.state.sector.x, sy=this.state.sector.y; if(py===0) sy--; else if(py===this.MAP_H-1) sy++; if(px===0) sx--; else if(px===this.MAP_W-1) sx++; if(sx < 0 || sx > 7 || sy < 0 || sy > 7) { UI.log("Ende der Weltkarte.", "text-red-500"); this.state.player.x -= (px===0 ? -1 : 1); return; } this.state.sector = {x: sx, y: sy}; this.loadSector(sx, sy); if(py===0) this.state.player.y=this.MAP_H-2; else if(py===this.MAP_H-1) this.state.player.y=1; if(px===0) this.state.player.x=this.MAP_W-2; else if(px===this.MAP_W-1) this.state.player.x=1; this.findSafeSpawn(); this.reveal(this.state.player.x, this.state.player.y); UI.log(`Sektorwechsel: ${sx},${sy}`, "text-blue-400"); },
