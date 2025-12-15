@@ -1,9 +1,10 @@
-// network.js - v0.0.8c
+// network.js - v0.0.9a
 const Network = {
     db: null,
     myId: null,
     otherPlayers: {},
     active: false,
+    initialJoinDone: false, // Damit wir nur EINMAL am Anfang springen
 
     config: {
         apiKey: "AIzaSyCgSK4nJ3QOVMBd7m9RSmURflSRWN4ejBY",
@@ -25,10 +26,8 @@ const Network = {
                 
                 this.db = firebase.database();
                 this.active = true;
-                
                 this.myId = 'survivor_' + Math.floor(Math.random() * 9999);
                 
-                // VISUELLES FEEDBACK (UI)
                 if(typeof UI !== 'undefined') {
                     UI.setConnectionState('online');
                     UI.log(`TERMINAL LINK ESTABLISHED: ID ${this.myId}`, "text-green-400 font-bold");
@@ -36,8 +35,45 @@ const Network = {
 
                 this.db.ref('players/' + this.myId).onDisconnect().remove();
                 
+                // DATA LISTENER
                 this.db.ref('players').on('value', (snapshot) => {
                     const data = snapshot.val() || {};
+                    
+                    // 1. UPDATE PLAYER COUNT (inklusive mir selbst)
+                    const count = Object.keys(data).length;
+                    if(typeof UI !== 'undefined') {
+                        const el = document.getElementById('val-players');
+                        if(el) el.textContent = `${count} ONLINE`;
+                    }
+
+                    // 2. INITIAL TELEPORT (Jump to Buddy)
+                    // Wenn ich gerade erst reingekommen bin (initialJoinDone = false)
+                    // UND es gibt andere Spieler...
+                    if (!this.initialJoinDone && count > 1) {
+                        this.initialJoinDone = true;
+                        
+                        // Finde den ersten anderen Spieler
+                        const ids = Object.keys(data);
+                        for(let id of ids) {
+                            if(id !== this.myId) {
+                                const buddy = data[id];
+                                if(buddy.sector && buddy.x) {
+                                    UI.log(`>> Signal gefunden! Teleportiere zu ${id}...`, "text-cyan-400");
+                                    // Teleport Game Function aufrufen
+                                    if(typeof Game !== 'undefined') {
+                                        Game.teleportTo(buddy.sector, buddy.x, buddy.y);
+                                    }
+                                    break; // Nur zum ersten springen
+                                }
+                            }
+                        }
+                    } else if (!this.initialJoinDone) {
+                        // Ich bin der Erste
+                        this.initialJoinDone = true;
+                        UI.log(">> Keine anderen Signale. Du bist der Host.", "text-gray-500");
+                    }
+
+                    // 3. STORE OTHERS
                     delete data[this.myId]; 
                     this.otherPlayers = data;
                     if(Game && Game.draw) Game.draw(); 
@@ -45,16 +81,10 @@ const Network = {
                 
             } catch (e) {
                 console.error("Firebase Error:", e);
-                if(typeof UI !== 'undefined') {
-                    UI.log("NETZWERK ERROR: Verbindung fehlgeschlagen.", "text-red-500");
-                    UI.setConnectionState('offline');
-                }
+                if(typeof UI !== 'undefined') UI.setConnectionState('offline');
             }
         } else {
-            if(typeof UI !== 'undefined') {
-                UI.log("NETZWERK: Bibliotheken nicht geladen.", "text-gray-500");
-                UI.setConnectionState('offline');
-            }
+            if(typeof UI !== 'undefined') UI.setConnectionState('offline');
         }
     },
 
