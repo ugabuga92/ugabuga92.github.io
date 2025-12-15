@@ -5,247 +5,118 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pip-Boy 3000 Mk-V</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
-        :root { 
-            --pip-green: #1aff1a; 
-            --pip-glow: #2bff2b;
-            --pip-dim: #0d330d; 
-            --pip-bg: #051105; 
-        }
+        :root { --pip-green: #1aff1a; --pip-glow: #2bff2b; --pip-dim: #0d330d; --pip-bg: #051105; }
+        body { background-color: #000; color: var(--pip-green); font-family: 'VT323', monospace; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow: hidden; user-select: none; }
+        #pipboy-case { background: linear-gradient(145deg, #1a1a1a, #0d0d0d); padding: 15px; border-radius: 30px; box-shadow: inset 0 0 20px #000, 0 0 0 5px #2a2a2a, 0 0 30px rgba(0,0,0,0.8); width: 100%; max-width: 1200px; height: 98vh; display: flex; flex-direction: column; position: relative; }
+        #game-screen { background-color: var(--pip-bg); border: 2px solid var(--pip-dim); border-radius: 10px; flex-grow: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; }
         
-        body { 
-            background-color: #000; 
-            color: var(--pip-green); 
-            font-family: 'VT323', monospace; 
-            display: flex; justify-content: center; align-items: center; 
-            min-height: 100vh; margin: 0; overflow: hidden; user-select: none; 
-        }
+        /* CRT Effekte NUR auf view-container (Karte) */
+        .crt-effect-container { position: relative; overflow: hidden; background-color: #000; }
+        .crt-effect-container::before { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); z-index: 10; background-size: 100% 3px, 4px 100%; pointer-events: none; }
+        .crt-effect-container::after { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: rgba(18, 16, 16, 0.05); opacity: 0; z-index: 10; pointer-events: none; animation: flicker 0.15s infinite; }
         
-        /* Das Gehäuse */
-        #pipboy-case { 
-            background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
-            padding: 15px; 
-            border-radius: 30px; 
-            box-shadow: inset 0 0 20px #000, 0 0 0 5px #2a2a2a, 0 0 30px rgba(0,0,0,0.8); 
-            width: 100%; max-width: 1200px; height: 98vh; 
-            display: flex; flex-direction: column; position: relative; 
-        }
-
-        /* Der saubere Bildschirm Rahmen */
-        #game-screen { 
-            background-color: var(--pip-bg); 
-            border: 2px solid var(--pip-dim); 
-            border-radius: 10px;
-            flex-grow: 1; display: flex; flex-direction: column; 
-            position: relative; overflow: hidden; 
-        }
-
-        /* CRT SCANLINES & FLICKER - JETZT NUR FÜR DIE KARTE */
-        .crt-effect-container {
-            position: relative;
-            overflow: hidden;
-            background-color: #000; /* Schwarzer Hintergrund für die Map */
-        }
-
-        .crt-effect-container::before {
-            content: " "; display: block; position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            /* Leichtere Scanlines (transparenter) */
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            z-index: 10; background-size: 100% 3px, 4px 100%; pointer-events: none;
-        }
-        
-        .crt-effect-container::after {
-            content: " "; display: block; position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: rgba(18, 16, 16, 0.05); opacity: 0; z-index: 10;
-            pointer-events: none; animation: flicker 0.15s infinite;
-        }
-
-        /* Text Styles - SAUBERER */
-        .glow-text { text-shadow: 0 0 5px var(--pip-glow); } /* Nur für Überschriften */
-        
-        /* Layout */
+        .glow-text { text-shadow: 0 0 5px var(--pip-glow); }
         #main-content { flex-grow: 1; display: flex; overflow: hidden; min-height: 0; }
         #main-panel { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
         #layout-split { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; min-height: 0; }
         @media (min-width: 768px) { #layout-split { flex-direction: row; } }
-
-        /* KARTE (LINKS) - Hier liegt der CRT Effekt drauf */
-        #view-container { 
-            position: relative; flex-grow: 1; display: flex; justify-content: center; align-items: center; 
-            height: 60%; 
-            border-right: 2px solid var(--pip-green);
-        }
-        @media (min-width: 768px) { 
-            #view-container { width: 70%; height: 100%; border-bottom: none; } 
-        }
-
-        /* LOG (RECHTS) - Jetzt ohne Effekte, klarer Hintergrund */
-        #log-panel { 
-            display: flex; flex-direction: column; flex-shrink: 0; 
-            border-top: 2px solid var(--pip-green); height: 40%; min-height: 150px; 
-            background-color: #020a02; /* Fast schwarz für guten Kontrast */
-        }
-        @media (min-width: 768px) { 
-            #log-panel { width: 30%; height: 100%; border-top: none; border-left: none; } 
-        }
-
-        .header-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; border-bottom: 2px solid var(--pip-green); background: #0a1f0a; flex-shrink: 0; }
         
-        .action-button { 
-            background-color: #0f1f0f; color: var(--pip-green); border: 1px solid var(--pip-green); 
-            padding: 5px 10px; margin: 2px; cursor: pointer; text-transform: uppercase; 
-            font-size: 1.1rem; transition: all 0.1s; 
-            /* Kein Text-Shadow für bessere Lesbarkeit */
-        }
+        /* Layout: Map Links, Log Rechts */
+        #view-container { position: relative; flex-grow: 1; display: flex; justify-content: center; align-items: center; height: 60%; border-right: 2px solid var(--pip-green); }
+        @media (min-width: 768px) { #view-container { width: 70%; height: 100%; border-bottom: none; } }
+        #log-panel { display: flex; flex-direction: column; flex-shrink: 0; border-top: 2px solid var(--pip-green); height: 40%; min-height: 150px; background-color: #020a02; }
+        @media (min-width: 768px) { #log-panel { width: 30%; height: 100%; border-top: none; border-left: none; } }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; border-bottom: 2px solid var(--pip-green); background: #0a1f0a; flex-shrink: 0; }
+        .action-button { background-color: #0f1f0f; color: var(--pip-green); border: 1px solid var(--pip-green); padding: 5px 10px; margin: 2px; cursor: pointer; text-transform: uppercase; font-size: 1.1rem; transition: all 0.1s; }
         .action-button:hover { background-color: var(--pip-green); color: black; }
         .action-button:active { transform: scale(0.95); }
         .action-button:disabled { opacity: 0.3; cursor: not-allowed; border-color: #333; color: #555; }
-        .action-button.active { background-color: var(--pip-green); color: #000; font-weight: bold; }
         
-        #btn-toggle-dpad {
-            position: absolute; bottom: 20px; left: 20px; z-index: 100;
-            width: 50px; height: 50px; border-radius: 50%;
-            background: rgba(0, 0, 0, 0.8); border: 2px solid var(--pip-green); color: var(--pip-green);
-            font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer;
-            box-shadow: 0 0 10px var(--pip-glow);
-        }
-        
-        #dice-overlay {
-            position: absolute; inset: 0; z-index: 80; background: rgba(0,0,0,0.95);
-            flex-direction: column; justify-content: center; align-items: center;
-        }
-        .dice-box {
-            width: 80px; height: 80px; border: 4px solid var(--pip-green); border-radius: 10px;
-            display: flex; justify-content: center; align-items: center; 
-            font-size: 50px; font-weight: bold; background: #000; color: var(--pip-green);
-            box-shadow: 0 0 20px var(--pip-glow);
-        }
-
+        #btn-toggle-dpad { position: absolute; bottom: 20px; left: 20px; z-index: 100; width: 50px; height: 50px; border-radius: 50%; background: rgba(0, 0, 0, 0.8); border: 2px solid var(--pip-green); color: var(--pip-green); font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 0 10px var(--pip-glow); }
+        #dice-overlay { position: absolute; inset: 0; z-index: 80; background: rgba(0,0,0,0.95); flex-direction: column; justify-content: center; align-items: center; }
+        .dice-box { width: 80px; height: 80px; border: 4px solid var(--pip-green); border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 50px; font-weight: bold; background: #000; color: var(--pip-green); box-shadow: 0 0 20px var(--pip-glow); }
         @keyframes flicker { 0% { opacity: 0.02; } 5% { opacity: 0.05; } 10% { opacity: 0.01; } 15% { opacity: 0.06; } 100% { opacity: 0.02; } }
-        ::-webkit-scrollbar { width: 6px; } 
-        ::-webkit-scrollbar-thumb { background: var(--pip-green); border-radius: 3px; }
-        ::-webkit-scrollbar-track { background: #020a02; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: var(--pip-green); border-radius: 3px; } ::-webkit-scrollbar-track { background: #020a02; }
         .blink-red { animation: blink-red-anim 1s infinite; }
         @keyframes blink-red-anim { 0%, 100% { opacity: 1; color: red; } 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
-
 <div id="pipboy-case">
     <div id="game-over-screen" class="absolute inset-0 z-50 bg-black/95 flex flex-col justify-center items-center hidden">
         <h1 class="text-6xl text-red-600 font-bold border-4 border-red-600 p-6 mb-6 blink-red tracking-widest">CRITICAL FAILURE</h1>
         <button onclick="location.reload()" class="border-2 border-red-500 text-red-500 px-8 py-3 hover:bg-red-900 text-xl font-bold uppercase cursor-pointer">SYSTEM REBOOT</button>
     </div>
-
     <div id="game-screen">
         <header class="header-bar">
             <div class="flex flex-col sm:flex-row gap-1 w-1/4">
                 <div class="font-bold text-xl leading-none" style="text-shadow: 0 0 5px var(--pip-green);">PIP-BOY 3000 <span class="text-xs opacity-70">MK-V</span></div>
                 <div id="current-zone-display" class="text-xs sm:text-lg opacity-90 leading-none text-[#aaffaa]">Initializing...</div>
             </div>
-            <div class="w-1/4 flex justify-center">
-                <span id="version-display" class="text-yellow-400 font-bold tracking-widest animate-pulse">...</span>
-            </div>
+            <div class="w-1/4 flex justify-center"><span id="version-display" class="text-yellow-400 font-bold tracking-widest animate-pulse">...</span></div>
             <div class="flex items-center justify-end gap-1 w-1/2">
                 <button id="btn-new" class="action-button px-2 py-1 text-sm bg-red-900/50 border-red-500 text-white font-bold whitespace-nowrap">RESET</button>
                 <button id="btn-wiki" class="action-button px-2 py-1 text-sm">WIKI</button>
                 <button id="btn-map" class="action-button px-2 py-1 text-sm">WELT</button>
                 <button id="btn-char" class="action-button px-2 py-1 text-sm">CHAR</button>
-                <button id="btn-quests" class="action-button px-2 py-1 text-sm">QUEST</button>
+                <button id="btn-quests" class="action-button px-2 py-1 text-sm">AUFGABEN</button>
             </div>
         </header>
-
         <div id="system-status-bar" class="flex justify-between items-center px-4 py-2 border-b-2 border-[#1aff1a] bg-[#0a1f0a]">
             <div class="flex items-center gap-4 text-sm md:text-base">
-                <div class="flex items-center gap-1">
-                    <span>TP:</span><span id="val-hp">--/--</span>
-                    <div class="w-16 md:w-24 bg-black h-3 border border-[#1a4d1a]"><div id="bar-hp" class="bg-[#1aff1a] h-full" style="width: 100%"></div></div>
-                </div>
+                <div class="flex items-center gap-1"><span>TP:</span><span id="val-hp">--/--</span><div class="w-16 md:w-24 bg-black h-3 border border-[#1a4d1a]"><div id="bar-hp" class="bg-[#1aff1a] h-full" style="width: 100%"></div></div></div>
                 <span>LVL: <span id="val-lvl">-</span></span>
-                <div class="flex items-center gap-1">
-                    <span>XP:</span>
-                    <div class="w-16 md:w-24 bg-black h-3 border border-yellow-900"><div id="bar-exp-top" class="bg-yellow-500 h-full" style="width: 0%"></div></div>
-                </div>
+                <div class="flex items-center gap-1"><span>XP:</span><div class="w-16 md:w-24 bg-black h-3 border border-yellow-900"><div id="bar-exp-top" class="bg-yellow-500 h-full" style="width: 0%"></div></div></div>
                 <span>MUN: <span id="val-ammo">-</span></span>
             </div>
             <span id="val-caps" class="text-yellow-400 font-bold">--- Caps</span>
         </div>
-
         <div id="main-content">
             <div id="main-panel">
                 <div id="layout-split">
-                    
                     <div id="view-container" class="crt-effect-container">
                         <button id="btn-toggle-dpad">🎮</button>
-
                         <div id="overlay-controls" style="display:none; position: absolute; bottom: 80px; left: 20px; z-index: 60; grid-template-columns: repeat(3, 1fr); gap: 5px;">
                              <div></div><button class="dpad-btn" id="btn-up" style="width: 50px; height: 50px; background: rgba(0,20,0,0.9); border: 2px solid #1aff1a; color: #1aff1a; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▲</button><div></div>
                              <button class="dpad-btn" id="btn-left" style="width: 50px; height: 50px; background: rgba(0,20,0,0.9); border: 2px solid #1aff1a; color: #1aff1a; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">◀</button><div class="flex items-center justify-center text-[#1aff1a]">●</div><button class="dpad-btn" id="btn-right" style="width: 50px; height: 50px; background: rgba(0,20,0,0.9); border: 2px solid #1aff1a; color: #1aff1a; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▶</button>
                              <div></div><button class="dpad-btn" id="btn-down" style="width: 50px; height: 50px; background: rgba(0,20,0,0.9); border: 2px solid #1aff1a; color: #1aff1a; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▼</button><div></div>
                         </div>
-
                         <div id="dialog-overlay"></div>
-                        
                         <div id="dice-overlay" class="hidden">
                             <h2 class="text-5xl text-yellow-400 mb-8 font-bold animate-pulse">LEGENDÄR!</h2>
-                            <div class="flex gap-6 mb-8">
-                                <div id="dice-1" class="dice-box">?</div>
-                                <div id="dice-2" class="dice-box">?</div>
-                                <div id="dice-3" class="dice-box">?</div>
-                            </div>
-                            <div class="text-2xl mb-6 text-center font-bold">
-                                <div class="text-cyan-400">3-7: KRONKORKEN</div>
-                                <div class="text-cyan-400">8-12: MUNITION</div>
-                                <div class="text-yellow-400">13-18: OVERDRIVE</div>
-                            </div>
+                            <div class="flex gap-6 mb-8"><div id="dice-1" class="dice-box">?</div><div id="dice-2" class="dice-box">?</div><div id="dice-3" class="dice-box">?</div></div>
+                            <div class="text-2xl mb-6 text-center font-bold"><div class="text-cyan-400">3-7: KRONKORKEN</div><div class="text-cyan-400">8-12: MUNITION</div><div class="text-yellow-400">13-18: OVERDRIVE</div></div>
                             <button id="btn-roll" class="action-button px-10 py-4 text-3xl border-yellow-400 text-yellow-400 hover:bg-yellow-900" onclick="UI.rollDiceAnim()">WÜRFELN</button>
                         </div>
-
-                        <div class="p-10 text-[#1aff1a] font-mono text-center opacity-80">
-                            > SYSTEM CHECK... OK<br>> LADE MODUL...
-                        </div>
+                        <div class="p-10 text-[#1aff1a] font-mono text-center opacity-80">> SYSTEM CHECK... OK<br>> LADE MODUL...</div>
                     </div>
-
                     <div id="log-panel">
-                        <div class="bg-[#1aff1a] text-black font-bold px-2 flex justify-between items-center flex-shrink-0">
-                            <h2>LOG</h2>
-                            <span id="game-timer" class="font-mono text-sm">00:00:00</span>
-                        </div>
+                        <div class="bg-[#1aff1a] text-black font-bold px-2 flex justify-between items-center flex-shrink-0" style="box-shadow: 0 0 10px #1aff1a;"><h2>LOG</h2><span id="game-timer" class="font-mono text-sm">00:00:00</span></div>
                         <div id="log-area" class="flex-grow overflow-y-auto p-2 text-sm flex flex-col-reverse font-mono leading-relaxed text-green-400"></div>
                     </div>
-
                 </div>
                 <div class="px-4 pt-1 pb-1 text-center italic min-h-[1.5em] flex-shrink-0 bg-black border-t border-[#1aff1a] text-[#aaffaa]" id="encounter-text">...</div>
             </div>
         </div>
     </div>
 </div>
-
 <script>
-    function loadScript(src) {
-        return new Promise((resolve, reject) => {
-            const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject; document.body.appendChild(s);
-        });
-    }
+    function loadScript(src) { return new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject; document.body.appendChild(s); }); }
     window.onload = function() {
         const verDisplay = document.getElementById('version-display');
-        fetch('Version?t=' + Date.now())
-            .then(res => { if(!res.ok) throw new Error("No Version"); return res.text(); })
-            .then(v => {
-                const ver = v.trim();
-                verDisplay.textContent = ver;
-                verDisplay.classList.remove('animate-pulse');
-                console.log("Loading V:", ver);
-                return loadScript('ui.js?v=' + ver).then(() => loadScript('game.js?v=' + ver));
-            })
-            .then(() => { if(typeof UI !== 'undefined' && typeof Game !== 'undefined') { UI.init(); Game.init(); } })
-            .catch(err => {
-                console.warn(err); verDisplay.textContent = "OFFLINE"; verDisplay.style.color = "red";
-                loadScript('ui.js').then(() => loadScript('game.js')).then(() => { UI.init(); Game.init(); });
-            });
+        fetch('Version?t=' + Date.now()).then(res => res.text()).then(v => {
+            const ver = v.trim(); verDisplay.textContent = ver; verDisplay.classList.remove('animate-pulse'); console.log("Loading V:", ver);
+            // LADEREIHENFOLGE: Network -> UI -> Game
+            return loadScript('network.js?v=' + ver).then(() => loadScript('ui.js?v=' + ver)).then(() => loadScript('game.js?v=' + ver));
+        }).then(() => { if(typeof UI !== 'undefined') { UI.init(); Game.init(); } })
+        .catch(err => { console.warn(err); verDisplay.textContent = "OFFLINE"; loadScript('network.js').then(()=>loadScript('ui.js')).then(()=>loadScript('game.js')).then(()=>{ UI.init(); Game.init(); }); });
     };
 </script>
 </body>
