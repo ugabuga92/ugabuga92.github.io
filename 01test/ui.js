@@ -1,14 +1,8 @@
 const UI = {
     els: {},
     timerInterval: null,
-
-    // Mapping von Biomen zu Farben für die Weltkarte
-    biomeColors: {
-        'wasteland': '#5d5345', // Braun
-        'desert': '#eecfa1',    // Sandfarben
-        'jungle': '#1a3300',    // Dunkelgrün
-        'city': '#555555'       // Grau
-    },
+    
+    biomeColors: { 'wasteland': '#5d5345', 'desert': '#eecfa1', 'jungle': '#1a3300', 'city': '#555555' },
 
     init: function() {
         this.els = {
@@ -23,6 +17,7 @@ const UI = {
             zone: document.getElementById('current-zone-display'),
             
             dpad: document.getElementById('overlay-controls'),
+            dpadToggle: document.getElementById('btn-toggle-dpad'), // Neuer Button
             dialog: document.getElementById('dialog-overlay'),
             text: document.getElementById('encounter-text'),
             timer: document.getElementById('game-timer'),
@@ -42,11 +37,16 @@ const UI = {
         };
 
         this.els.btnNew.onclick = () => Game.init();
-        
         this.els.btnWiki.onclick = () => this.toggleView('wiki');
         this.els.btnMap.onclick = () => this.toggleView('worldmap');
         this.els.btnChar.onclick = () => this.toggleView('char');
         this.els.btnQuests.onclick = () => this.toggleView('quests');
+
+        // TOGGLE LOGIK
+        this.els.dpadToggle.onclick = () => {
+            const current = this.els.dpad.style.display;
+            this.els.dpad.style.display = (current === 'none' || current === '') ? 'grid' : 'none';
+        };
 
         this.els.btnUp.onclick = () => Game.move(0, -1);
         this.els.btnDown.onclick = () => Game.move(0, 1);
@@ -70,11 +70,8 @@ const UI = {
     },
 
     toggleView: function(name) {
-        if (Game.state.view === name) {
-            this.switchView('map');
-        } else {
-            this.switchView(name);
-        }
+        if (Game.state.view === name) this.switchView('map');
+        else this.switchView(name);
     },
 
     updateTimer: function() {
@@ -90,17 +87,17 @@ const UI = {
         const verDisplay = document.getElementById('version-display');
         const ver = verDisplay ? verDisplay.textContent.trim() : Date.now();
         const path = `views/${name}.html?v=${ver}`;
-        
         try {
             const res = await fetch(path);
             if (!res.ok) throw new Error("404");
             const html = await res.text();
-            
             this.els.view.innerHTML = html;
             Game.state.view = name;
 
-            if (name === 'map') {
+            if(name === 'map') {
                 Game.initCanvas();
+                // Wir müssen das Overlay wieder einfügen (Toggle-Button + D-Pad + Dialog)
+                this.restoreOverlay();
                 this.toggleControls(true);
             } else {
                 this.toggleControls(false);
@@ -112,23 +109,56 @@ const UI = {
             if (name === 'city') this.renderCity();
             if (name === 'combat') this.renderCombat();
             if (name === 'quests') this.renderQuests();
-
             this.update();
-
-        } catch (e) {
-            this.log(`Fehler: ${name} (404).`, "text-red-500");
-        }
+        } catch (e) { this.log(`Fehler: ${name} (404).`, "text-red-500"); }
+    },
+    
+    restoreOverlay: function() {
+        // Da switchView den Inhalt löscht, fügen wir die Controls neu ein.
+        // WICHTIG: Den aktuellen State des D-Pads (sichtbar/versteckt) merken wir uns eigentlich nicht,
+        // hier setzen wir es auf 'none' zurück (Standard).
+        // Wenn man es perfekt machen will, speichert man den State in einer Variable.
+        // Für jetzt reicht: Reset auf Hidden.
+        
+        const overlayHTML = `
+        <button id="btn-toggle-dpad" style="position: absolute; bottom: 20px; left: 20px; z-index: 60; width: 50px; height: 50px; border-radius: 50%; background: rgba(0, 0, 0, 0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 0 10px #000;">🎮</button>
+        
+        <div id="overlay-controls" class="grid grid-cols-3 gap-1" style="position: absolute; bottom: 80px; left: 20px; z-index: 50; display: none;">
+             <div></div><button class="dpad-btn" id="btn-up" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▲</button><div></div>
+             <button class="dpad-btn" id="btn-left" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">◀</button><div class="flex items-center justify-center text-[#39ff14]">●</div><button class="dpad-btn" id="btn-right" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▶</button>
+             <div></div><button class="dpad-btn" id="btn-down" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▼</button><div></div>
+        </div>
+        <div id="dialog-overlay" style="position: absolute; bottom: 20px; right: 20px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; max-width: 50%;"></div>
+        `;
+        
+        this.els.view.insertAdjacentHTML('beforeend', overlayHTML);
+        
+        // Neu verknüpfen
+        this.els.dpad = document.getElementById('overlay-controls');
+        this.els.dpadToggle = document.getElementById('btn-toggle-dpad');
+        this.els.dialog = document.getElementById('dialog-overlay');
+        
+        // Events
+        this.els.dpadToggle.onclick = () => {
+            const current = this.els.dpad.style.display;
+            this.els.dpad.style.display = (current === 'none' || current === '') ? 'grid' : 'none';
+        };
+        
+        document.getElementById('btn-up').onclick = () => Game.move(0, -1);
+        document.getElementById('btn-down').onclick = () => Game.move(0, 1);
+        document.getElementById('btn-left').onclick = () => Game.move(-1, 0);
+        document.getElementById('btn-right').onclick = () => Game.move(1, 0);
     },
 
     update: function() {
         if (!Game.state) return;
-        
         this.els.lvl.textContent = Game.state.lvl;
         this.els.ammo.textContent = Game.state.ammo;
         this.els.caps.textContent = `${Game.state.caps} Kronkorken`;
         this.els.zone.textContent = Game.state.zone;
         
-        const maxHp = 100 + (Game.state.stats.END - 5) * 10;
+        // FIX: Nutze Game.state.maxHp (die korrekte 110) statt der Neuberechnung
+        const maxHp = Game.state.maxHp; 
         this.els.hp.textContent = `${Math.round(Game.state.hp)}/${maxHp}`;
         this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`;
 
@@ -172,8 +202,12 @@ const UI = {
 
         if(Game.state.view === 'map') {
             const show = !Game.state.inDialog && !Game.state.isGameOver;
-            this.els.dpad.style.visibility = show ? 'visible' : 'hidden';
-            this.els.dialog.style.display = Game.state.inDialog ? 'flex' : 'none';
+            // Wir verstecken den Toggle Button nicht, er soll immer da sein
+            if(this.els.dpadToggle) this.els.dpadToggle.style.display = 'flex';
+            if(!show && this.els.dialog) this.els.dialog.style.display = 'none';
+        } else {
+            // In anderen Views (Wiki, Char, Combat) Toggle verstecken
+            if(this.els.dpadToggle) this.els.dpadToggle.style.display = 'none';
         }
     },
 
@@ -185,8 +219,8 @@ const UI = {
     },
 
     toggleControls: function(show) {
-        this.els.dpad.style.visibility = show ? 'visible' : 'hidden';
-        if (!show) this.els.dialog.style.display = 'none';
+        // Hier machen wir nichts mehr, das Toggle übernimmt der User
+        if (!show && this.els.dialog) this.els.dialog.innerHTML = '';
     },
     
     showGameOver: function() {
@@ -210,7 +244,7 @@ const UI = {
 
         this.els.dialog.appendChild(restBtn);
         this.els.dialog.appendChild(leaveBtn);
-        this.els.dialog.style.display = 'block';
+        this.els.dialog.style.display = 'flex';
     },
 
     enterSupermarket: function() {
@@ -303,7 +337,6 @@ const UI = {
         }).join('');
     },
 
-    // --- NEU: FARBIGE WELTKARTE ---
     renderWorldMap: function() {
         const grid = document.getElementById('world-grid');
         if(!grid) return;
@@ -312,20 +345,13 @@ const UI = {
             for(let x=0; x<8; x++) {
                 const d = document.createElement('div');
                 d.className = "border border-green-900/30 flex justify-center items-center text-xs relative";
-                
-                // SPIELER
                 if(x===Game.state.sector.x && y===Game.state.sector.y) { 
-                    d.style.backgroundColor = "#39ff14"; 
-                    d.style.color = "black"; 
-                    d.style.fontWeight = "bold";
-                    d.textContent = "YOU"; 
+                    d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.style.fontWeight = "bold"; d.textContent = "YOU"; 
                 } 
-                // ERKUNDETE BEREICHE
                 else if(Game.worldData[`${x},${y}`]) { 
                     const biome = Game.worldData[`${x},${y}`].biome;
                     d.style.backgroundColor = this.biomeColors[biome] || '#4a3d34';
                 }
-                
                 grid.appendChild(d);
             }
         }
