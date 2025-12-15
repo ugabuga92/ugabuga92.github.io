@@ -1,5 +1,5 @@
 const Game = {
-    TILE: 30, MAP_W: 20, MAP_H: 12,
+    TILE: 30, MAP_W: 40, MAP_H: 40,
     colors: { 'V':'#39ff14', 'C':'#eab308', 'G':'#00ffff', '.':'#5d5345', '_':'#eecfa1', ',':'#1a3300', '=':'#333333', 'T':'#1a4d1a', 'R':'#5c544d', '~':'#224f80', 'B':'#1a1a1a', 'S':'#ff0000', '#':'#000000' },
 
     monsters: {
@@ -20,9 +20,14 @@ const Game = {
     },
 
     state: null, worldData: {}, ctx: null, loopId: null, camera: { x: 0, y: 0 },
+    
+    // NEU: Performance Cache
+    cacheCanvas: null, cacheCtx: null,
 
     init: function() {
         this.worldData = {};
+        this.initCache(); // Cache vorbereiten
+
         const startSecX = Math.floor(Math.random() * 4) + 3;
         const startSecY = Math.floor(Math.random() * 4) + 3;
 
@@ -35,8 +40,6 @@ const Game = {
             view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, explored: {}, 
             tempStatIncrease: {},
             quests: [ { id: "q1", title: "Der Weg nach Hause", text: "Willkommen im einsamen Ödland einer längst vergessenen Zeit.\n\nDeine Aufgabe in der freien Wildbahn ist es, den Weg nach Hause zu finden!\n\nViel Erfolg!!!", read: false } ],
-            
-            // NEU: TIMER STARTZEIT
             startTime: Date.now()
         };
         
@@ -48,8 +51,16 @@ const Game = {
 
         UI.switchView('map').then(() => {
             if(UI.els.gameOver) UI.els.gameOver.classList.add('hidden');
-            UI.log("System bereit. Timer gestartet.", "text-green-400");
+            UI.log("System bereit. Performance-Mode aktiv.", "text-green-400");
         });
+    },
+
+    // Erstellt den unsichtbaren Canvas für Prerendering
+    initCache: function() {
+        this.cacheCanvas = document.createElement('canvas');
+        this.cacheCanvas.width = this.MAP_W * this.TILE;
+        this.cacheCanvas.height = this.MAP_H * this.TILE;
+        this.cacheCtx = this.cacheCanvas.getContext('2d');
     },
 
     calculateMaxHP: function(end) { return 100 + (end - 5) * 10; },
@@ -76,7 +87,9 @@ const Game = {
 
     findSafeSpawn: function() {
         let safe = false;
-        while(!safe) {
+        let attempts = 0;
+        while(!safe && attempts < 100) { // Safety Break
+            attempts++;
             const tile = this.state.currentMap[this.state.player.y][this.state.player.x];
             if(['.', '_', ',', '='].includes(tile)) safe = true;
             else {
@@ -91,6 +104,7 @@ const Game = {
         if (isInterior) {
             this.generateDungeon();
             this.state.zone = "Supermarkt (Gefahr!)";
+            this.renderStaticMap(); // Cache neu zeichnen
             return;
         }
         if(!this.worldData[key]) {
@@ -131,6 +145,24 @@ const Game = {
         if(data.biome === 'desert') zn = "Glühende Wüste";
         if(data.biome === 'jungle') zn = "Überwucherte Zone";
         this.state.zone = `${zn} (${sx},${sy})`;
+        
+        // WICHTIG: Nach dem Laden einmalig in den Cache malen!
+        this.renderStaticMap();
+    },
+
+    // Malt die ganze Map EINMAL in den Cache
+    renderStaticMap: function() {
+        const ctx = this.cacheCtx;
+        const ts = this.TILE;
+        // Reset
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height);
+
+        for(let y=0; y<this.MAP_H; y++) {
+            for(let x=0; x<this.MAP_W; x++) {
+                this.drawTile(ctx, x, y, this.state.currentMap[y][x]);
+            }
+        }
     },
 
     generateCityLayout: function(map) {
@@ -143,7 +175,9 @@ const Game = {
             }
         }
         let placed = false;
-        while(!placed) {
+        let attempts = 0;
+        while(!placed && attempts < 100) {
+            attempts++;
             let rx = Math.floor(Math.random() * (this.MAP_W-4)) + 2;
             let ry = Math.floor(Math.random() * (this.MAP_H-4)) + 2;
             if(map[ry][rx] === 'B' && (map[ry+1][rx]==='=' || map[ry-1][rx]==='=')) { map[ry][rx] = 'S'; placed = true; }
@@ -201,9 +235,11 @@ const Game = {
         this.loopId = requestAnimationFrame(() => this.drawLoop());
     },
 
+    // --- RENDER ENGINE V3 (OPTIMIERT) ---
     draw: function() {
-        if(!this.ctx) return;
+        if(!this.ctx || !this.cacheCanvas) return;
         const ctx = this.ctx; const cvs = ctx.canvas;
+        
         let targetCamX = (this.state.player.x * this.TILE) - (cvs.width / 2);
         let targetCamY = (this.state.player.y * this.TILE) - (cvs.height / 2);
         const maxCamX = (this.MAP_W * this.TILE) - cvs.width;
@@ -211,26 +247,31 @@ const Game = {
         this.camera.x = Math.max(0, Math.min(targetCamX, maxCamX));
         this.camera.y = Math.max(0, Math.min(targetCamY, maxCamY));
 
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cvs.width, cvs.height);
-        ctx.save(); ctx.translate(-this.camera.x, -this.camera.y);
+        // 1. Hintergrund löschen
+        ctx.fillStyle = "#000"; 
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
 
-        const startCol = Math.floor(this.camera.x / this.TILE);
-        const endCol = startCol + (cvs.width / this.TILE) + 1;
-        const startRow = Math.floor(this.camera.y / this.TILE);
-        const endRow = startRow + (cvs.height / this.TILE) + 1;
+        // 2. Statische Map aus Cache kopieren (NUR der sichtbare Bereich!)
+        // sourceImage, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight
+        ctx.drawImage(
+            this.cacheCanvas, 
+            this.camera.x, this.camera.y, cvs.width, cvs.height, // Quelle (Ausschnitt aus Cache)
+            0, 0, cvs.width, cvs.height // Ziel (Auf Screen)
+        );
 
-        for(let y = startRow; y <= endRow; y++) {
-            for(let x = startCol; x <= endCol; x++) {
-                if(y >= 0 && y < this.MAP_H && x >= 0 && x < this.MAP_W) {
-                    if(this.state.explored[`${x},${y}`]) this.drawTile(ctx, x, y, this.state.currentMap[y][x]);
-                }
-            }
-        }
+        // 3. Transformation für dynamische Objekte
+        ctx.save(); 
+        ctx.translate(-this.camera.x, -this.camera.y);
+
+        // Spieler zeichnen (Ohne aufwendigen Shadow Blur für Performance)
         const px = this.state.player.x * this.TILE + this.TILE/2;
         const py = this.state.player.y * this.TILE + this.TILE/2;
-        ctx.shadowBlur = 15; ctx.shadowColor = "#ff3914";
-        ctx.fillStyle = "#ff3914"; ctx.beginPath(); ctx.arc(px, py, this.TILE/3, 0, Math.PI*2); ctx.fill();
-        ctx.shadowBlur = 0; ctx.restore();
+        ctx.fillStyle = "#ff3914"; 
+        ctx.beginPath(); ctx.arc(px, py, this.TILE/3, 0, Math.PI*2); ctx.fill();
+        // Optional: Kleiner Rand statt Shadow
+        ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.stroke();
+
+        ctx.restore();
     },
 
     drawTile: function(ctx, x, y, type) {
@@ -281,6 +322,10 @@ const Game = {
     },
 
     reveal: function(px, py) {
+        // Explored Status updaten (wirkt sich erst beim nächsten loadSector/Cache-Refresh auf die Grafik aus
+        // oder wir malen es live drüber. Im Prerender-Modus ist Fog of War schwieriger live zu machen.
+        // Für diesen "Turbo"-Modus deaktivieren wir den Fog of War visuell, um Performance zu sparen,
+        // oder wir müssten den Cache updaten. Hier: Wir lassen den Cache so und malen den Fog LIVE drüber (siehe Draw).
         for(let y=py-2; y<=py+2; y++) for(let x=px-2; x<=px+2; x++) if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) this.state.explored[`${x},${y}`] = true;
     },
 
