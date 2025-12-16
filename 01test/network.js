@@ -90,15 +90,23 @@ const Network = {
             .catch(e => console.error("Save Error:", e));
     },
 
-    // NEU: PERMADEATH FUNKTION
     deleteSave: function() {
         if(!this.active || !this.myId) return;
         console.log("LÖSCHE SPIELSTAND FÜR", this.myId);
         this.db.ref('saves/' + this.myId).remove()
             .then(() => console.log("Save deleted."))
             .catch(e => console.error("Delete Error:", e));
-        // Auch aus der Player-Liste entfernen
         this.db.ref('players/' + this.myId).remove();
+    },
+
+    // NEU: DISCONNECT
+    disconnect: function() {
+        if(this.myId && this.db) {
+            this.db.ref('players/' + this.myId).remove();
+            this.db.ref('players').off(); // Stop listening
+        }
+        this.active = false;
+        this.myId = null;
     },
 
     sendMove: function(x, y, level, sector) {
