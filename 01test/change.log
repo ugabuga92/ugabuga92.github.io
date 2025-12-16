@@ -1,6 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.12b] - 2025-12-16 13:00 (Spawn Selection)
+-----------------------------------------------
+- FEATURE: Neuer Screen zur Charaktererstellung. Wenn kein Spielstand existiert, kann man nun wählen, ob man zufällig spawnt oder in der Nähe eines Online-Spielers.
+- FIX: Auto-Teleport beim Login entfernt (nur noch auf Wunsch bei Neuerstellung).
+- FIX: Speicher-Funktion repariert (Events waren doppelt gebunden, Inline-Handler entfernt).
+- UI: "Spiele speichern" Button reagiert jetzt zuverlässig.
+
 [v0.0.12a] - 2025-12-16 11:30 (Inventory System)
 ------------------------------------------------
 - FEATURE: Inventar-System (Backpack) hinzugefügt. Gekaufte Items landen nun im Inventar und können dort angesehen, ausgerüstet oder benutzt werden.
