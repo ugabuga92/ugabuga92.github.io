@@ -1,6 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+
+[v0.0.10e] - 2025-12-16 (Hopefully back to Orgiginal)
+- recreated original code
+
+
 [v0.0.10f] - 2025-12-15 (Mobile UI & Nav Update)
 ------------------------------------------------
 - MOBILE: Responsive Navigation implementiert. Auf kleinen Bildschirmen sind die Navigations-Buttons nun in einem "Hamburger-Menü" (☰) versteckt, um Platz zu sparen.
