@@ -65,7 +65,7 @@ const UI = {
             // Spawn Screen
             loginScreen: document.getElementById('login-screen'),
             spawnScreen: document.getElementById('spawn-screen'),
-            spawnMsg: document.getElementById('spawn-msg'), // NEU
+            spawnMsg: document.getElementById('spawn-msg'),
             spawnList: document.getElementById('spawn-list'),
             btnSpawnRandom: document.getElementById('btn-spawn-random'),
             
@@ -172,11 +172,13 @@ const UI = {
             const saveData = await Network.login(id);
             
             if (saveData) {
+                // Spielstand gefunden -> Direkt laden
                 this.els.loginScreen.style.display = 'none';
                 this.els.gameScreen.classList.remove('hidden');
                 this.els.gameScreen.classList.remove('opacity-0');
                 Game.init(saveData); 
             } else {
+                // Kein Spielstand -> Spawn Screen zeigen
                 this.els.loginScreen.style.display = 'none';
                 this.els.spawnScreen.classList.remove('hidden');
                 // Feedback warum
@@ -262,7 +264,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.12c)"; // VERSION UPDATE
+            v.textContent = "ONLINE (v0.0.12d)"; // VERSION UPDATE
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
