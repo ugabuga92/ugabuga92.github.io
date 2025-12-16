@@ -15,8 +15,11 @@ const Game = {
     },
     
     items: { 
+        // CONSUMABLES
         stimpack: { name: "Stimpack", type: "consumable", effect: "heal", val: 50, cost: 25 },
         scrap: { name: "Schrott", type: "junk", cost: 0 },
+
+        // EQUIP
         fists: { name: "Fäuste", slot: 'weapon', type: 'weapon', baseDmg: 2, bonus: {}, cost: 0, requiredLevel: 0, isRanged: false }, 
         vault_suit: { name: "Vault-Anzug", slot: 'body', type: 'body', bonus: { END: 1 }, cost: 0, requiredLevel: 0 }, 
         knife: { name: "Messer", slot: 'weapon', type: 'weapon', baseDmg: 6, bonus: { STR: 1 }, cost: 15, requiredLevel: 1, isRanged: false }, 
@@ -199,6 +202,9 @@ const Game = {
             
             let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill(gc)); 
             
+            for(let i=0; i<this.MAP_W; i++) { map[0][i] = '^'; map[this.MAP_H-1][i] = 'v'; } 
+            for(let i=0; i<this.MAP_H; i++) { map[i][0] = '<'; map[i][this.MAP_W-1] = '>'; } 
+            
             if (biome === 'wasteland') { 
                 this.addClusters(map, 'T', 15, 2); this.addClusters(map, 'R', 10, 2); 
                 if(Math.random() < 0.05) map[Math.floor(this.MAP_H/2)][Math.floor(this.MAP_W/2)] = 'C';
@@ -225,7 +231,7 @@ const Game = {
         const data = this.worldData[key]; 
         this.state.currentMap = data.layout; 
         
-        // FIX: RÄNDER ZWANGSWEISE KORRIGIEREN (AUCH BEI LOAD GAME)
+        // ZWANGS-UPDATE DER PFEILE
         this.fixMapBorders(this.state.currentMap);
 
         this.state.explored = data.explored; 
@@ -242,6 +248,7 @@ const Game = {
 
     renderStaticMap: function() { const ctx = this.cacheCtx; const ts = this.TILE; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height); for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.drawTile(ctx, x, y, this.state.currentMap[y][x]); },
     
+    // FIX: DRAW TILE (Jetzt in NEON GRÜN für Sichtbarkeit)
     drawTile: function(ctx, x, y, type, pulse = 1) { 
         const ts = this.TILE; const px = x * ts; const py = y * ts; 
         let bg = this.colors['.']; if(type === '_') bg = this.colors['_']; if(type === ',') bg = this.colors[',']; if(type === '=') bg = this.colors['=']; 
@@ -249,25 +256,39 @@ const Game = {
         if (type !== '~' && !['^','v','<','>'].includes(type)) { ctx.fillStyle = bg; ctx.fillRect(px, py, ts, ts); } 
         if(!['^','v','<','>'].includes(type)) { ctx.strokeStyle = "rgba(40, 90, 40, 0.2)"; ctx.lineWidth = 1; ctx.strokeRect(px, py, ts, ts); } 
         
+        // PFEILE
+        if(['^', 'v', '<', '>'].includes(type)) {
+            // Hintergrund schwarz, Pfeil in NEON GRÜN (#1aff1a)
+            ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); 
+            ctx.fillStyle = "#1aff1a"; // HELLGRÜN!
+            ctx.strokeStyle = "#000"; // Kontur Schwarz
+            ctx.beginPath();
+            
+            if (type === '^') { 
+                ctx.moveTo(px + ts/2, py + 5); 
+                ctx.lineTo(px + ts - 5, py + ts - 5); 
+                ctx.lineTo(px + 5, py + ts - 5); 
+            } else if (type === 'v') { 
+                ctx.moveTo(px + ts/2, py + ts - 5); 
+                ctx.lineTo(px + ts - 5, py + 5); 
+                ctx.lineTo(px + 5, py + 5); 
+            } else if (type === '<') { 
+                ctx.moveTo(px + 5, py + ts/2); 
+                ctx.lineTo(px + ts - 5, py + 5); 
+                ctx.lineTo(px + ts - 5, py + ts - 5); 
+            } else if (type === '>') { 
+                ctx.moveTo(px + ts - 5, py + ts/2); 
+                ctx.lineTo(px + 5, py + 5); 
+                ctx.lineTo(px + 5, py + ts - 5); 
+            }
+            
+            ctx.fill(); 
+            ctx.stroke(); 
+            return;
+        }
+
         ctx.beginPath(); 
         switch(type) { 
-            case '^': 
-                ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; 
-                ctx.moveTo(px + ts/2, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); ctx.lineTo(px + 5, py + ts - 5); 
-                ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
-            case 'v': 
-                ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; 
-                ctx.moveTo(px + ts/2, py + ts - 5); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + 5, py + 5); 
-                ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
-            case '<': 
-                ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; 
-                ctx.moveTo(px + 5, py + ts/2); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); 
-                ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
-            case '>': 
-                ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; 
-                ctx.moveTo(px + ts - 5, py + ts/2); ctx.lineTo(px + 5, py + 5); ctx.lineTo(px + 5, py + ts - 5); 
-                ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
-
             case 'T': ctx.fillStyle = "#1b5e20"; ctx.moveTo(px + ts/2, py + 4); ctx.lineTo(px + ts - 4, py + ts - 4); ctx.lineTo(px + 4, py + ts - 4); ctx.fill(); break; 
             case 'R': ctx.fillStyle = "#444"; ctx.moveTo(px+6, py+10); ctx.lineTo(px+20, py+6); ctx.lineTo(px+24, py+20); ctx.lineTo(px+10, py+24); ctx.fill(); break; 
             case '~': ctx.fillStyle = "#001133"; ctx.fillRect(px, py, ts, ts); ctx.strokeStyle = "#224f80"; ctx.moveTo(px+4, py+15); ctx.lineTo(px+10, py+10); ctx.lineTo(px+16, py+15); ctx.lineTo(px+24, py+10); ctx.stroke(); break; 
