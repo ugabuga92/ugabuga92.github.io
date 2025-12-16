@@ -1,6 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.12c] - 2025-12-16 14:00 (Save Feedback Update)
+----------------------------------------------------
+- UI: Der "SAVE" Button leuchtet nun grün auf und zeigt "SAVED!", wenn das Speichern erfolgreich angestoßen wurde.
+- FIX: HTML `onclick` Attribute entfernt und vollständig durch JS Event-Listener ersetzt, um Konflikte zu vermeiden.
+- UI: Klartext-Feedback im Spawn-Screen ("Kein Spielstand für ID '...' gefunden"), um Verwirrung zu vermeiden.
+- SYSTEM: Login-Logik ist weiterhin: Vorhandener Save = Login, Kein Save = Spawn Auswahl.
+
 [v0.0.12b] - 2025-12-16 13:00 (Spawn Selection)
 -----------------------------------------------
 - FEATURE: Neuer Screen zur Charaktererstellung. Wenn kein Spielstand existiert, kann man nun wählen, ob man zufällig spawnt oder in der Nähe eines Online-Spielers.
