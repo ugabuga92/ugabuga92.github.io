@@ -1,10 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
-
+[v0.0.10g] - 2025-12-16 (Savegame Crash Fix)
+--------------------------------------------
+- FIX: "Cannot read properties of undefined (reading 'AGI')" beim Laden eines Spielstands behoben.
+- CODE: `getStat` Methode robuster gemacht gegen unvollständige Savegames.
+- CODE: `Game.init` stellt nun sicher, dass Ausrüstung (equip) existiert, auch wenn der Spielstand korrupt war.
 
 [v0.0.10e] - 2025-12-16 (Hopefully back to Orgiginal)
 - recreated original code
-
 
 [v0.0.10f] - 2025-12-15 (Mobile UI & Nav Update)
 ------------------------------------------------
