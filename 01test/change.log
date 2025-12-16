@@ -1,6 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.11b] - 2025-12-16 10:00 (Favicon & Detail Polish)
+-------------------------------------------------------
+- UI: Website-Icon (Favicon) hinzugefügt. Es zeigt ein grünes "P" auf schwarzem Grund im Browser-Tab an.
+- UI: Konsistente Schriftgrößen im Header und bei den Action-Buttons.
+
 [v0.0.11a] - 2025-12-16 09:30 (Restoration Update)
 --------------------------------------------------
 - FIX: Kritischer Fehler behoben, bei dem Interaktions-Funktionen (`enterVault`, `toggleControls` etc.) in `ui.js` fehlten, was zu Abstürzen und fehlerhaftem Speichern führte.
