@@ -2,12 +2,7 @@
     - Flucht wird immer über ESC und BACKSPACE realisiert. 
     - es soll nicht nach jedem Legendary ein Würfelspiel kommen. Setzte die Rate auf 15% 
     - Plus bei Stat Points vergrößern
-    - Spieler automatischer Disconnect nach 5 Minuten AFK. -> Zurück zum Login menü mit Pop Up "Du wurdest ausgeloggt"
-    - Desweiteren neben dem Speichern Button, links davon, ein Button mit Ausloggen
-    - Hamburger Menü, zu viele Optionen mitlerweile. Name "Menü mit den 3 Strichen (hamburger symbol) daneben, Funktion als
-    Dropdown menü mit den bisherigen Buttons.
-
-Schriftgröße bei den Buttons n tick größer
+    
 Es wird aktuell jedesmal ein neuer Charakter erstellt und nicht der alte geladen. egal ob vorher safe gedrückt wurde oder ausgeloggt
 
 
@@ -29,3 +24,5 @@ Hier sind 3 Vorschläge für den nächsten Schritt. Sag mir, worauf du Lust hast
 Speichern im Menü oben gibt im Log nur Spiel wird gespeichert wieder, aber es passiert nichts mehr.
 Spawnen IM Baum etc passiert nicht mehr, aber man wird noch eingesperrt. Logischerweise sollte mindestens ein Weg aus so einem Wald sein.
 Siehe screenshot
+
+Pfeile am Rand passen noch immer nicht, was den da los? jetzt schauen alle nach OBEN
