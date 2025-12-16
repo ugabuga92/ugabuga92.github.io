@@ -6,7 +6,6 @@ const WorldGen = {
         'city': { water: 0.0, mountain: 0.0, trees: 0.0, ground: '=' }
     },
     
-    // Zufalls-Seed Speicher
     _seed: 12345,
 
     setSeed: function(val) {
@@ -23,7 +22,7 @@ const WorldGen = {
         let map = Array(height).fill().map(() => Array(width).fill('.'));
         const conf = this.biomes[biomeType] || this.biomes['wasteland'];
 
-        // 1. BASIS TERRAIN (Mit Seeded Random)
+        // 1. BASIS TERRAIN
         for(let y = 1; y < height - 1; y++) {
             for(let x = 1; x < width - 1; x++) {
                 const roll = this.rand();
@@ -34,12 +33,16 @@ const WorldGen = {
             }
         }
 
-        // 2. POIs PLATZIEREN
+        // 2. POIs PLATZIEREN & FREIRÄUMEN
         poiList.forEach(p => {
-            for(let dy=-2; dy<=2; dy++) {
-                for(let dx=-2; dx<=2; dx++) {
+            // Aggressiveres Freiräumen um Gates und POIs
+            let radius = (p.type === 'G') ? 3 : 2; 
+            
+            for(let dy = -radius; dy <= radius; dy++) {
+                for(let dx = -radius; dx <= radius; dx++) {
                     const ny = p.y + dy, nx = p.x + dx;
                     if(ny > 0 && ny < height-1 && nx > 0 && nx < width-1) {
+                        // Mache den Boden sicher begehbar
                         map[ny][nx] = conf.ground;
                     }
                 }
@@ -49,7 +52,6 @@ const WorldGen = {
 
         // 3. WEGNETZWERK
         const points = [...poiList];
-        // Sackgassen auch seeded
         for(let i=0; i<3; i++) {
             points.push({
                 x: Math.floor(this.rand()*(width-4))+2, 
@@ -73,7 +75,6 @@ const WorldGen = {
         let y = start.y;
         
         while(x !== end.x || y !== end.y) {
-            // Seeded Random Direction
             if(this.rand() < 0.2) {
                 const dir = this.rand() < 0.5 ? 0 : 1; 
                 if(dir === 0 && x !== end.x) x += (end.x > x ? 1 : -1);
