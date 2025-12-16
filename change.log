@@ -1,6 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.13f] - 2025-12-17 00:30 (Spawn Collision Logic Fix)
+---------------------------------------------------------
+- FIX: `findSafeSpawn` in `game.js` überarbeitet. Statt bei blockiertem Spawn auf 20,20 zurückzufallen (was zu Fehlern führte), sucht die Funktion nun spiralförmig nach dem nächstgelegenen freien Feld.
+- FIX: `WorldGen.createSector` räumt nun einen größeren Bereich (Radius 3) um Tore herum frei, um sicherzustellen, dass Spieler nicht in Bäumen oder Bergen spawnen.
+- LOGIC: Die Kollisionsabfrage `isValidSpawn` schließt nun explizit Tore und Vaults als Spawn-Punkte aus, damit Interaktionen nicht versehentlich sofort getriggert werden.
+
 [v0.0.13d] - 2025-12-16 23:30 (Map Persistence Update)
 ------------------------------------------------------
 - FEATURE: Deterministische Kartengenerierung ("Seeded RNG"). Ein Sektor sieht nun für alle Spieler und nach jedem Reload exakt gleich aus. Dies behebt das Problem, dass die Karte sich nach dem Speichern und Neuladen verändert.
