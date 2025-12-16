@@ -1,6 +1,10 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
-
+[v0.0.12d] - 2025-12-16 14:45 (Login Logic Restoration)
+------------------------------------------------------
+- FIX: Die Start-Logik wurde korrigiert. Das Spiel startet nun wieder korrekt mit dem "Login Screen" ("PIP-BOY 3000 AUTHENTICATION REQUIRED").
+- LOGIK: Das "Neuer Charakter" Fenster erscheint jetzt erst NACHDEM eine ID eingegeben wurde, die noch keinen Spielstand besitzt.
+- CSS: `style="display: none;"` direkt im HTML des Spawn-Screens eingefügt, um ein kurzes Aufblitzen oder falsches Anzeigen beim Laden der Seite zu verhindern.
 
 [v0.0.12d] - 2025-12-16 14:00 (Save Feedback Update)
 ----------------------------------------------------
