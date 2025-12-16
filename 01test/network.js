@@ -1,3 +1,4 @@
+// network.js - v0.0.11a
 const Network = {
     db: null,
     myId: null,
@@ -31,11 +32,18 @@ const Network = {
 
     login: async function(userId) {
         if (!this.active) return null;
+        
         this.myId = userId;
+        
         try {
             const snapshot = await this.db.ref('saves/' + this.myId).once('value');
             const saveData = snapshot.val();
+            
+            // DEBUG: Was kommt aus der DB?
+            console.log("LADE DATEN FÜR:", userId, saveData);
+            
             this.startPresence();
+            
             return saveData; 
         } catch(e) {
             console.error("Login Error:", e);
@@ -99,11 +107,10 @@ const Network = {
         this.db.ref('players/' + this.myId).remove();
     },
 
-    // NEU: DISCONNECT
     disconnect: function() {
         if(this.myId && this.db) {
             this.db.ref('players/' + this.myId).remove();
-            this.db.ref('players').off(); // Stop listening
+            this.db.ref('players').off(); 
         }
         this.active = false;
         this.myId = null;
