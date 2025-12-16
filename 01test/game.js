@@ -15,11 +15,8 @@ const Game = {
     },
     
     items: { 
-        // CONSUMABLES
         stimpack: { name: "Stimpack", type: "consumable", effect: "heal", val: 50, cost: 25 },
         scrap: { name: "Schrott", type: "junk", cost: 0 },
-
-        // EQUIP
         fists: { name: "Fäuste", slot: 'weapon', type: 'weapon', baseDmg: 2, bonus: {}, cost: 0, requiredLevel: 0, isRanged: false }, 
         vault_suit: { name: "Vault-Anzug", slot: 'body', type: 'body', bonus: { END: 1 }, cost: 0, requiredLevel: 0 }, 
         knife: { name: "Messer", slot: 'weapon', type: 'weapon', baseDmg: 6, bonus: { STR: 1 }, cost: 15, requiredLevel: 1, isRanged: false }, 
@@ -181,6 +178,14 @@ const Game = {
         UI.log(`Teleport erfolgreich.`, "text-green-400");
     },
 
+    // NEU: DETERMINISTISCHER ZUFALL FÜR TORE
+    getPseudoRandomGate: function(val1, val2, max) {
+        // Diese Formel liefert immer dasselbe Ergebnis für dieselben Koordinaten
+        const seed = (val1 * 9301 + val2 * 49297) % 233280;
+        // Range: 2 bis max-3 (damit Ecken frei bleiben)
+        return 3 + (seed % (max - 6)); 
+    },
+
     loadSector: function(sx, sy, isInterior = false, dungeonType = "market") { 
         const key = `${sx},${sy}`; 
         if (isInterior) { 
@@ -202,9 +207,11 @@ const Game = {
             
             let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill(gc)); 
             
+            // 1. Ränder initialisieren
             for(let i=0; i<this.MAP_W; i++) { map[0][i] = '^'; map[this.MAP_H-1][i] = 'v'; } 
             for(let i=0; i<this.MAP_H; i++) { map[i][0] = '<'; map[i][this.MAP_W-1] = '>'; } 
             
+            // 2. Objekte
             if (biome === 'wasteland') { 
                 this.addClusters(map, 'T', 15, 2); this.addClusters(map, 'R', 10, 2); 
                 if(Math.random() < 0.05) map[Math.floor(this.MAP_H/2)][Math.floor(this.MAP_W/2)] = 'C';
@@ -221,17 +228,36 @@ const Game = {
             else if (biome === 'city') { this.generateCityLayout(map); } 
             
             if(sx === this.state.startSector.x && sy === this.state.startSector.y) map[20][20] = 'V'; 
-            if(sy>0) this.clearGate(map, Math.floor(this.MAP_W/2), 0, 'G', gc); 
-            if(sy<9) this.clearGate(map, Math.floor(this.MAP_W/2), this.MAP_H-1, 'G', gc); 
-            if(sx>0) this.clearGate(map, 0, Math.floor(this.MAP_H/2), 'G', gc); 
-            if(sx<9) this.clearGate(map, this.MAP_W-1, Math.floor(this.MAP_H/2), 'G', gc); 
+            
+            // 3. TORE PLATZIEREN (Random aber Synchron)
+            // Oben (North) - verbindet mit Sector (sx, sy-1). Shared seed: sx, sy
+            if(sy > 0) {
+                const gateX = this.getPseudoRandomGate(sx, sy, this.MAP_W);
+                this.clearGate(map, gateX, 0, 'G', gc);
+            }
+            // Unten (South) - verbindet mit Sector (sx, sy+1). Shared seed: sx, sy+1
+            if(sy < 7) {
+                const gateX = this.getPseudoRandomGate(sx, sy+1, this.MAP_W);
+                this.clearGate(map, gateX, this.MAP_H-1, 'G', gc);
+            }
+            // Links (West) - verbindet mit Sector (sx-1, sy). Shared seed: sx, sy
+            if(sx > 0) {
+                const gateY = this.getPseudoRandomGate(sy, sx, this.MAP_H);
+                this.clearGate(map, 0, gateY, 'G', gc);
+            }
+            // Rechts (East) - verbindet mit Sector (sx+1, sy). Shared seed: sx+1, sy
+            if(sx < 7) {
+                const gateY = this.getPseudoRandomGate(sy, sx+1, this.MAP_H);
+                this.clearGate(map, this.MAP_W-1, gateY, 'G', gc);
+            }
             
             this.worldData[key] = { layout: map, explored: {}, biome: biome }; 
         } 
+        
         const data = this.worldData[key]; 
         this.state.currentMap = data.layout; 
         
-        // ZWANGS-UPDATE DER PFEILE
+        // 4. RÄNDER FIXEN (Aber Tore G lassen!)
         this.fixMapBorders(this.state.currentMap);
 
         this.state.explored = data.explored; 
@@ -241,14 +267,20 @@ const Game = {
         this.renderStaticMap(); 
     },
 
+    // NEUE FIX METHODE: ÜBERSCHREIBT KEINE TORE (G) oder VAULTS (V)
     fixMapBorders: function(map) {
-        for(let i=0; i<this.MAP_W; i++) { map[0][i] = '^'; map[this.MAP_H-1][i] = 'v'; } 
-        for(let i=0; i<this.MAP_H; i++) { map[i][0] = '<'; map[i][this.MAP_W-1] = '>'; } 
+        for(let i=0; i<this.MAP_W; i++) { 
+            if(map[0][i] !== 'G' && map[0][i] !== 'V') map[0][i] = '^'; 
+            if(map[this.MAP_H-1][i] !== 'G') map[this.MAP_H-1][i] = 'v'; 
+        } 
+        for(let i=0; i<this.MAP_H; i++) { 
+            if(map[i][0] !== 'G') map[i][0] = '<'; 
+            if(map[i][this.MAP_W-1] !== 'G') map[i][this.MAP_W-1] = '>'; 
+        } 
     },
 
     renderStaticMap: function() { const ctx = this.cacheCtx; const ts = this.TILE; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height); for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.drawTile(ctx, x, y, this.state.currentMap[y][x]); },
     
-    // FIX: DRAW TILE (Jetzt in NEON GRÜN für Sichtbarkeit)
     drawTile: function(ctx, x, y, type, pulse = 1) { 
         const ts = this.TILE; const px = x * ts; const py = y * ts; 
         let bg = this.colors['.']; if(type === '_') bg = this.colors['_']; if(type === ',') bg = this.colors[',']; if(type === '=') bg = this.colors['=']; 
@@ -256,34 +288,23 @@ const Game = {
         if (type !== '~' && !['^','v','<','>'].includes(type)) { ctx.fillStyle = bg; ctx.fillRect(px, py, ts, ts); } 
         if(!['^','v','<','>'].includes(type)) { ctx.strokeStyle = "rgba(40, 90, 40, 0.2)"; ctx.lineWidth = 1; ctx.strokeRect(px, py, ts, ts); } 
         
-        // PFEILE
+        // PFEILE (NEON GRÜN & SICHTBAR)
         if(['^', 'v', '<', '>'].includes(type)) {
-            // Hintergrund schwarz, Pfeil in NEON GRÜN (#1aff1a)
             ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); 
-            ctx.fillStyle = "#1aff1a"; // HELLGRÜN!
-            ctx.strokeStyle = "#000"; // Kontur Schwarz
+            ctx.fillStyle = "#1aff1a"; 
+            ctx.strokeStyle = "#000"; 
             ctx.beginPath();
             
             if (type === '^') { 
-                ctx.moveTo(px + ts/2, py + 5); 
-                ctx.lineTo(px + ts - 5, py + ts - 5); 
-                ctx.lineTo(px + 5, py + ts - 5); 
+                ctx.moveTo(px + ts/2, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); ctx.lineTo(px + 5, py + ts - 5); 
             } else if (type === 'v') { 
-                ctx.moveTo(px + ts/2, py + ts - 5); 
-                ctx.lineTo(px + ts - 5, py + 5); 
-                ctx.lineTo(px + 5, py + 5); 
+                ctx.moveTo(px + ts/2, py + ts - 5); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + 5, py + 5); 
             } else if (type === '<') { 
-                ctx.moveTo(px + 5, py + ts/2); 
-                ctx.lineTo(px + ts - 5, py + 5); 
-                ctx.lineTo(px + ts - 5, py + ts - 5); 
+                ctx.moveTo(px + 5, py + ts/2); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); 
             } else if (type === '>') { 
-                ctx.moveTo(px + ts - 5, py + ts/2); 
-                ctx.lineTo(px + 5, py + 5); 
-                ctx.lineTo(px + 5, py + ts - 5); 
+                ctx.moveTo(px + ts - 5, py + ts/2); ctx.lineTo(px + 5, py + 5); ctx.lineTo(px + 5, py + ts - 5); 
             }
-            
-            ctx.fill(); 
-            ctx.stroke(); 
+            ctx.fill(); ctx.stroke(); 
             return;
         }
 
