@@ -1,6 +1,14 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.12g] - 2025-12-16 17:15 (Visibility & Controls)
+-----------------------------------------------------
+- GRAFIK: Die Richtungspfeile an den Kartenrändern leuchten nun im hellen Pip-Boy-Grün (`#1aff1a`), statt dunkelgrau, um auf dem schwarzen Hintergrund sichtbar zu sein.
+- STEUERUNG: Kampf-Shortcuts vereinfacht:
+    - [LEERTASTE] = Angriff
+    - [ESC] = Flucht
+    - Keine Pfeiltasten-Auswahl mehr im Kampfmenü nötig.
+
 [v0.0.12f] - 2025-12-16 16:45 (Arrow Fix & Combat Controls)
 ---------------------------------------------------------
 - GRAFIK: Fehlerhafte Pfeildarstellung in alten Spielständen behoben. Die Funktion `fixMapBorders` korrigiert nun automatisch die Ränder jeder geladenen Karte.
