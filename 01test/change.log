@@ -1,6 +1,15 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.12f] - 2025-12-16 16:45 (Arrow Fix & Combat Controls)
+---------------------------------------------------------
+- GRAFIK: Fehlerhafte Pfeildarstellung in alten Spielständen behoben. Die Funktion `fixMapBorders` korrigiert nun automatisch die Ränder jeder geladenen Karte.
+- GAMEPLAY: Kampfsteuerung via Tastatur hinzugefügt.
+    - Pfeiltasten (Links/Rechts oder Oben/Unten) zum Wählen von Angriff/Flucht.
+    - [ENTER] / [LEERTASTE] zum Bestätigen.
+    - [ESC] / [BACKSPACE] für sofortige Flucht.
+- UI: Visuelle Hervorhebung der ausgewählten Kampf-Aktion.
+
 [v0.0.12e] - 2025-12-16 15:30 (Name & Arrows)
 ---------------------------------------------
 - UI: Spielername wird nun im Header neben den TP angezeigt.
