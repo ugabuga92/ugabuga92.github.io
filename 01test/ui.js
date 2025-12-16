@@ -65,6 +65,7 @@ const UI = {
             // Spawn Screen
             loginScreen: document.getElementById('login-screen'),
             spawnScreen: document.getElementById('spawn-screen'),
+            spawnMsg: document.getElementById('spawn-msg'), // NEU
             spawnList: document.getElementById('spawn-list'),
             btnSpawnRandom: document.getElementById('btn-spawn-random'),
             
@@ -89,11 +90,11 @@ const UI = {
             });
         }
         
-        // BUTTON BINDINGS (Wichtig!)
+        // BUTTON BINDINGS (Exklusiv hier, keine in HTML!)
         const btnLogin = document.getElementById('btn-login');
         if(btnLogin) btnLogin.onclick = () => this.attemptLogin();
 
-        if(this.els.btnSave) this.els.btnSave.onclick = () => Game.saveGame(true);
+        if(this.els.btnSave) this.els.btnSave.onclick = () => this.handleSaveClick();
         if(this.els.btnLogout) this.els.btnLogout.onclick = () => this.logout('MANUELL AUSGELOGGT');
 
         if(this.els.btnMenu) this.els.btnMenu.onclick = () => this.els.navMenu.classList.toggle('hidden');
@@ -135,6 +136,22 @@ const UI = {
         this.timerInterval = setInterval(() => this.updateTimer(), 1000);
     },
 
+    // NEU: Visual Feedback für Speichern
+    handleSaveClick: function() {
+        Game.saveGame(true);
+        const btn = this.els.btnSave;
+        const originalText = btn.textContent;
+        const originalColor = btn.className;
+        
+        btn.textContent = "SAVED!";
+        btn.className = "action-button px-3 py-1 text-sm md:text-base border-green-500 text-green-400 font-bold";
+        
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.className = originalColor;
+        }, 1000);
+    },
+
     attemptLogin: async function() {
         if(!this.els.loginInput) return;
         const id = this.els.loginInput.value.trim().toUpperCase();
@@ -155,15 +172,15 @@ const UI = {
             const saveData = await Network.login(id);
             
             if (saveData) {
-                // Spielstand gefunden -> Direkt laden
                 this.els.loginScreen.style.display = 'none';
                 this.els.gameScreen.classList.remove('hidden');
                 this.els.gameScreen.classList.remove('opacity-0');
                 Game.init(saveData); 
             } else {
-                // Kein Spielstand -> Spawn Screen zeigen
                 this.els.loginScreen.style.display = 'none';
                 this.els.spawnScreen.classList.remove('hidden');
+                // Feedback warum
+                if(this.els.spawnMsg) this.els.spawnMsg.textContent = `KEIN SPIELSTAND FÜR ID '${id}' GEFUNDEN.`;
             }
             
         } catch(e) {
@@ -171,11 +188,9 @@ const UI = {
         }
     },
 
-    // NEU: SPAWN UI
     renderSpawnList: function(players) {
         if(!this.els.spawnList) return;
         this.els.spawnList.innerHTML = '';
-        
         let count = 0;
         for(let id in players) {
             if(id === Network.myId) continue;
@@ -184,14 +199,10 @@ const UI = {
             btn.className = "action-button w-full text-left p-2 flex justify-between";
             const sec = p.sector ? `${p.sector.x},${p.sector.y}` : "?,?";
             btn.innerHTML = `<span>${id}</span> <span class="text-cyan-400">Sektor ${sec}</span>`;
-            
-            // WICHTIG: Click Handler für Spawn
             btn.onclick = () => this.selectSpawn(p);
-            
             this.els.spawnList.appendChild(btn);
             count++;
         }
-        
         if(count === 0) {
             this.els.spawnList.innerHTML = '<div class="text-center italic opacity-50 p-2">Keine Signale. Starte Solo.</div>';
         }
@@ -201,8 +212,6 @@ const UI = {
         this.els.spawnScreen.classList.add('hidden');
         this.els.gameScreen.classList.remove('hidden');
         this.els.gameScreen.classList.remove('opacity-0');
-        
-        // Game Init ohne Save, aber mit Target
         Game.init(null, targetPlayer);
     },
 
@@ -212,10 +221,7 @@ const UI = {
         
         this.els.gameScreen.classList.add('hidden');
         this.els.gameScreen.classList.add('opacity-0');
-        
-        // Spawn Screen auch verstecken
         if(this.els.spawnScreen) this.els.spawnScreen.classList.add('hidden');
-        
         this.els.loginScreen.style.display = 'flex';
         
         if(this.els.loginStatus) {
@@ -256,7 +262,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.12b)"; 
+            v.textContent = "ONLINE (v0.0.12c)"; // VERSION UPDATE
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
