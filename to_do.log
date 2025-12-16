@@ -1,13 +1,9 @@
-Offen?
-   - schrott für späteres crafting
+Wichtig morgen früh!!
+   -  Laufen nicht möglich. "00:55:52.003 Uncaught TypeError: Game.move is not a function
+    init https://pipboy3003.github.io/ui.js?v=0.0.13i:150"
 
-   - V.A.T.S. Kampf-System: Der Kampf ist aktuell reines Glück. 
-Wir könnten ein System einbauen, bei dem man Körperteile anvisiert (Kopf, Torso, Beine) mit unterschiedlichen Trefferchancen.
-
-
-
-
-. 
-    - es soll nicht nach jedem Legendary ein Würfelspiel kommen. Setzte die Rate auf 15% 
     - Plus bei Stat Points vergrößern
     
+   - V.A.T.S. Kampf-System: Der Kampf ist aktuell reines Glück. 
+Wir könnten ein System einbauen, bei dem man Körperteile anvisiert (Kopf, Torso, Beine) mit unterschiedlichen Trefferchancen.
+   -   Mehr Material für späteres Crafting system
