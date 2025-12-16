@@ -1,6 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.11c] - 2025-12-16 10:15 (Savegame Restoration Fix)
+-------------------------------------------------------
+- FIX: `UI.enterVault is not a function` behoben. Die Interaktions-Logik war im letzten UI-Refactoring verloren gegangen und ist nun wiederhergestellt.
+- GRAFIK: Buttons im Header sind nun größer und besser lesbar.
+- DEBUG: Konsolen-Log beim Laden von Spielständen erweitert, um den Ladezustand besser zu verfolgen.
+
 [v0.0.11b] - 2025-12-16 10:00 (Favicon & Detail Polish)
 -------------------------------------------------------
 - UI: Website-Icon (Favicon) hinzugefügt. Es zeigt ein grünes "P" auf schwarzem Grund im Browser-Tab an.
