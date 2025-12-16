@@ -1,6 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.10k] - 2025-12-16 08:00 (Menu & AFK System)
+-------------------------------------------------
+- UI: Navigations-Buttons sind nun in einem "MENÜ ☰" Dropdown zusammengefasst (Desktop & Mobile).
+- UI: "LOGOUT" und "SAVE" Buttons sind nun permanent im Header sichtbar.
+- SYSTEM: Automatischer Logout bei Inaktivität (>5 Minuten).
+- LOGIK: Logout-Funktion kehrt zum Login-Screen zurück und entfernt den Spieler-Marker, ohne die Seite neu zu laden.
+
 [v0.0.10j] - 2025-12-16 07:45 (Permadeath & Visual Fix)
 -----------------------------------------------------
 - GRAFIK: Richtungspfeile an Kartenrändern werden nun durch explizite Symbole (^, v, <, >) fehlerfrei dargestellt.
