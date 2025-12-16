@@ -41,7 +41,7 @@
         .blink-red { animation: blink-red-anim 1s infinite; }
         @keyframes blink-red-anim { 0%, 100% { opacity: 1; color: red; } 50% { opacity: 0.5; } }
         
-        #login-screen, #spawn-screen { position: absolute; inset: 0; z-index: 999; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #login-screen, #spawn-screen, #reset-overlay { position: absolute; inset: 0; z-index: 999; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .login-box { border: 2px solid var(--pip-green); padding: 40px; text-align: center; box-shadow: 0 0 20px var(--pip-dim); max-width: 90%; }
         #survivor-id-input { background: #000; border: 2px solid var(--pip-green); color: var(--pip-green); font-family: inherit; font-size: 24px; padding: 10px; margin: 20px 0; text-align: center; text-transform: uppercase; outline: none; }
         #survivor-id-input:focus { box-shadow: 0 0 15px var(--pip-green); }
@@ -79,6 +79,18 @@
 
             <button id="btn-spawn-random" class="action-button w-full mb-2">ZUFALL IM ÖDLAND</button>
             <button class="action-button w-full border-red-500 text-red-500" onclick="location.reload()">ABBRUCH</button>
+        </div>
+    </div>
+
+    <div id="reset-overlay" style="display: none;">
+        <div class="login-box crt-effect-container border-red-500" style="min-width: 300px; box-shadow: 0 0 20px #500;">
+            <h1 class="text-4xl font-bold text-red-500 mb-4 animate-pulse">ACHTUNG!</h1>
+            <div class="text-lg mb-8 text-red-400 font-bold">
+                CHARAKTER UNWIDERRUFLICH LÖSCHEN?<br>
+                ALLE FORTSCHRITTE GEHEN VERLOREN!
+            </div>
+            <button id="btn-confirm-reset" class="action-button w-full mb-4 border-red-500 text-red-500 font-bold hover:bg-red-900">JA, LÖSCHEN & NEUSTART</button>
+            <button id="btn-cancel-reset" class="action-button w-full border-green-500 text-green-500">NEIN, ABBRECHEN</button>
         </div>
     </div>
 
