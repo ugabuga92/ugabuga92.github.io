@@ -48,6 +48,7 @@ const UI = {
             timer: document.getElementById('game-timer'),
             
             btnNew: document.getElementById('btn-new'),
+            btnInv: document.getElementById('btn-inv'), // NEU
             btnWiki: document.getElementById('btn-wiki'),
             btnMap: document.getElementById('btn-map'),
             btnChar: document.getElementById('btn-char'),
@@ -57,9 +58,9 @@ const UI = {
             
             btnMenu: document.getElementById('btn-menu-toggle'),
             navMenu: document.getElementById('main-nav'),
-            playerCount: document.getElementById('val-players'), // NEU
-            playerList: document.getElementById('player-list-overlay'), // NEU
-            playerListContent: document.getElementById('player-list-content'), // NEU
+            playerCount: document.getElementById('val-players'),
+            playerList: document.getElementById('player-list-overlay'),
+            playerListContent: document.getElementById('player-list-content'),
 
             btnUp: document.getElementById('btn-up'),
             btnDown: document.getElementById('btn-down'),
@@ -88,11 +89,11 @@ const UI = {
             };
         }
         
-        // Player List Listener
         if(this.els.playerCount) {
             this.els.playerCount.onclick = () => this.togglePlayerList();
         }
 
+        if(this.els.btnInv) this.els.btnInv.onclick = () => this.toggleView('inventory');
         if(this.els.btnWiki) this.els.btnWiki.onclick = () => this.toggleView('wiki');
         if(this.els.btnMap) this.els.btnMap.onclick = () => this.toggleView('worldmap');
         if(this.els.btnChar) this.els.btnChar.onclick = () => this.toggleView('char');
@@ -134,11 +135,9 @@ const UI = {
             this.els.loginStatus.className = "mt-4 text-red-500 font-bold";
             return;
         }
-        
         this.els.loginStatus.textContent = "VERBINDE MIT VAULT-TEC NETZWERK...";
         this.els.loginStatus.className = "mt-4 text-yellow-400 animate-pulse";
         this.lastInputTime = Date.now(); 
-        
         try {
             if(typeof Network === 'undefined') throw new Error("Netzwerk Modul fehlt");
             Network.init(); 
@@ -155,11 +154,9 @@ const UI = {
     logout: function(reason="AUSGELOGGT") {
         if(typeof Game !== 'undefined') Game.saveGame(true);
         if(typeof Network !== 'undefined') Network.disconnect();
-        
         this.els.gameScreen.classList.add('hidden');
         this.els.gameScreen.classList.add('opacity-0');
         this.els.loginScreen.style.display = 'flex';
-        
         if(this.els.loginStatus) {
             this.els.loginStatus.textContent = reason;
             this.els.loginStatus.className = "mt-4 text-red-500 font-bold blink-red";
@@ -172,7 +169,6 @@ const UI = {
         if(this.els.playerList) this.els.playerList.style.display = 'none';
     },
 
-    // NEU: PLAYER LIST TOGGLE
     togglePlayerList: function() {
         if(this.els.playerList.style.display === 'flex') {
             this.els.playerList.style.display = 'none';
@@ -184,9 +180,7 @@ const UI = {
 
     updatePlayerList: function() {
         if(!this.els.playerListContent || typeof Network === 'undefined') return;
-        
         let html = `<div class="text-green-400">> ${Network.myId} (DU)</div>`;
-        
         if(Network.otherPlayers) {
             for(let id in Network.otherPlayers) {
                 const p = Network.otherPlayers[id];
@@ -201,7 +195,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.11c)"; 
+            v.textContent = "ONLINE (v0.0.12a)"; // VERSION UPDATE
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -258,6 +252,7 @@ const UI = {
             else { this.toggleControls(false); } 
             
             if (name === 'char') this.renderChar(); 
+            if (name === 'inventory') this.renderInventory(); // NEU
             if (name === 'wiki') this.renderWiki(); 
             if (name === 'worldmap') this.renderWorldMap(); 
             if (name === 'city') this.renderCity(); 
@@ -270,6 +265,7 @@ const UI = {
     },
 
     updateButtonStates: function(activeName) {
+        if(this.els.btnInv) this.els.btnInv.classList.toggle('active', activeName === 'inventory');
         if(this.els.btnWiki) this.els.btnWiki.classList.toggle('active', activeName === 'wiki');
         if(this.els.btnMap) this.els.btnMap.classList.toggle('active', activeName === 'worldmap');
         if(this.els.btnChar) this.els.btnChar.classList.toggle('active', activeName === 'char');
@@ -346,32 +342,57 @@ const UI = {
         } 
     },
 
+    // NEU: RENDER INVENTORY
+    renderInventory: function() {
+        const list = document.getElementById('inventory-list');
+        const countDisplay = document.getElementById('inv-count');
+        const capsDisplay = document.getElementById('inv-caps');
+        
+        if(!list || !Game.state.inventory) return;
+        
+        list.innerHTML = '';
+        capsDisplay.textContent = Game.state.caps;
+        
+        let totalItems = 0;
+        
+        Game.state.inventory.forEach(entry => {
+            if(entry.count <= 0) return;
+            totalItems += entry.count;
+            const item = Game.items[entry.id];
+            
+            const div = document.createElement('div');
+            div.className = "border border-green-900 bg-green-900/10 p-2 flex justify-between items-center";
+            
+            let btnText = "BENUTZEN";
+            if(item.type === 'weapon' || item.type === 'body') btnText = "AUSRÜSTEN";
+            
+            div.innerHTML = `
+                <div>
+                    <div class="font-bold text-yellow-400">${item.name} <span class="text-white">x${entry.count}</span></div>
+                    <div class="text-xs opacity-70">${item.type.toUpperCase()}</div>
+                </div>
+                <button class="action-button text-sm px-2" onclick="Game.useItem('${entry.id}')">${btnText}</button>
+            `;
+            list.appendChild(div);
+        });
+        
+        countDisplay.textContent = totalItems;
+        
+        if(totalItems === 0) {
+            list.innerHTML = '<div class="text-center text-gray-500 italic mt-10">Leerer Rucksack...</div>';
+        }
+    },
+
     showDiceOverlay: function() { this.els.diceOverlay = document.getElementById('dice-overlay'); if(this.els.diceOverlay) { this.els.diceOverlay.classList.remove('hidden'); this.els.diceOverlay.classList.add('flex'); document.getElementById('dice-1').textContent = "?"; document.getElementById('dice-2').textContent = "?"; document.getElementById('dice-3').textContent = "?"; const btn = document.getElementById('btn-roll'); if(btn) btn.disabled = false; } },
     rollDiceAnim: function() { const btn = document.getElementById('btn-roll'); if(btn) btn.disabled = true; let count = 0; const interval = setInterval(() => { document.getElementById('dice-1').textContent = Math.floor(Math.random()*6)+1; document.getElementById('dice-2').textContent = Math.floor(Math.random()*6)+1; document.getElementById('dice-3').textContent = Math.floor(Math.random()*6)+1; count++; if(count > 15) { clearInterval(interval); this.finishRoll(); } }, 100); },
     finishRoll: function() { const result = Game.rollLegendaryLoot(); let v1 = Math.floor(result.val / 3); let v2 = Math.floor(result.val / 3); let v3 = result.val - v1 - v2; while(v3 > 6) { v3--; v2++; } while(v2 > 6) { v2--; v1++; } document.getElementById('dice-1').textContent = v1; document.getElementById('dice-2').textContent = v2; document.getElementById('dice-3').textContent = v3; this.log(result.msg, "text-yellow-400 font-bold"); setTimeout(() => { if(this.els.diceOverlay) { this.els.diceOverlay.classList.remove('flex'); this.els.diceOverlay.classList.add('hidden'); } Game.endCombat(); }, 2000); },
-    
-    restoreOverlay: function() { 
-        if(document.getElementById('btn-toggle-dpad')) return;
-        const overlayHTML = ` <button id="btn-toggle-dpad" style="position: absolute; bottom: 20px; left: 20px; z-index: 60; width: 50px; height: 50px; border-radius: 50%; background: rgba(0, 0, 0, 0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 0 10px #000;">🎮</button> <div id="overlay-controls" class="grid grid-cols-3 gap-1" style="position: absolute; bottom: 80px; left: 20px; z-index: 50; display: none;"> <div></div><button class="dpad-btn" id="btn-up" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▲</button><div></div> <button class="dpad-btn" id="btn-left" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">◀</button><div class="flex items-center justify-center text-[#39ff14]">●</div><button class="dpad-btn" id="btn-right" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▶</button> <div></div><button class="dpad-btn" id="btn-down" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▼</button><div></div> </div> <div id="dialog-overlay" style="position: absolute; bottom: 20px; right: 20px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; max-width: 50%;"></div> <div id="dice-overlay" class="hidden absolute inset-0 z-70 bg-black/95 flex-col justify-center items-center"> <h2 class="text-4xl text-yellow-400 mb-8 font-bold animate-pulse">LEGENDÄRER FUND!</h2> <div class="flex gap-4 mb-8"> <div id="dice-1" class="dice-box" style="width: 60px; height: 60px; border: 4px solid #39ff14; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: bold; background: #000; color: #39ff14;">?</div> <div id="dice-2" class="dice-box" style="width: 60px; height: 60px; border: 4px solid #39ff14; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: bold; background: #000; color: #39ff14;">?</div> <div id="dice-3" class="dice-box" style="width: 60px; height: 60px; border: 4px solid #39ff14; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: bold; background: #000; color: #39ff14;">?</div> </div> <div class="text-xl mb-4 text-center"> <div class="text-cyan-400">3-7: KRONKORKEN</div> <div class="text-cyan-400">8-12: MUNITION</div> <div class="text-yellow-400 font-bold">13-18: OVERDRIVE BUFF</div> </div> <button id="btn-roll" class="action-button px-8 py-4 text-2xl border-yellow-400 text-yellow-400 hover:bg-yellow-900" onclick="UI.rollDiceAnim()">WÜRFELN</button> </div> `; 
-        this.els.view.insertAdjacentHTML('beforeend', overlayHTML); 
-        this.els.dpad = document.getElementById('overlay-controls'); 
-        this.els.dpadToggle = document.getElementById('btn-toggle-dpad'); 
-        this.els.dialog = document.getElementById('dialog-overlay'); 
-        this.els.diceOverlay = document.getElementById('dice-overlay'); 
-        if(this.els.dpadToggle) { this.els.dpadToggle.onclick = () => { const current = this.els.dpad.style.display; this.els.dpad.style.display = (current === 'none' || current === '') ? 'grid' : 'none'; }; } 
-        document.getElementById('btn-up').onclick = () => Game.move(0, -1); 
-        document.getElementById('btn-down').onclick = () => Game.move(0, 1); 
-        document.getElementById('btn-left').onclick = () => Game.move(-1, 0); 
-        document.getElementById('btn-right').onclick = () => Game.move(1, 0); 
-    },
-
+    restoreOverlay: function() { if(document.getElementById('btn-toggle-dpad')) return; const overlayHTML = ` <button id="btn-toggle-dpad" style="position: absolute; bottom: 20px; left: 20px; z-index: 60; width: 50px; height: 50px; border-radius: 50%; background: rgba(0, 0, 0, 0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 0 10px #000;">🎮</button> <div id="overlay-controls" class="grid grid-cols-3 gap-1" style="position: absolute; bottom: 80px; left: 20px; z-index: 50; display: none;"> <div></div><button class="dpad-btn" id="btn-up" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▲</button><div></div> <button class="dpad-btn" id="btn-left" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">◀</button><div class="flex items-center justify-center text-[#39ff14]">●</div><button class="dpad-btn" id="btn-right" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▶</button> <div></div><button class="dpad-btn" id="btn-down" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▼</button><div></div> </div> <div id="dialog-overlay" style="position: absolute; bottom: 20px; right: 20px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; max-width: 50%;"></div> <div id="dice-overlay" class="hidden absolute inset-0 z-70 bg-black/95 flex-col justify-center items-center"> <h2 class="text-4xl text-yellow-400 mb-8 font-bold animate-pulse">LEGENDÄRER FUND!</h2> <div class="flex gap-4 mb-8"> <div id="dice-1" class="dice-box" style="width: 60px; height: 60px; border: 4px solid #39ff14; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: bold; background: #000; color: #39ff14;">?</div> <div id="dice-2" class="dice-box" style="width: 60px; height: 60px; border: 4px solid #39ff14; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: bold; background: #000; color: #39ff14;">?</div> <div id="dice-3" class="dice-box" style="width: 60px; height: 60px; border: 4px solid #39ff14; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: bold; background: #000; color: #39ff14;">?</div> </div> <div class="text-xl mb-4 text-center"> <div class="text-cyan-400">3-7: KRONKORKEN</div> <div class="text-cyan-400">8-12: MUNITION</div> <div class="text-yellow-400 font-bold">13-18: OVERDRIVE BUFF</div> </div> <button id="btn-roll" class="action-button px-8 py-4 text-2xl border-yellow-400 text-yellow-400 hover:bg-yellow-900" onclick="UI.rollDiceAnim()">WÜRFELN</button> </div> `; this.els.view.insertAdjacentHTML('beforeend', overlayHTML); this.els.dpad = document.getElementById('overlay-controls'); this.els.dpadToggle = document.getElementById('btn-toggle-dpad'); this.els.dialog = document.getElementById('dialog-overlay'); this.els.diceOverlay = document.getElementById('dice-overlay'); if(this.els.dpadToggle) { this.els.dpadToggle.onclick = () => { const current = this.els.dpad.style.display; this.els.dpad.style.display = (current === 'none' || current === '') ? 'grid' : 'none'; }; } document.getElementById('btn-up').onclick = () => Game.move(0, -1); document.getElementById('btn-down').onclick = () => Game.move(0, 1); document.getElementById('btn-left').onclick = () => Game.move(-1, 0); document.getElementById('btn-right').onclick = () => Game.move(1, 0); },
     toggleControls: function(show) { if (!show && this.els.dialog) this.els.dialog.innerHTML = ''; if (this.els.diceOverlay && !show) { this.els.diceOverlay.classList.remove('flex'); this.els.diceOverlay.classList.add('hidden'); } },
     showGameOver: function() { if(this.els.gameOver) this.els.gameOver.classList.remove('hidden'); this.toggleControls(false); },
     enterVault: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const restBtn = document.createElement('button'); restBtn.className = "action-button w-full mb-1 border-blue-500 text-blue-300"; restBtn.textContent = "Ausruhen (Gratis)"; restBtn.onclick = () => { Game.rest(); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weiter geht's"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(restBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'flex'; },
     enterSupermarket: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const enterBtn = document.createElement('button'); enterBtn.className = "action-button w-full mb-1 border-red-500 text-red-300"; enterBtn.textContent = "Ruine betreten (Gefahr!)"; enterBtn.onclick = () => { Game.loadSector(0, 0, true, "market"); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weitergehen"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(enterBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'block'; },
     enterCave: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const enterBtn = document.createElement('button'); enterBtn.className = "action-button w-full mb-1 border-gray-500 text-gray-300"; enterBtn.textContent = "In die Tiefe (Dungeon)"; enterBtn.onclick = () => { Game.loadSector(0, 0, true, "cave"); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weitergehen"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(enterBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'block'; },
     leaveDialog: function() { Game.state.inDialog = false; this.els.dialog.style.display = 'none'; this.update(); },
-    
     renderQuests: function() { const list = document.getElementById('quest-list'); if(!list) return; list.innerHTML = Game.state.quests.map(q => ` <div class="border border-green-900 bg-green-900/10 p-2 flex items-center gap-3 cursor-pointer hover:bg-green-900/30 transition-all" onclick="UI.showQuestDetail('${q.id}')"> <div class="text-3xl">✉️</div> <div> <div class="font-bold text-lg text-yellow-400">${q.read ? '' : '<span class="text-cyan-400">[NEU]</span> '}${q.title}</div> <div class="text-xs opacity-70">Zum Lesen klicken</div> </div> </div> `).join(''); },
     showQuestDetail: function(id) { const quest = Game.state.quests.find(q => q.id === id); if(!quest) return; quest.read = true; this.update(); const list = document.getElementById('quest-list'); const detail = document.getElementById('quest-detail'); const content = document.getElementById('quest-content'); list.classList.add('hidden'); detail.classList.remove('hidden'); content.innerHTML = `<h2 class="text-2xl font-bold text-yellow-400 border-b border-green-500 mb-4">${quest.title}</h2><div class="font-mono text-lg leading-relaxed whitespace-pre-wrap">${quest.text}</div>`; },
     closeQuestDetail: function() { document.getElementById('quest-detail').classList.add('hidden'); document.getElementById('quest-list').classList.remove('hidden'); this.renderQuests(); },
