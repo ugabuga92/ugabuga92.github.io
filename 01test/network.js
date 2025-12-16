@@ -1,4 +1,3 @@
-// network.js - v0.0.11a
 const Network = {
     db: null,
     myId: null,
@@ -32,18 +31,12 @@ const Network = {
 
     login: async function(userId) {
         if (!this.active) return null;
-        
         this.myId = userId;
-        
         try {
             const snapshot = await this.db.ref('saves/' + this.myId).once('value');
             const saveData = snapshot.val();
-            
-            // DEBUG: Was kommt aus der DB?
-            console.log("LADE DATEN FÜR:", userId, saveData);
-            
+            console.log("DB LOAD:", this.myId, saveData ? "FOUND" : "NULL");
             this.startPresence();
-            
             return saveData; 
         } catch(e) {
             console.error("Login Error:", e);
@@ -60,25 +53,14 @@ const Network = {
             if(typeof UI !== 'undefined') {
                 const el = document.getElementById('val-players');
                 if(el) el.textContent = `${Object.keys(data).length} ONLINE`;
+                
+                // Spawn Screen Liste updaten
+                if(UI.els.spawnScreen && UI.els.spawnScreen.style.display !== 'none') {
+                    UI.renderSpawnList(data);
+                }
             }
 
-            if (!this.initialJoinDone && Object.keys(data).length > 1) {
-                this.initialJoinDone = true;
-                const ids = Object.keys(data);
-                for(let id of ids) {
-                    if(id !== this.myId) {
-                        const buddy = data[id];
-                        if(buddy.sector && buddy.x) {
-                            if(typeof Game !== 'undefined') {
-                                setTimeout(() => Game.teleportTo(buddy.sector, buddy.x, buddy.y), 500);
-                            }
-                            break;
-                        }
-                    }
-                }
-            } else if (!this.initialJoinDone) {
-                this.initialJoinDone = true;
-            }
+            // AUTO-TELEPORT ENTFERNT
 
             delete data[this.myId];
             this.otherPlayers = data;
@@ -92,18 +74,20 @@ const Network = {
     },
 
     save: function(gameState) {
-        if(!this.active || !this.myId) return;
-        this.db.ref('saves/' + this.myId).set(gameState)
+        if(!this.active || !this.myId) {
+            console.error("Save failed: No network or ID");
+            return;
+        }
+        // Saubere Kopie für DB erstellen
+        const saveObj = JSON.parse(JSON.stringify(gameState));
+        this.db.ref('saves/' + this.myId).set(saveObj)
             .then(() => { if(typeof UI !== 'undefined') UI.log("SPIEL GESPEICHERT.", "text-cyan-400"); })
             .catch(e => console.error("Save Error:", e));
     },
 
     deleteSave: function() {
         if(!this.active || !this.myId) return;
-        console.log("LÖSCHE SPIELSTAND FÜR", this.myId);
-        this.db.ref('saves/' + this.myId).remove()
-            .then(() => console.log("Save deleted."))
-            .catch(e => console.error("Delete Error:", e));
+        this.db.ref('saves/' + this.myId).remove();
         this.db.ref('players/' + this.myId).remove();
     },
 
