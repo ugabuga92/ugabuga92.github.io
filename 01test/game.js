@@ -1,7 +1,6 @@
 const Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     
-    // NEUE SYMBOLE: v, <, > hinzugefügt
     colors: { '.':'#0a1a0a', '_':'#1a150a', ',':'#051105', '=':'#111', '#':'#000', 'line_default': '#2a5a2a', 'line_wall': '#39ff14', 'line_water': '#224f80', 'V': '#39ff14', 'C': '#eab308', 'S': '#ff0000', 'G': '#00ffff', 'H': '#888888', '^': '#111', 'v':'#111', '<':'#111', '>':'#111' },
     
     monsters: { 
@@ -31,6 +30,7 @@ const Game = {
     init: function(saveData) {
         this.worldData = {};
         this.initCache();
+        
         try {
             if (saveData) {
                 this.state = saveData;
@@ -52,12 +52,16 @@ const Game = {
                     quests: [ { id: "q1", title: "Der Weg nach Hause", text: "Suche Zivilisation.", read: false } ], 
                     startTime: Date.now()
                 };
+                
                 this.state.hp = this.calculateMaxHP(this.getStat('END')); 
                 this.state.maxHp = this.state.hp;
+                
                 UI.log(">> Neuer Charakter erstellt.", "text-green-400");
                 this.saveGame(); 
             }
+
             this.loadSector(this.state.sector.x, this.state.sector.y);
+            
             UI.switchView('map').then(() => { 
                 if(UI.els.gameOver) UI.els.gameOver.classList.add('hidden'); 
                 if(typeof Network !== 'undefined') Network.sendMove(this.state.player.x, this.state.player.y, this.state.lvl, this.state.sector);
@@ -71,7 +75,9 @@ const Game = {
     saveGame: function(manual = false) {
         if(!this.state) return;
         if(manual) UI.log("Speichere...", "text-gray-500");
-        if(typeof Network !== 'undefined') Network.save(this.state);
+        if(typeof Network !== 'undefined') {
+            Network.save(this.state);
+        }
     },
 
     initCache: function() { this.cacheCanvas = document.createElement('canvas'); this.cacheCanvas.width = this.MAP_W * this.TILE; this.cacheCanvas.height = this.MAP_H * this.TILE; this.cacheCtx = this.cacheCanvas.getContext('2d'); },
@@ -112,7 +118,6 @@ const Game = {
         UI.log(`Teleport erfolgreich.`, "text-green-400");
     },
 
-    // --- FIX: NEUE MAP GENERIERUNG (PFEIL-RICHTUNG) ---
     loadSector: function(sx, sy, isInterior = false, dungeonType = "market") { 
         const key = `${sx},${sy}`; 
         if (isInterior) { 
@@ -134,9 +139,8 @@ const Game = {
             
             let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill(gc)); 
             
-            // Ränder mit expliziten Richtungen
-            for(let i=0; i<this.MAP_W; i++) { map[0][i] = '^'; map[this.MAP_H-1][i] = 'v'; } // Oben / Unten
-            for(let i=0; i<this.MAP_H; i++) { map[i][0] = '<'; map[i][this.MAP_W-1] = '>'; } // Links / Rechts
+            for(let i=0; i<this.MAP_W; i++) { map[0][i] = '^'; map[this.MAP_H-1][i] = 'v'; } 
+            for(let i=0; i<this.MAP_H; i++) { map[i][0] = '<'; map[i][this.MAP_W-1] = '>'; } 
             
             if (biome === 'wasteland') { 
                 this.addClusters(map, 'T', 15, 2); this.addClusters(map, 'R', 10, 2); 
@@ -166,38 +170,36 @@ const Game = {
         this.state.explored = data.explored; 
         let zn = "Ödland"; if(data.biome === 'city') zn = "Ruinenstadt"; if(data.biome === 'desert') zn = "Glühende Wüste"; if(data.biome === 'jungle') zn = "Überwucherte Zone"; 
         this.state.zone = `${zn} (${sx},${sy})`; 
+        
+        // SAFE SPAWN CHECK DIREKT NACH LADEN
+        this.findSafeSpawn();
+        
         this.renderStaticMap(); 
     },
 
     renderStaticMap: function() { const ctx = this.cacheCtx; const ts = this.TILE; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height); for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.drawTile(ctx, x, y, this.state.currentMap[y][x]); },
     
-    // FIX: DRAW TILE MIT EXPLIZITEN PFEIL-CASES
     drawTile: function(ctx, x, y, type, pulse = 1) { 
         const ts = this.TILE; const px = x * ts; const py = y * ts; 
         let bg = this.colors['.']; if(type === '_') bg = this.colors['_']; if(type === ',') bg = this.colors[',']; if(type === '=') bg = this.colors['=']; 
         
-        // Exclude Arrow chars from BG fill to prevent artifacts, handled in switch
         if (type !== '~' && !['^','v','<','>'].includes(type)) { ctx.fillStyle = bg; ctx.fillRect(px, py, ts, ts); } 
         if(!['^','v','<','>'].includes(type)) { ctx.strokeStyle = "rgba(40, 90, 40, 0.2)"; ctx.lineWidth = 1; ctx.strokeRect(px, py, ts, ts); } 
         
         ctx.beginPath(); 
         switch(type) { 
-            // OBEN
             case '^': 
                 ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; 
                 ctx.moveTo(px + ts/2, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); ctx.lineTo(px + 5, py + ts - 5); 
                 ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
-            // UNTEN
             case 'v': 
                 ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; 
                 ctx.moveTo(px + ts/2, py + ts - 5); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + 5, py + 5); 
                 ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
-            // LINKS
             case '<': 
                 ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; 
                 ctx.moveTo(px + 5, py + ts/2); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); 
                 ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
-            // RECHTS
             case '>': 
                 ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; 
                 ctx.moveTo(px + ts - 5, py + ts/2); ctx.lineTo(px + 5, py + 5); ctx.lineTo(px + 5, py + ts - 5); 
@@ -230,10 +232,8 @@ const Game = {
         const startX = Math.floor(this.camera.x / this.TILE); const startY = Math.floor(this.camera.y / this.TILE); 
         const endX = startX + Math.ceil(cvs.width / this.TILE) + 1; const endY = startY + Math.ceil(cvs.height / this.TILE) + 1; 
         
-        // Kollisions-Check beim Zeichnen der Pfeile beachten
         for(let y=startY; y<endY; y++) { for(let x=startX; x<endX; x++) { if(y>=0 && y<this.MAP_H && x>=0 && x<this.MAP_W) { 
             const t = this.state.currentMap[y][x]; 
-            // Zeichne Specials UND Pfeile animiert
             if(['V', 'S', 'C', 'G', 'H'].includes(t)) { this.drawTile(ctx, x, y, t, pulse); } 
         } } } 
         
@@ -289,6 +289,43 @@ const Game = {
         UI.update();
     },
     
+    // NEU: SMARTER SPAWN CHECK
+    findSafeSpawn: function() {
+        // Prüfen ob aktuelle Position blockiert ist
+        let t = this.state.currentMap[this.state.player.y][this.state.player.x];
+        const blockers = ['^', 'v', '<', '>', 'T', '~', 'R', 'B'];
+        
+        if(!blockers.includes(t)) return; // Alles gut
+
+        // Suche freien Platz im 10er Radius
+        let found = false;
+        for(let r=1; r<10; r++) {
+            for(let dy=-r; dy<=r; dy++) {
+                for(let dx=-r; dx<=r; dx++) {
+                    const ny = this.state.player.y + dy;
+                    const nx = this.state.player.x + dx;
+                    if(ny > 0 && ny < this.MAP_H-1 && nx > 0 && nx < this.MAP_W-1) {
+                        t = this.state.currentMap[ny][nx];
+                        if(!blockers.includes(t)) {
+                            this.state.player.x = nx;
+                            this.state.player.y = ny;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if(found) break;
+            }
+            if(found) break;
+        }
+        
+        // Fallback
+        if(!found) {
+            this.state.player.x = 20; 
+            this.state.player.y = 20;
+        }
+    },
+
     // ... [REST BLEIBT GLEICH] ...
     generateCityLayout: function(map) { for(let x=4; x<this.MAP_W; x+=8) for(let y=1; y<this.MAP_H-1; y++) map[y][x] = '='; for(let y=4; y<this.MAP_H; y+=8) for(let x=1; x<this.MAP_W-1; x++) map[y][x] = '='; for(let y=1; y<this.MAP_H-1; y++) { for(let x=1; x<this.MAP_W-1; x++) { if(map[y][x] !== '=') map[y][x] = 'B'; else if(Math.random() < 0.1) map[y][x] = 'R'; } } let placed = false; let attempts = 0; while(!placed && attempts < 100) { attempts++; let rx = Math.floor(Math.random() * (this.MAP_W-4)) + 2; let ry = Math.floor(Math.random() * (this.MAP_H-4)) + 2; if(map[ry][rx] === 'B' && (map[ry+1][rx]==='=' || map[ry-1][rx]==='=')) { map[ry][rx] = 'C'; placed = true; } } if(Math.random() < 0.7) { let placedS = false; let attempts = 0; while(!placedS && attempts < 100) { attempts++; let rx = Math.floor(Math.random() * (this.MAP_W-4)) + 2; let ry = Math.floor(Math.random() * (this.MAP_H-4)) + 2; if(map[ry][rx] === 'B') { map[ry][rx] = 'S'; placedS = true; } } } },
     generateDungeon: function(type) { let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('B')); let floorChar = type === "cave" ? '.' : '='; for(let i=0; i<8; i++) { let rx = Math.floor(Math.random() * 20) + 5; let ry = Math.floor(Math.random() * 20) + 5; let w = Math.floor(Math.random() * 8) + 3; let h = Math.floor(Math.random() * 8) + 3; for(let y=ry; y<ry+h; y++) for(let x=rx; x<rx+w; x++) { if(y<this.MAP_H-1 && x<this.MAP_W-1) map[y][x] = floorChar; } } map[35][20] = 'G'; this.state.currentMap = map; this.state.player.x = 20; this.state.player.y = 34; this.state.explored = {}; this.reveal(20, 34); },
@@ -298,27 +335,21 @@ const Game = {
     drawLoop: function() { if(this.state.view !== 'map' || this.state.isGameOver) return; this.draw(); this.loopId = requestAnimationFrame(() => this.drawLoop()); },
     reveal: function(px, py) { for(let y=py-2; y<=py+2; y++) for(let x=px-2; x<=px+2; x++) if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) this.state.explored[`${x},${y}`] = true; },
     changeSector: function(px, py) { let sx=this.state.sector.x, sy=this.state.sector.y; if(py===0) sy--; else if(py===this.MAP_H-1) sy++; if(px===0) sx--; else if(px===this.MAP_W-1) sx++; if(sx < 0 || sx > 7 || sy < 0 || sy > 7) { UI.log("Ende der Weltkarte.", "text-red-500"); this.state.player.x -= (px===0 ? -1 : 1); return; } this.state.sector = {x: sx, y: sy}; this.loadSector(sx, sy); if(py===0) this.state.player.y=this.MAP_H-2; else if(py===this.MAP_H-1) this.state.player.y=1; if(px===0) this.state.player.x=this.MAP_W-2; else if(px===this.MAP_W-1) this.state.player.x=1; this.findSafeSpawn(); this.reveal(this.state.player.x, this.state.player.y); UI.log(`Sektorwechsel: ${sx},${sy}`, "text-blue-400"); },
-    findSafeSpawn: function() { const tile = this.state.currentMap[this.state.player.y][this.state.player.x]; if(['^', 'T', '~', 'R', 'B'].includes(tile)) { this.state.player.x = 20; this.state.player.y = 20; } },
+    // findSafeSpawn wird oben jetzt schon definiert!
     startCombat: function() { let pool = []; let lvl = this.state.lvl; let biome = this.worldData[`${this.state.sector.x},${this.state.sector.y}`]?.biome || 'wasteland'; let zone = this.state.zone; if(zone.includes("Supermarkt")) { pool = [this.monsters.raider, this.monsters.ghoul]; if(lvl >= 4) pool.push(this.monsters.superMutant); } else if (zone.includes("Höhle")) { pool = [this.monsters.moleRat, this.monsters.radScorpion]; if(lvl >= 3) pool.push(this.monsters.ghoul); } else if(biome === 'city') { pool = [this.monsters.raider, this.monsters.ghoul]; if(lvl >= 5) pool.push(this.monsters.superMutant); } else if(biome === 'desert') { pool = [this.monsters.radScorpion, this.monsters.raider]; } else { pool = [this.monsters.moleRat, this.monsters.radRoach]; if(biome === 'jungle') pool.push(this.monsters.mutantRose); if(lvl >= 2) pool.push(this.monsters.raider); } if(lvl >= 8 && Math.random() < 0.1) pool = [this.monsters.deathclaw]; else if (Math.random() < 0.01) pool = [this.monsters.deathclaw]; const template = pool[Math.floor(Math.random()*pool.length)]; let enemy = { ...template }; const isLegendary = Math.random() < 0.15; if(isLegendary) { enemy.isLegendary = true; enemy.name = "Legendäre " + enemy.name; enemy.hp *= 2; enemy.maxHp = enemy.hp; enemy.dmg = Math.floor(enemy.dmg*1.5); enemy.loot *= 3; if(Array.isArray(enemy.xp)) enemy.xp = [enemy.xp[0]*3, enemy.xp[1]*3]; } else enemy.maxHp = enemy.hp; this.state.enemy = enemy; this.state.inDialog = true; if(Date.now() < this.state.buffEndTime) UI.log("⚡ S.P.E.C.I.A.L. OVERDRIVE aktiv!", "text-yellow-400"); UI.switchView('combat').then(() => UI.renderCombat()); UI.log(isLegendary ? "LEGENDÄRER GEGNER!" : "Kampf gestartet!", isLegendary ? "text-yellow-400" : "text-red-500"); },
     getRandomXP: function(xpData) { if (Array.isArray(xpData)) return Math.floor(Math.random() * (xpData[1] - xpData[0] + 1)) + xpData[0]; return xpData; },
     combatAction: function(act) { if(this.state.isGameOver) return; if(!this.state.enemy) return; if(act === 'attack') { const wpn = this.state.equip.weapon; if(wpn.isRanged) { if(this.state.ammo > 0) this.state.ammo--; else { UI.log("Keine Munition! Fäuste.", "text-red-500"); this.state.equip.weapon = this.items.fists; this.enemyTurn(); return; } } if(Math.random() > 0.3) { const baseDmg = wpn.baseDmg || 2; const dmg = Math.floor(baseDmg + (this.getStat('STR') * 1.5)); this.state.enemy.hp -= dmg; UI.log(`Treffer: ${dmg} Schaden.`, "text-green-400"); if(this.state.enemy.hp <= 0) { this.state.caps += this.state.enemy.loot; UI.log(`Sieg! ${this.state.enemy.loot} Kronkorken.`, "text-yellow-400"); this.gainExp(this.getRandomXP(this.state.enemy.xp)); if(this.state.enemy.isLegendary) { UI.showDiceOverlay(); } else { this.endCombat(); } return; } } else UI.log("Verfehlt!", "text-gray-500"); this.enemyTurn(); } else if (act === 'flee') { if(Math.random() < 0.4 + (this.getStat('AGI')*0.05)) { UI.log("Geflohen.", "text-green-400"); this.endCombat(); } else { UI.log("Flucht gescheitert!", "text-red-500"); this.enemyTurn(); } } UI.update(); if(this.state.view === 'combat') UI.renderCombat(); },
     rollLegendaryLoot: function() { const result = Math.floor(Math.random() * 16) + 3; let msg = "", type = ""; if(result <= 7) { type = "CAPS"; const amt = this.state.lvl * 80; this.state.caps += amt; msg = `KRONKORKEN REGEN: +${amt} Caps!`; } else if (result <= 12) { type = "AMMO"; const amt = this.state.lvl * 25; this.state.ammo += amt; msg = `MUNITIONS JACKPOT: +${amt} Schuss!`; } else { type = "BUFF"; this.state.buffEndTime = Date.now() + 300000; msg = `S.P.E.C.I.A.L. OVERDRIVE! (5 Min)`; } return { val: result, msg: msg, type: type }; },
     enemyTurn: function() { if(this.state.enemy.hp <= 0) return; if(Math.random() < 0.8) { const armor = (this.getStat('END') * 0.5); const dmg = Math.max(1, Math.floor(this.state.enemy.dmg - armor)); this.state.hp -= dmg; UI.log(`Schaden erhalten: ${dmg}`, "text-red-400"); this.checkDeath(); } else UI.log("Gegner verfehlt.", "text-gray-500"); },
-    
-    // FIX: PERMADEATH LOGIK
     checkDeath: function() { 
         if(this.state.hp <= 0) { 
             this.state.hp = 0; 
             this.state.isGameOver = true; 
-            
-            // Sofort Spielstand löschen!
             if(typeof Network !== 'undefined') Network.deleteSave();
-            
             UI.update(); 
             UI.showGameOver(); 
         } 
     },
-    
     endCombat: function() { this.state.enemy = null; this.state.inDialog = false; UI.switchView('map'); this.saveGame(); },
     rest: function() { this.state.hp = this.state.maxHp; UI.log("Ausgeruht. HP voll.", "text-blue-400"); UI.update(); this.saveGame(); },
     heal: function() { if(this.state.caps >= 25) { this.state.caps -= 25; this.rest(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
