@@ -122,7 +122,6 @@ const UI = {
         window.addEventListener('keydown', (e) => {
             if (!Game.state || Game.state.isGameOver) return;
 
-            // KAMPF: Space = Angriff, ESC = Flucht
             if (Game.state.view === 'combat') {
                 if (e.key === ' ') {
                     e.preventDefault(); 
@@ -132,7 +131,6 @@ const UI = {
                     Game.combatAction('flee');
                 }
             }
-            // MAP STEUERUNG
             else if (Game.state.view === 'map' && !Game.state.inDialog) {
                 if(e.key === 'w' || e.key === 'ArrowUp') Game.move(0, -1);
                 if(e.key === 's' || e.key === 'ArrowDown') Game.move(0, 1);
@@ -264,7 +262,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.13a)"; // VERSION UPDATE
+            v.textContent = "ONLINE (v0.0.13b)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -317,11 +315,7 @@ const UI = {
             this.els.view.innerHTML = html; 
             Game.state.view = name; 
             
-            if (name === 'combat') { 
-                this.restoreOverlay(); 
-                this.toggleControls(false); 
-                this.renderCombat(); 
-            } 
+            if (name === 'combat') { this.restoreOverlay(); this.toggleControls(false); this.renderCombat(); } 
             else { this.toggleControls(false); } 
             
             if (name === 'char') this.renderChar(); 
