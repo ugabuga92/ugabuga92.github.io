@@ -1,6 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.12h] - 2025-12-16 17:45 (Gate Logic & Border Fix)
+------------------------------------------------------
+- LOGIK: `fixMapBorders` Funktion korrigiert. Sie überschreibt nun keine Tore ('G') oder Vaults ('V') mehr, sondern füllt nur fehlende Pfeile auf.
+- SYSTEM: Neue Funktion `getPseudoRandomGate`. Tore zwischen Sektoren werden nun deterministisch berechnet, sodass sie immer exakt an derselben Position stehen, egal aus welcher Richtung man den Sektor betritt.
+- UI: Konsistente Pfeil-Darstellung an den Rändern.
+
 [v0.0.12g] - 2025-12-16 17:15 (Visibility & Controls)
 -----------------------------------------------------
 - GRAFIK: Die Richtungspfeile an den Kartenrändern leuchten nun im hellen Pip-Boy-Grün (`#1aff1a`), statt dunkelgrau, um auf dem schwarzen Hintergrund sichtbar zu sein.
