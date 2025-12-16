@@ -1,5 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
+
+
+[v0.0.10h] - 2025-12-16 16:35 (Teleport Fix)
+--------------------------------------------
+- FIX: `Game.teleportTo is not a function` Absturz behoben. Die Funktion war versehentlich entfernt worden und ist nun wieder integriert.
+- FIX: Sicherheitsabfrage für `equip` bei alten Spielständen (AGI-Fehler) ist in dieser Version ebenfalls enthalten.
+
 [v0.0.10g] - 2025-12-16 (Savegame Crash Fix)
 --------------------------------------------
 - FIX: "Cannot read properties of undefined (reading 'AGI')" beim Laden eines Spielstands behoben.
