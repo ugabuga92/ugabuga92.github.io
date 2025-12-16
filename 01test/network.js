@@ -54,13 +54,10 @@ const Network = {
                 const el = document.getElementById('val-players');
                 if(el) el.textContent = `${Object.keys(data).length} ONLINE`;
                 
-                // Spawn Screen Liste updaten
                 if(UI.els.spawnScreen && UI.els.spawnScreen.style.display !== 'none') {
                     UI.renderSpawnList(data);
                 }
             }
-
-            // AUTO-TELEPORT ENTFERNT
 
             delete data[this.myId];
             this.otherPlayers = data;
@@ -78,7 +75,6 @@ const Network = {
             console.error("Save failed: No network or ID");
             return;
         }
-        // Saubere Kopie für DB erstellen
         const saveObj = JSON.parse(JSON.stringify(gameState));
         this.db.ref('saves/' + this.myId).set(saveObj)
             .then(() => { if(typeof UI !== 'undefined') UI.log("SPIEL GESPEICHERT.", "text-cyan-400"); })
