@@ -68,20 +68,38 @@
     </div>
     
     <div id="game-screen" class="hidden opacity-0 transition-opacity duration-1000">
-        <header class="header-bar">
-            <div class="flex flex-col sm:flex-row gap-1 w-1/4">
-                <div class="font-bold text-xl leading-none" style="text-shadow: 0 0 5px var(--pip-green);">PIP-BOY 3000 <span class="text-xs opacity-70">MK-V</span></div>
-                <div id="current-zone-display" class="text-xs sm:text-lg opacity-90 leading-none text-[#aaffaa]">Initializing...</div>
+        <header class="header-bar flex-wrap md:flex-nowrap gap-2 py-2 relative">
+            
+            <div class="flex flex-row items-center w-1/2 md:w-1/4 justify-start">
+                <div class="font-bold text-lg md:text-xl leading-none whitespace-nowrap" style="text-shadow: 0 0 5px var(--pip-green);">
+                    PIP-BOY <span class="text-xs opacity-70 hidden md:inline">MK-V</span>
+                </div>
+                <div id="current-zone-display" class="text-xs opacity-90 leading-none text-[#aaffaa] ml-2 truncate max-w-[120px]">Init...</div>
             </div>
-            <div class="w-1/4 flex justify-center"><span id="version-display" class="text-yellow-400 font-bold tracking-widest animate-pulse">...</span></div>
-            <div class="flex items-center justify-end gap-1 w-1/2">
-                <button id="btn-save" class="action-button px-2 py-1 text-sm border-blue-500 text-blue-400 font-bold" onclick="Game.saveGame(true)">SPEICHERN</button>
-                <button id="btn-wiki" class="action-button px-2 py-1 text-sm">WIKI</button>
-                <button id="btn-map" class="action-button px-2 py-1 text-sm">WELT</button>
-                <button id="btn-char" class="action-button px-2 py-1 text-sm">CHAR</button>
-                <button id="btn-quests" class="action-button px-2 py-1 text-sm">AUFGABEN</button>
+
+            <div class="hidden md:flex w-1/4 justify-center">
+                <span id="version-display" class="text-yellow-400 font-bold tracking-widest text-xs animate-pulse">...</span>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 w-1/2 md:w-1/2">
+                
+                <button id="btn-logout" class="action-button px-2 py-1 text-xs md:text-sm border-red-500 text-red-400" onclick="UI.logout('MANUELL AUSGELOGGT')">LOGOUT</button>
+                <button id="btn-save" class="action-button px-2 py-1 text-xs md:text-sm border-blue-500 text-blue-400 font-bold" onclick="Game.saveGame(true)">SAVE</button>
+
+                <button id="btn-menu-toggle" class="action-button px-2 py-1 text-sm font-bold flex items-center gap-1">
+                    MENÜ <span class="text-xl leading-none">☰</span>
+                </button>
+
+                <div id="main-nav" class="hidden absolute top-full right-0 z-50 flex-col bg-black border-2 border-[#1aff1a] p-2 gap-2 shadow-[0_0_15px_#0d330d] min-w-[150px]">
+                    <button id="btn-wiki" class="action-button w-full text-left px-2 py-1 text-sm">WIKI</button>
+                    <button id="btn-map" class="action-button w-full text-left px-2 py-1 text-sm">WELT</button>
+                    <button id="btn-char" class="action-button w-full text-left px-2 py-1 text-sm">CHARAKTER</button>
+                    <button id="btn-quests" class="action-button w-full text-left px-2 py-1 text-sm">AUFGABEN</button>
+                </div>
+
             </div>
         </header>
+
         <div id="system-status-bar" class="flex justify-between items-center px-4 py-2 border-b-2 border-[#1aff1a] bg-[#0a1f0a]">
             <div class="flex items-center gap-4 text-sm md:text-base">
                 <div class="flex items-center gap-1"><span>TP:</span><span id="val-hp">--/--</span><div class="w-16 md:w-24 bg-black h-3 border border-[#1a4d1a]"><div id="bar-hp" class="bg-[#1aff1a] h-full" style="width: 100%"></div></div></div>
@@ -127,18 +145,12 @@
     function loadScript(src) { return new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject; document.body.appendChild(s); }); }
     window.onload = function() {
         const verDisplay = document.getElementById('version-display');
-        const loginVerDisplay = document.getElementById('login-version-display'); // NEU
+        const loginVerDisplay = document.getElementById('login-version-display');
         
         fetch('Version?t=' + Date.now()).then(res => res.text()).then(v => {
             const ver = v.trim();
-            // Automatische Versionseintragung (Header & Login)
-            if(verDisplay) { 
-                verDisplay.textContent = ver; 
-                verDisplay.classList.remove('animate-pulse'); 
-            }
-            if(loginVerDisplay) {
-                loginVerDisplay.textContent = ver;
-            }
+            if(verDisplay) { verDisplay.textContent = ver; verDisplay.classList.remove('animate-pulse'); }
+            if(loginVerDisplay) { loginVerDisplay.textContent = ver; }
             console.log("Loading V:", ver);
 
             loadScript('network.js?v=' + ver).then(() => loadScript('ui.js?v=' + ver)).then(() => loadScript('game.js?v=' + ver)).then(() => {
