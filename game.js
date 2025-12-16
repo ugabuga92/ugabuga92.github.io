@@ -35,114 +35,16 @@ const Game = {
 
     state: null, worldData: {}, ctx: null, loopId: null, camera: { x: 0, y: 0 }, cacheCanvas: null, cacheCtx: null,
 
-    initCache: function() { this.cacheCanvas = document.createElement('canvas'); this.cacheCanvas.width = this.MAP_W * this.TILE; this.cacheCanvas.height = this.MAP_H * this.TILE; this.cacheCtx = this.cacheCanvas.getContext('2d'); },
-    calculateMaxHP: function(end) { return 100 + (end - 5) * 10; },
-    getStat: function(k) { 
-        if(!this.state || !this.state.stats) return 5; 
-        let val = this.state.stats[k] || 0; 
-        if(this.state.equip) {
-            for(let slot in this.state.equip) {
-                const item = this.state.equip[slot];
-                if(item && item.bonus && item.bonus[k]) val += item.bonus[k];
-            }
-        }
-        if(this.state.tempStatIncrease && this.state.tempStatIncrease.key === k) val += 1; 
-        if(Date.now() < this.state.buffEndTime) val += Math.floor(this.state.lvl * 0.8); 
-        return val; 
-    },
-    expToNextLevel: function(l) { return 100 * l; },
-    gainExp: function(amount) { 
-        this.state.xp += amount; UI.log(`+${amount} EXP.`, 'text-blue-400'); 
-        let need = this.expToNextLevel(this.state.lvl); 
-        while(this.state.xp >= need) { 
-            this.state.lvl++; this.state.statPoints++; this.state.xp -= need; 
-            need = this.expToNextLevel(this.state.lvl); 
-            this.state.maxHp = this.calculateMaxHP(this.getStat('END')); 
-            this.state.hp = this.state.maxHp; 
-            UI.log(`LEVEL UP! LVL ${this.state.lvl}`, 'text-yellow-400 font-bold'); 
-        }
-    },
-    teleportTo: function(targetSector, tx, ty) {
-        this.state.sector = targetSector;
-        this.loadSector(targetSector.x, targetSector.y);
-        this.state.player.x = tx;
-        this.state.player.y = ty;
-        this.reveal(tx, ty);
-        if(typeof Network !== 'undefined') Network.sendMove(tx, ty, this.state.lvl, this.state.sector);
-        UI.update();
-        UI.log(`Teleport erfolgreich.`, "text-green-400");
-    },
-    getPseudoRandomGate: function(val1, val2, max) {
-        const seed = (val1 * 9301 + val2 * 49297) % 233280;
-        return 3 + (seed % (max - 6)); 
-    },
+    // HELPER
+    initCache: function() { this.cacheCanvas = document.createElement('canvas'); this.cacheCanvas.width = this.MAP_W * this.TILE; this.cacheCanvas.height = this.MAP_H * this.TILE; this.cacheCtx = this.cacheCanvas.getContext('2d'); }, 
+    calculateMaxHP: function(end) { return 100 + (end - 5) * 10; }, 
+    getStat: function(k) { if(!this.state || !this.state.stats) return 5; let val = this.state.stats[k] || 0; if(this.state.equip) { for(let slot in this.state.equip) { const item = this.state.equip[slot]; if(item && item.bonus && item.bonus[k]) val += item.bonus[k]; } } if(this.state.tempStatIncrease && this.state.tempStatIncrease.key === k) val += 1; if(Date.now() < this.state.buffEndTime) val += Math.floor(this.state.lvl * 0.8); return val; }, 
+    expToNextLevel: function(l) { return 100 * l; }, 
+    gainExp: function(amount) { this.state.xp += amount; UI.log(`+${amount} EXP.`, 'text-blue-400'); let need = this.expToNextLevel(this.state.lvl); while(this.state.xp >= need) { this.state.lvl++; this.state.statPoints++; this.state.xp -= need; need = this.expToNextLevel(this.state.lvl); this.state.maxHp = this.calculateMaxHP(this.getStat('END')); this.state.hp = this.state.maxHp; UI.log(`LEVEL UP! LVL ${this.state.lvl}`, 'text-yellow-400 font-bold'); } }, 
+    teleportTo: function(targetSector, tx, ty) { this.state.sector = targetSector; this.loadSector(targetSector.x, targetSector.y); this.state.player.x = tx; this.state.player.y = ty; this.reveal(tx, ty); if(typeof Network !== 'undefined') Network.sendMove(tx, ty, this.state.lvl, this.state.sector); UI.update(); UI.log(`Teleport erfolgreich.`, "text-green-400"); }, 
+    getPseudoRandomGate: function(val1, val2, max) { const seed = (val1 * 9301 + val2 * 49297) % 233280; return 3 + (seed % (max - 6)); },
 
-    // --- RENDER LOGIC ---
-    renderStaticMap: function() { 
-        const ctx = this.cacheCtx; 
-        const ts = this.TILE; 
-        ctx.fillStyle = "#000"; 
-        ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height); 
-        for(let y=0; y<this.MAP_H; y++) 
-            for(let x=0; x<this.MAP_W; x++) 
-                this.drawTile(ctx, x, y, this.state.currentMap[y][x]); 
-    },
-
-    draw: function() { 
-        if(!this.ctx || !this.cacheCanvas) return; 
-        const ctx = this.ctx; 
-        const cvs = ctx.canvas; 
-        
-        let targetCamX = (this.state.player.x * this.TILE) - (cvs.width / 2); 
-        let targetCamY = (this.state.player.y * this.TILE) - (cvs.height / 2); 
-        const maxCamX = (this.MAP_W * this.TILE) - cvs.width; 
-        const maxCamY = (this.MAP_H * this.TILE) - cvs.height; 
-        this.camera.x = Math.max(0, Math.min(targetCamX, maxCamX)); 
-        this.camera.y = Math.max(0, Math.min(targetCamY, maxCamY)); 
-        
-        ctx.fillStyle = "#000"; 
-        ctx.fillRect(0, 0, cvs.width, cvs.height); 
-        ctx.drawImage(this.cacheCanvas, this.camera.x, this.camera.y, cvs.width, cvs.height, 0, 0, cvs.width, cvs.height); 
-        ctx.save(); 
-        ctx.translate(-this.camera.x, -this.camera.y); 
-        
-        const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7; 
-        const startX = Math.floor(this.camera.x / this.TILE); 
-        const startY = Math.floor(this.camera.y / this.TILE); 
-        const endX = startX + Math.ceil(cvs.width / this.TILE) + 1; 
-        const endY = startY + Math.ceil(cvs.height / this.TILE) + 1; 
-        
-        for(let y=startY; y<endY; y++) { 
-            for(let x=startX; x<endX; x++) { 
-                if(y>=0 && y<this.MAP_H && x>=0 && x<this.MAP_W) { 
-                    const t = this.state.currentMap[y][x]; 
-                    if(['V', 'S', 'C', 'G', 'H', '^', 'v', '<', '>'].includes(t)) { 
-                        this.drawTile(ctx, x, y, t, pulse); 
-                    } 
-                } 
-            } 
-        } 
-        
-        if(typeof Network !== 'undefined' && Network.otherPlayers) { 
-            for(let pid in Network.otherPlayers) { 
-                const p = Network.otherPlayers[pid]; 
-                if(p.sector && (p.sector.x !== this.state.sector.x || p.sector.y !== this.state.sector.y)) continue; 
-                const ox = p.x * this.TILE + this.TILE/2; 
-                const oy = p.y * this.TILE + this.TILE/2; 
-                ctx.fillStyle = "#00ffff"; ctx.shadowBlur = 5; ctx.shadowColor = "#00ffff"; 
-                ctx.beginPath(); ctx.arc(ox, oy, 5, 0, Math.PI*2); ctx.fill(); 
-                ctx.font = "10px monospace"; ctx.fillStyle = "white"; ctx.fillText("P", ox+6, oy); ctx.shadowBlur = 0; 
-            } 
-        } 
-        
-        const px = this.state.player.x * this.TILE + this.TILE/2; 
-        const py = this.state.player.y * this.TILE + this.TILE/2; 
-        ctx.translate(px, py); ctx.rotate(this.state.player.rot); ctx.translate(-px, -py); 
-        ctx.fillStyle = "#39ff14"; ctx.shadowBlur = 10; ctx.shadowColor = "#39ff14"; 
-        ctx.beginPath(); ctx.moveTo(px, py - 8); ctx.lineTo(px + 6, py + 8); ctx.lineTo(px, py + 5); ctx.lineTo(px - 6, py + 8); ctx.fill(); ctx.shadowBlur = 0; 
-        ctx.restore(); 
-    },
-    // ------------------------------------------
+    renderStaticMap: function() { const ctx = this.cacheCtx; const ts = this.TILE; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height); for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.drawTile(ctx, x, y, this.state.currentMap[y][x]); },
 
     init: function(saveData, spawnTarget=null) {
         this.worldData = {};
@@ -161,6 +63,7 @@ const Game = {
                 let startSecY = Math.floor(Math.random() * 8);
                 let startX = 20;
                 let startY = 20;
+
                 if (spawnTarget && spawnTarget.sector) {
                     startSecX = spawnTarget.sector.x;
                     startSecY = spawnTarget.sector.y;
@@ -168,6 +71,7 @@ const Game = {
                     startY = spawnTarget.y;
                     UI.log(`>> Spawn bei Signal: ${startSecX},${startSecY}`, "text-yellow-400");
                 }
+
                 this.state = {
                     sector: {x: startSecX, y: startSecY}, startSector: {x: startSecX, y: startSecY}, 
                     player: {x: startX, y: startY, rot: 0},
@@ -180,9 +84,11 @@ const Game = {
                     quests: [ { id: "q1", title: "Der Weg nach Hause", text: "Suche Zivilisation.", read: false } ], 
                     startTime: Date.now()
                 };
+                
                 this.addToInventory('stimpack', 1);
                 this.state.hp = this.calculateMaxHP(this.getStat('END')); 
                 this.state.maxHp = this.state.hp;
+                
                 if(!spawnTarget) UI.log(">> Neuer Charakter erstellt.", "text-green-400");
                 this.saveGame(); 
             }
@@ -253,6 +159,18 @@ const Game = {
 
     loadSector: function(sx, sy, isInterior = false, dungeonType = "market") { 
         const key = `${sx},${sy}`; 
+        
+        // UNIQUE SEED FÜR DIESEN SEKTOR
+        const mapSeed = (sx + 1) * 5323 + (sy + 1) * 8237 + 9283;
+        
+        // WorldGen initialisieren mit Seed
+        if(typeof WorldGen !== 'undefined') {
+            WorldGen.setSeed(mapSeed);
+        }
+        
+        // Lokaler Helper für seeded RNG im Game Objekt
+        const rng = () => { return typeof WorldGen !== 'undefined' ? WorldGen.rand() : Math.random(); };
+
         if (isInterior) { 
             this.generateDungeon(dungeonType); 
             this.state.zone = dungeonType === "cave" ? "Dunkle Höhle (Gefahr!)" : "Supermarkt Ruine (Gefahr!)"; 
@@ -264,17 +182,18 @@ const Game = {
             let biome = 'wasteland'; 
             if (sx < 3 && sy < 3) biome = 'jungle'; 
             else if (sx > 5 && sy > 5) biome = 'desert'; 
-            else if (Math.random() < 0.35) biome = 'city'; 
+            else if (rng() < 0.35) biome = 'city'; 
             
             let poiList = [];
             
             if(sx === this.state.startSector.x && sy === this.state.startSector.y) poiList.push({x:20, y:20, type:'V'}); 
             
-            if(Math.random() < 0.35) { 
+            if(rng() < 0.35) { 
                 let type = 'C';
-                if(Math.random() < 0.3) type = 'S';
-                else if(Math.random() < 0.3) type = 'H';
-                poiList.push({x: Math.floor(Math.random()*(this.MAP_W-6))+3, y: Math.floor(Math.random()*(this.MAP_H-6))+3, type: type});
+                const r = rng();
+                if(r < 0.3) type = 'S';
+                else if(r < 0.6) type = 'H';
+                poiList.push({x: Math.floor(rng()*(this.MAP_W-6))+3, y: Math.floor(rng()*(this.MAP_H-6))+3, type: type});
             }
 
             if(sy > 0) poiList.push({x: this.getPseudoRandomGate(sx, sy, this.MAP_W), y: 0, type: 'G'});
@@ -354,6 +273,44 @@ const Game = {
         ctx.globalAlpha = 1; 
     },
 
+    draw: function() { 
+        if(!this.ctx || !this.cacheCanvas) return; const ctx = this.ctx; const cvs = ctx.canvas; 
+        let targetCamX = (this.state.player.x * this.TILE) - (cvs.width / 2); let targetCamY = (this.state.player.y * this.TILE) - (cvs.height / 2); 
+        const maxCamX = (this.MAP_W * this.TILE) - cvs.width; const maxCamY = (this.MAP_H * this.TILE) - cvs.height; 
+        this.camera.x = Math.max(0, Math.min(targetCamX, maxCamX)); this.camera.y = Math.max(0, Math.min(targetCamY, maxCamY)); 
+        
+        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cvs.width, cvs.height); 
+        ctx.drawImage(this.cacheCanvas, this.camera.x, this.camera.y, cvs.width, cvs.height, 0, 0, cvs.width, cvs.height); 
+        ctx.save(); ctx.translate(-this.camera.x, -this.camera.y); 
+        
+        const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7; 
+        const startX = Math.floor(this.camera.x / this.TILE); const startY = Math.floor(this.camera.y / this.TILE); 
+        const endX = startX + Math.ceil(cvs.width / this.TILE) + 1; const endY = startY + Math.ceil(cvs.height / this.TILE) + 1; 
+        
+        for(let y=startY; y<endY; y++) { for(let x=startX; x<endX; x++) { if(y>=0 && y<this.MAP_H && x>=0 && x<this.MAP_W) { 
+            const t = this.state.currentMap[y][x]; 
+            // Zeichne Specials UND Pfeile animiert
+            if(['V', 'S', 'C', 'G', 'H', '^', 'v', '<', '>'].includes(t)) { this.drawTile(ctx, x, y, t, pulse); } 
+        } } } 
+        
+        if(typeof Network !== 'undefined' && Network.otherPlayers) { 
+            for(let pid in Network.otherPlayers) { 
+                const p = Network.otherPlayers[pid]; 
+                if(p.sector && (p.sector.x !== this.state.sector.x || p.sector.y !== this.state.sector.y)) continue; 
+                const ox = p.x * this.TILE + this.TILE/2; const oy = p.y * this.TILE + this.TILE/2; 
+                ctx.fillStyle = "#00ffff"; ctx.shadowBlur = 5; ctx.shadowColor = "#00ffff"; 
+                ctx.beginPath(); ctx.arc(ox, oy, 5, 0, Math.PI*2); ctx.fill(); 
+                ctx.font = "10px monospace"; ctx.fillStyle = "white"; ctx.fillText("P", ox+6, oy); ctx.shadowBlur = 0; 
+            } 
+        } 
+        
+        const px = this.state.player.x * this.TILE + this.TILE/2; const py = this.state.player.y * this.TILE + this.TILE/2; 
+        ctx.translate(px, py); ctx.rotate(this.state.player.rot); ctx.translate(-px, -py); 
+        ctx.fillStyle = "#39ff14"; ctx.shadowBlur = 10; ctx.shadowColor = "#39ff14"; 
+        ctx.beginPath(); ctx.moveTo(px, py - 8); ctx.lineTo(px + 6, py + 8); ctx.lineTo(px, py + 5); ctx.lineTo(px - 6, py + 8); ctx.fill(); ctx.shadowBlur = 0; 
+        ctx.restore(); 
+    },
+
     move: function(dx, dy) {
         if(this.state.inDialog || this.state.isGameOver) return;
         if(dy < 0) this.state.player.rot = 0; else if(dy > 0) this.state.player.rot = Math.PI; else if(dx < 0) this.state.player.rot = -Math.PI/2; else if(dx > 0) this.state.player.rot = Math.PI/2;
@@ -387,6 +344,7 @@ const Game = {
         UI.update();
     },
     
+    // ... [REST BLEIBT GLEICH] ...
     generateCityLayout: function(map) { for(let x=4; x<this.MAP_W; x+=8) for(let y=1; y<this.MAP_H-1; y++) map[y][x] = '='; for(let y=4; y<this.MAP_H; y+=8) for(let x=1; x<this.MAP_W-1; x++) map[y][x] = '='; for(let y=1; y<this.MAP_H-1; y++) { for(let x=1; x<this.MAP_W-1; x++) { if(map[y][x] !== '=') map[y][x] = 'B'; else if(Math.random() < 0.1) map[y][x] = 'R'; } } let placed = false; let attempts = 0; while(!placed && attempts < 100) { attempts++; let rx = Math.floor(Math.random() * (this.MAP_W-4)) + 2; let ry = Math.floor(Math.random() * (this.MAP_H-4)) + 2; if(map[ry][rx] === 'B' && (map[ry+1][rx]==='=' || map[ry-1][rx]==='=')) { map[ry][rx] = 'C'; placed = true; } } if(Math.random() < 0.7) { let placedS = false; let attempts = 0; while(!placedS && attempts < 100) { attempts++; let rx = Math.floor(Math.random() * (this.MAP_W-4)) + 2; let ry = Math.floor(Math.random() * (this.MAP_H-4)) + 2; if(map[ry][rx] === 'B') { map[ry][rx] = 'S'; placedS = true; } } } },
     generateDungeon: function(type) { let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('B')); let floorChar = type === "cave" ? '.' : '='; for(let i=0; i<8; i++) { let rx = Math.floor(Math.random() * 20) + 5; let ry = Math.floor(Math.random() * 20) + 5; let w = Math.floor(Math.random() * 8) + 3; let h = Math.floor(Math.random() * 8) + 3; for(let y=ry; y<ry+h; y++) for(let x=rx; x<rx+w; x++) { if(y<this.MAP_H-1 && x<this.MAP_W-1) map[y][x] = floorChar; } } map[35][20] = 'G'; this.state.currentMap = map; this.state.player.x = 20; this.state.player.y = 34; this.state.explored = {}; this.reveal(20, 34); },
     addClusters: function(map, type, count, size) { for(let k=0; k<count; k++) { let cx = Math.floor(Math.random() * (this.MAP_W-4)) + 2; let cy = Math.floor(Math.random() * (this.MAP_H-4)) + 2; if (size === 0) { if(['.', '_', ','].includes(map[cy][cx])) map[cy][cx] = type; } else { for(let y=cy-size; y<=cy+size; y++) { for(let x=cx-size; x<=cx+size; x++) { if(x>1 && x<this.MAP_W-2 && y>1 && y<this.MAP_H-2) { if(Math.random() > 0.4 && Math.hypot(x-cx, y-cy) <= size) { if(['.', '_', ','].includes(map[y][x])) map[y][x] = type; } } } } } } },
