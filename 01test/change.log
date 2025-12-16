@@ -1,6 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.10i] - 2025-12-16 07:35 (Gameplay & Visual Polish)
+-------------------------------------------------------
+- GRAFIK: Richtungspfeile an den Kartenrändern zeigen nun korrekt in die Himmelsrichtung (nach außen).
+- FIX: Doppeltes "Spiel gespeichert" im Log nach Kampfende entfernt.
+- BALANCE: Spawnrate für Städte (Händler) erhöht (35%).
+- BALANCE: Im Ödland, Dschungel und Wüste kann nun mit 5-10% Chance ein einsamer Händler/Oase (C) auftauchen.
 
 [v0.0.10h] - 2025-12-16 16:35 (Teleport Fix)
 --------------------------------------------
