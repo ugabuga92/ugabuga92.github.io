@@ -1,5 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
+
+[v0.0.12e] - 2025-12-16 15:30 (Name & Arrows)
+---------------------------------------------
+- UI: Spielername wird nun im Header neben den TP angezeigt.
+- GRAFIK: Pfeil-Rendering komplett neu geschrieben. Jede Himmelsrichtung hat nun einen eigenen Zeichenpfad, um Darstellungsfehler auszuschließen.
+- FIX: `loadSector` setzt die Pfeil-Symbole an den Rändern nun garantiert korrekt.
+
 [v0.0.12d] - 2025-12-16 14:45 (Login Logic Restoration)
 ------------------------------------------------------
 - FIX: Die Start-Logik wurde korrigiert. Das Spiel startet nun wieder korrekt mit dem "Login Screen" ("PIP-BOY 3000 AUTHENTICATION REQUIRED").
