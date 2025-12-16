@@ -5,15 +5,30 @@ const WorldGen = {
         'desert': { water: 0.02, mountain: 0.15, trees: 0.02, ground: '_' },
         'city': { water: 0.0, mountain: 0.0, trees: 0.0, ground: '=' }
     },
+    
+    // Zufalls-Seed Speicher
+    _seed: 12345,
+
+    // Setzt den Startwert für den Zufall
+    setSeed: function(val) {
+        this._seed = val % 2147483647;
+        if (this._seed <= 0) this._seed += 2147483646;
+    },
+
+    // Deterministischer Zufallsgenerator (LCG)
+    rand: function() {
+        this._seed = (this._seed * 16807) % 2147483647;
+        return (this._seed - 1) / 2147483646;
+    },
 
     createSector: function(width, height, biomeType, poiList) {
         let map = Array(height).fill().map(() => Array(width).fill('.'));
         const conf = this.biomes[biomeType] || this.biomes['wasteland'];
 
-        // 1. BASIS TERRAIN
+        // 1. BASIS TERRAIN (Mit Seeded Random)
         for(let y = 1; y < height - 1; y++) {
             for(let x = 1; x < width - 1; x++) {
-                const roll = Math.random();
+                const roll = this.rand();
                 if(roll < conf.water) map[y][x] = 'W'; 
                 else if(roll < conf.water + conf.mountain) map[y][x] = 'M'; 
                 else if(roll < conf.water + conf.mountain + conf.trees) map[y][x] = 't'; 
@@ -36,8 +51,13 @@ const WorldGen = {
 
         // 3. WEGNETZWERK
         const points = [...poiList];
+        // Sackgassen auch seeded
         for(let i=0; i<3; i++) {
-            points.push({x: Math.floor(Math.random()*(width-4))+2, y: Math.floor(Math.random()*(height-4))+2, type: 'nav'});
+            points.push({
+                x: Math.floor(this.rand()*(width-4))+2, 
+                y: Math.floor(this.rand()*(height-4))+2, 
+                type: 'nav'
+            });
         }
 
         for(let i = 0; i < points.length - 1; i++) {
@@ -55,8 +75,9 @@ const WorldGen = {
         let y = start.y;
         
         while(x !== end.x || y !== end.y) {
-            if(Math.random() < 0.2) {
-                const dir = Math.random() < 0.5 ? 0 : 1; 
+            // Seeded Random Direction
+            if(this.rand() < 0.2) {
+                const dir = this.rand() < 0.5 ? 0 : 1; 
                 if(dir === 0 && x !== end.x) x += (end.x > x ? 1 : -1);
                 else if(y !== end.y) y += (end.y > y ? 1 : -1);
             } else {
@@ -81,7 +102,7 @@ const WorldGen = {
                 map[y][x] = '#'; 
             }
             
-            if(Math.random() < 0.1) {
+            if(this.rand() < 0.1) {
                 for(let dy=-1; dy<=1; dy++) for(let dx=-1; dx<=1; dx++) {
                     const ny = y+dy, nx = x+dx;
                     if(map[ny] && map[ny][nx] && !['W','M','V','C','S','H','G','=','U'].includes(map[ny][nx])) {
