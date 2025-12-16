@@ -6,6 +6,14 @@ CHANGE LOG - PIP-BOY 3000 Mk-V
 - FEATURE: Deterministische Kartengenerierung ("Seeded RNG"). Ein Sektor sieht nun für alle Spieler und nach jedem Reload exakt gleich aus. Dies behebt das Problem, dass die Karte sich nach dem Speichern und Neuladen verändert.
 - SYSTEM: `WorldGen.js` wurde um `setSeed()` und `rand()` erweitert.
 - FIX: Die Generierung von POIs und Toren nutzt nun ebenfalls den Sektor-Seed, sodass wichtige Orte nicht mehr "wandern".
+- UI: Konsistente Pfeil-Darstellung an den Rändern durch Zone-Marker ('G') ersetzt.
+- INFO: Der Fehler "TypeError: can't access property 'control'" im Browser-Log stammt von einer Browser-Erweiterung und betrifft nicht das Spiel.
+
+[v0.0.13d] - 2025-12-16 23:30 (Map Persistence Update)
+------------------------------------------------------
+- FEATURE: Deterministische Kartengenerierung ("Seeded RNG"). Ein Sektor sieht nun für alle Spieler und nach jedem Reload exakt gleich aus. Dies behebt das Problem, dass die Karte sich nach dem Speichern und Neuladen verändert.
+- SYSTEM: `WorldGen.js` wurde um `setSeed()` und `rand()` erweitert.
+- FIX: Die Generierung von POIs und Toren nutzt nun ebenfalls den Sektor-Seed, sodass wichtige Orte nicht mehr "wandern".
 - INFO: Der Fehler "TypeError: can't access property 'control'" im Browser-Log stammt von einer Browser-Erweiterung und betrifft nicht das Spiel.
 
 [v0.0.13c] - 2025-12-16 23:45 (Final Restoration)
