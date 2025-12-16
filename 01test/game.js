@@ -15,14 +15,19 @@ const Game = {
     },
     
     items: { 
-        fists: { name: "Fäuste", slot: 'weapon', baseDmg: 2, bonus: {}, cost: 0, requiredLevel: 0, isRanged: false }, 
-        vault_suit: { name: "Vault-Anzug", slot: 'body', bonus: { END: 1 }, cost: 0, requiredLevel: 0 }, 
-        knife: { name: "Messer", slot: 'weapon', baseDmg: 6, bonus: { STR: 1 }, cost: 15, requiredLevel: 1, isRanged: false }, 
-        pistol: { name: "10mm Pistole", slot: 'weapon', baseDmg: 14, bonus: { AGI: 1 }, cost: 50, requiredLevel: 1, isRanged: true }, 
-        leather_armor: { name: "Lederharnisch", slot: 'body', bonus: { END: 2 }, cost: 30, requiredLevel: 1 }, 
-        shotgun: { name: "Kampfschrotflinte", slot: 'weapon', baseDmg: 22, bonus: { STR: 1 }, cost: 120, requiredLevel: 3, isRanged: true }, 
-        laser_rifle: { name: "Laser-Gewehr", slot: 'weapon', baseDmg: 30, bonus: { PER: 2 }, cost: 300, requiredLevel: 5, isRanged: true }, 
-        combat_armor: { name: "Kampf-Rüstung", slot: 'body', bonus: { END: 4 }, cost: 150, requiredLevel: 5 } 
+        // CONSUMABLES
+        stimpack: { name: "Stimpack", type: "consumable", effect: "heal", val: 50, cost: 25 },
+        scrap: { name: "Schrott", type: "junk", cost: 0 },
+
+        // EQUIP
+        fists: { name: "Fäuste", slot: 'weapon', type: 'weapon', baseDmg: 2, bonus: {}, cost: 0, requiredLevel: 0, isRanged: false }, 
+        vault_suit: { name: "Vault-Anzug", slot: 'body', type: 'body', bonus: { END: 1 }, cost: 0, requiredLevel: 0 }, 
+        knife: { name: "Messer", slot: 'weapon', type: 'weapon', baseDmg: 6, bonus: { STR: 1 }, cost: 15, requiredLevel: 1, isRanged: false }, 
+        pistol: { name: "10mm Pistole", slot: 'weapon', type: 'weapon', baseDmg: 14, bonus: { AGI: 1 }, cost: 50, requiredLevel: 1, isRanged: true }, 
+        leather_armor: { name: "Lederharnisch", slot: 'body', type: 'body', bonus: { END: 2 }, cost: 30, requiredLevel: 1 }, 
+        shotgun: { name: "Kampfschrotflinte", slot: 'weapon', type: 'weapon', baseDmg: 22, bonus: { STR: 1 }, cost: 120, requiredLevel: 3, isRanged: true }, 
+        laser_rifle: { name: "Laser-Gewehr", slot: 'weapon', type: 'weapon', baseDmg: 30, bonus: { PER: 2 }, cost: 300, requiredLevel: 5, isRanged: true }, 
+        combat_armor: { name: "Kampf-Rüstung", slot: 'body', type: 'body', bonus: { END: 4 }, cost: 150, requiredLevel: 5 } 
     },
 
     state: null, worldData: {}, ctx: null, loopId: null, camera: { x: 0, y: 0 }, cacheCanvas: null, cacheCtx: null,
@@ -30,13 +35,14 @@ const Game = {
     init: function(saveData) {
         this.worldData = {};
         this.initCache();
-        
         try {
             if (saveData) {
                 this.state = saveData;
                 if(!this.state.equip) this.state.equip = { weapon: this.items.fists, body: this.items.vault_suit };
                 if(!this.state.equip.weapon) this.state.equip.weapon = this.items.fists;
                 if(!this.state.equip.body) this.state.equip.body = this.items.vault_suit;
+                if(!this.state.inventory) this.state.inventory = []; // Fix für alte Saves
+                
                 if(!this.state.view) this.state.view = 'map';
                 UI.log(">> Spielstand geladen.", "text-cyan-400");
             } else {
@@ -46,6 +52,7 @@ const Game = {
                     sector: {x: startSecX, y: startSecY}, startSector: {x: startSecX, y: startSecY}, player: {x: 20, y: 20, rot: 0},
                     stats: { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 }, 
                     equip: { weapon: this.items.fists, body: this.items.vault_suit },
+                    inventory: [], // NEU: Leeres Inventar
                     hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0, 
                     view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, explored: {}, 
                     tempStatIncrease: {}, buffEndTime: 0,
@@ -53,15 +60,16 @@ const Game = {
                     startTime: Date.now()
                 };
                 
+                // Starter Items
+                this.addToInventory('stimpack', 1);
+
                 this.state.hp = this.calculateMaxHP(this.getStat('END')); 
                 this.state.maxHp = this.state.hp;
                 
                 UI.log(">> Neuer Charakter erstellt.", "text-green-400");
                 this.saveGame(); 
             }
-
             this.loadSector(this.state.sector.x, this.state.sector.y);
-            
             UI.switchView('map').then(() => { 
                 if(UI.els.gameOver) UI.els.gameOver.classList.add('hidden'); 
                 if(typeof Network !== 'undefined') Network.sendMove(this.state.player.x, this.state.player.y, this.state.lvl, this.state.sector);
@@ -72,12 +80,68 @@ const Game = {
         }
     },
 
+    // NEU: INVENTAR LOGIK
+    addToInventory: function(id, count=1) {
+        if(!this.state.inventory) this.state.inventory = [];
+        const existing = this.state.inventory.find(i => i.id === id);
+        if(existing) existing.count += count;
+        else this.state.inventory.push({id: id, count: count});
+        UI.log(`Erhalten: ${this.items[id].name} (${count})`, "text-green-400");
+    },
+
+    useItem: function(id) {
+        const itemDef = this.items[id];
+        const invItem = this.state.inventory.find(i => i.id === id);
+        if(!invItem || invItem.count <= 0) return;
+
+        if(itemDef.type === 'consumable') {
+            if(itemDef.effect === 'heal') {
+                const healAmt = itemDef.val;
+                if(this.state.hp >= this.state.maxHp) {
+                    UI.log("Gesundheit bereits voll.", "text-gray-500");
+                    return;
+                }
+                this.state.hp = Math.min(this.state.maxHp, this.state.hp + healAmt);
+                UI.log(`Verwendet: ${itemDef.name}. +${healAmt} HP.`, "text-blue-400");
+                invItem.count--;
+            }
+        } 
+        else if (itemDef.type === 'weapon' || itemDef.type === 'body') {
+            // Altes Item zurück ins Inventar (außer Start-Items)
+            const oldItemName = this.state.equip[itemDef.slot].name;
+            const oldItemKey = Object.keys(this.items).find(key => this.items[key].name === oldItemName);
+            
+            if(oldItemKey && oldItemKey !== 'fists' && oldItemKey !== 'vault_suit') {
+                this.addToInventory(oldItemKey, 1);
+            }
+            
+            // Neues anlegen
+            this.state.equip[itemDef.slot] = itemDef;
+            invItem.count--;
+            
+            UI.log(`Ausgerüstet: ${itemDef.name}`, "text-yellow-400");
+            
+            if(itemDef.slot === 'body') {
+                const oldMax = this.state.maxHp;
+                this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
+                this.state.hp += (this.state.maxHp - oldMax); // HP proportional anpassen
+            }
+        }
+
+        // Leere Items entfernen
+        if(invItem.count <= 0) {
+            this.state.inventory = this.state.inventory.filter(i => i.id !== id);
+        }
+
+        UI.update();
+        if(this.state.view === 'inventory') UI.renderInventory(); // Refresh UI
+        this.saveGame();
+    },
+
     saveGame: function(manual = false) {
         if(!this.state) return;
         if(manual) UI.log("Speichere...", "text-gray-500");
-        if(typeof Network !== 'undefined') {
-            Network.save(this.state);
-        }
+        if(typeof Network !== 'undefined') Network.save(this.state);
     },
 
     initCache: function() { this.cacheCanvas = document.createElement('canvas'); this.cacheCanvas.width = this.MAP_W * this.TILE; this.cacheCanvas.height = this.MAP_H * this.TILE; this.cacheCtx = this.cacheCanvas.getContext('2d'); },
@@ -170,10 +234,7 @@ const Game = {
         this.state.explored = data.explored; 
         let zn = "Ödland"; if(data.biome === 'city') zn = "Ruinenstadt"; if(data.biome === 'desert') zn = "Glühende Wüste"; if(data.biome === 'jungle') zn = "Überwucherte Zone"; 
         this.state.zone = `${zn} (${sx},${sy})`; 
-        
-        // SAFE SPAWN CHECK DIREKT NACH LADEN
         this.findSafeSpawn();
-        
         this.renderStaticMap(); 
     },
 
@@ -188,23 +249,10 @@ const Game = {
         
         ctx.beginPath(); 
         switch(type) { 
-            case '^': 
-                ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; 
-                ctx.moveTo(px + ts/2, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); ctx.lineTo(px + 5, py + ts - 5); 
-                ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
-            case 'v': 
-                ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; 
-                ctx.moveTo(px + ts/2, py + ts - 5); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + 5, py + 5); 
-                ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
-            case '<': 
-                ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; 
-                ctx.moveTo(px + 5, py + ts/2); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); 
-                ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
-            case '>': 
-                ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; 
-                ctx.moveTo(px + ts - 5, py + ts/2); ctx.lineTo(px + 5, py + 5); ctx.lineTo(px + 5, py + ts - 5); 
-                ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
-
+            case '^': ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; ctx.moveTo(px + ts/2, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); ctx.lineTo(px + 5, py + ts - 5); ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
+            case 'v': ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; ctx.moveTo(px + ts/2, py + ts - 5); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + 5, py + 5); ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
+            case '<': ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; ctx.moveTo(px + 5, py + ts/2); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
+            case '>': ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#222"; ctx.moveTo(px + ts - 5, py + ts/2); ctx.lineTo(px + 5, py + 5); ctx.lineTo(px + 5, py + ts - 5); ctx.fill(); ctx.strokeStyle = "#333"; ctx.stroke(); break;
             case 'T': ctx.fillStyle = "#1b5e20"; ctx.moveTo(px + ts/2, py + 4); ctx.lineTo(px + ts - 4, py + ts - 4); ctx.lineTo(px + 4, py + ts - 4); ctx.fill(); break; 
             case 'R': ctx.fillStyle = "#444"; ctx.moveTo(px+6, py+10); ctx.lineTo(px+20, py+6); ctx.lineTo(px+24, py+20); ctx.lineTo(px+10, py+24); ctx.fill(); break; 
             case '~': ctx.fillStyle = "#001133"; ctx.fillRect(px, py, ts, ts); ctx.strokeStyle = "#224f80"; ctx.moveTo(px+4, py+15); ctx.lineTo(px+10, py+10); ctx.lineTo(px+16, py+15); ctx.lineTo(px+24, py+10); ctx.stroke(); break; 
@@ -262,7 +310,6 @@ const Game = {
         if(nx < 0 || nx >= this.MAP_W || ny < 0 || ny >= this.MAP_H) return;
         
         const tile = this.state.currentMap[ny][nx];
-        // KORREKTUR: Neue Pfeilsymbole auch als Blocker definieren!
         if(['^', 'v', '<', '>', 'T', '~', 'R', 'B'].includes(tile)) { UI.log("Weg blockiert.", "text-gray-500"); return; }
         
         this.state.player.x = nx; this.state.player.y = ny; this.reveal(nx, ny);
@@ -289,43 +336,6 @@ const Game = {
         UI.update();
     },
     
-    // NEU: SMARTER SPAWN CHECK
-    findSafeSpawn: function() {
-        // Prüfen ob aktuelle Position blockiert ist
-        let t = this.state.currentMap[this.state.player.y][this.state.player.x];
-        const blockers = ['^', 'v', '<', '>', 'T', '~', 'R', 'B'];
-        
-        if(!blockers.includes(t)) return; // Alles gut
-
-        // Suche freien Platz im 10er Radius
-        let found = false;
-        for(let r=1; r<10; r++) {
-            for(let dy=-r; dy<=r; dy++) {
-                for(let dx=-r; dx<=r; dx++) {
-                    const ny = this.state.player.y + dy;
-                    const nx = this.state.player.x + dx;
-                    if(ny > 0 && ny < this.MAP_H-1 && nx > 0 && nx < this.MAP_W-1) {
-                        t = this.state.currentMap[ny][nx];
-                        if(!blockers.includes(t)) {
-                            this.state.player.x = nx;
-                            this.state.player.y = ny;
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-                if(found) break;
-            }
-            if(found) break;
-        }
-        
-        // Fallback
-        if(!found) {
-            this.state.player.x = 20; 
-            this.state.player.y = 20;
-        }
-    },
-
     // ... [REST BLEIBT GLEICH] ...
     generateCityLayout: function(map) { for(let x=4; x<this.MAP_W; x+=8) for(let y=1; y<this.MAP_H-1; y++) map[y][x] = '='; for(let y=4; y<this.MAP_H; y+=8) for(let x=1; x<this.MAP_W-1; x++) map[y][x] = '='; for(let y=1; y<this.MAP_H-1; y++) { for(let x=1; x<this.MAP_W-1; x++) { if(map[y][x] !== '=') map[y][x] = 'B'; else if(Math.random() < 0.1) map[y][x] = 'R'; } } let placed = false; let attempts = 0; while(!placed && attempts < 100) { attempts++; let rx = Math.floor(Math.random() * (this.MAP_W-4)) + 2; let ry = Math.floor(Math.random() * (this.MAP_H-4)) + 2; if(map[ry][rx] === 'B' && (map[ry+1][rx]==='=' || map[ry-1][rx]==='=')) { map[ry][rx] = 'C'; placed = true; } } if(Math.random() < 0.7) { let placedS = false; let attempts = 0; while(!placedS && attempts < 100) { attempts++; let rx = Math.floor(Math.random() * (this.MAP_W-4)) + 2; let ry = Math.floor(Math.random() * (this.MAP_H-4)) + 2; if(map[ry][rx] === 'B') { map[ry][rx] = 'S'; placedS = true; } } } },
     generateDungeon: function(type) { let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('B')); let floorChar = type === "cave" ? '.' : '='; for(let i=0; i<8; i++) { let rx = Math.floor(Math.random() * 20) + 5; let ry = Math.floor(Math.random() * 20) + 5; let w = Math.floor(Math.random() * 8) + 3; let h = Math.floor(Math.random() * 8) + 3; for(let y=ry; y<ry+h; y++) for(let x=rx; x<rx+w; x++) { if(y<this.MAP_H-1 && x<this.MAP_W-1) map[y][x] = floorChar; } } map[35][20] = 'G'; this.state.currentMap = map; this.state.player.x = 20; this.state.player.y = 34; this.state.explored = {}; this.reveal(20, 34); },
@@ -335,7 +345,7 @@ const Game = {
     drawLoop: function() { if(this.state.view !== 'map' || this.state.isGameOver) return; this.draw(); this.loopId = requestAnimationFrame(() => this.drawLoop()); },
     reveal: function(px, py) { for(let y=py-2; y<=py+2; y++) for(let x=px-2; x<=px+2; x++) if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) this.state.explored[`${x},${y}`] = true; },
     changeSector: function(px, py) { let sx=this.state.sector.x, sy=this.state.sector.y; if(py===0) sy--; else if(py===this.MAP_H-1) sy++; if(px===0) sx--; else if(px===this.MAP_W-1) sx++; if(sx < 0 || sx > 7 || sy < 0 || sy > 7) { UI.log("Ende der Weltkarte.", "text-red-500"); this.state.player.x -= (px===0 ? -1 : 1); return; } this.state.sector = {x: sx, y: sy}; this.loadSector(sx, sy); if(py===0) this.state.player.y=this.MAP_H-2; else if(py===this.MAP_H-1) this.state.player.y=1; if(px===0) this.state.player.x=this.MAP_W-2; else if(px===this.MAP_W-1) this.state.player.x=1; this.findSafeSpawn(); this.reveal(this.state.player.x, this.state.player.y); UI.log(`Sektorwechsel: ${sx},${sy}`, "text-blue-400"); },
-    // findSafeSpawn wird oben jetzt schon definiert!
+    findSafeSpawn: function() { const tile = this.state.currentMap[this.state.player.y][this.state.player.x]; if(['^', 'T', '~', 'R', 'B'].includes(tile)) { this.state.player.x = 20; this.state.player.y = 20; } },
     startCombat: function() { let pool = []; let lvl = this.state.lvl; let biome = this.worldData[`${this.state.sector.x},${this.state.sector.y}`]?.biome || 'wasteland'; let zone = this.state.zone; if(zone.includes("Supermarkt")) { pool = [this.monsters.raider, this.monsters.ghoul]; if(lvl >= 4) pool.push(this.monsters.superMutant); } else if (zone.includes("Höhle")) { pool = [this.monsters.moleRat, this.monsters.radScorpion]; if(lvl >= 3) pool.push(this.monsters.ghoul); } else if(biome === 'city') { pool = [this.monsters.raider, this.monsters.ghoul]; if(lvl >= 5) pool.push(this.monsters.superMutant); } else if(biome === 'desert') { pool = [this.monsters.radScorpion, this.monsters.raider]; } else { pool = [this.monsters.moleRat, this.monsters.radRoach]; if(biome === 'jungle') pool.push(this.monsters.mutantRose); if(lvl >= 2) pool.push(this.monsters.raider); } if(lvl >= 8 && Math.random() < 0.1) pool = [this.monsters.deathclaw]; else if (Math.random() < 0.01) pool = [this.monsters.deathclaw]; const template = pool[Math.floor(Math.random()*pool.length)]; let enemy = { ...template }; const isLegendary = Math.random() < 0.15; if(isLegendary) { enemy.isLegendary = true; enemy.name = "Legendäre " + enemy.name; enemy.hp *= 2; enemy.maxHp = enemy.hp; enemy.dmg = Math.floor(enemy.dmg*1.5); enemy.loot *= 3; if(Array.isArray(enemy.xp)) enemy.xp = [enemy.xp[0]*3, enemy.xp[1]*3]; } else enemy.maxHp = enemy.hp; this.state.enemy = enemy; this.state.inDialog = true; if(Date.now() < this.state.buffEndTime) UI.log("⚡ S.P.E.C.I.A.L. OVERDRIVE aktiv!", "text-yellow-400"); UI.switchView('combat').then(() => UI.renderCombat()); UI.log(isLegendary ? "LEGENDÄRER GEGNER!" : "Kampf gestartet!", isLegendary ? "text-yellow-400" : "text-red-500"); },
     getRandomXP: function(xpData) { if (Array.isArray(xpData)) return Math.floor(Math.random() * (xpData[1] - xpData[0] + 1)) + xpData[0]; return xpData; },
     combatAction: function(act) { if(this.state.isGameOver) return; if(!this.state.enemy) return; if(act === 'attack') { const wpn = this.state.equip.weapon; if(wpn.isRanged) { if(this.state.ammo > 0) this.state.ammo--; else { UI.log("Keine Munition! Fäuste.", "text-red-500"); this.state.equip.weapon = this.items.fists; this.enemyTurn(); return; } } if(Math.random() > 0.3) { const baseDmg = wpn.baseDmg || 2; const dmg = Math.floor(baseDmg + (this.getStat('STR') * 1.5)); this.state.enemy.hp -= dmg; UI.log(`Treffer: ${dmg} Schaden.`, "text-green-400"); if(this.state.enemy.hp <= 0) { this.state.caps += this.state.enemy.loot; UI.log(`Sieg! ${this.state.enemy.loot} Kronkorken.`, "text-yellow-400"); this.gainExp(this.getRandomXP(this.state.enemy.xp)); if(this.state.enemy.isLegendary) { UI.showDiceOverlay(); } else { this.endCombat(); } return; } } else UI.log("Verfehlt!", "text-gray-500"); this.enemyTurn(); } else if (act === 'flee') { if(Math.random() < 0.4 + (this.getStat('AGI')*0.05)) { UI.log("Geflohen.", "text-green-400"); this.endCombat(); } else { UI.log("Flucht gescheitert!", "text-red-500"); this.enemyTurn(); } } UI.update(); if(this.state.view === 'combat') UI.renderCombat(); },
@@ -354,6 +364,20 @@ const Game = {
     rest: function() { this.state.hp = this.state.maxHp; UI.log("Ausgeruht. HP voll.", "text-blue-400"); UI.update(); this.saveGame(); },
     heal: function() { if(this.state.caps >= 25) { this.state.caps -= 25; this.rest(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
     buyAmmo: function() { if(this.state.caps >= 10) { this.state.caps -= 10; this.state.ammo += 10; UI.log("Munition gekauft.", "text-green-400"); UI.update(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
-    buyItem: function(key) { const item = this.items[key]; if(this.state.caps >= item.cost) { this.state.caps -= item.cost; this.state.equip[item.slot] = item; this.state.maxHp = this.calculateMaxHP(this.getStat('END')); if(this.state.hp > this.state.maxHp) this.state.hp = this.state.maxHp; UI.log(`Gekauft: ${item.name}`, "text-green-400"); UI.renderCity(); UI.update(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
+    
+    // UPDATED BUY ITEM: GEHT INS INVENTAR
+    buyItem: function(key) { 
+        const item = this.items[key]; 
+        if(this.state.caps >= item.cost) { 
+            this.state.caps -= item.cost; 
+            this.addToInventory(key, 1); 
+            UI.log(`Gekauft: ${item.name}`, "text-green-400"); 
+            UI.renderCity(); 
+            UI.update(); 
+            this.saveGame();
+        } else {
+            UI.log("Zu wenig Kronkorken.", "text-red-500"); 
+        }
+    },
     upgradeStat: function(key) { if(this.state.statPoints > 0) { this.state.stats[key]++; this.state.statPoints--; if(key === 'END') this.state.maxHp = this.calculateMaxHP(this.getStat('END')); UI.renderChar(); UI.update(); this.saveGame(); } }
 };
