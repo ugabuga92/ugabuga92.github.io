@@ -1,6 +1,5 @@
 const UI = {
     els: {},
-    combatSelection: 0, // 0 = Angriff, 1 = Flucht
     timerInterval: null,
     lastInputTime: Date.now(), 
     biomeColors: { 'wasteland': '#5d5345', 'desert': '#eecfa1', 'jungle': '#1a3300', 'city': '#555555' },
@@ -120,23 +119,19 @@ const UI = {
         if(this.els.btnLeft) this.els.btnLeft.onclick = () => Game.move(-1, 0);
         if(this.els.btnRight) this.els.btnRight.onclick = () => Game.move(1, 0);
 
-        // TASTATUR STEUERUNG (COMBAT + MOVE)
+        // VEREINFACHTE TASTATUR STEUERUNG
         window.addEventListener('keydown', (e) => {
             if (!Game.state || Game.state.isGameOver) return;
 
-            // KAMPF STEUERUNG
+            // KAMPF: Space = Angriff, ESC = Flucht
             if (Game.state.view === 'combat') {
-                if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') this.combatSelection = 0;
-                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') this.combatSelection = 1;
-                
-                if (e.key === 'Enter' || e.key === ' ') {
-                    const action = this.combatSelection === 0 ? 'attack' : 'flee';
-                    Game.combatAction(action);
+                if (e.key === ' ') {
+                    e.preventDefault(); // Verhindert Scrollen
+                    Game.combatAction('attack');
                 }
-                if (e.key === 'Escape' || e.key === 'Backspace') {
+                if (e.key === 'Escape') {
                     Game.combatAction('flee');
                 }
-                this.renderCombat(); // Update Highlights
             }
             // MAP STEUERUNG
             else if (Game.state.view === 'map' && !Game.state.inDialog) {
@@ -270,7 +265,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.12f)"; // VERSION UPDATE
+            v.textContent = "ONLINE (v0.0.12g)"; // VERSION UPDATE
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -326,7 +321,7 @@ const UI = {
             if (name === 'combat') { 
                 this.restoreOverlay(); 
                 this.toggleControls(false); 
-                this.renderCombat(); // Initial Render for Highlights
+                this.renderCombat(); 
             } 
             else { this.toggleControls(false); } 
             
@@ -335,6 +330,7 @@ const UI = {
             if (name === 'wiki') this.renderWiki(); 
             if (name === 'worldmap') this.renderWorldMap(); 
             if (name === 'city') this.renderCity(); 
+            if (name === 'combat') this.renderCombat(); 
             if (name === 'quests') this.renderQuests(); 
             
             this.updateButtonStates(name);
@@ -464,7 +460,6 @@ const UI = {
         }
     },
 
-    // UPDATE: RENDER COMBAT HIGHLIGHTS
     renderCombat: function() { 
         const enemy = Game.state.enemy; 
         if(!enemy) return; 
@@ -472,21 +467,7 @@ const UI = {
         document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`; 
         document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`; 
         
-        // Highlight Buttons
-        const btnAtk = document.getElementById('btn-combat-attack');
-        const btnFlee = document.getElementById('btn-combat-flee');
-        
-        // Reset styles
-        [btnAtk, btnFlee].forEach(b => {
-            if(!b) return;
-            b.className = "flex-1 border-2 border-red-500 p-4 text-xl font-bold hover:bg-red-500 hover:text-black transition-colors";
-        });
-
-        // Apply Active Style
-        const activeBtn = this.combatSelection === 0 ? btnAtk : btnFlee;
-        if(activeBtn) {
-            activeBtn.className = "flex-1 border-2 border-red-500 p-4 text-xl font-bold bg-red-500 text-black transition-colors shadow-[0_0_15px_red]";
-        }
+        // Buttons sind statisch, keine Highlighting nötig
     },
 
     showDiceOverlay: function() { this.els.diceOverlay = document.getElementById('dice-overlay'); if(this.els.diceOverlay) { this.els.diceOverlay.classList.remove('hidden'); this.els.diceOverlay.classList.add('flex'); document.getElementById('dice-1').textContent = "?"; document.getElementById('dice-2').textContent = "?"; document.getElementById('dice-3').textContent = "?"; const btn = document.getElementById('btn-roll'); if(btn) btn.disabled = false; } },
