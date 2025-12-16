@@ -23,3 +23,9 @@ Hier sind 3 Vorschläge für den nächsten Schritt. Sag mir, worauf du Lust hast
     V.A.T.S. Kampf-System: Der Kampf ist aktuell reines Glück. Wir könnten ein System einbauen, bei dem man Körperteile anvisiert (Kopf, Torso, Beine) mit unterschiedlichen Trefferchancen.
 
     Speichern & Laden: Damit dein Fortschritt (Level, Position) erhalten bleibt, wenn du den Browser schließt (via localStorage).
+
+
+#Speicherlogik nicht sauber. Es steht Spiel gespeichert, bei erneutem Login mit selbem Namen wird aber ein neuer Char generiert. 
+Speichern im Menü oben gibt im Log nur Spiel wird gespeichert wieder, aber es passiert nichts mehr.
+Spawnen IM Baum etc passiert nicht mehr, aber man wird noch eingesperrt. Logischerweise sollte mindestens ein Weg aus so einem Wald sein.
+Siehe screenshot
