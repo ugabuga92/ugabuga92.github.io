@@ -61,6 +61,9 @@ const UI = {
             playerCount: document.getElementById('val-players'),
             playerList: document.getElementById('player-list-overlay'),
             playerListContent: document.getElementById('player-list-content'),
+            
+            // NEU: Name Display
+            name: document.getElementById('val-name'),
 
             // Spawn Screen
             loginScreen: document.getElementById('login-screen'),
@@ -265,7 +268,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.12d)"; 
+            v.textContent = "ONLINE (v0.0.12e)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -345,6 +348,11 @@ const UI = {
     update: function() { 
         if (!Game.state) return; 
         
+        // --- NAME UPDATE ---
+        if(this.els.name && typeof Network !== 'undefined') {
+            this.els.name.textContent = Network.myId || "SURVIVOR";
+        }
+
         if(this.els.lvl) this.els.lvl.textContent = Game.state.lvl; 
         if(this.els.ammo) this.els.ammo.textContent = Game.state.ammo; 
         if(this.els.caps) this.els.caps.textContent = `${Game.state.caps} Caps`; 
