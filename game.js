@@ -1,19 +1,12 @@
 const Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     
-    // Farbschema erweitert
     colors: { 
         '.':'#0a1a0a', '_':'#1a150a', ',':'#051105', '=':'#111', '#':'#000', 
         'line_default': '#2a5a2a', 'line_wall': '#39ff14', 'line_water': '#224f80', 
         'V': '#39ff14', 'C': '#eab308', 'S': '#ff0000', 'G': '#00ffff', 'H': '#888888', 
         '^': '#111', 'v':'#111', '<':'#111', '>':'#111',
-        // NEU
-        'M': '#3e2723', // Berg (Braun)
-        'W': '#0d47a1', // Wasser (Dunkelblau)
-        't': '#1b5e20', // Baum (Dunkelgrün)
-        '#': '#424242', // Straße (Grau)
-        'U': '#212121', // Tunnel
-        '~': '#001133'  // Tiefes Wasser
+        'M': '#3e2723', 'W': '#0d47a1', 't': '#1b5e20', '#': '#424242', 'U': '#212121', '~': '#001133'
     },
     
     monsters: { 
@@ -41,10 +34,6 @@ const Game = {
     },
 
     state: null, worldData: {}, ctx: null, loopId: null, camera: { x: 0, y: 0 }, cacheCanvas: null, cacheCtx: null,
-
-    // ... init, addToInventory, useItem, saveGame, initCache, calculateMaxHP, getStat, expToNextLevel, gainExp, teleportTo ... 
-    // (Diese Funktionen bleiben identisch zu v0.0.12h - aus Platzgründen hier gekürzt, aber in deinem Code bitte drin lassen!)
-    // WICHTIG: Hier nur die geänderten Funktionen:
 
     init: function(saveData, spawnTarget=null) {
         this.worldData = {};
@@ -95,8 +84,20 @@ const Game = {
             });
         } catch(e) { console.error(e); if(UI.error) UI.error("GAME INIT FAIL: " + e.message); }
     },
-    // ... addToInventory, useItem, saveGame, initCache, calculateMaxHP, getStat, expToNextLevel, gainExp, teleportTo - unverändert ...
-    addToInventory: function(id, count=1) { if(!this.state.inventory) this.state.inventory = []; const existing = this.state.inventory.find(i => i.id === id); if(existing) existing.count += count; else this.state.inventory.push({id: id, count: count}); UI.log(`Erhalten: ${this.items[id].name} (${count})`, "text-green-400"); }, useItem: function(id) { const itemDef = this.items[id]; const invItem = this.state.inventory.find(i => i.id === id); if(!invItem || invItem.count <= 0) return; if(itemDef.type === 'consumable') { if(itemDef.effect === 'heal') { const healAmt = itemDef.val; if(this.state.hp >= this.state.maxHp) { UI.log("Gesundheit bereits voll.", "text-gray-500"); return; } this.state.hp = Math.min(this.state.maxHp, this.state.hp + healAmt); UI.log(`Verwendet: ${itemDef.name}. +${healAmt} HP.`, "text-blue-400"); invItem.count--; } } else if (itemDef.type === 'weapon' || itemDef.type === 'body') { const oldItemName = this.state.equip[itemDef.slot].name; const oldItemKey = Object.keys(this.items).find(key => this.items[key].name === oldItemName); if(oldItemKey && oldItemKey !== 'fists' && oldItemKey !== 'vault_suit') { this.addToInventory(oldItemKey, 1); } this.state.equip[itemDef.slot] = itemDef; invItem.count--; UI.log(`Ausgerüstet: ${itemDef.name}`, "text-yellow-400"); if(itemDef.slot === 'body') { const oldMax = this.state.maxHp; this.state.maxHp = this.calculateMaxHP(this.getStat('END')); this.state.hp += (this.state.maxHp - oldMax); } } if(invItem.count <= 0) { this.state.inventory = this.state.inventory.filter(i => i.id !== id); } UI.update(); if(this.state.view === 'inventory') UI.renderInventory(); this.saveGame(); }, saveGame: function(manual = false) { if(!this.state) return; if(manual) UI.log("Speichere...", "text-gray-500"); if(typeof Network !== 'undefined') Network.save(this.state); }, initCache: function() { this.cacheCanvas = document.createElement('canvas'); this.cacheCanvas.width = this.MAP_W * this.TILE; this.cacheCanvas.height = this.MAP_H * this.TILE; this.cacheCtx = this.cacheCanvas.getContext('2d'); }, calculateMaxHP: function(end) { return 100 + (end - 5) * 10; }, getStat: function(k) { if(!this.state || !this.state.stats) return 5; let val = this.state.stats[k] || 0; if(this.state.equip) { for(let slot in this.state.equip) { const item = this.state.equip[slot]; if(item && item.bonus && item.bonus[k]) val += item.bonus[k]; } } if(this.state.tempStatIncrease && this.state.tempStatIncrease.key === k) val += 1; if(Date.now() < this.state.buffEndTime) val += Math.floor(this.state.lvl * 0.8); return val; }, expToNextLevel: function(l) { return 100 * l; }, gainExp: function(amount) { this.state.xp += amount; UI.log(`+${amount} EXP.`, 'text-blue-400'); let need = this.expToNextLevel(this.state.lvl); while(this.state.xp >= need) { this.state.lvl++; this.state.statPoints++; this.state.xp -= need; need = this.expToNextLevel(this.state.lvl); this.state.maxHp = this.calculateMaxHP(this.getStat('END')); this.state.hp = this.state.maxHp; UI.log(`LEVEL UP! LVL ${this.state.lvl}`, 'text-yellow-400 font-bold'); } }, teleportTo: function(targetSector, tx, ty) { this.state.sector = targetSector; this.loadSector(targetSector.x, targetSector.y); this.state.player.x = tx; this.state.player.y = ty; this.reveal(tx, ty); if(typeof Network !== 'undefined') Network.sendMove(tx, ty, this.state.lvl, this.state.sector); UI.update(); UI.log(`Teleport erfolgreich.`, "text-green-400"); }, getPseudoRandomGate: function(val1, val2, max) { const seed = (val1 * 9301 + val2 * 49297) % 233280; return 3 + (seed % (max - 6)); },
+
+    addToInventory: function(id, count=1) { if(!this.state.inventory) this.state.inventory = []; const existing = this.state.inventory.find(i => i.id === id); if(existing) existing.count += count; else this.state.inventory.push({id: id, count: count}); UI.log(`Erhalten: ${this.items[id].name} (${count})`, "text-green-400"); }, 
+    useItem: function(id) { const itemDef = this.items[id]; const invItem = this.state.inventory.find(i => i.id === id); if(!invItem || invItem.count <= 0) return; if(itemDef.type === 'consumable') { if(itemDef.effect === 'heal') { const healAmt = itemDef.val; if(this.state.hp >= this.state.maxHp) { UI.log("Gesundheit bereits voll.", "text-gray-500"); return; } this.state.hp = Math.min(this.state.maxHp, this.state.hp + healAmt); UI.log(`Verwendet: ${itemDef.name}. +${healAmt} HP.`, "text-blue-400"); invItem.count--; } } else if (itemDef.type === 'weapon' || itemDef.type === 'body') { const oldItemName = this.state.equip[itemDef.slot].name; const oldItemKey = Object.keys(this.items).find(key => this.items[key].name === oldItemName); if(oldItemKey && oldItemKey !== 'fists' && oldItemKey !== 'vault_suit') { this.addToInventory(oldItemKey, 1); } this.state.equip[itemDef.slot] = itemDef; invItem.count--; UI.log(`Ausgerüstet: ${itemDef.name}`, "text-yellow-400"); if(itemDef.slot === 'body') { const oldMax = this.state.maxHp; this.state.maxHp = this.calculateMaxHP(this.getStat('END')); this.state.hp += (this.state.maxHp - oldMax); } } if(invItem.count <= 0) { this.state.inventory = this.state.inventory.filter(i => i.id !== id); } UI.update(); if(this.state.view === 'inventory') UI.renderInventory(); this.saveGame(); }, 
+    saveGame: function(manual = false) { if(!this.state) return; if(manual) UI.log("Speichere...", "text-gray-500"); if(typeof Network !== 'undefined') Network.save(this.state); }, 
+    initCache: function() { this.cacheCanvas = document.createElement('canvas'); this.cacheCanvas.width = this.MAP_W * this.TILE; this.cacheCanvas.height = this.MAP_H * this.TILE; this.cacheCtx = this.cacheCanvas.getContext('2d'); }, 
+    calculateMaxHP: function(end) { return 100 + (end - 5) * 10; }, 
+    getStat: function(k) { if(!this.state || !this.state.stats) return 5; let val = this.state.stats[k] || 0; if(this.state.equip) { for(let slot in this.state.equip) { const item = this.state.equip[slot]; if(item && item.bonus && item.bonus[k]) val += item.bonus[k]; } } if(this.state.tempStatIncrease && this.state.tempStatIncrease.key === k) val += 1; if(Date.now() < this.state.buffEndTime) val += Math.floor(this.state.lvl * 0.8); return val; }, 
+    expToNextLevel: function(l) { return 100 * l; }, 
+    gainExp: function(amount) { this.state.xp += amount; UI.log(`+${amount} EXP.`, 'text-blue-400'); let need = this.expToNextLevel(this.state.lvl); while(this.state.xp >= need) { this.state.lvl++; this.state.statPoints++; this.state.xp -= need; need = this.expToNextLevel(this.state.lvl); this.state.maxHp = this.calculateMaxHP(this.getStat('END')); this.state.hp = this.state.maxHp; UI.log(`LEVEL UP! LVL ${this.state.lvl}`, 'text-yellow-400 font-bold'); } }, 
+    teleportTo: function(targetSector, tx, ty) { this.state.sector = targetSector; this.loadSector(targetSector.x, targetSector.y); this.state.player.x = tx; this.state.player.y = ty; this.reveal(tx, ty); if(typeof Network !== 'undefined') Network.sendMove(tx, ty, this.state.lvl, this.state.sector); UI.update(); UI.log(`Teleport erfolgreich.`, "text-green-400"); }, 
+    getPseudoRandomGate: function(val1, val2, max) { const seed = (val1 * 9301 + val2 * 49297) % 233280; return 3 + (seed % (max - 6)); },
+
+    // CRASH FIX: renderStaticMap muss VOR loadSector definiert sein oder im Objekt vorhanden sein
+    renderStaticMap: function() { const ctx = this.cacheCtx; const ts = this.TILE; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height); for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.drawTile(ctx, x, y, this.state.currentMap[y][x]); },
 
     loadSector: function(sx, sy, isInterior = false, dungeonType = "market") { 
         const key = `${sx},${sy}`; 
@@ -113,40 +114,29 @@ const Game = {
             else if (sx > 5 && sy > 5) biome = 'desert'; 
             else if (Math.random() < 0.35) biome = 'city'; 
             
-            // POIs Sammeln für WorldGen
             let poiList = [];
-            
             if(sx === this.state.startSector.x && sy === this.state.startSector.y) poiList.push({x:20, y:20, type:'V'}); 
-            
-            // Random POIs
-            if(Math.random() < 0.35) { // Chance auf Ort
-                let type = 'C';
-                if(Math.random() < 0.3) type = 'S';
-                else if(Math.random() < 0.3) type = 'H';
+            if(Math.random() < 0.35) { 
+                let type = 'C'; if(Math.random() < 0.3) type = 'S'; else if(Math.random() < 0.3) type = 'H';
                 poiList.push({x: Math.floor(Math.random()*(this.MAP_W-6))+3, y: Math.floor(Math.random()*(this.MAP_H-6))+3, type: type});
             }
-
-            // Tore als POIs hinzufügen
             if(sy > 0) poiList.push({x: this.getPseudoRandomGate(sx, sy, this.MAP_W), y: 0, type: 'G'});
             if(sy < 7) poiList.push({x: this.getPseudoRandomGate(sx, sy+1, this.MAP_W), y: this.MAP_H-1, type: 'G'});
             if(sx > 0) poiList.push({x: 0, y: this.getPseudoRandomGate(sy, sx, this.MAP_H), type: 'G'});
             if(sx < 7) poiList.push({x: this.MAP_W-1, y: this.getPseudoRandomGate(sy, sx+1, this.MAP_H), type: 'G'});
 
-            // MAP GENERIEREN VIA WORLD_GEN
             if(typeof WorldGen !== 'undefined') {
                 const map = WorldGen.createSector(this.MAP_W, this.MAP_H, biome, poiList);
                 this.worldData[key] = { layout: map, explored: {}, biome: biome };
             } else {
                 console.error("WorldGen missing!");
-                // Fallback (alter Code gekürzt)
+                let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('.'));
+                this.worldData[key] = { layout: map, explored: {}, biome: biome };
             }
         } 
-        
         const data = this.worldData[key]; 
         this.state.currentMap = data.layout; 
-        
         this.fixMapBorders(this.state.currentMap);
-
         this.state.explored = data.explored; 
         let zn = "Ödland"; if(data.biome === 'city') zn = "Ruinenstadt"; if(data.biome === 'desert') zn = "Glühende Wüste"; if(data.biome === 'jungle') zn = "Überwucherte Zone"; 
         this.state.zone = `${zn} (${sx},${sy})`; 
@@ -165,33 +155,19 @@ const Game = {
         } 
     },
 
-    // NEU: drawTile mit Terrain
     drawTile: function(ctx, x, y, type, pulse = 1) { 
         const ts = this.TILE; const px = x * ts; const py = y * ts; 
         let bg = this.colors['.']; 
         if(type === '_') bg = this.colors['_']; 
         if(type === ',') bg = this.colors[',']; 
-        if(type === '=') bg = this.colors['=']; // Stadt/Brücke Boden
-        
-        // Block Types
+        if(type === '=') bg = this.colors['=']; 
         if(type === 'W') bg = this.colors['W'];
         if(type === 'M') bg = this.colors['M'];
-        if(type === '#') bg = this.colors['#']; // Straße
+        if(type === '#') bg = this.colors['#'];
 
-        // Background Fill
-        if (type !== '~' && !['^','v','<','>'].includes(type)) { 
-            ctx.fillStyle = bg; 
-            ctx.fillRect(px, py, ts, ts); 
-        } 
-        
-        // Grid Line
-        if(!['^','v','<','>','M','W'].includes(type)) { 
-            ctx.strokeStyle = "rgba(40, 90, 40, 0.1)"; 
-            ctx.lineWidth = 1; 
-            ctx.strokeRect(px, py, ts, ts); 
-        } 
+        if (type !== '~' && !['^','v','<','>'].includes(type)) { ctx.fillStyle = bg; ctx.fillRect(px, py, ts, ts); } 
+        if(!['^','v','<','>','M','W'].includes(type)) { ctx.strokeStyle = "rgba(40, 90, 40, 0.1)"; ctx.lineWidth = 1; ctx.strokeRect(px, py, ts, ts); } 
 
-        // Ränder Pfeile
         if(['^', 'v', '<', '>'].includes(type)) {
             ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); 
             ctx.fillStyle = "#1aff1a"; ctx.strokeStyle = "#000"; ctx.beginPath();
@@ -204,39 +180,12 @@ const Game = {
 
         ctx.beginPath(); 
         switch(type) { 
-            case 't': // Baum
-                ctx.fillStyle = this.colors['t']; 
-                ctx.moveTo(px + ts/2, py + 2); 
-                ctx.lineTo(px + ts - 4, py + ts - 2); 
-                ctx.lineTo(px + 4, py + ts - 2); 
-                ctx.fill(); 
-                break;
-            case 'M': // Berg-Detail
-                ctx.fillStyle = "#5d4037"; // Hellere Spitze
-                ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts, py + ts); ctx.lineTo(px, py + ts); ctx.fill();
-                break;
-            case 'W': // Wasser-Wellen
-                ctx.strokeStyle = "#4fc3f7"; ctx.lineWidth = 2;
-                ctx.moveTo(px+5, py+15); ctx.lineTo(px+15, py+10); ctx.lineTo(px+25, py+15); ctx.stroke();
-                break;
-            case '=': // Brücke (Planken)
-                ctx.strokeStyle = "#5d4037"; ctx.lineWidth = 2;
-                ctx.moveTo(px, py+5); ctx.lineTo(px+ts, py+5);
-                ctx.moveTo(px, py+25); ctx.lineTo(px+ts, py+25);
-                ctx.stroke();
-                break;
-            case 'U': // Tunnel
-                ctx.fillStyle = "#000"; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI, true); ctx.fill();
-                break;
-            // ... (Restliche Symbole T, R, B, V, C, S, G, H aus altem Code übernehmen wenn nötig, oder durch neue ersetzen)
-            // Hier wichtig: Gate G
-            case 'G': 
-                ctx.globalAlpha = pulse; ctx.strokeStyle = this.colors['G']; ctx.lineWidth = 3; 
-                ctx.moveTo(px+ts/2, py+4); ctx.lineTo(px+ts/2, py+26); 
-                ctx.moveTo(px+10, py+10); ctx.lineTo(px+ts/2, py+4); ctx.lineTo(px+20, py+10); 
-                ctx.stroke(); 
-                break;
-            // ... (V, C, etc. wie gehabt)
+            case 't': ctx.fillStyle = this.colors['t']; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts - 4, py + ts - 2); ctx.lineTo(px + 4, py + ts - 2); ctx.fill(); break;
+            case 'M': ctx.fillStyle = "#5d4037"; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts, py + ts); ctx.lineTo(px, py + ts); ctx.fill(); break;
+            case 'W': ctx.strokeStyle = "#4fc3f7"; ctx.lineWidth = 2; ctx.moveTo(px+5, py+15); ctx.lineTo(px+15, py+10); ctx.lineTo(px+25, py+15); ctx.stroke(); break;
+            case '=': ctx.strokeStyle = "#5d4037"; ctx.lineWidth = 2; ctx.moveTo(px, py+5); ctx.lineTo(px+ts, py+5); ctx.moveTo(px, py+25); ctx.lineTo(px+ts, py+25); ctx.stroke(); break;
+            case 'U': ctx.fillStyle = "#000"; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI, true); ctx.fill(); break;
+            case 'G': ctx.globalAlpha = pulse; ctx.strokeStyle = this.colors['G']; ctx.lineWidth = 3; ctx.moveTo(px+ts/2, py+4); ctx.lineTo(px+ts/2, py+26); ctx.moveTo(px+10, py+10); ctx.lineTo(px+ts/2, py+4); ctx.lineTo(px+20, py+10); ctx.stroke(); break;
             case 'V': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['V']; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#000"; ctx.font="bold 12px monospace"; ctx.fillText("101", px+5, py+20); break; 
             case 'C': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['C']; ctx.fillRect(px+6, py+14, 18, 12); ctx.beginPath(); ctx.moveTo(px+4, py+14); ctx.lineTo(px+15, py+4); ctx.lineTo(px+26, py+14); ctx.fill(); break; 
             case 'S': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['S']; ctx.arc(px+ts/2, py+12, 6, 0, Math.PI*2); ctx.fill(); ctx.fillRect(px+10, py+18, 10, 6); break; 
@@ -250,20 +199,11 @@ const Game = {
         if(dy < 0) this.state.player.rot = 0; else if(dy > 0) this.state.player.rot = Math.PI; else if(dx < 0) this.state.player.rot = -Math.PI/2; else if(dx > 0) this.state.player.rot = Math.PI/2;
         const nx = this.state.player.x + dx; const ny = this.state.player.y + dy;
         if(nx < 0 || nx >= this.MAP_W || ny < 0 || ny >= this.MAP_H) return;
-        
         const tile = this.state.currentMap[ny][nx];
-        
-        // KOLLISION UPDATE: W, M, t sind Blocker (außer Brücke/Tunnel)
         const blockers = ['^', 'v', '<', '>', 'M', 'W', 't'];
-        if(blockers.includes(tile)) { 
-            UI.log("Weg blockiert.", "text-gray-500"); 
-            return; 
-        }
-        
+        if(blockers.includes(tile)) { UI.log("Weg blockiert.", "text-gray-500"); return; }
         this.state.player.x = nx; this.state.player.y = ny; this.reveal(nx, ny);
         if(typeof Network !== 'undefined') Network.sendMove(nx, ny, this.state.lvl, this.state.sector);
-        
-        // Interaktionen
         if(tile === 'G') {
             if(this.state.zone.includes("Gefahr!")) {
                 this.loadSector(this.state.sector.x, this.state.sector.y);
@@ -279,17 +219,13 @@ const Game = {
         else if(tile === 'C') { UI.renderCity(); this.saveGame(); } 
         else if(tile === 'V') { UI.enterVault(); this.saveGame(); } 
         else if(Math.random() < (this.state.zone.includes("Ruinenstadt") ? 0.05 : 0.1) && tile !== 'C' && tile !== '#' && tile !== '=') {
-            // Weniger Kämpfe auf Straßen (#)
             this.startCombat();
         }
         UI.update();
     },
-    // ... restliche Funktionen (generateCityLayout etc. werden durch WorldGen ersetzt oder ignoriert, wir lassen sie drin falls man zurück will, aber loadSector nutzt sie nicht mehr) ...
-    // Platzhalter, damit Code nicht bricht, falls altes Savegame darauf zugreift:
-    generateCityLayout: function(map) {}, 
-    generateDungeon: function(type) { let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('B')); let floorChar = type === "cave" ? '.' : '='; for(let i=0; i<8; i++) { let rx = Math.floor(Math.random() * 20) + 5; let ry = Math.floor(Math.random() * 20) + 5; let w = Math.floor(Math.random() * 8) + 3; let h = Math.floor(Math.random() * 8) + 3; for(let y=ry; y<ry+h; y++) for(let x=rx; x<rx+w; x++) { if(y<this.MAP_H-1 && x<this.MAP_W-1) map[y][x] = floorChar; } } map[35][20] = 'G'; this.state.currentMap = map; this.state.player.x = 20; this.state.player.y = 34; this.state.explored = {}; this.reveal(20, 34); },
-    addClusters: function(map, type, count, size) {},
-    clearGate: function(map, x, y, char, ground) {},
+    // Dummy Funktionen für Kompatibilität mit altem Code
+    generateCityLayout: function(map) {}, generateDungeon: function(type) { let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('B')); let floorChar = type === "cave" ? '.' : '='; for(let i=0; i<8; i++) { let rx = Math.floor(Math.random() * 20) + 5; let ry = Math.floor(Math.random() * 20) + 5; let w = Math.floor(Math.random() * 8) + 3; let h = Math.floor(Math.random() * 8) + 3; for(let y=ry; y<ry+h; y++) for(let x=rx; x<rx+w; x++) { if(y<this.MAP_H-1 && x<this.MAP_W-1) map[y][x] = floorChar; } } map[35][20] = 'G'; this.state.currentMap = map; this.state.player.x = 20; this.state.player.y = 34; this.state.explored = {}; this.reveal(20, 34); },
+    addClusters: function(map, type, count, size) {}, clearGate: function(map, x, y, char, ground) {},
     initCanvas: function() { const cvs = document.getElementById('game-canvas'); if(!cvs) return; const viewContainer = document.getElementById('view-container'); cvs.width = viewContainer.offsetWidth; cvs.height = viewContainer.offsetHeight; this.ctx = cvs.getContext('2d'); if(this.loopId) cancelAnimationFrame(this.loopId); this.drawLoop(); },
     drawLoop: function() { if(this.state.view !== 'map' || this.state.isGameOver) return; this.draw(); this.loopId = requestAnimationFrame(() => this.drawLoop()); },
     reveal: function(px, py) { for(let y=py-2; y<=py+2; y++) for(let x=px-2; x<=px+2; x++) if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) this.state.explored[`${x},${y}`] = true; },
