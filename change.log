@@ -1,6 +1,22 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.15b] - 2025-12-17 14:30 (Knowledge Base Update)
+
+FEATURE: Das Wiki wurde komplett überarbeitet und bietet nun 4 Kategorien:
+
+Bestiarium: Zeigt alle bekannten Gegner inkl. ihrer Drops und Stats.
+
+Items: Eine Liste aller Waffen, Rüstungen und Crafting-Materialien.
+
+Baupläne: Alle Crafting-Rezepte und deren Zutaten.
+
+Orte: Informationen zu wichtigen Locations wie Vault 101, Rusty Springs oder The Pitt.
+
+UI: views/wiki.html verfügt nun über Tabs zur Navigation.
+
+LOGIC: renderWiki in ui.js generiert Inhalte dynamisch aus den Spieldaten, sodass das Wiki immer aktuell ist.
+
 [v0.0.15a] - 2025-12-17 14:00 (Crafting System Update)
 
 FEATURE: Crafting-System (Werkbank) implementiert. Erreichbar über "Rusty Springs".
