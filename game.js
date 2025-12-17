@@ -111,7 +111,6 @@ const Game = {
 
         const tile = this.state.currentMap[ny][nx];
         
-        // FIX: 't' (Bäume) hinzugefügt, damit man nicht durchlaufen kann
         if(['M', 'W', '#', 'U', 't'].includes(tile)) { 
             UI.log("Weg blockiert.", "text-gray-500");
             return; 
@@ -120,10 +119,11 @@ const Game = {
         this.state.player.x = nx;
         this.state.player.y = ny;
         
-        if(dx === 1) this.state.player.rot = 0;
-        if(dx === -1) this.state.player.rot = Math.PI;
-        if(dy === 1) this.state.player.rot = Math.PI/2;
-        if(dy === -1) this.state.player.rot = -Math.PI/2;
+        // FIX: Rotation korrigiert für Dreieck das nach OBEN zeigt
+        if(dx === 1) this.state.player.rot = Math.PI / 2;  // Rechts
+        if(dx === -1) this.state.player.rot = -Math.PI / 2; // Links
+        if(dy === 1) this.state.player.rot = Math.PI;      // Unten
+        if(dy === -1) this.state.player.rot = 0;           // Oben
 
         this.reveal(nx, ny);
         
@@ -264,7 +264,18 @@ const Game = {
         let bg = this.colors['.']; if(type === '_') bg = this.colors['_']; if(type === ',') bg = this.colors[',']; if(type === '=') bg = this.colors['=']; if(type === 'W') bg = this.colors['W']; if(type === 'M') bg = this.colors['M']; if(type === '#') bg = this.colors['#'];
         if (type !== '~' && !['^','v','<','>'].includes(type)) { ctx.fillStyle = bg; ctx.fillRect(px, py, ts, ts); } 
         if(!['^','v','<','>','M','W'].includes(type)) { ctx.strokeStyle = "rgba(40, 90, 40, 0.1)"; ctx.lineWidth = 1; ctx.strokeRect(px, py, ts, ts); } 
-        if(['^', 'v', '<', '>'].includes(type)) { ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#1aff1a"; ctx.strokeStyle = "#000"; ctx.beginPath(); if (type === '^') { ctx.moveTo(px + ts/2, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); ctx.lineTo(px + 5, py + ts - 5); } else if (type === 'v') { ctx.moveTo(px + ts/2, py + ts - 5); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + 5, py + 5); } else if (type === '<') { ctx.moveTo(px + 5, py + ts/2); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); } else if (type === '>') { ctx.moveTo(px + ts - 5, py + ts/2); ctx.lineTo(px + 5, py + 5); ctx.lineTo(px + 5, py + ts - 5); } ctx.fill(); ctx.stroke(); return; }
+        
+        // FIX: Ränder Pfeile korrigiert
+        if(['^', 'v', '<', '>'].includes(type)) { 
+            ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); 
+            ctx.fillStyle = "#1aff1a"; ctx.strokeStyle = "#000"; ctx.beginPath(); 
+            if (type === '^') { ctx.moveTo(px + ts/2, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); ctx.lineTo(px + 5, py + ts - 5); } 
+            else if (type === 'v') { ctx.moveTo(px + ts/2, py + ts - 5); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + 5, py + 5); } 
+            else if (type === '<') { ctx.moveTo(px + 5, py + ts/2); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); } 
+            else if (type === '>') { ctx.moveTo(px + ts - 5, py + ts/2); ctx.lineTo(px + 5, py + 5); ctx.lineTo(px + 5, py + ts - 5); } 
+            ctx.fill(); ctx.stroke(); return; 
+        }
+
         ctx.beginPath(); 
         switch(type) { 
             case 't': ctx.fillStyle = this.colors['t']; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts - 4, py + ts - 2); ctx.lineTo(px + 4, py + ts - 2); ctx.fill(); break;
