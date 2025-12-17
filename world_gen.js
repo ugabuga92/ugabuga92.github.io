@@ -89,13 +89,12 @@ const WorldGen = {
             
             if (['V', 'C', 'S', 'H', 'G'].includes(current)) continue; 
 
-            // FIX: Straßen sind nun '=' (Asphalt/Weg) statt '#' (Wand)
             if (current === 'W') {
                 map[y][x] = '='; // Brücke
             } else if (current === 'M') {
-                map[y][x] = 'U'; // Tunnel / Pass
+                map[y][x] = 'U'; // Tunnel
             } else {
-                map[y][x] = '='; // Weg
+                map[y][x] = '='; // Weg (Stellt sicher, dass es keine Wand # ist)
             }
         }
     }
