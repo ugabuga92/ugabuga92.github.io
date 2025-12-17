@@ -1,6 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.14b] - 2025-12-17 07:05 (Collision & World Gen Fix)
+
+BUGFIX (WorldGen): Straßen wurden fälschlicherweise als Wand (#) generiert. Sie werden nun korrekt als Weg (=) erzeugt und sind betretbar.
+
+BUGFIX (Collision): Bäume (t) fehlten in der Kollisionsabfrage, wodurch Spieler "Geisterlauf" durch Wälder betreiben konnten. t ist nun ein solides Hindernis.
+
 [v0.0.13j] - 2025-12-17 06:40 (Critical Fix: Movement Restoration)
 
 FIX: Kritischer Fehler Game.move is not a function behoben. Die Bewegungslogik wurde versehentlich gelöscht und nun vollständig wiederhergestellt.
