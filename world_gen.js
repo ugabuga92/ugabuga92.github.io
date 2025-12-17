@@ -22,7 +22,7 @@ const WorldGen = {
         let map = Array(height).fill().map(() => Array(width).fill('.'));
         const conf = this.biomes[biomeType] || this.biomes['wasteland'];
 
-        // 1. BASIS TERRAIN
+        // 1. BASIS TERRAIN (Füllt ALLES aus, auch die Ränder)
         for(let y = 0; y < height; y++) {
             for(let x = 0; x < width; x++) {
                 const r = this.rand();
@@ -33,35 +33,32 @@ const WorldGen = {
             }
         }
 
-        // 2. POIs PLATZIEREN & STRASSEN BAUEN
-        let gates = [];
-        let center = {x: Math.floor(width/2), y: Math.floor(height/2)};
-
+        // 2. POIs PLATZIEREN
         if(poiList) {
             poiList.forEach(poi => {
                 if(poi.x >= 0 && poi.x < width && poi.y >= 0 && poi.y < height) {
                     map[poi.y][poi.x] = poi.type;
                     
-                    // Schutzzone um POI
-                    for(let dy=-1; dy<=1; dy++) {
-                        for(let dx=-1; dx<=1; dx++) {
+                    // Schutzzone um POI damit man nicht in Wand spawnt
+                    for(let dy=-2; dy<=2; dy++) {
+                        for(let dx=-2; dx<=2; dx++) {
                             const ny = poi.y+dy, nx = poi.x+dx;
                             if(ny>=0 && ny<height && nx>=0 && nx<width && map[ny][nx] !== poi.type) {
                                 map[ny][nx] = conf.ground; 
                             }
                         }
                     }
-
-                    if(poi.type === 'G') gates.push(poi);
-                    if(poi.type === 'V' || poi.type === 'C' || poi.type === 'S') center = poi;
                 }
             });
         }
 
-        // 3. STRASSEN VERBINDEN
-        gates.forEach(gate => {
-            this.buildRoad(map, gate, center, conf.ground);
-        });
+        // 3. WEGE (Optional: Verbindet POIs wenn vorhanden)
+        // Da wir keine festen Tore mehr haben, bauen wir Wege zufällig oder zu POIs
+        if(poiList && poiList.length > 1) {
+            for(let i=0; i<poiList.length-1; i++) {
+                this.buildRoad(map, poiList[i], poiList[i+1], conf.ground);
+            }
+        }
 
         return map;
     },
@@ -83,18 +80,18 @@ const WorldGen = {
                 }
             }
 
-            if(x <= 0 || x >= map[0].length - 1 || y <= 0 || y >= map.length - 1) continue;
+            if(x < 0 || x >= map[0].length || y < 0 || y >= map.length) continue;
 
             const current = map[y][x];
             
-            if (['V', 'C', 'S', 'H', 'G'].includes(current)) continue; 
+            if (['V', 'C', 'S', 'H'].includes(current)) continue; 
 
             if (current === 'W') {
                 map[y][x] = '='; // Brücke
             } else if (current === 'M') {
                 map[y][x] = 'U'; // Tunnel
             } else {
-                map[y][x] = '='; // Weg (Stellt sicher, dass es keine Wand # ist)
+                map[y][x] = '='; // Weg
             }
         }
     }
