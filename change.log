@@ -1,6 +1,10 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.15f] - 2025-12-17 19:40 (Joystick Fix)
+
+BUGFIX: Joystick-Bewegung wird nun zwangsweise gestoppt, sobald ein View-Wechsel stattfindet (z.B. Start eines Kampfes). Dies verhindert, dass der Charakter "unendlich" weiterläuft, weil das touchend Event durch den Overlay-Wechsel verloren ging.
+
 [v0.0.15e] - 2025-12-17 19:20 (Touch Controls Update)
 
 UI: D-Pad Buttons entfernt und durch einen virtuellen "Analog-Stick" ersetzt.
