@@ -1,6 +1,14 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.15e] - 2025-12-17 19:20 (Touch Controls Update)
+
+UI: D-Pad Buttons entfernt und durch einen virtuellen "Analog-Stick" ersetzt.
+
+FEATURE: Spieler können nun auf dem Bildschirm (in der Map-View) ziehen, um sich kontinuierlich in eine Richtung zu bewegen.
+
+VISUAL: Ein grüner Joystick-Indikator erscheint dynamisch an der Position der Berührung.
+
 [v0.0.15d] - 2025-12-17 15:30 (Bestiary Fix)
 
 BUGFIX: Fehlende Monster-Definitionen für radScorpion und mutantRose hinzugefügt. Dies verhinderte das korrekte Laden von Kämpfen oder Wiki-Einträgen in Dschungel- und Wüsten-Biomen.
