@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pip-Boy 3003</title>
-    
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23000%22/><text x=%2250%25%22 y=%2250%25%22 font-size=%2280%22 font-family=%22monospace%22 font-weight=%22bold%22 fill=%22%231aff1a%22 dy=%22.35em%22 text-anchor=%22middle%22>P</text></svg>">
-
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -66,56 +64,42 @@
             </div>
         </div>
     </div>
-
     <div id="spawn-screen" style="display: none;">
         <div class="login-box crt-effect-container" style="min-width: 350px;">
             <h1 class="text-4xl font-bold glow-text mb-4">NEUER CHARAKTER</h1>
             <div id="spawn-msg" class="text-sm mb-4 text-red-400 font-bold"></div>
             <div class="text-lg mb-4 text-cyan-400">WO MÖCHTEST DU STARTEN?</div>
-            
             <div id="spawn-list" class="flex flex-col gap-2 max-h-[300px] overflow-y-auto mb-4 border border-green-900 p-2">
                 <div class="text-center italic opacity-50">Scanne Netzwerk...</div>
             </div>
-
             <button id="btn-spawn-random" class="action-button w-full mb-2">ZUFALL IM ÖDLAND</button>
             <button class="action-button w-full border-red-500 text-red-500" onclick="location.reload()">ABBRUCH</button>
         </div>
     </div>
-
     <div id="reset-overlay" style="display: none;">
         <div class="login-box crt-effect-container border-red-500" style="min-width: 300px; box-shadow: 0 0 20px #500;">
             <h1 class="text-4xl font-bold text-red-500 mb-4 animate-pulse">ACHTUNG!</h1>
-            <div class="text-lg mb-8 text-red-400 font-bold">
-                CHARAKTER UNWIDERRUFLICH LÖSCHEN?<br>
-                ALLE FORTSCHRITTE GEHEN VERLOREN!
-            </div>
+            <div class="text-lg mb-8 text-red-400 font-bold">CHARAKTER UNWIDERRUFLICH LÖSCHEN?<br>ALLE FORTSCHRITTE GEHEN VERLOREN!</div>
             <button id="btn-confirm-reset" class="action-button w-full mb-4 border-red-500 text-red-500 font-bold hover:bg-red-900">JA, LÖSCHEN & NEUSTART</button>
             <button id="btn-cancel-reset" class="action-button w-full border-green-500 text-green-500">NEIN, ABBRECHEN</button>
         </div>
     </div>
-
     <div id="game-over-screen" class="absolute inset-0 z-50 bg-black/95 flex flex-col justify-center items-center hidden">
         <h1 class="text-6xl text-red-600 font-bold border-4 border-red-600 p-6 mb-6 blink-red tracking-widest">CRITICAL FAILURE</h1>
         <button onclick="location.reload()" class="border-2 border-red-500 text-red-500 px-8 py-3 hover:bg-red-900 text-xl font-bold uppercase cursor-pointer">SYSTEM REBOOT</button>
     </div>
-    
     <div id="player-list-overlay">
         <div class="font-bold border-b border-green-500 mb-2 pb-1 text-center">AKTIVE SIGNALE</div>
         <div id="player-list-content" class="text-sm space-y-1"></div>
         <button class="action-button w-full mt-2 text-xs" onclick="UI.togglePlayerList()">SCHLIESSEN</button>
     </div>
-    
     <div id="game-screen" class="hidden opacity-0 transition-opacity duration-1000">
         <header class="header-bar flex-wrap md:flex-nowrap gap-2 py-2 relative">
             <div class="flex flex-row items-center w-1/2 md:w-1/4 justify-start">
-                <div class="font-bold text-lg md:text-xl leading-none whitespace-nowrap" style="text-shadow: 0 0 5px var(--pip-green);">
-                    PIP-BOY <span class="text-xs opacity-70 hidden md:inline">3003</span>
-                </div>
+                <div class="font-bold text-lg md:text-xl leading-none whitespace-nowrap" style="text-shadow: 0 0 5px var(--pip-green);">PIP-BOY <span class="text-xs opacity-70 hidden md:inline">3003</span></div>
                 <div id="current-zone-display" class="text-xs opacity-90 leading-none text-[#aaffaa] ml-2 truncate max-w-[120px]">Init...</div>
             </div>
-            <div class="hidden md:flex w-1/4 justify-center">
-                <span id="version-display" class="text-yellow-400 font-bold tracking-widest text-xs animate-pulse">...</span>
-            </div>
+            <div class="hidden md:flex w-1/4 justify-center"><span id="version-display" class="text-yellow-400 font-bold tracking-widest text-xs animate-pulse">...</span></div>
             <div class="flex items-center justify-end gap-2 w-1/2 md:w-1/2">
                 <button id="btn-logout" class="action-button px-3 py-1 text-sm md:text-base border-red-500 text-red-400">LOGOUT</button>
                 <button id="btn-save" class="action-button px-3 py-1 text-sm md:text-base border-blue-500 text-blue-400 font-bold">SAVE</button>
@@ -132,37 +116,21 @@
         </header>
         <div id="system-status-bar" class="flex justify-between items-center px-4 py-2 border-b-2 border-[#1aff1a] bg-[#0a1f0a]">
             <div class="flex items-center gap-4 text-sm md:text-base">
-                <div class="flex items-center gap-1">
-                    <span id="val-name" class="text-cyan-400 font-bold mr-2 uppercase tracking-wider glow-text">PLAYER</span>
-                    <span>TP:</span><span id="val-hp">--/--</span>
-                    <div class="w-16 md:w-24 bg-black h-3 border border-[#1a4d1a]"><div id="bar-hp" class="bg-[#1aff1a] h-full" style="width: 100%"></div></div>
-                </div>
+                <div class="flex items-center gap-1"><span id="val-name" class="text-cyan-400 font-bold mr-2 uppercase tracking-wider glow-text">PLAYER</span><span>TP:</span><span id="val-hp">--/--</span><div class="w-16 md:w-24 bg-black h-3 border border-[#1a4d1a]"><div id="bar-hp" class="bg-[#1aff1a] h-full" style="width: 100%"></div></div></div>
                 <span>LVL: <span id="val-lvl">-</span></span>
                 <div class="flex items-center gap-1"><span>XP:</span><div class="w-16 md:w-24 bg-black h-3 border border-yellow-900"><div id="bar-exp-top" class="bg-yellow-500 h-full" style="width: 0%"></div></div></div>
                 <span>MUN: <span id="val-ammo">-</span></span>
             </div>
-            <div class="flex gap-4">
-                <span id="val-players" class="text-cyan-400 font-bold glow-text cursor-pointer hover:text-white" title="Spielerliste anzeigen">0 ONLINE</span>
-                <span id="val-caps" class="text-yellow-400 font-bold glow-text">--- Caps</span>
-            </div>
+            <div class="flex gap-4"><span id="val-players" class="text-cyan-400 font-bold glow-text cursor-pointer hover:text-white" title="Spielerliste anzeigen">0 ONLINE</span><span id="val-caps" class="text-yellow-400 font-bold glow-text">--- Caps</span></div>
         </div>
         <div id="main-content">
             <div id="main-panel">
                 <div id="layout-split">
                     <div id="view-container" class="crt-effect-container">
                         <button id="btn-toggle-dpad">🎮</button>
-                        <div id="overlay-controls" style="display:none; position: absolute; bottom: 80px; left: 20px; z-index: 60; grid-template-columns: repeat(3, 1fr); gap: 5px;">
-                             <div></div><button class="dpad-btn" id="btn-up" style="width: 50px; height: 50px; background: rgba(0,20,0,0.9); border: 2px solid #1aff1a; color: #1aff1a; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▲</button><div></div>
-                             <button class="dpad-btn" id="btn-left" style="width: 50px; height: 50px; background: rgba(0,20,0,0.9); border: 2px solid #1aff1a; color: #1aff1a; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">◀</button><div class="flex items-center justify-center text-[#1aff1a]">●</div><button class="dpad-btn" id="btn-right" style="width: 50px; height: 50px; background: rgba(0,20,0,0.9); border: 2px solid #1aff1a; color: #1aff1a; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▶</button>
-                             <div></div><button class="dpad-btn" id="btn-down" style="width: 50px; height: 50px; background: rgba(0,20,0,0.9); border: 2px solid #1aff1a; color: #1aff1a; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▼</button><div></div>
-                        </div>
+                        <div id="overlay-controls" style="display:none; position: absolute; bottom: 80px; left: 20px; z-index: 60; grid-template-columns: repeat(3, 1fr); gap: 5px;"><div></div><button class="dpad-btn" id="btn-up" style="width: 50px; height: 50px; background: rgba(0,20,0,0.9); border: 2px solid #1aff1a; color: #1aff1a; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▲</button><div></div><button class="dpad-btn" id="btn-left" style="width: 50px; height: 50px; background: rgba(0,20,0,0.9); border: 2px solid #1aff1a; color: #1aff1a; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">◀</button><div class="flex items-center justify-center text-[#1aff1a]">●</div><button class="dpad-btn" id="btn-right" style="width: 50px; height: 50px; background: rgba(0,20,0,0.9); border: 2px solid #1aff1a; color: #1aff1a; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▶</button><div></div><button class="dpad-btn" id="btn-down" style="width: 50px; height: 50px; background: rgba(0,20,0,0.9); border: 2px solid #1aff1a; color: #1aff1a; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▼</button><div></div></div>
                         <div id="dialog-overlay"></div>
-                        <div id="dice-overlay" class="hidden">
-                            <h2 class="text-5xl text-yellow-400 mb-8 font-bold animate-pulse">LEGENDÄR!</h2>
-                            <div class="flex gap-6 mb-8"><div id="dice-1" class="dice-box">?</div><div id="dice-2" class="dice-box">?</div><div id="dice-3" class="dice-box">?</div></div>
-                            <div class="text-2xl mb-6 text-center font-bold"><div class="text-cyan-400">3-7: KRONKORKEN</div><div class="text-cyan-400">8-12: MUNITION</div><div class="text-yellow-400">13-18: OVERDRIVE</div></div>
-                            <button id="btn-roll" class="action-button px-10 py-4 text-3xl border-yellow-400 text-yellow-400 hover:bg-yellow-900" onclick="UI.rollDiceAnim()">WÜRFELN</button>
-                        </div>
+                        <div id="dice-overlay" class="hidden"><h2 class="text-5xl text-yellow-400 mb-8 font-bold animate-pulse">LEGENDÄR!</h2><div class="flex gap-6 mb-8"><div id="dice-1" class="dice-box">?</div><div id="dice-2" class="dice-box">?</div><div id="dice-3" class="dice-box">?</div></div><div class="text-2xl mb-6 text-center font-bold"><div class="text-cyan-400">3-7: KRONKORKEN</div><div class="text-cyan-400">8-12: MUNITION</div><div class="text-yellow-400">13-18: OVERDRIVE</div></div><button id="btn-roll" class="action-button px-10 py-4 text-3xl border-yellow-400 text-yellow-400 hover:bg-yellow-900" onclick="UI.rollDiceAnim()">WÜRFELN</button></div>
                         <div class="p-10 text-[#1aff1a] font-mono text-center opacity-80">> SYSTEM CHECK... OK<br>> LADE MODUL...</div>
                     </div>
                     <div id="log-panel">
@@ -185,16 +153,7 @@
             if(verDisplay) { verDisplay.textContent = ver; verDisplay.classList.remove('animate-pulse'); }
             if(loginVerDisplay) { loginVerDisplay.textContent = ver; }
             console.log("Loading V:", ver);
-            loadScript('world_gen.js?v=' + ver).then(() => 
-                loadScript('network.js?v=' + ver).then(() => 
-                    loadScript('ui.js?v=' + ver).then(() => 
-                        loadScript('game.js?v=' + ver).then(() => {
-                            if(typeof UI !== 'undefined') UI.init();
-                            console.log("System bereit für Login.");
-                        })
-                    )
-                )
-            );
+            loadScript('world_gen.js?v=' + ver).then(() => loadScript('network.js?v=' + ver).then(() => loadScript('ui.js?v=' + ver).then(() => loadScript('game.js?v=' + ver).then(() => { if(typeof UI !== 'undefined') UI.init(); console.log("System bereit für Login."); }))));
         });
     };
 </script>
