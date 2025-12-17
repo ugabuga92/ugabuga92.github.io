@@ -1,6 +1,16 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.15a] - 2025-12-17 14:00 (Crafting System Update)
+
+FEATURE: Crafting-System (Werkbank) implementiert. Erreichbar über "Rusty Springs".
+
+ITEMS: Neue Waffen (Nagelschläger, Taktische Pistole) und Upgrades hinzugefügt.
+
+UI: Neue crafting.html View mit dynamischer Rezept-Liste und Material-Anzeige.
+
+LOGIC: craftItem Funktion erstellt Items aus Komponenten und entfernt diese aus dem Inventar. Level-Anforderungen für Rezepte hinzugefügt.
+
 [v0.0.14g] - 2025-12-17 13:40 (Loot & Legends Update)
 
 LOOT: Mobs haben nun spezifische Drops (z.B. Radroach -> Kakerlakenfleisch, Roboter -> Metallschrott).
