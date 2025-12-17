@@ -1,6 +1,15 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.15c] - 2025-12-17 15:00 (Paper Doll Character UI)
+
+UI: Das Charakter-Menü (char.html) wurde komplett überarbeitet.
+
+VISUAL: Eine animierte SVG-Strichfigur ("Pip-Boy Style") visualisiert nun den Charakter im Zentrum.
+
+FEATURE: Angelegte Ausrüstung (Waffe & Rüstung) wird nun links und rechts neben dem Charakter mit Stats und Icons dargestellt.
+
+
 [v0.0.15b] - 2025-12-17 14:30 (Knowledge Base Update)
 
 FEATURE: Das Wiki wurde komplett überarbeitet und bietet nun 4 Kategorien:
