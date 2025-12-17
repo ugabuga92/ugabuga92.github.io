@@ -1,6 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.13j] - 2025-12-17 06:40 (Critical Fix: Movement Restoration)
+
+FIX: Kritischer Fehler Game.move is not a function behoben. Die Bewegungslogik wurde versehentlich gelöscht und nun vollständig wiederhergestellt.
+
+RESTORED: Kollisionserkennung, Sektor-Wechsel und Interaktions-Trigger (Städte, Vaults) funktionieren wieder.
+
 [v0.0.13i] - 2025-12-17 01:15 (Final Syntax & UI Fix)
 -----------------------------------------------------
 - FIX: `Game`-Objekt in `game.js` vollständig validiert. Alle fehlenden Kommas und Klammern wurden korrigiert. `this.drawTile is not a function` sollte endgültig behoben sein.
