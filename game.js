@@ -11,7 +11,6 @@ const Game = {
         '+': '#666666', '"': '#3cb371', 'Y': '#deb887', 'U': '#212121'
     },
     
-    // NEU: Crafting-Komponenten & Neue Waffen
     items: { 
         // Währungen & Consumables
         stimpack: { name: "Stimpack", type: "consumable", effect: "heal", val: 50, cost: 25 },
@@ -36,8 +35,11 @@ const Game = {
         vault_suit: { name: "Vault-Anzug", slot: 'body', type: 'body', bonus: { END: 1 }, cost: 0, requiredLevel: 0 }, 
         knife: { name: "Kampfmesser", slot: 'weapon', type: 'weapon', baseDmg: 8, bonus: { STR: 1 }, cost: 15, requiredLevel: 1, isRanged: false }, 
         bat: { name: "Baseballschläger", slot: 'weapon', type: 'weapon', baseDmg: 12, bonus: { STR: 2 }, cost: 25, requiredLevel: 2, isRanged: false },
+        bat_spiked: { name: "Nagelschläger", slot: 'weapon', type: 'weapon', baseDmg: 18, bonus: { STR: 2 }, cost: 50, requiredLevel: 3, isRanged: false },
         pistol: { name: "10mm Pistole", slot: 'weapon', type: 'weapon', baseDmg: 14, bonus: { AGI: 1 }, cost: 50, requiredLevel: 1, isRanged: true }, 
+        pistol_tac: { name: "Taktische 10mm", slot: 'weapon', type: 'weapon', baseDmg: 20, bonus: { AGI: 2, PER: 1 }, cost: 100, requiredLevel: 4, isRanged: true },
         leather_armor: { name: "Lederharnisch", slot: 'body', type: 'body', bonus: { END: 2 }, cost: 30, requiredLevel: 1 }, 
+        leather_armor_h: { name: "Gehärtetes Leder", slot: 'body', type: 'body', bonus: { END: 4 }, cost: 80, requiredLevel: 3 },
         shotgun: { name: "Kampfschrotflinte", slot: 'weapon', type: 'weapon', baseDmg: 24, bonus: { STR: 1 }, cost: 120, requiredLevel: 3, isRanged: true }, 
         rifle_hunting: { name: "Jagdgewehr", slot: 'weapon', type: 'weapon', baseDmg: 35, bonus: { PER: 2 }, cost: 180, requiredLevel: 4, isRanged: true },
         laser_rifle: { name: "Laser-Gewehr", slot: 'weapon', type: 'weapon', baseDmg: 30, bonus: { PER: 2, INT: 1 }, cost: 300, requiredLevel: 5, isRanged: true }, 
@@ -47,23 +49,28 @@ const Game = {
         plasma_rifle: { name: "Plasma-Gewehr", slot: 'weapon', type: 'weapon', baseDmg: 55, bonus: { PER: 2, INT: 2 }, cost: 600, requiredLevel: 10, isRanged: true }
     },
     
-    // NEU: Erweiterte Monster Liste mit Drops
+    // NEU: CRAFTING REZEPTE
+    recipes: [
+        { id: "stimpack", out: "stimpack", count: 1, req: { "meat_fly": 1, "adhesive": 1 }, lvl: 1 },
+        { id: "ammo_pack", out: "AMMO", count: 15, req: { "scrap_metal": 2 }, lvl: 1 },
+        { id: "bat_upgrade", out: "bat_spiked", count: 1, req: { "bat": 1, "scrap_metal": 5, "adhesive": 1 }, lvl: 2 },
+        { id: "leather_upgrade", out: "leather_armor_h", count: 1, req: { "leather_armor": 1, "hide_yao": 2, "adhesive": 2 }, lvl: 3 },
+        { id: "pistol_mod", out: "pistol_tac", count: 1, req: { "pistol": 1, "screws": 3, "gears": 2 }, lvl: 4 },
+        { id: "laser_mod", out: "laser_rifle", count: 1, req: { "rifle_hunting": 1, "circuitry": 2, "nuclear_mat": 1 }, lvl: 6 } // "Umbau"
+    ],
+
     monsters: { 
         radRoach: { name: "Rad-Kakerlake", hp: 15, dmg: 3, xp: [10, 15], loot: 1, minLvl: 1, drops: [{id:'meat_roach', c:0.6}] }, 
         bloatfly: { name: "Blähfliege", hp: 10, dmg: 5, xp: [12, 18], loot: 2, minLvl: 1, drops: [{id:'meat_fly', c:0.7}, {id:'nuclear_mat', c:0.05}] },
         moleRat: { name: "Maulwurfsratte", hp: 25, dmg: 6, xp: [15, 25], loot: 3, minLvl: 1, drops: [{id:'meat_mole', c:0.5}] }, 
-        
         raider: { name: "Raider", hp: 60, dmg: 12, loot: 20, xp: [50, 70], minLvl: 2, drops: [{id:'stimpack', c:0.15}, {id:'scrap_metal', c:0.3}] }, 
         ghoul: { name: "Wilder Ghul", hp: 50, dmg: 10, loot: 5, xp: [40, 60], minLvl: 2, drops: [{id:'nuclear_mat', c:0.1}] }, 
-        wildDog: { name: "Wilder Hund", hp: 40, dmg: 9, loot: 0, xp: [30, 50], minLvl: 2, drops: [{id:'meat_mole', c:0.4}] }, // Placeholder meat
-        
+        wildDog: { name: "Wilder Hund", hp: 40, dmg: 9, loot: 0, xp: [30, 50], minLvl: 2, drops: [{id:'meat_mole', c:0.4}] }, 
         mirelurk: { name: "Mirelurk", hp: 110, dmg: 20, loot: 10, xp: [90, 120], minLvl: 4, drops: [{id:'meat_lurk', c:0.8}, {id:'adhesive', c:0.3}] },
         protectron: { name: "Protectron", hp: 130, dmg: 15, loot: 30, xp: [100, 140], minLvl: 4, drops: [{id:'scrap_metal', c:1.0}, {id:'circuitry', c:0.4}] },
-        
         yaoGuai: { name: "Yao Guai", hp: 180, dmg: 35, loot: 0, xp: [180, 250], minLvl: 6, drops: [{id:'hide_yao', c:1.0}, {id:'springs', c:0.3}] },
         sentryBot: { name: "Wachbot MK-II", hp: 250, dmg: 45, loot: 80, xp: [300, 400], minLvl: 8, drops: [{id:'scrap_metal', c:1.0}, {id:'gears', c:0.8}, {id:'nuclear_mat', c:0.5}] },
-        
-        deathclaw: { name: "Todesklaue", hp: 400, dmg: 70, loot: 100, xp: [600, 800], minLvl: 10, drops: [{id:'hide_yao', c:1.0}, {id:'gears', c:0.5}] } // Placeholder drops
+        deathclaw: { name: "Todesklaue", hp: 400, dmg: 70, loot: 100, xp: [600, 800], minLvl: 10, drops: [{id:'hide_yao', c:1.0}, {id:'gears', c:0.5}] } 
     },
 
     state: null, worldData: {}, ctx: null, loopId: null, camera: { x: 0, y: 0 }, cacheCanvas: null, cacheCtx: null,
@@ -182,10 +189,70 @@ const Game = {
         const existing = this.state.inventory.find(i => i.id === id); 
         if(existing) existing.count += count; 
         else this.state.inventory.push({id: id, count: count}); 
-        UI.log(`+ ${this.items[id].name} (${count})`, "text-green-400"); 
+        UI.log(`+ ${this.items[id] ? this.items[id].name : id} (${count})`, "text-green-400"); 
     }, 
     
     useItem: function(id) { const itemDef = this.items[id]; const invItem = this.state.inventory.find(i => i.id === id); if(!invItem || invItem.count <= 0) return; if(itemDef.type === 'consumable') { if(itemDef.effect === 'heal') { const healAmt = itemDef.val; if(this.state.hp >= this.state.maxHp) { UI.log("Gesundheit bereits voll.", "text-gray-500"); return; } this.state.hp = Math.min(this.state.maxHp, this.state.hp + healAmt); UI.log(`Verwendet: ${itemDef.name}. +${healAmt} HP.`, "text-blue-400"); invItem.count--; } } else if (itemDef.type === 'weapon' || itemDef.type === 'body') { const oldItemName = this.state.equip[itemDef.slot].name; const oldItemKey = Object.keys(this.items).find(key => this.items[key].name === oldItemName); if(oldItemKey && oldItemKey !== 'fists' && oldItemKey !== 'vault_suit') { this.addToInventory(oldItemKey, 1); } this.state.equip[itemDef.slot] = itemDef; invItem.count--; UI.log(`Ausgerüstet: ${itemDef.name}`, "text-yellow-400"); if(itemDef.slot === 'body') { const oldMax = this.state.maxHp; this.state.maxHp = this.calculateMaxHP(this.getStat('END')); this.state.hp += (this.state.maxHp - oldMax); } } if(invItem.count <= 0) { this.state.inventory = this.state.inventory.filter(i => i.id !== id); } UI.update(); if(this.state.view === 'inventory') UI.renderInventory(); this.saveGame(); }, 
+    
+    // NEU: CRAFTING LOGIC
+    craftItem: function(recipeId) {
+        const recipe = this.recipes.find(r => r.id === recipeId);
+        if(!recipe) return;
+        
+        // Check Requirements
+        if(this.state.lvl < recipe.lvl) {
+            UI.log(`Benötigt Level ${recipe.lvl}!`, "text-red-500");
+            return;
+        }
+        
+        for(let reqId in recipe.req) {
+            const countNeeded = recipe.req[reqId];
+            const invItem = this.state.inventory.find(i => i.id === reqId);
+            
+            // Check if equipped (for weapons/armor upgrades)
+            let hasEquipped = false;
+            if (this.state.equip.weapon && Object.keys(this.items).find(k => this.items[k].name === this.state.equip.weapon.name) === reqId) hasEquipped = true;
+            if (this.state.equip.body && Object.keys(this.items).find(k => this.items[k].name === this.state.equip.body.name) === reqId) hasEquipped = true;
+
+            if (hasEquipped) {
+                // If it's equipped, we treat it as "1 in inventory" logic-wise for the check, 
+                // but we need to handle the removal carefully.
+                // For simplicity: You must UNEQUIP items to craft with them if they are base materials.
+                if((!invItem || invItem.count < countNeeded)) {
+                    UI.log(`Material fehlt (oder ist ausgerüstet): ${this.items[reqId].name}`, "text-red-500");
+                    return;
+                }
+            } else {
+                if(!invItem || invItem.count < countNeeded) {
+                    UI.log(`Fehlendes Material: ${this.items[reqId].name}`, "text-red-500");
+                    return;
+                }
+            }
+        }
+        
+        // Remove Materials
+        for(let reqId in recipe.req) {
+            const countNeeded = recipe.req[reqId];
+            const invItem = this.state.inventory.find(i => i.id === reqId);
+            invItem.count -= countNeeded;
+            if(invItem.count <= 0) {
+                this.state.inventory = this.state.inventory.filter(i => i.id !== reqId);
+            }
+        }
+        
+        // Add Result
+        if(recipe.out === "AMMO") {
+            this.state.ammo += recipe.count;
+            UI.log(`Hergestellt: ${recipe.count} Schuss Munition`, "text-green-400 font-bold");
+        } else {
+            this.addToInventory(recipe.out, recipe.count);
+            UI.log(`Hergestellt: ${this.items[recipe.out].name}`, "text-green-400 font-bold");
+        }
+        
+        this.saveGame();
+        if(typeof UI !== 'undefined') UI.renderCrafting(); // Refresh UI
+    },
+
     saveGame: function(manual = false) { if(!this.state) return; if(manual) UI.log("Speichere...", "text-gray-500"); if(typeof Network !== 'undefined') Network.save(this.state); }, 
 
     loadSector: function(sx_in, sy_in, isInterior = false, dungeonType = "market") { 
@@ -370,143 +437,10 @@ const Game = {
     initCanvas: function() { const cvs = document.getElementById('game-canvas'); if(!cvs) return; const viewContainer = document.getElementById('view-container'); cvs.width = viewContainer.offsetWidth; cvs.height = viewContainer.offsetHeight; this.ctx = cvs.getContext('2d'); if(this.loopId) cancelAnimationFrame(this.loopId); this.drawLoop(); },
     drawLoop: function() { if(this.state.view !== 'map' || this.state.isGameOver) return; this.draw(); this.loopId = requestAnimationFrame(() => this.drawLoop()); },
     reveal: function(px, py) { for(let y=py-2; y<=py+2; y++) for(let x=px-2; x<=px+2; x++) if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) this.state.explored[`${x},${y}`] = true; },
-    
-    // NEU: Update für neuen Mobs
-    startCombat: function() { 
-        let pool = []; 
-        let lvl = this.state.lvl; 
-        let biome = this.worldData[`${this.state.sector.x},${this.state.sector.y}`]?.biome || 'wasteland'; 
-        let zone = this.state.zone; 
-        
-        if(zone.includes("Supermarkt")) { 
-            pool = [this.monsters.raider, this.monsters.ghoul, this.monsters.wildDog]; 
-            if(lvl >= 4) pool.push(this.monsters.superMutant); 
-        } 
-        else if (zone.includes("Höhle")) { 
-            pool = [this.monsters.moleRat, this.monsters.radScorpion, this.monsters.bloatfly]; 
-            if(lvl >= 3) pool.push(this.monsters.ghoul); 
-        } 
-        else if(biome === 'city') { 
-            pool = [this.monsters.raider, this.monsters.ghoul, this.monsters.protectron]; 
-            if(lvl >= 5) pool.push(this.monsters.superMutant); 
-            if(lvl >= 7) pool.push(this.monsters.sentryBot);
-        } 
-        else if(biome === 'desert') { 
-            pool = [this.monsters.radScorpion, this.monsters.raider, this.monsters.moleRat]; 
-        } 
-        else if(biome === 'jungle') {
-            pool = [this.monsters.bloatfly, this.monsters.mutantRose, this.monsters.yaoGuai];
-        }
-        else if(biome === 'swamp') {
-            pool = [this.monsters.mirelurk, this.monsters.bloatfly];
-            if(lvl >= 5) pool.push(this.monsters.ghoul);
-        }
-        else { 
-            // Wasteland default
-            pool = [this.monsters.moleRat, this.monsters.radRoach, this.monsters.bloatfly]; 
-            if(lvl >= 2) pool.push(this.monsters.raider); 
-            if(lvl >= 3) pool.push(this.monsters.wildDog);
-        } 
-        
-        if(lvl >= 8 && Math.random() < 0.1) pool = [this.monsters.deathclaw]; 
-        else if (Math.random() < 0.01) pool = [this.monsters.deathclaw]; 
-        
-        const template = pool[Math.floor(Math.random()*pool.length)]; 
-        let enemy = { ...template }; 
-        const isLegendary = Math.random() < 0.15; 
-        
-        if(isLegendary) { 
-            enemy.isLegendary = true; 
-            enemy.name = "Legendäre " + enemy.name; 
-            enemy.hp *= 2; 
-            enemy.maxHp = enemy.hp; 
-            enemy.dmg = Math.floor(enemy.dmg*1.5); 
-            enemy.loot *= 3; 
-            if(Array.isArray(enemy.xp)) enemy.xp = [enemy.xp[0]*3, enemy.xp[1]*3]; 
-        } else {
-            enemy.maxHp = enemy.hp; 
-        }
-        
-        this.state.enemy = enemy; 
-        this.state.inDialog = true; 
-        if(Date.now() < this.state.buffEndTime) UI.log("⚡ S.P.E.C.I.A.L. OVERDRIVE aktiv!", "text-yellow-400"); 
-        UI.switchView('combat').then(() => UI.renderCombat()); 
-        UI.log(isLegendary ? "LEGENDÄRER GEGNER!" : "Kampf gestartet!", isLegendary ? "text-yellow-400" : "text-red-500"); 
-    },
-    
+    startCombat: function() { let pool = []; let lvl = this.state.lvl; let biome = this.worldData[`${this.state.sector.x},${this.state.sector.y}`]?.biome || 'wasteland'; let zone = this.state.zone; if(zone.includes("Supermarkt")) { pool = [this.monsters.raider, this.monsters.ghoul, this.monsters.wildDog]; if(lvl >= 4) pool.push(this.monsters.superMutant); } else if (zone.includes("Höhle")) { pool = [this.monsters.moleRat, this.monsters.radScorpion, this.monsters.bloatfly]; if(lvl >= 3) pool.push(this.monsters.ghoul); } else if(biome === 'city') { pool = [this.monsters.raider, this.monsters.ghoul, this.monsters.protectron]; if(lvl >= 5) pool.push(this.monsters.superMutant); if(lvl >= 7) pool.push(this.monsters.sentryBot); } else if(biome === 'desert') { pool = [this.monsters.radScorpion, this.monsters.raider, this.monsters.moleRat]; } else if(biome === 'jungle') { pool = [this.monsters.bloatfly, this.monsters.mutantRose, this.monsters.yaoGuai]; } else if(biome === 'swamp') { pool = [this.monsters.mirelurk, this.monsters.bloatfly]; if(lvl >= 5) pool.push(this.monsters.ghoul); } else { pool = [this.monsters.moleRat, this.monsters.radRoach, this.monsters.bloatfly]; if(lvl >= 2) pool.push(this.monsters.raider); if(lvl >= 3) pool.push(this.monsters.wildDog); } if(lvl >= 8 && Math.random() < 0.1) pool = [this.monsters.deathclaw]; else if (Math.random() < 0.01) pool = [this.monsters.deathclaw]; const template = pool[Math.floor(Math.random()*pool.length)]; let enemy = { ...template }; const isLegendary = Math.random() < 0.15; if(isLegendary) { enemy.isLegendary = true; enemy.name = "Legendäre " + enemy.name; enemy.hp *= 2; enemy.maxHp = enemy.hp; enemy.dmg = Math.floor(enemy.dmg*1.5); enemy.loot *= 3; if(Array.isArray(enemy.xp)) enemy.xp = [enemy.xp[0]*3, enemy.xp[1]*3]; } else { enemy.maxHp = enemy.hp; } this.state.enemy = enemy; this.state.inDialog = true; if(Date.now() < this.state.buffEndTime) UI.log("⚡ S.P.E.C.I.A.L. OVERDRIVE aktiv!", "text-yellow-400"); UI.switchView('combat').then(() => UI.renderCombat()); UI.log(isLegendary ? "LEGENDÄRER GEGNER!" : "Kampf gestartet!", isLegendary ? "text-yellow-400" : "text-red-500"); },
     getRandomXP: function(xpData) { if (Array.isArray(xpData)) return Math.floor(Math.random() * (xpData[1] - xpData[0] + 1)) + xpData[0]; return xpData; },
-    
-    combatAction: function(act) { 
-        if(this.state.isGameOver) return; 
-        if(!this.state.enemy) return; 
-        if(this.state.enemy.hp <= 0) return;
-
-        if(act === 'attack') { 
-            const wpn = this.state.equip.weapon; 
-            if(wpn.isRanged) { 
-                if(this.state.ammo > 0) this.state.ammo--; 
-                else { 
-                    UI.log("Keine Munition! Fäuste.", "text-red-500"); 
-                    this.state.equip.weapon = this.items.fists; 
-                    this.enemyTurn(); 
-                    return; 
-                } 
-            } 
-            if(Math.random() > 0.3) { 
-                const baseDmg = wpn.baseDmg || 2; 
-                const dmg = Math.floor(baseDmg + (this.getStat('STR') * 1.5)); 
-                this.state.enemy.hp -= dmg; 
-                UI.log(`Treffer: ${dmg} Schaden.`, "text-green-400"); 
-                
-                if(this.state.enemy.hp <= 0) { 
-                    const enemy = this.state.enemy;
-                    this.state.caps += enemy.loot; 
-                    UI.log(`Sieg! ${enemy.loot} Kronkorken.`, "text-yellow-400"); 
-                    this.gainExp(this.getRandomXP(enemy.xp)); 
-                    
-                    // NEU: LOOT SYSTEM DROP
-                    // 1. Legendäre Drops
-                    if(enemy.isLegendary) {
-                        this.addToInventory('legendary_part', 1);
-                        UI.log("★ DROP: Legendäres Modul", "text-yellow-400 font-bold");
-                        
-                        // Chance auf extra Items
-                        if(Math.random() < 0.5) {
-                            const bonusCaps = this.state.lvl * 50;
-                            this.state.caps += bonusCaps;
-                            UI.log(`★ BONUS: ${bonusCaps} Caps`, "text-yellow-400");
-                        }
-                    }
-                    
-                    // 2. Normale Drops (Materialien)
-                    if(enemy.drops) {
-                        enemy.drops.forEach(drop => {
-                            if(Math.random() < drop.c) {
-                                this.addToInventory(drop.id, 1);
-                            }
-                        });
-                    }
-
-                    this.endCombat(); 
-                    return; 
-                } 
-            } else UI.log("Verfehlt!", "text-gray-500"); 
-            this.enemyTurn(); 
-        } else if (act === 'flee') { 
-            if(Math.random() < 0.4 + (this.getStat('AGI')*0.05)) { 
-                UI.log("Geflohen.", "text-green-400"); 
-                this.endCombat(); 
-            } else { 
-                UI.log("Flucht gescheitert!", "text-red-500"); 
-                this.enemyTurn(); 
-            } 
-        } 
-        UI.update(); 
-        if(this.state.view === 'combat') UI.renderCombat(); 
-    },
-    
-    // Altes Würfelspiel entfernt
-    
+    combatAction: function(act) { if(this.state.isGameOver) return; if(!this.state.enemy) return; if(this.state.enemy.hp <= 0) return; if(act === 'attack') { const wpn = this.state.equip.weapon; if(wpn.isRanged) { if(this.state.ammo > 0) this.state.ammo--; else { UI.log("Keine Munition! Fäuste.", "text-red-500"); this.state.equip.weapon = this.items.fists; this.enemyTurn(); return; } } if(Math.random() > 0.3) { const baseDmg = wpn.baseDmg || 2; const dmg = Math.floor(baseDmg + (this.getStat('STR') * 1.5)); this.state.enemy.hp -= dmg; UI.log(`Treffer: ${dmg} Schaden.`, "text-green-400"); if(this.state.enemy.hp <= 0) { const enemy = this.state.enemy; this.state.caps += enemy.loot; UI.log(`Sieg! ${enemy.loot} Kronkorken.`, "text-yellow-400"); this.gainExp(this.getRandomXP(enemy.xp)); if(enemy.isLegendary) { this.addToInventory('legendary_part', 1); UI.log("★ DROP: Legendäres Modul", "text-yellow-400 font-bold"); if(Math.random() < 0.5) { const bonusCaps = this.state.lvl * 50; this.state.caps += bonusCaps; UI.log(`★ BONUS: ${bonusCaps} Caps`, "text-yellow-400"); } } if(enemy.drops) { enemy.drops.forEach(drop => { if(Math.random() < drop.c) { this.addToInventory(drop.id, 1); } }); } this.endCombat(); return; } } else UI.log("Verfehlt!", "text-gray-500"); this.enemyTurn(); } else if (act === 'flee') { if(Math.random() < 0.4 + (this.getStat('AGI')*0.05)) { UI.log("Geflohen.", "text-green-400"); this.endCombat(); } else { UI.log("Flucht gescheitert!", "text-red-500"); this.enemyTurn(); } } UI.update(); if(this.state.view === 'combat') UI.renderCombat(); },
+    rollLegendaryLoot: function() { const result = Math.floor(Math.random() * 16) + 3; let msg = "", type = ""; if(result <= 7) { type = "CAPS"; const amt = this.state.lvl * 80; this.state.caps += amt; msg = `KRONKORKEN REGEN: +${amt} Caps!`; } else if (result <= 12) { type = "AMMO"; const amt = this.state.lvl * 25; this.state.ammo += amt; msg = `MUNITIONS JACKPOT: +${amt} Schuss!`; } else { type = "BUFF"; this.state.buffEndTime = Date.now() + 300000; msg = `S.P.E.C.I.A.L. OVERDRIVE! (5 Min)`; } return { val: result, msg: msg, type: type }; },
     enemyTurn: function() { if(this.state.enemy.hp <= 0) return; if(Math.random() < 0.8) { const armor = (this.getStat('END') * 0.5); const dmg = Math.max(1, Math.floor(this.state.enemy.dmg - armor)); this.state.hp -= dmg; UI.log(`Schaden erhalten: ${dmg}`, "text-red-400"); this.checkDeath(); } else UI.log("Gegner verfehlt.", "text-gray-500"); },
     checkDeath: function() { if(this.state.hp <= 0) { this.state.hp = 0; this.state.isGameOver = true; if(typeof Network !== 'undefined') Network.deleteSave(); UI.update(); UI.showGameOver(); } },
     endCombat: function() { this.state.enemy = null; this.state.inDialog = false; UI.switchView('map'); this.saveGame(); },
