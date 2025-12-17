@@ -3,6 +3,18 @@ const UI = {
     timerInterval: null,
     lastInputTime: Date.now(), 
     biomeColors: { 'wasteland': '#5d5345', 'desert': '#eecfa1', 'jungle': '#1a3300', 'city': '#555555', 'swamp': '#1e1e11' },
+    
+    // JOYSTICK STATE
+    touchState: {
+        active: false,
+        id: null,
+        startX: 0,
+        startY: 0,
+        currentX: 0,
+        currentY: 0,
+        moveDir: { x: 0, y: 0 },
+        timer: null
+    },
 
     log: function(msg, color="text-green-500") { 
         if(!this.els.log) return;
@@ -40,8 +52,11 @@ const UI = {
             caps: document.getElementById('val-caps'),
             zone: document.getElementById('current-zone-display'),
             version: document.getElementById('version-display'), 
-            dpad: document.getElementById('overlay-controls'),
-            dpadToggle: document.getElementById('btn-toggle-dpad'),
+            
+            // Joystick Elements (werden dynamisch erstellt)
+            joyBase: null,
+            joyStick: null,
+            
             dialog: document.getElementById('dialog-overlay'),
             text: document.getElementById('encounter-text'),
             timer: document.getElementById('game-timer'),
@@ -76,12 +91,7 @@ const UI = {
             gameScreen: document.getElementById('game-screen'),
             loginInput: document.getElementById('survivor-id-input'),
             loginStatus: document.getElementById('login-status'),
-            gameOver: document.getElementById('game-over-screen'),
-
-            btnUp: document.getElementById('btn-up'),
-            btnDown: document.getElementById('btn-down'),
-            btnLeft: document.getElementById('btn-left'),
-            btnRight: document.getElementById('btn-right')
+            gameOver: document.getElementById('game-over-screen')
         };
 
         ['mousemove', 'keydown', 'click', 'touchstart'].forEach(evt => {
@@ -115,17 +125,13 @@ const UI = {
 
         if(this.els.btnSpawnRandom) this.els.btnSpawnRandom.onclick = () => this.selectSpawn(null);
 
-        if(this.els.dpadToggle) {
-            this.els.dpadToggle.onclick = () => {
-                const current = this.els.dpad.style.display;
-                this.els.dpad.style.display = (current === 'none' || current === '') ? 'grid' : 'none';
-            };
+        // TOUCH EVENTS FÜR JOYSTICK
+        if(this.els.view) {
+            this.els.view.addEventListener('touchstart', (e) => this.handleTouchStart(e), {passive: false});
+            this.els.view.addEventListener('touchmove', (e) => this.handleTouchMove(e), {passive: false});
+            this.els.view.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+            this.els.view.addEventListener('touchcancel', (e) => this.handleTouchEnd(e));
         }
-
-        if(this.els.btnUp) this.els.btnUp.onclick = () => Game.move(0, -1);
-        if(this.els.btnDown) this.els.btnDown.onclick = () => Game.move(0, 1);
-        if(this.els.btnLeft) this.els.btnLeft.onclick = () => Game.move(-1, 0);
-        if(this.els.btnRight) this.els.btnRight.onclick = () => Game.move(1, 0);
 
         window.addEventListener('keydown', (e) => {
             if (!Game.state || Game.state.isGameOver) return;
@@ -154,6 +160,137 @@ const UI = {
         this.timerInterval = setInterval(() => this.updateTimer(), 1000);
     },
     
+    // --- JOYSTICK LOGIC START ---
+    handleTouchStart: function(e) {
+        if(Game.state.view !== 'map' || Game.state.inDialog || this.touchState.active) return;
+        // e.preventDefault(); // Verhindert Scrollen, aber manchmal problematisch mit Buttons
+        
+        const touch = e.changedTouches[0];
+        this.touchState.active = true;
+        this.touchState.id = touch.identifier;
+        this.touchState.startX = touch.clientX;
+        this.touchState.startY = touch.clientY;
+        this.touchState.currentX = touch.clientX;
+        this.touchState.currentY = touch.clientY;
+        this.touchState.moveDir = {x:0, y:0};
+
+        this.showJoystick(touch.clientX, touch.clientY);
+        
+        // Start Movement Loop
+        if(this.touchState.timer) clearInterval(this.touchState.timer);
+        this.touchState.timer = setInterval(() => this.processJoystickMovement(), 150); // 150ms Speed
+    },
+
+    handleTouchMove: function(e) {
+        if(!this.touchState.active) return;
+        // e.preventDefault();
+        
+        let touch = null;
+        for(let i=0; i<e.changedTouches.length; i++) {
+            if(e.changedTouches[i].identifier === this.touchState.id) {
+                touch = e.changedTouches[i];
+                break;
+            }
+        }
+        if(!touch) return;
+
+        this.touchState.currentX = touch.clientX;
+        this.touchState.currentY = touch.clientY;
+        
+        this.updateJoystickVisuals();
+        this.calculateDirection();
+    },
+
+    handleTouchEnd: function(e) {
+        if(!this.touchState.active) return;
+        
+        let found = false;
+        for(let i=0; i<e.changedTouches.length; i++) {
+            if(e.changedTouches[i].identifier === this.touchState.id) {
+                found = true;
+                break;
+            }
+        }
+        if(!found) return;
+
+        this.touchState.active = false;
+        this.touchState.id = null;
+        this.touchState.moveDir = {x:0, y:0};
+        
+        if(this.touchState.timer) {
+            clearInterval(this.touchState.timer);
+            this.touchState.timer = null;
+        }
+        
+        this.hideJoystick();
+    },
+
+    calculateDirection: function() {
+        const dx = this.touchState.currentX - this.touchState.startX;
+        const dy = this.touchState.currentY - this.touchState.startY;
+        const threshold = 20; // Minimum Distanz für Bewegung
+
+        if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) {
+            this.touchState.moveDir = {x:0, y:0};
+            return;
+        }
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            // Horizontal
+            this.touchState.moveDir = { x: dx > 0 ? 1 : -1, y: 0 };
+        } else {
+            // Vertical
+            this.touchState.moveDir = { x: 0, y: dy > 0 ? 1 : -1 };
+        }
+    },
+
+    processJoystickMovement: function() {
+        const d = this.touchState.moveDir;
+        if(d.x !== 0 || d.y !== 0) {
+            Game.move(d.x, d.y);
+        }
+    },
+
+    showJoystick: function(x, y) {
+        if(!this.els.joyBase) return;
+        this.els.joyBase.style.left = (x - 50) + 'px';
+        this.els.joyBase.style.top = (y - 50) + 'px';
+        this.els.joyBase.style.display = 'block';
+        
+        this.els.joyStick.style.left = (x - 25) + 'px';
+        this.els.joyStick.style.top = (y - 25) + 'px';
+        this.els.joyStick.style.display = 'block';
+    },
+
+    updateJoystickVisuals: function() {
+        if(!this.els.joyBase) return;
+        const dx = this.touchState.currentX - this.touchState.startX;
+        const dy = this.touchState.currentY - this.touchState.startY;
+        
+        // Clamp Stick position to circle
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const maxDist = 40;
+        let visualX = dx;
+        let visualY = dy;
+        
+        if(dist > maxDist) {
+            const ratio = maxDist / dist;
+            visualX = dx * ratio;
+            visualY = dy * ratio;
+        }
+
+        this.els.joyStick.style.transform = `translate(${visualX}px, ${visualY}px)`;
+    },
+
+    hideJoystick: function() {
+        if(this.els.joyBase) this.els.joyBase.style.display = 'none';
+        if(this.els.joyStick) {
+            this.els.joyStick.style.display = 'none';
+            this.els.joyStick.style.transform = 'translate(0px, 0px)';
+        }
+    },
+    // --- JOYSTICK LOGIC END ---
+
     handleReset: function() {
         this.els.navMenu.classList.add('hidden');
         if(this.els.resetOverlay) {
@@ -289,7 +426,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.15c)"; 
+            v.textContent = "ONLINE (v0.0.15e)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -327,7 +464,7 @@ const UI = {
             this.els.view.innerHTML = '<canvas id="game-canvas" class="w-full h-full object-contain" style="image-rendering: pixelated;"></canvas>';
             Game.state.view = name;
             Game.initCanvas();
-            this.restoreOverlay();
+            this.restoreOverlay(); // Init Joystick HTML
             this.toggleControls(true);
             this.updateButtonStates(name);
             this.update();
@@ -647,55 +784,10 @@ const UI = {
         }
     },
 
-    renderCombat: function() { 
-        const enemy = Game.state.enemy; 
-        if(!enemy) return; 
-        document.getElementById('enemy-name').textContent = enemy.name; 
-        document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`; 
-        document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`; 
-    },
-
-    restoreOverlay: function() { 
-        if(document.getElementById('btn-toggle-dpad')) return; 
-        const overlayHTML = ` 
-            <button id="btn-toggle-dpad" style="position: absolute; bottom: 20px; left: 20px; z-index: 60; width: 50px; height: 50px; border-radius: 50%; background: rgba(0, 0, 0, 0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 0 10px #000;">🎮</button> 
-            <div id="overlay-controls" class="grid grid-cols-3 gap-1" style="position: absolute; bottom: 80px; left: 20px; z-index: 50; display: none;"> 
-                <div></div><button class="dpad-btn" id="btn-up" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▲</button><div></div> 
-                <button class="dpad-btn" id="btn-left" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">◀</button><div class="flex items-center justify-center text-[#39ff14]">●</div><button class="dpad-btn" id="btn-right" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▶</button> 
-                <div></div><button class="dpad-btn" id="btn-down" style="width: 50px; height: 50px; background: rgba(0,0,0,0.8); border: 2px solid #39ff14; color: #39ff14; font-size: 24px; display: flex; justify-content: center; align-items: center; border-radius: 8px;">▼</button><div></div> 
-            </div> 
-            <div id="dialog-overlay" style="position: absolute; bottom: 20px; right: 20px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; max-width: 50%;"></div> 
-        `; 
-        this.els.view.insertAdjacentHTML('beforeend', overlayHTML); 
-        this.els.dpad = document.getElementById('overlay-controls'); 
-        this.els.dpadToggle = document.getElementById('btn-toggle-dpad'); 
-        this.els.dialog = document.getElementById('dialog-overlay'); 
-        
-        if(this.els.dpadToggle) { 
-            this.els.dpadToggle.onclick = () => { const current = this.els.dpad.style.display; this.els.dpad.style.display = (current === 'none' || current === '') ? 'grid' : 'none'; }; 
-        } 
-        document.getElementById('btn-up').onclick = () => Game.move(0, -1); 
-        document.getElementById('btn-down').onclick = () => Game.move(0, 1); 
-        document.getElementById('btn-left').onclick = () => Game.move(-1, 0); 
-        document.getElementById('btn-right').onclick = () => Game.move(1, 0); 
-    },
-    
-    toggleControls: function(show) { if (!show && this.els.dialog) this.els.dialog.innerHTML = ''; },
-    showGameOver: function() { if(this.els.gameOver) this.els.gameOver.classList.remove('hidden'); this.toggleControls(false); },
-    enterVault: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const restBtn = document.createElement('button'); restBtn.className = "action-button w-full mb-1 border-blue-500 text-blue-300"; restBtn.textContent = "Ausruhen (Gratis)"; restBtn.onclick = () => { Game.rest(); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weiter geht's"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(restBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'flex'; },
-    enterSupermarket: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const enterBtn = document.createElement('button'); enterBtn.className = "action-button w-full mb-1 border-red-500 text-red-300"; enterBtn.textContent = "Ruine betreten (Gefahr!)"; enterBtn.onclick = () => { Game.loadSector(0, 0, true, "market"); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weitergehen"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(enterBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'block'; },
-    enterCave: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const enterBtn = document.createElement('button'); enterBtn.className = "action-button w-full mb-1 border-gray-500 text-gray-300"; enterBtn.textContent = "In die Tiefe (Dungeon)"; enterBtn.onclick = () => { Game.loadSector(0, 0, true, "cave"); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weitergehen"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(enterBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'block'; },
-    leaveDialog: function() { Game.state.inDialog = false; this.els.dialog.style.display = 'none'; this.update(); },
-    renderQuests: function() { const list = document.getElementById('quest-list'); if(!list) return; list.innerHTML = Game.state.quests.map(q => ` <div class="border border-green-900 bg-green-900/10 p-2 flex items-center gap-3 cursor-pointer hover:bg-green-900/30 transition-all" onclick="UI.showQuestDetail('${q.id}')"> <div class="text-3xl">✉️</div> <div> <div class="font-bold text-lg text-yellow-400">${q.read ? '' : '<span class="text-cyan-400">[NEU]</span> '}${q.title}</div> <div class="text-xs opacity-70">Zum Lesen klicken</div> </div> </div> `).join(''); },
-    showQuestDetail: function(id) { const quest = Game.state.quests.find(q => q.id === id); if(!quest) return; quest.read = true; this.update(); const list = document.getElementById('quest-list'); const detail = document.getElementById('quest-detail'); const content = document.getElementById('quest-content'); list.classList.add('hidden'); detail.classList.remove('hidden'); content.innerHTML = `<h2 class="text-2xl font-bold text-yellow-400 border-b border-green-500 mb-4">${quest.title}</h2><div class="font-mono text-lg leading-relaxed whitespace-pre-wrap">${quest.text}</div>`; },
-    closeQuestDetail: function() { document.getElementById('quest-detail').classList.add('hidden'); document.getElementById('quest-list').classList.remove('hidden'); this.renderQuests(); },
-    
-    // NEU: Updated renderChar for Equipment Display
     renderChar: function() { 
         const grid = document.getElementById('stat-grid'); 
         if(!grid) return; 
         
-        // Stats
         const lvlDisplay = document.getElementById('char-lvl'); 
         if(lvlDisplay) lvlDisplay.textContent = Game.state.lvl; 
         
@@ -712,7 +804,6 @@ const UI = {
         document.getElementById('char-exp-bar').style.width = `${expPct}%`; 
         document.getElementById('char-points').textContent = Game.state.statPoints; 
         
-        // Equipment Display Logic
         const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2};
         const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}};
         
@@ -731,9 +822,43 @@ const UI = {
         document.getElementById('equip-body-stats').textContent = armStats || "Kein Bonus";
     },
     
+    renderCombat: function() { 
+        const enemy = Game.state.enemy; 
+        if(!enemy) return; 
+        document.getElementById('enemy-name').textContent = enemy.name; 
+        document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`; 
+        document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`; 
+    },
+
+    restoreOverlay: function() { 
+        if(document.getElementById('joystick-base')) return; 
+        
+        // NEU: Virtueller Joystick (versteckt bis Touch)
+        const joystickHTML = `
+            <div id="joystick-base" style="position: absolute; width: 100px; height: 100px; border-radius: 50%; border: 2px solid rgba(57, 255, 20, 0.5); background: rgba(0, 0, 0, 0.2); display: none; pointer-events: none; z-index: 9999;"></div>
+            <div id="joystick-stick" style="position: absolute; width: 50px; height: 50px; border-radius: 50%; background: rgba(57, 255, 20, 0.8); display: none; pointer-events: none; z-index: 10000; box-shadow: 0 0 10px #39ff14;"></div>
+            
+            <div id="dialog-overlay" style="position: absolute; bottom: 20px; right: 20px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; max-width: 50%;"></div> 
+        `; 
+        this.els.view.insertAdjacentHTML('beforeend', joystickHTML); 
+        
+        this.els.joyBase = document.getElementById('joystick-base');
+        this.els.joyStick = document.getElementById('joystick-stick');
+        this.els.dialog = document.getElementById('dialog-overlay'); 
+    },
+    
+    toggleControls: function(show) { if (!show && this.els.dialog) this.els.dialog.innerHTML = ''; },
+    showGameOver: function() { if(this.els.gameOver) this.els.gameOver.classList.remove('hidden'); this.toggleControls(false); },
+    enterVault: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const restBtn = document.createElement('button'); restBtn.className = "action-button w-full mb-1 border-blue-500 text-blue-300"; restBtn.textContent = "Ausruhen (Gratis)"; restBtn.onclick = () => { Game.rest(); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weiter geht's"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(restBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'flex'; },
+    enterSupermarket: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const enterBtn = document.createElement('button'); enterBtn.className = "action-button w-full mb-1 border-red-500 text-red-300"; enterBtn.textContent = "Ruine betreten (Gefahr!)"; enterBtn.onclick = () => { Game.loadSector(0, 0, true, "market"); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weitergehen"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(enterBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'block'; },
+    enterCave: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const enterBtn = document.createElement('button'); enterBtn.className = "action-button w-full mb-1 border-gray-500 text-gray-300"; enterBtn.textContent = "In die Tiefe (Dungeon)"; enterBtn.onclick = () => { Game.loadSector(0, 0, true, "cave"); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weitergehen"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(enterBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'block'; },
+    leaveDialog: function() { Game.state.inDialog = false; this.els.dialog.style.display = 'none'; this.update(); },
+    renderQuests: function() { const list = document.getElementById('quest-list'); if(!list) return; list.innerHTML = Game.state.quests.map(q => ` <div class="border border-green-900 bg-green-900/10 p-2 flex items-center gap-3 cursor-pointer hover:bg-green-900/30 transition-all" onclick="UI.showQuestDetail('${q.id}')"> <div class="text-3xl">✉️</div> <div> <div class="font-bold text-lg text-yellow-400">${q.read ? '' : '<span class="text-cyan-400">[NEU]</span> '}${q.title}</div> <div class="text-xs opacity-70">Zum Lesen klicken</div> </div> </div> `).join(''); },
+    showQuestDetail: function(id) { const quest = Game.state.quests.find(q => q.id === id); if(!quest) return; quest.read = true; this.update(); const list = document.getElementById('quest-list'); const detail = document.getElementById('quest-detail'); const content = document.getElementById('quest-content'); list.classList.add('hidden'); detail.classList.remove('hidden'); content.innerHTML = `<h2 class="text-2xl font-bold text-yellow-400 border-b border-green-500 mb-4">${quest.title}</h2><div class="font-mono text-lg leading-relaxed whitespace-pre-wrap">${quest.text}</div>`; },
+    closeQuestDetail: function() { document.getElementById('quest-detail').classList.add('hidden'); document.getElementById('quest-list').classList.remove('hidden'); this.renderQuests(); },
     renderWiki: function() { const content = document.getElementById('wiki-content'); if(!content) return; content.innerHTML = Object.keys(Game.monsters).map(k => { const m = Game.monsters[k]; const xpText = Array.isArray(m.xp) ? `${m.xp[0]}-${m.xp[1]}` : m.xp; return `<div class="border-b border-green-900 pb-1"><div class="font-bold text-yellow-400">${m.name}</div><div class="text-xs opacity-70">HP: ~${m.hp}, XP: ${xpText}</div></div>`; }).join(''); },
     renderWorldMap: function() { const grid = document.getElementById('world-grid'); if(!grid) return; grid.innerHTML = ''; for(let y=0; y<8; y++) { for(let x=0; x<8; x++) { const d = document.createElement('div'); d.className = "border border-green-900/30 flex justify-center items-center text-xs relative"; if(x === Game.state.sector.x && y === Game.state.sector.y) { d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.style.fontWeight = "bold"; d.textContent = "YOU"; } else if(Game.worldData[`${x},${y}`]) { const biome = Game.worldData[`${x},${y}`].biome; d.style.backgroundColor = this.biomeColors[biome] || '#4a3d34'; } if(typeof Network !== 'undefined' && Network.otherPlayers) { const playersHere = Object.values(Network.otherPlayers).filter(p => p.sector && p.sector.x === x && p.sector.y === y); if(playersHere.length > 0) { const dot = document.createElement('div'); dot.className = "absolute w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]"; if(x === Game.state.sector.x && y === Game.state.sector.y) { dot.style.top = "2px"; dot.style.right = "2px"; } d.appendChild(dot); } } grid.appendChild(d); } } grid.style.gridTemplateColumns = "repeat(8, 1fr)"; },
-    renderCity: function() { const con = document.getElementById('city-options'); if(!con) return; con.innerHTML = ''; const addBtn = (txt, cb, disabled=false) => { const b = document.createElement('button'); b.className = "action-button w-full mb-2 text-left p-3 flex justify-between"; b.innerHTML = txt; b.onclick = cb; if(disabled) { b.disabled = true; b.style.opacity = 0.5; } con.appendChild(b); }; addBtn("Heilen (25 Kronkorken)", () => Game.heal(), Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp); addBtn("Munition (10 Stk / 10 Kronkorken)", () => Game.buyAmmo(), Game.state.caps < 10); addBtn("Händler / Waffen & Rüstung", () => this.renderShop(con)); addBtn("Stadt verlassen", () => this.switchView('map')); },
+    renderCity: function() { const con = document.getElementById('city-options'); if(!con) return; con.innerHTML = ''; const addBtn = (txt, cb, disabled=false) => { const b = document.createElement('button'); b.className = "action-button w-full mb-2 text-left p-3 flex justify-between"; b.innerHTML = txt; b.onclick = cb; if(disabled) { b.disabled = true; b.style.opacity = 0.5; } con.appendChild(b); }; addBtn("Heilen (25 Kronkorken)", () => Game.heal(), Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp); addBtn("Munition (10 Stk / 10 Kronkorken)", () => Game.buyAmmo(), Game.state.caps < 10); addBtn("Händler / Waffen & Rüstung", () => this.renderShop(con)); addBtn("🛠️ Werkbank / Crafting", () => this.toggleView('crafting')); addBtn("Stadt verlassen", () => this.switchView('map')); },
     renderShop: function(container) { container.innerHTML = ''; const backBtn = document.createElement('button'); backBtn.className = "action-button w-full mb-4 text-center border-yellow-400 text-yellow-400"; backBtn.textContent = "ZURÜCK ZUM PLATZ"; backBtn.onclick = () => this.renderCity(); container.appendChild(backBtn); Object.keys(Game.items).forEach(key => { const item = Game.items[key]; if(item.cost > 0 && Game.state.lvl >= (item.requiredLevel || 0) - 2) { const canAfford = Game.state.caps >= item.cost; const isEquipped = (Game.state.equip[item.slot] && Game.state.equip[item.slot].name === item.name); let label = `<span>${item.name}</span> <span>${item.cost} Kronkorken</span>`; if(isEquipped) label = `<span class="text-green-500">[AUSGERÜSTET]</span>`; const btn = document.createElement('button'); btn.className = "action-button w-full mb-2 flex justify-between text-sm"; btn.innerHTML = label; if(!canAfford || isEquipped) { btn.disabled = true; btn.style.opacity = 0.5; } else { btn.onclick = () => Game.buyItem(key); } container.appendChild(btn); } }); },
     renderCombat: function() { const enemy = Game.state.enemy; if(!enemy) return; document.getElementById('enemy-name').textContent = enemy.name; document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`; document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`; }
 };
