@@ -20,6 +20,7 @@ const Game = {
         meat_mole: { name: "Rattenfleisch", type: "junk", cost: 4 },
         meat_fly: { name: "Blähfliegen-Düse", type: "junk", cost: 3 },
         meat_lurk: { name: "Softshell-Fleisch", type: "junk", cost: 15 },
+        meat_scorp: { name: "Skorpion-Drüse", type: "junk", cost: 12 }, // NEU
         hide_yao: { name: "Yao Guai Leder", type: "junk", cost: 25 },
         scrap_metal: { name: "Metallschrott", type: "component", cost: 1 },
         adhesive: { name: "Wunderkleber", type: "component", cost: 10 },
@@ -49,27 +50,34 @@ const Game = {
         plasma_rifle: { name: "Plasma-Gewehr", slot: 'weapon', type: 'weapon', baseDmg: 55, bonus: { PER: 2, INT: 2 }, cost: 600, requiredLevel: 10, isRanged: true }
     },
     
-    // NEU: CRAFTING REZEPTE
     recipes: [
         { id: "stimpack", out: "stimpack", count: 1, req: { "meat_fly": 1, "adhesive": 1 }, lvl: 1 },
         { id: "ammo_pack", out: "AMMO", count: 15, req: { "scrap_metal": 2 }, lvl: 1 },
         { id: "bat_upgrade", out: "bat_spiked", count: 1, req: { "bat": 1, "scrap_metal": 5, "adhesive": 1 }, lvl: 2 },
         { id: "leather_upgrade", out: "leather_armor_h", count: 1, req: { "leather_armor": 1, "hide_yao": 2, "adhesive": 2 }, lvl: 3 },
         { id: "pistol_mod", out: "pistol_tac", count: 1, req: { "pistol": 1, "screws": 3, "gears": 2 }, lvl: 4 },
-        { id: "laser_mod", out: "laser_rifle", count: 1, req: { "rifle_hunting": 1, "circuitry": 2, "nuclear_mat": 1 }, lvl: 6 } // "Umbau"
+        { id: "laser_mod", out: "laser_rifle", count: 1, req: { "rifle_hunting": 1, "circuitry": 2, "nuclear_mat": 1 }, lvl: 6 }
     ],
 
     monsters: { 
         radRoach: { name: "Rad-Kakerlake", hp: 15, dmg: 3, xp: [10, 15], loot: 1, minLvl: 1, drops: [{id:'meat_roach', c:0.6}] }, 
         bloatfly: { name: "Blähfliege", hp: 10, dmg: 5, xp: [12, 18], loot: 2, minLvl: 1, drops: [{id:'meat_fly', c:0.7}, {id:'nuclear_mat', c:0.05}] },
         moleRat: { name: "Maulwurfsratte", hp: 25, dmg: 6, xp: [15, 25], loot: 3, minLvl: 1, drops: [{id:'meat_mole', c:0.5}] }, 
+        wildDog: { name: "Wilder Hund", hp: 40, dmg: 9, loot: 0, xp: [30, 50], minLvl: 2, drops: [{id:'meat_mole', c:0.4}] }, 
+        
+        // FIX: Wiederhergestellt
+        mutantRose: { name: "Mutanten-Pflanze", hp: 45, dmg: 15, loot: 5, xp: [45, 60], minLvl: 1, drops: [{id:'adhesive', c:0.4}] }, 
+        radScorpion: { name: "Radskorpion", hp: 90, dmg: 18, loot: 15, xp: [80, 100], minLvl: 3, drops: [{id:'meat_scorp', c:0.5}, {id:'nuclear_mat', c:0.1}] },
+
         raider: { name: "Raider", hp: 60, dmg: 12, loot: 20, xp: [50, 70], minLvl: 2, drops: [{id:'stimpack', c:0.15}, {id:'scrap_metal', c:0.3}] }, 
         ghoul: { name: "Wilder Ghul", hp: 50, dmg: 10, loot: 5, xp: [40, 60], minLvl: 2, drops: [{id:'nuclear_mat', c:0.1}] }, 
-        wildDog: { name: "Wilder Hund", hp: 40, dmg: 9, loot: 0, xp: [30, 50], minLvl: 2, drops: [{id:'meat_mole', c:0.4}] }, 
+        
         mirelurk: { name: "Mirelurk", hp: 110, dmg: 20, loot: 10, xp: [90, 120], minLvl: 4, drops: [{id:'meat_lurk', c:0.8}, {id:'adhesive', c:0.3}] },
         protectron: { name: "Protectron", hp: 130, dmg: 15, loot: 30, xp: [100, 140], minLvl: 4, drops: [{id:'scrap_metal', c:1.0}, {id:'circuitry', c:0.4}] },
+        
         yaoGuai: { name: "Yao Guai", hp: 180, dmg: 35, loot: 0, xp: [180, 250], minLvl: 6, drops: [{id:'hide_yao', c:1.0}, {id:'springs', c:0.3}] },
         sentryBot: { name: "Wachbot MK-II", hp: 250, dmg: 45, loot: 80, xp: [300, 400], minLvl: 8, drops: [{id:'scrap_metal', c:1.0}, {id:'gears', c:0.8}, {id:'nuclear_mat', c:0.5}] },
+        
         deathclaw: { name: "Todesklaue", hp: 400, dmg: 70, loot: 100, xp: [600, 800], minLvl: 10, drops: [{id:'hide_yao', c:1.0}, {id:'gears', c:0.5}] } 
     },
 
@@ -194,12 +202,10 @@ const Game = {
     
     useItem: function(id) { const itemDef = this.items[id]; const invItem = this.state.inventory.find(i => i.id === id); if(!invItem || invItem.count <= 0) return; if(itemDef.type === 'consumable') { if(itemDef.effect === 'heal') { const healAmt = itemDef.val; if(this.state.hp >= this.state.maxHp) { UI.log("Gesundheit bereits voll.", "text-gray-500"); return; } this.state.hp = Math.min(this.state.maxHp, this.state.hp + healAmt); UI.log(`Verwendet: ${itemDef.name}. +${healAmt} HP.`, "text-blue-400"); invItem.count--; } } else if (itemDef.type === 'weapon' || itemDef.type === 'body') { const oldItemName = this.state.equip[itemDef.slot].name; const oldItemKey = Object.keys(this.items).find(key => this.items[key].name === oldItemName); if(oldItemKey && oldItemKey !== 'fists' && oldItemKey !== 'vault_suit') { this.addToInventory(oldItemKey, 1); } this.state.equip[itemDef.slot] = itemDef; invItem.count--; UI.log(`Ausgerüstet: ${itemDef.name}`, "text-yellow-400"); if(itemDef.slot === 'body') { const oldMax = this.state.maxHp; this.state.maxHp = this.calculateMaxHP(this.getStat('END')); this.state.hp += (this.state.maxHp - oldMax); } } if(invItem.count <= 0) { this.state.inventory = this.state.inventory.filter(i => i.id !== id); } UI.update(); if(this.state.view === 'inventory') UI.renderInventory(); this.saveGame(); }, 
     
-    // NEU: CRAFTING LOGIC
     craftItem: function(recipeId) {
         const recipe = this.recipes.find(r => r.id === recipeId);
         if(!recipe) return;
         
-        // Check Requirements
         if(this.state.lvl < recipe.lvl) {
             UI.log(`Benötigt Level ${recipe.lvl}!`, "text-red-500");
             return;
@@ -209,15 +215,11 @@ const Game = {
             const countNeeded = recipe.req[reqId];
             const invItem = this.state.inventory.find(i => i.id === reqId);
             
-            // Check if equipped (for weapons/armor upgrades)
             let hasEquipped = false;
             if (this.state.equip.weapon && Object.keys(this.items).find(k => this.items[k].name === this.state.equip.weapon.name) === reqId) hasEquipped = true;
             if (this.state.equip.body && Object.keys(this.items).find(k => this.items[k].name === this.state.equip.body.name) === reqId) hasEquipped = true;
 
             if (hasEquipped) {
-                // If it's equipped, we treat it as "1 in inventory" logic-wise for the check, 
-                // but we need to handle the removal carefully.
-                // For simplicity: You must UNEQUIP items to craft with them if they are base materials.
                 if((!invItem || invItem.count < countNeeded)) {
                     UI.log(`Material fehlt (oder ist ausgerüstet): ${this.items[reqId].name}`, "text-red-500");
                     return;
@@ -230,7 +232,6 @@ const Game = {
             }
         }
         
-        // Remove Materials
         for(let reqId in recipe.req) {
             const countNeeded = recipe.req[reqId];
             const invItem = this.state.inventory.find(i => i.id === reqId);
@@ -240,7 +241,6 @@ const Game = {
             }
         }
         
-        // Add Result
         if(recipe.out === "AMMO") {
             this.state.ammo += recipe.count;
             UI.log(`Hergestellt: ${recipe.count} Schuss Munition`, "text-green-400 font-bold");
@@ -250,7 +250,7 @@ const Game = {
         }
         
         this.saveGame();
-        if(typeof UI !== 'undefined') UI.renderCrafting(); // Refresh UI
+        if(typeof UI !== 'undefined') UI.renderCrafting(); 
     },
 
     saveGame: function(manual = false) { if(!this.state) return; if(manual) UI.log("Speichere...", "text-gray-500"); if(typeof Network !== 'undefined') Network.save(this.state); }, 
