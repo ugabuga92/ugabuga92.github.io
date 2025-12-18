@@ -160,6 +160,31 @@ const UI = {
         this.timerInterval = setInterval(() => this.updateTimer(), 1000);
     },
     
+    // --- HELPER: DETECT MOBILE ---
+    isMobile: function() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+    },
+
+    showMobileControlsHint: function() {
+        if(document.getElementById('mobile-hint')) return;
+        
+        const hintHTML = `
+            <div id="mobile-hint" class="absolute inset-0 z-[100] flex flex-col justify-center items-center bg-black/80 pointer-events-auto backdrop-blur-sm" onclick="this.style.opacity='0'; setTimeout(() => this.remove(), 500)" style="transition: opacity 0.5s;">
+                <div class="border-2 border-[#39ff14] bg-black p-6 text-center shadow-[0_0_20px_#39ff14] max-w-sm mx-4">
+                    <div class="text-5xl mb-4 animate-bounce">👆</div>
+                    <h2 class="text-2xl font-bold text-[#39ff14] mb-2 tracking-widest border-b border-[#39ff14] pb-2">TOUCH STEUERUNG</h2>
+                    <p class="text-green-300 mb-6 font-mono leading-relaxed">
+                        Tippe und halte auf dem Bildschirm, um den Joystick zu aktivieren und dich zu bewegen.
+                    </p>
+                    <div class="text-xs text-[#39ff14] animate-pulse font-bold bg-[#39ff14]/20 py-2 rounded">
+                        > TIPPEN ZUM STARTEN <
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', hintHTML);
+    },
+
     // --- JOYSTICK LOGIC START ---
     handleTouchStart: function(e) {
         if(Game.state.view !== 'map' || Game.state.inDialog || this.touchState.active) return;
@@ -213,7 +238,6 @@ const UI = {
         this.stopJoystick();
     },
 
-    // NEW: Force Stop Joystick Helper
     stopJoystick: function() {
         if(this.touchState.timer) {
             clearInterval(this.touchState.timer);
@@ -339,7 +363,11 @@ const UI = {
                 this.els.loginScreen.style.display = 'none';
                 this.els.gameScreen.classList.remove('hidden');
                 this.els.gameScreen.classList.remove('opacity-0');
-                Game.init(saveData); 
+                Game.init(saveData);
+                // NEU: Zeige Mobile Hint wenn auf Mobile
+                if(this.isMobile()) {
+                    this.showMobileControlsHint();
+                }
             } else {
                 this.els.loginScreen.style.display = 'none';
                 this.els.spawnScreen.style.display = 'flex'; 
@@ -376,6 +404,10 @@ const UI = {
         this.els.gameScreen.classList.remove('hidden');
         this.els.gameScreen.classList.remove('opacity-0');
         Game.init(null, targetPlayer);
+        // NEU: Zeige Mobile Hint wenn auf Mobile
+        if(this.isMobile()) {
+            this.showMobileControlsHint();
+        }
     },
 
     logout: function(reason="AUSGELOGGT") {
@@ -423,7 +455,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.15f)"; 
+            v.textContent = "ONLINE (v0.0.15g)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
