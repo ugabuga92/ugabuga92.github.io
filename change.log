@@ -1,6 +1,16 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.16g] - 2025-12-18 11:30 (Visual Polish Update)
+
+UI (Header): HP und XP haben nun visuelle Balken zurückerhalten. Die Buttons "SPEICHERN" und "MENÜ" wurden vergrößert und vereinheitlicht.
+
+UI (Log): Die Breite des Log-Panels auf Desktop wurde von 30% auf 25% reduziert, um mehr Platz für die Karte zu schaffen.
+
+UI (Char): Stats werden nun in einer sauberen Tabelle dargestellt. Horizontales Scrollen wurde deaktiviert.
+
+UX (Save): Die "SAVED!" Animation (grünes Aufleuchten) ist wieder aktiv.
+
 [v0.0.16e] - 2025-12-18 10:15 (Polish & Shake Update)
 
 UI (Header): Komplettes Redesign. Name, HP, Level stehen nun als kompakter Textblock links. Der "Save"-Button wurde visuell an den Menü-Button angepasst (Icons, quadratisch).
