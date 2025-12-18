@@ -1,5 +1,4 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
-==============================
 
 [v0.0.17c] - 2025-12-18 13:30 (System Interface Update)
 
@@ -119,7 +118,6 @@ VISUAL: Eine animierte SVG-Strichfigur ("Pip-Boy Style") visualisiert nun den Ch
 
 FEATURE: Angelegte Ausrüstung (Waffe & Rüstung) wird nun links und rechts neben dem Charakter mit Stats und Icons dargestellt.
 
-
 [v0.0.15b] - 2025-12-17 14:30 (Knowledge Base Update)
 
 FEATURE: Das Wiki wurde komplett überarbeitet und bietet nun 4 Kategorien:
@@ -211,262 +209,341 @@ FIX: Kritischer Fehler Game.move is not a function behoben. Die Bewegungslogik w
 RESTORED: Kollisionserkennung, Sektor-Wechsel und Interaktions-Trigger (Städte, Vaults) funktionieren wieder.
 
 [v0.0.13i] - 2025-12-17 01:15 (Final Syntax & UI Fix)
------------------------------------------------------
-- FIX: `Game`-Objekt in `game.js` vollständig validiert. Alle fehlenden Kommas und Klammern wurden korrigiert. `this.drawTile is not a function` sollte endgültig behoben sein.
-- UI: Das "Reset Charakter" Bestätigungsfenster ist nun ein schickes, rot blinkendes In-Game Overlay im Pip-Boy-Stil, statt eines langweiligen Browser-Alerts.
-- SYSTEM: Code vollständig und ohne Platzhalter bereitgestellt.
+
+FIX: Game-Objekt in game.js vollständig validiert. Alle fehlenden Kommas und Klammern wurden korrigiert. this.drawTile is not a function sollte endgültig behoben sein.
+
+UI: Das "Reset Charakter" Bestätigungsfenster ist nun ein schickes, rot blinkendes In-Game Overlay im Pip-Boy-Stil, statt eines langweiligen Browser-Alerts.
+
+SYSTEM: Code vollständig und ohne Platzhalter bereitgestellt.
 
 [v0.0.13g] - 2025-12-17 00:45 (Combat & Syntax Fix)
----------------------------------------------------
-- FIX: Kritischer Syntax-Fehler in `game.js` behoben (`Game.move is not a function`). Die Funktionen im `Game`-Objekt sind nun korrekt durch Kommata getrennt.
-- BALANCE: Das legendäre Würfelspiel erscheint nun nur noch mit einer Wahrscheinlichkeit von 15% nach dem Sieg über einen legendären Gegner, statt immer.
-- SYSTEM: `game.js` wurde vollständig überarbeitet und validiert.
+
+FIX: Kritischer Syntax-Fehler in game.js behoben (Game.move is not a function). Die Funktionen im Game-Objekt sind nun korrekt durch Kommata getrennt.
+
+BALANCE: Das legendäre Würfelspiel erscheint nun nur noch mit einer Wahrscheinlichkeit von 15% nach dem Sieg über einen legendären Gegner, statt immer.
+
+SYSTEM: game.js wurde vollständig überarbeitet und validiert.
 
 [v0.0.13f] - 2025-12-17 00:30 (Spawn Collision Logic Fix)
----------------------------------------------------------
-- FIX: `findSafeSpawn` in `game.js` überarbeitet. Statt bei blockiertem Spawn auf 20,20 zurückzufallen (was zu Fehlern führte), sucht die Funktion nun spiralförmig nach dem nächstgelegenen freien Feld.
-- FIX: `WorldGen.createSector` räumt nun einen größeren Bereich (Radius 3) um Tore herum frei, um sicherzustellen, dass Spieler nicht in Bäumen oder Bergen spawnen.
-- LOGIC: Die Kollisionsabfrage `isValidSpawn` schließt nun explizit Tore und Vaults als Spawn-Punkte aus, damit Interaktionen nicht versehentlich sofort getriggert werden.
+
+FIX: findSafeSpawn in game.js überarbeitet. Statt bei blockiertem Spawn auf 20,20 zurückzufallen (was zu Fehlern führte), sucht die Funktion nun spiralförmig nach dem nächstgelegenen freien Feld.
+
+FIX: WorldGen.createSector räumt nun einen größeren Bereich (Radius 3) um Tore herum frei, um sicherzustellen, dass Spieler nicht in Bäumen oder Bergen spawnen.
+
+LOGIC: Die Kollisionsabfrage isValidSpawn schließt nun explizit Tore und Vaults als Spawn-Punkte aus, damit Interaktionen nicht versehentlich sofort getriggert werden.
 
 [v0.0.13d] - 2025-12-16 23:30 (Map Persistence Update)
-------------------------------------------------------
-- FEATURE: Deterministische Kartengenerierung ("Seeded RNG"). Ein Sektor sieht nun für alle Spieler und nach jedem Reload exakt gleich aus. Dies behebt das Problem, dass die Karte sich nach dem Speichern und Neuladen verändert.
-- SYSTEM: `WorldGen.js` wurde um `setSeed()` und `rand()` erweitert.
-- FIX: Die Generierung von POIs und Toren nutzt nun ebenfalls den Sektor-Seed, sodass wichtige Orte nicht mehr "wandern".
-- UI: Konsistente Pfeil-Darstellung an den Rändern durch Zone-Marker ('G') ersetzt.
-- INFO: Der Fehler "TypeError: can't access property 'control'" im Browser-Log stammt von einer Browser-Erweiterung und betrifft nicht das Spiel.
 
-[v0.0.13d] - 2025-12-16 23:30 (Map Persistence Update)
-------------------------------------------------------
-- FEATURE: Deterministische Kartengenerierung ("Seeded RNG"). Ein Sektor sieht nun für alle Spieler und nach jedem Reload exakt gleich aus. Dies behebt das Problem, dass die Karte sich nach dem Speichern und Neuladen verändert.
-- SYSTEM: `WorldGen.js` wurde um `setSeed()` und `rand()` erweitert.
-- FIX: Die Generierung von POIs und Toren nutzt nun ebenfalls den Sektor-Seed, sodass wichtige Orte nicht mehr "wandern".
-- INFO: Der Fehler "TypeError: can't access property 'control'" im Browser-Log stammt von einer Browser-Erweiterung und betrifft nicht das Spiel.
+FEATURE: Deterministische Kartengenerierung ("Seeded RNG"). Ein Sektor sieht nun für alle Spieler und nach jedem Reload exakt gleich aus. Dies behebt das Problem, dass die Karte sich nach dem Speichern und Neuladen verändert.
+
+SYSTEM: WorldGen.js wurde um setSeed() und rand() erweitert.
+
+FIX: Die Generierung von POIs und Toren nutzt nun ebenfalls den Sektor-Seed, sodass wichtige Orte nicht mehr "wandern".
+
+UI: Konsistente Pfeil-Darstellung an den Rändern durch Zone-Marker ('G') ersetzt.
+
+INFO: Der Fehler "TypeError: can't access property 'control'" im Browser-Log stammt von einer Browser-Erweiterung und betrifft nicht das Spiel.
 
 [v0.0.13c] - 2025-12-16 23:45 (Final Restoration)
--------------------------------------------------
-- FIX: `this.draw is not a function` behoben. Die Funktion war versehentlich entfernt worden und ist nun wieder integriert.
-- FIX: `UI.enterVault is not a function` behoben. Die `ui.js` ist nun wieder vollständig und enthält alle Interaktions-Logik.
-- SYSTEM: Der vollständige Code für alle Kerndateien (`game.js`, `ui.js`, `network.js`, `index.html`, `world_gen.js`) wurde bereitgestellt, um Konsistenz zu garantieren.
+
+FIX: this.draw is not a function behoben. Die Funktion war versehentlich entfernt worden und ist nun wieder integriert.
+
+FIX: UI.enterVault is not a function behoben. Die ui.js ist nun wieder vollständig und enthält alle Interaktions-Logik.
+
+SYSTEM: Der vollständige Code für alle Kerndateien (game.js, ui.js, network.js, index.html, world_gen.js) wurde bereitgestellt, um Konsistenz zu garantieren.
 
 [v0.0.13b] - 2025-12-16 23:00 (Full Code Repair)
-------------------------------------------------
-- FIX: Kritischer Absturz im `Game`-Objekt behoben, indem `renderStaticMap` in der `game.js` physisch VOR `init` platziert wurde.
-- FIX: Alle Dateien wurden vollständig ausgeschrieben, um Copy/Paste-Fehler durch unvollständige Code-Blöcke zu eliminieren.
-- SYSTEM: Version auf 0.0.13b erhöht, um Konsistenz zu wahren.
+
+FIX: Kritischer Absturz im Game-Objekt behoben, indem renderStaticMap in der game.js physisch VOR init platziert wurde.
+
+FIX: Alle Dateien wurden vollständig ausgeschrieben, um Copy/Paste-Fehler durch unvollständige Code-Blöcke zu eliminieren.
+
+SYSTEM: Version auf 0.0.13b erhöht, um Konsistenz zu wahren.
 
 [v0.0.13] - 2025-12-16 19:30 (World Gen & Terrain Update)
----------------------------------------------------------
-- CORE: Neues Modul `world_gen.js` für prozedurale Landschaftsgenerierung.
-- WORLD: Terrain-Typen hinzugefügt: Wasser (W), Berge (M), Wälder (t), Straßen (#).
-- INFRASTRUKTUR: Automatische Brücken (=) über Wasser und Tunnel (U) durch Berge generiert.
-- GAMEPLAY: Spieler kann Wasser und Berge nicht mehr ohne Pfad betreten.
-- VISUAL: Erweiterte Farben und Symbole für das neue Terrain im Pip-Boy-Stil.
-- SYSTEM: `WorldGen` Script in `index.html` eingebunden.
+
+CORE: Neues Modul world_gen.js für prozedurale Landschaftsgenerierung.
+
+WORLD: Terrain-Typen hinzugefügt: Wasser (W), Berge (M), Wälder (t), Straßen (#).
+
+INFRASTRUKTUR: Automatische Brücken (=) über Wasser und Tunnel (U) durch Berge generiert.
+
+GAMEPLAY: Spieler kann Wasser und Berge nicht mehr ohne Pfad betreten.
+
+VISUAL: Erweiterte Farben und Symbole für das neue Terrain im Pip-Boy-Stil.
+
+SYSTEM: WorldGen Script in index.html eingebunden.
 
 [v0.0.12h] - 2025-12-16 17:45 (Gate Logic & Border Fix)
-------------------------------------------------------
-- LOGIK: `fixMapBorders` Funktion korrigiert. Sie überschreibt nun keine Tore ('G') oder Vaults ('V') mehr, sondern füllt nur fehlende Pfeile auf.
-- SYSTEM: Neue Funktion `getPseudoRandomGate`. Tore zwischen Sektoren werden nun deterministisch berechnet, sodass sie immer exakt an derselben Position stehen, egal aus welcher Richtung man den Sektor betritt.
-- UI: Konsistente Pfeil-Darstellung an den Rändern.
+
+LOGIK: fixMapBorders Funktion korrigiert. Sie überschreibt nun keine Tore ('G') oder Vaults ('V') mehr, sondern füllt nur fehlende Pfeile auf.
+
+SYSTEM: Neue Funktion getPseudoRandomGate. Tore zwischen Sektoren werden nun deterministisch berechnet, sodass sie immer exakt an derselben Position stehen, egal aus welcher Richtung man den Sektor betritt.
+
+UI: Konsistente Pfeil-Darstellung an den Rändern.
 
 [v0.0.12g] - 2025-12-16 17:15 (Visibility & Controls)
------------------------------------------------------
-- GRAFIK: Die Richtungspfeile an den Kartenrändern leuchten nun im hellen Pip-Boy-Grün (`#1aff1a`), statt dunkelgrau, um auf dem schwarzen Hintergrund sichtbar zu sein.
-- STEUERUNG: Kampf-Shortcuts vereinfacht:
-    - [LEERTASTE] = Angriff
-    - [ESC] = Flucht
-    - Keine Pfeiltasten-Auswahl mehr im Kampfmenü nötig.
+
+GRAFIK: Die Richtungspfeile an den Kartenrändern leuchten nun im hellen Pip-Boy-Grün (#1aff1a), statt dunkelgrau, um auf dem schwarzen Hintergrund sichtbar zu sein.
+
+STEUERUNG: Kampf-Shortcuts vereinfacht:
+    - [LEERTASTE] = Angriff
+    - [ESC] = Flucht
+    - Keine Pfeiltasten-Auswahl mehr im Kampfmenü nötig.
 
 [v0.0.12f] - 2025-12-16 16:45 (Arrow Fix & Combat Controls)
----------------------------------------------------------
-- GRAFIK: Fehlerhafte Pfeildarstellung in alten Spielständen behoben. Die Funktion `fixMapBorders` korrigiert nun automatisch die Ränder jeder geladenen Karte.
-- GAMEPLAY: Kampfsteuerung via Tastatur hinzugefügt.
-    - Pfeiltasten (Links/Rechts oder Oben/Unten) zum Wählen von Angriff/Flucht.
-    - [ENTER] / [LEERTASTE] zum Bestätigen.
-    - [ESC] / [BACKSPACE] für sofortige Flucht.
-- UI: Visuelle Hervorhebung der ausgewählten Kampf-Aktion.
+
+GRAFIK: Fehlerhafte Pfeildarstellung in alten Spielständen behoben. Die Funktion fixMapBorders korrigiert nun automatisch die Ränder jeder geladenen Karte.
+
+GAMEPLAY: Kampfsteuerung via Tastatur hinzugefügt.
+    - Pfeiltasten (Links/Rechts oder Oben/Unten) zum Wählen von Angriff/Flucht.
+    - [ENTER] / [LEERTASTE] zum Bestätigen.
+    - [ESC] / [BACKSPACE] für sofortige Flucht.
+
+UI: Visuelle Hervorhebung der ausgewählten Kampf-Aktion.
 
 [v0.0.12e] - 2025-12-16 15:30 (Name & Arrows)
----------------------------------------------
-- UI: Spielername wird nun im Header neben den TP angezeigt.
-- GRAFIK: Pfeil-Rendering komplett neu geschrieben. Jede Himmelsrichtung hat nun einen eigenen Zeichenpfad, um Darstellungsfehler auszuschließen.
-- FIX: `loadSector` setzt die Pfeil-Symbole an den Rändern nun garantiert korrekt.
+
+UI: Spielername wird nun im Header neben den TP angezeigt.
+
+GRAFIK: Pfeil-Rendering komplett neu geschrieben. Jede Himmelsrichtung hat nun einen eigenen Zeichenpfad, um Darstellungsfehler auszuschließen.
+
+FIX: loadSector setzt die Pfeil-Symbole an den Rändern nun garantiert korrekt.
 
 [v0.0.12d] - 2025-12-16 14:45 (Login Logic Restoration)
-------------------------------------------------------
-- FIX: Die Start-Logik wurde korrigiert. Das Spiel startet nun wieder korrekt mit dem "Login Screen" ("PIP-BOY 3000 AUTHENTICATION REQUIRED").
-- LOGIK: Das "Neuer Charakter" Fenster erscheint jetzt erst NACHDEM eine ID eingegeben wurde, die noch keinen Spielstand besitzt.
-- CSS: `style="display: none;"` direkt im HTML des Spawn-Screens eingefügt, um ein kurzes Aufblitzen oder falsches Anzeigen beim Laden der Seite zu verhindern.
+
+FIX: Die Start-Logik wurde korrigiert. Das Spiel startet nun wieder korrekt mit dem "Login Screen" ("PIP-BOY 3000 AUTHENTICATION REQUIRED").
+
+LOGIK: Das "Neuer Charakter" Fenster erscheint jetzt erst NACHDEM eine ID eingegeben wurde, die noch keinen Spielstand besitzt.
+
+CSS: style="display: none;" direkt im HTML des Spawn-Screens eingefügt, um ein kurzes Aufblitzen oder falsches Anzeigen beim Laden der Seite zu verhindern.
 
 [v0.0.12d] - 2025-12-16 14:00 (Save Feedback Update)
-----------------------------------------------------
-- UI: Der "SAVE" Button leuchtet nun grün auf und zeigt "SAVED!", wenn das Speichern erfolgreich angestoßen wurde.
-- FIX: HTML `onclick` Attribute entfernt und vollständig durch JS Event-Listener ersetzt, um Konflikte zu vermeiden.
-- UI: Klartext-Feedback im Spawn-Screen ("Kein Spielstand für ID '...' gefunden"), um Verwirrung zu vermeiden.
-- SYSTEM: Login-Logik ist weiterhin: Vorhandener Save = Login, Kein Save = Spawn Auswahl.
+
+UI: Der "SAVE" Button leuchtet nun grün auf und zeigt "SAVED!", wenn das Speichern erfolgreich angestoßen wurde.
+
+FIX: HTML onclick Attribute entfernt und vollständig durch JS Event-Listener ersetzt, um Konflikte zu vermeiden.
+
+UI: Klartext-Feedback im Spawn-Screen ("Kein Spielstand für ID '...' gefunden"), um Verwirrung zu vermeiden.
+
+SYSTEM: Login-Logik ist weiterhin: Vorhandener Save = Login, Kein Save = Spawn Auswahl.
 
 [v0.0.12c] - 2025-12-16 14:00 (Save Feedback Update)
-----------------------------------------------------
-- UI: Der "SAVE" Button leuchtet nun grün auf und zeigt "SAVED!", wenn das Speichern erfolgreich angestoßen wurde.
-- FIX: HTML `onclick` Attribute entfernt und vollständig durch JS Event-Listener ersetzt, um Konflikte zu vermeiden.
-- UI: Klartext-Feedback im Spawn-Screen ("Kein Spielstand für ID '...' gefunden"), um Verwirrung zu vermeiden.
-- SYSTEM: Login-Logik ist weiterhin: Vorhandener Save = Login, Kein Save = Spawn Auswahl.
+
+UI: Der "SAVE" Button leuchtet nun grün auf und zeigt "SAVED!", wenn das Speichern erfolgreich angestoßen wurde.
+
+FIX: HTML onclick Attribute entfernt und vollständig durch JS Event-Listener ersetzt, um Konflikte zu vermeiden.
+
+UI: Klartext-Feedback im Spawn-Screen ("Kein Spielstand für ID '...' gefunden"), um Verwirrung zu vermeiden.
+
+SYSTEM: Login-Logik ist weiterhin: Vorhandener Save = Login, Kein Save = Spawn Auswahl.
 
 [v0.0.12b] - 2025-12-16 13:00 (Spawn Selection)
------------------------------------------------
-- FEATURE: Neuer Screen zur Charaktererstellung. Wenn kein Spielstand existiert, kann man nun wählen, ob man zufällig spawnt oder in der Nähe eines Online-Spielers.
-- FIX: Auto-Teleport beim Login entfernt (nur noch auf Wunsch bei Neuerstellung).
-- FIX: Speicher-Funktion repariert (Events waren doppelt gebunden, Inline-Handler entfernt).
-- UI: "Spiele speichern" Button reagiert jetzt zuverlässig.
+
+FEATURE: Neuer Screen zur Charaktererstellung. Wenn kein Spielstand existiert, kann man nun wählen, ob man zufällig spawnt oder in der Nähe eines Online-Spielers.
+
+FIX: Auto-Teleport beim Login entfernt (nur noch auf Wunsch bei Neuerstellung).
+
+FIX: Speicher-Funktion repariert (Events waren doppelt gebunden, Inline-Handler entfernt).
+
+UI: "Spiele speichern" Button reagiert jetzt zuverlässig.
 
 [v0.0.12a] - 2025-12-16 11:30 (Inventory System)
-------------------------------------------------
-- FEATURE: Inventar-System (Backpack) hinzugefügt. Gekaufte Items landen nun im Inventar und können dort angesehen, ausgerüstet oder benutzt werden.
-- ITEMS: Neue Item-Typen "consumable" (Verbrauchsgüter) und "junk" (Schrott) eingeführt.
-- ITEMS: "Stimpack" hinzugefügt (Heilt 50 HP).
-- UI: Neue Ansicht "INVENTAR" im Menü.
-- GAMEPLAY: Waffen/Rüstung werden beim Kauf nicht mehr automatisch angelegt, sondern müssen im Inventar ausgerüstet werden. Das alte Item wandert zurück in den Rucksack.
+
+FEATURE: Inventar-System (Backpack) hinzugefügt. Gekaufte Items landen nun im Inventar und können dort angesehen, ausgerüstet oder benutzt werden.
+
+ITEMS: Neue Item-Typen "consumable" (Verbrauchsgüter) und "junk" (Schrott) eingeführt.
+
+ITEMS: "Stimpack" hinzugefügt (Heilt 50 HP).
+
+UI: Neue Ansicht "INVENTAR" im Menü.
+
+GAMEPLAY: Waffen/Rüstung werden beim Kauf nicht mehr automatisch angelegt, sondern müssen im Inventar ausgerüstet werden. Das alte Item wandert zurück in den Rucksack.
 
 [v0.0.11c] - 2025-12-16 10:15 (Savegame Restoration Fix)
--------------------------------------------------------
-- FIX: `UI.enterVault is not a function` behoben. Die Interaktions-Logik war im letzten UI-Refactoring verloren gegangen und ist nun wiederhergestellt.
-- GRAFIK: Buttons im Header sind nun größer und besser lesbar.
-- DEBUG: Konsolen-Log beim Laden von Spielständen erweitert, um den Ladezustand besser zu verfolgen.
+
+FIX: UI.enterVault is not a function behoben. Die Interaktions-Logik war im letzten UI-Refactoring verloren gegangen und ist nun wiederhergestellt.
+
+GRAFIK: Buttons im Header sind nun größer und besser lesbar.
+
+DEBUG: Konsolen-Log beim Laden von Spielständen erweitert, um den Ladezustand besser zu verfolgen.
 
 [v0.0.11b] - 2025-12-16 10:00 (Favicon & Detail Polish)
--------------------------------------------------------
-- UI: Website-Icon (Favicon) hinzugefügt. Es zeigt ein grünes "P" auf schwarzem Grund im Browser-Tab an.
-- UI: Konsistente Schriftgrößen im Header und bei den Action-Buttons.
+
+UI: Website-Icon (Favicon) hinzugefügt. Es zeigt ein grünes "P" auf schwarzem Grund im Browser-Tab an.
+
+UI: Konsistente Schriftgrößen im Header und bei den Action-Buttons.
 
 [v0.0.11a] - 2025-12-16 09:30 (Restoration Update)
---------------------------------------------------
-- FIX: Kritischer Fehler behoben, bei dem Interaktions-Funktionen (`enterVault`, `toggleControls` etc.) in `ui.js` fehlten, was zu Abstürzen und fehlerhaftem Speichern führte.
-- UI: Schriftgröße der Buttons erhöht (von 1.1rem auf 1.25rem) für bessere Lesbarkeit.
-- DEBUG: Zusätzliches Logging beim Laden von Spielständen hinzugefügt, um "New Character Loop" Fehler besser diagnostizieren zu können.
+
+FIX: Kritischer Fehler behoben, bei dem Interaktions-Funktionen (enterVault, toggleControls etc.) in ui.js fehlten, was zu Abstürzen und fehlerhaftem Speichern führte.
+
+UI: Schriftgröße der Buttons erhöht (von 1.1rem auf 1.25rem) für bessere Lesbarkeit.
+
+DEBUG: Zusätzliches Logging beim Laden von Spielständen hinzugefügt, um "New Character Loop" Fehler besser diagnostizieren zu können.
 
 [v0.0.10l] - 2025-12-16 08:35 (UI Alert System)
-----------------------------------------------
-- UI: Notification Bubbling implementiert. Wenn es neue Aufgaben oder Stat-Punkte gibt, blinkt der Haupt-Menü-Button (☰) jetzt rot, um den Spieler darauf hinzuweisen, das Menü zu öffnen.
-- UI: Konsistente Benennung der Buttons im Dropdown.
+
+UI: Notification Bubbling implementiert. Wenn es neue Aufgaben oder Stat-Punkte gibt, blinkt der Haupt-Menü-Button (☰) jetzt rot, um den Spieler darauf hinzuweisen, das Menü zu öffnen.
+
+UI: Konsistente Benennung der Buttons im Dropdown.
 
 [v0.0.10k] - 2025-12-16 08:00 (Menu & AFK System)
--------------------------------------------------
-- UI: Navigations-Buttons sind nun in einem "MENÜ ☰" Dropdown zusammengefasst (Desktop & Mobile).
-- UI: "LOGOUT" und "SAVE" Buttons sind nun permanent im Header sichtbar.
-- SYSTEM: Automatischer Logout bei Inaktivität (>5 Minuten).
-- LOGIK: Logout-Funktion kehrt zum Login-Screen zurück und entfernt den Spieler-Marker, ohne die Seite neu zu laden.
+
+UI: Navigations-Buttons sind nun in einem "MENÜ ☰" Dropdown zusammengefasst (Desktop & Mobile).
+
+UI: "LOGOUT" und "SAVE" Buttons sind nun permanent im Header sichtbar.
+
+SYSTEM: Automatischer Logout bei Inaktivität (>5 Minuten).
+
+LOGIK: Logout-Funktion kehrt zum Login-Screen zurück und entfernt den Spieler-Marker, ohne die Seite neu zu laden.
 
 [v0.0.10j] - 2025-12-16 07:45 (Permadeath & Visual Fix)
------------------------------------------------------
-- GRAFIK: Richtungspfeile an Kartenrändern werden nun durch explizite Symbole (^, v, <, >) fehlerfrei dargestellt.
-- GAMEPLAY: Permadeath implementiert. Beim Tod wird der Spielstand unwiderruflich aus der Datenbank gelöscht.
-- NETWORK: Neue Funktion `deleteSave` zum Bereinigen der Datenbank bei Game Over.
-- LOGIK: Kollisionsabfrage angepasst, um auch die neuen Randsymbole als Hindernis zu erkennen.
+
+GRAFIK: Richtungspfeile an Kartenrändern werden nun durch explizite Symbole (^, v, <, >) fehlerfrei dargestellt.
+
+GAMEPLAY: Permadeath implementiert. Beim Tod wird der Spielstand unwiderruflich aus der Datenbank gelöscht.
+
+NETWORK: Neue Funktion deleteSave zum Bereinigen der Datenbank bei Game Over.
+
+LOGIK: Kollisionsabfrage angepasst, um auch die neuen Randsymbole als Hindernis zu erkennen.
 
 [v0.0.10i] - 2025-12-16 07:35 (Gameplay & Visual Polish)
--------------------------------------------------------
-- GRAFIK: Richtungspfeile an den Kartenrändern zeigen nun korrekt in die Himmelsrichtung (nach außen).
-- FIX: Doppeltes "Spiel gespeichert" im Log nach Kampfende entfernt.
-- BALANCE: Spawnrate für Städte (Händler) erhöht (35%).
-- BALANCE: Im Ödland, Dschungel und Wüste kann nun mit 5-10% Chance ein einsamer Händler/Oase (C) auftauchen.
+
+GRAFIK: Richtungspfeile an den Kartenrändern zeigen nun korrekt in die Himmelsrichtung (nach außen).
+
+FIX: Doppeltes "Spiel gespeichert" im Log nach Kampfende entfernt.
+
+BALANCE: Spawnrate für Städte (Händler) erhöht (35%).
+
+BALANCE: Im Ödland, Dschungel und Wüste kann nun mit 5-10% Chance ein einsamer Händler/Oase (C) auftauchen.
 
 [v0.0.10h] - 2025-12-16 16:35 (Teleport Fix)
---------------------------------------------
-- FIX: `Game.teleportTo is not a function` Absturz behoben. Die Funktion war versehentlich entfernt worden und ist nun wieder integriert.
-- FIX: Sicherheitsabfrage für `equip` bei alten Spielständen (AGI-Fehler) ist in dieser Version ebenfalls enthalten.
+
+FIX: Game.teleportTo is not a function Absturz behoben. Die Funktion war versehentlich entfernt worden und ist nun wieder integriert.
+
+FIX: Sicherheitsabfrage für equip bei alten Spielständen (AGI-Fehler) ist in dieser Version ebenfalls enthalten.
 
 [v0.0.10g] - 2025-12-16 (Savegame Crash Fix)
---------------------------------------------
-- FIX: "Cannot read properties of undefined (reading 'AGI')" beim Laden eines Spielstands behoben.
-- CODE: `getStat` Methode robuster gemacht gegen unvollständige Savegames.
-- CODE: `Game.init` stellt nun sicher, dass Ausrüstung (equip) existiert, auch wenn der Spielstand korrupt war.
+
+FIX: "Cannot read properties of undefined (reading 'AGI')" beim Laden eines Spielstands behoben.
+
+CODE: getStat Methode robuster gemacht gegen unvollständige Savegames.
+
+CODE: Game.init stellt nun sicher, dass Ausrüstung (equip) existiert, auch wenn der Spielstand korrupt war.
 
 [v0.0.10e] - 2025-12-16 (Hopefully back to Orgiginal)
-- recreated original code
+
+recreated original code
 
 [v0.0.10f] - 2025-12-15 (Mobile UI & Nav Update)
-------------------------------------------------
-- MOBILE: Responsive Navigation implementiert. Auf kleinen Bildschirmen sind die Navigations-Buttons nun in einem "Hamburger-Menü" (☰) versteckt, um Platz zu sparen.
-- UI: "SPEICHERN" Button ist auch auf Mobile immer direkt sichtbar.
-- UI: Menü schließt sich automatisch nach Auswahl eines Punkts.
-- CODE: Button-Container im Header ist nun flexibel und bricht auf Mobile nicht mehr um.
+
+MOBILE: Responsive Navigation implementiert. Auf kleinen Bildschirmen sind die Navigations-Buttons nun in einem "Hamburger-Menü" (☰) versteckt, um Platz zu sparen.
+
+UI: "SPEICHERN" Button ist auch auf Mobile immer direkt sichtbar.
+
+UI: Menü schließt sich automatisch nach Auswahl eines Punkts.
+
+CODE: Button-Container im Header ist nun flexibel und bricht auf Mobile nicht mehr um.
 
 [v0.0.10b] - 2025-12-15 (Hotfix: Login Crash)
----------------------------------------------
-- FIX: Kritischer Fehler im Login-Prozess behoben ("UI.log is not a function").
-- UI: Versionsnummer wird nun im Login-Feld angezeigt (unten mittig).
-- INFO: Firebase-Warnung im Dashboard bezüglich "öffentliche Regeln" ist beabsichtigt und korrekt für den Testbetrieb.
+
+FIX: Kritischer Fehler im Login-Prozess behoben ("UI.log is not a function").
+
+UI: Versionsnummer wird nun im Login-Feld angezeigt (unten mittig).
+
+INFO: Firebase-Warnung im Dashboard bezüglich "öffentliche Regeln" ist beabsichtigt und korrekt für den Testbetrieb.
 
 [v0.0.10a] - 2025-12-15 (Savegame System)
------------------------------------------
-- SYSTEM: Login-Screen implementiert. Spieler müssen nun eine "Survivor-ID" wählen.
-- NETWORK: Permanente Spielstände (Savegames) in der Cloud. Dein Fortschritt (XP, Items, Position) wird gespeichert und beim Login mit derselben ID wiederhergestellt.
-- GAMEPLAY: Automatisches Speichern bei wichtigen Events (Level-Up, Sektorwechsel, Kampfende).
-- UI: Manueller "SPEICHERN" Button hinzugefügt.
+
+SYSTEM: Login-Screen implementiert. Spieler müssen nun eine "Survivor-ID" wählen.
+
+NETWORK: Permanente Spielstände (Savegames) in der Cloud. Dein Fortschritt (XP, Items, Position) wird gespeichert und beim Login mit derselben ID wiederhergestellt.
+
+GAMEPLAY: Automatisches Speichern bei wichtigen Events (Level-Up, Sektorwechsel, Kampfende).
+
+UI: Manueller "SPEICHERN" Button hinzugefügt.
 
 [v0.0.9e] - 2025-12-15 (Global Visibility)
-------------------------------------------
-- UI: Die "Weltkarte" (Taste: WELT) zeigt nun türkise Punkte in Sektoren an, in denen sich andere Spieler befinden.
-- LOGIK: Verbesserte Synchronisation bei Spielstart ("Global Scan").
-- FIX: `network.js` sendet jetzt zuverlässiger Updates.
+
+UI: Die "Weltkarte" (Taste: WELT) zeigt nun türkise Punkte in Sektoren an, in denen sich andere Spieler befinden.
+
+LOGIK: Verbesserte Synchronisation bei Spielstart ("Global Scan").
+
+FIX: network.js sendet jetzt zuverlässiger Updates.
 
 [v0.0.9d] - 2025-12-15 (Critical Crash Fix)
--------------------------------------------
-- FIX: "Initializing..." Hänger (Race Condition) behoben. Das Spiel wartet nun zuverlässig, bis alle Skripte geladen sind.
-- SYSTEM: Globaler Error-Watchdog implementiert. Abstürze werden nun rot im Log angezeigt, statt das Spiel kommentarlos einzufrieren.
-- NETZWERK: Fallback-Mechanismus: Wenn Firebase geblockt wird, startet das Spiel trotzdem im Offline-Modus (Rescue Mode).
+
+FIX: "Initializing..." Hänger (Race Condition) behoben. Das Spiel wartet nun zuverlässig, bis alle Skripte geladen sind.
+
+SYSTEM: Globaler Error-Watchdog implementiert. Abstürze werden nun rot im Log angezeigt, statt das Spiel kommentarlos einzufrieren.
+
+NETZWERK: Fallback-Mechanismus: Wenn Firebase geblockt wird, startet das Spiel trotzdem im Offline-Modus (Rescue Mode).
 
 [v0.0.9c] - 2025-12-15 (Boot Fix)
----------------------------------
-- FIX: Spielstart-Logik robuster gegen Netzwerkverzögerungen.
+
+FIX: Spielstart-Logik robuster gegen Netzwerkverzögerungen.
 
 [v0.0.9b] - 2025-12-15 (Visuals Update)
----------------------------------------
-- GRAFIK: Spieler-Symbol (grüner Pfeil) dreht sich nun in Bewegungsrichtung.
-- UI: Kartenränder zeigen nun Pfeile in die Himmelsrichtungen an, um Sektor-Übergänge zu verdeutlichen.
+
+GRAFIK: Spieler-Symbol (grüner Pfeil) dreht sich nun in Bewegungsrichtung.
+
+UI: Kartenränder zeigen nun Pfeile in die Himmelsrichtungen an, um Sektor-Übergänge zu verdeutlichen.
 
 [v0.0.9a] - 2025-12-15 (Online Features)
-----------------------------------------
-- NETZWERK: "Jump-to-Buddy" Feature. Beim Starten wird man nun automatisch zum ersten gefundenen Spieler teleportiert, statt zufällig zu spawnen.
-- UI: "ONLINE" Anzeige oben rechts hinzugefügt (zählt aktive Spieler).
-- NETZWERK: Positions-Update ist nun Event-basiert (Echtzeit).
-- BUGFIX: Man sieht sich nicht mehr selbst als Ghost, sondern nur die anderen.
+
+NETZWERK: "Jump-to-Buddy" Feature. Beim Starten wird man nun automatisch zum ersten gefundenen Spieler teleportiert, statt zufällig zu spawnen.
+
+UI: "ONLINE" Anzeige oben rechts hinzugefügt (zählt aktive Spieler).
+
+NETZWERK: Positions-Update ist nun Event-basiert (Echtzeit).
+
+BUGFIX: Man sieht sich nicht mehr selbst als Ghost, sondern nur die anderen.
 
 [v0.0.8c] - 2025-12-15 (Network UI & Fixes)
--------------------------------------------
-- NETZWERK UI: Statusanzeige & Log-Feedback.
-- BUGFIX: Charakter-Level Anzeige.
+
+NETZWERK UI: Statusanzeige & Log-Feedback.
+
+BUGFIX: Charakter-Level Anzeige.
 
 [v0.0.8b] - 2025-12-15 (Firebase Integration)
----------------------------------------------
-- NETWORK: Echtzeit-Datenbank Anbindung (Firebase) erfolgreich implementiert.
-- CONFIG: API-Keys und Projekt-IDs für "pipboy-rpg" eingepflegt.
-- SYSTEM: Automatisches Verbinden beim Starten. Position wird in Echtzeit an die Datenbank gesendet.
-- SYSTEM: Spieler sehen sich gegenseitig im selben Sektor.
+
+NETWORK: Echtzeit-Datenbank Anbindung (Firebase) erfolgreich implementiert.
+
+CONFIG: API-Keys und Projekt-IDs für "pipboy-rpg" eingepflegt.
+
+SYSTEM: Automatisches Verbinden beim Starten. Position wird in Echtzeit an die Datenbank gesendet.
+
+SYSTEM: Spieler sehen sich gegenseitig im selben Sektor.
 
 [v0.0.8a] - 2025-12-15 (Multiplayer Vorbereitung)
--------------------------------------------------
-- CODE: Struktur für `network.js` geschaffen.
+
+CODE: Struktur für network.js geschaffen.
 
 [v0.0.7b] - 2025-12-15 (Readability Update)
--------------------------------------------
-- UI: CRT-Effekte auf Kartenfenster beschränkt.
-- GRAFIK: Verbesserte Lesbarkeit von Log und Buttons.
+
+UI: CRT-Effekte auf Kartenfenster beschränkt.
+
+GRAFIK: Verbesserte Lesbarkeit von Log und Buttons.
 
 [v0.0.7a] - 2025-12-15 (Graphics Overhaul & CRT Effect)
--------------------------------------------------------
-- GRAFIK: Komplettes CSS-Update für einen realistischen "Pip-Boy" Look.
-- CRT: Scanlines, Vignette, Flimmern und Wölbung via CSS hinzugefügt.
-- VECTOR: `game.js` nutzt nun Canvas-Pfade statt simpler Rechtecke für Symbole.
-- UI: Phosphor-Glow Effekt.
+
+GRAFIK: Komplettes CSS-Update für einen realistischen "Pip-Boy" Look.
+
+CRT: Scanlines, Vignette, Flimmern und Wölbung via CSS hinzugefügt.
+
+VECTOR: game.js nutzt nun Canvas-Pfade statt simpler Rechtecke für Symbole.
+
+UI: Phosphor-Glow Effekt.
 
 [v0.0.6a] - 2025-12-15 (Content Update)
----------------------------------------
-- NEU: Städte (Händler) und Höhlen (Dungeons).
-- NEU: 3 Neue Monster.
-- UPDATE: Todeskrallen selten.
+
+NEU: Städte (Händler) und Höhlen (Dungeons).
+
+NEU: 3 Neue Monster.
+
+UPDATE: Todeskrallen selten.
 
 [v0.0.5f] - 2025-12-15 (Interactive Bugfix)
--------------------------------------------
-- FIX: Dialogfenster schließen nicht mehr sofort.
+
+FIX: Dialogfenster schließen nicht mehr sofort.
