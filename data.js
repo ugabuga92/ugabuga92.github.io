@@ -8,6 +8,15 @@ const GameData = {
         'M': '#3e2723', 'W': '#0d47a1', '~': '#2f4f2f', 
         't': '#1b5e20', 'T': '#0a3d0a', 'x': '#5c4033', 'o': '#555555',
         '+': '#666666', '"': '#3cb371', 'Y': '#deb887', 'U': '#212121',
+        
+        // CITY INTERIOR TILES
+        '$': '#ffd700', // Trader (Gold)
+        '&': '#ff8c00', // Workbench (Orange)
+        'P': '#ff3333', // Doctor / Plus (Red)
+        'E': '#39ff14', // Exit Zone (Green)
+        'F': '#00bfff', // Fountain (Deep Sky Blue)
+        '|': '#555555', // Building Wall
+        
         // Biome Colors for Map
         'wasteland': '#5d5345', 'desert': '#eecfa1', 'jungle': '#1a3300', 'city': '#555555', 'swamp': '#1e1e11'
     },
@@ -38,16 +47,13 @@ const GameData = {
 
     // --- ITEMS ---
     items: { 
-        // Consumables
         stimpack: { name: "Stimpack", type: "consumable", effect: "heal", val: 50, cost: 25 },
-        // Junk
         meat_roach: { name: "Kakerlakenfleisch", type: "junk", cost: 2 },
         meat_mole: { name: "Rattenfleisch", type: "junk", cost: 4 },
         meat_fly: { name: "Blähfliegen-Düse", type: "junk", cost: 3 },
         meat_lurk: { name: "Softshell-Fleisch", type: "junk", cost: 15 },
         meat_scorp: { name: "Skorpion-Drüse", type: "junk", cost: 12 },
         hide_yao: { name: "Yao Guai Leder", type: "junk", cost: 25 },
-        // Components
         scrap_metal: { name: "Metallschrott", type: "component", cost: 1 },
         adhesive: { name: "Wunderkleber", type: "component", cost: 10 },
         screws: { name: "Schrauben", type: "component", cost: 5 },
@@ -56,7 +62,6 @@ const GameData = {
         circuitry: { name: "Schaltkreise", type: "component", cost: 20 },
         nuclear_mat: { name: "Nukleares Material", type: "component", cost: 35 },
         legendary_part: { name: "★ Legendäres Modul", type: "rare", cost: 100 },
-        // Weapons & Armor
         fists: { name: "Fäuste", slot: 'weapon', type: 'weapon', baseDmg: 2, bonus: {}, cost: 0, requiredLevel: 0, isRanged: false }, 
         vault_suit: { name: "Vault-Anzug", slot: 'body', type: 'body', bonus: { END: 1 }, cost: 0, requiredLevel: 0 }, 
         knife: { name: "Kampfmesser", slot: 'weapon', type: 'weapon', baseDmg: 8, bonus: { STR: 1 }, cost: 15, requiredLevel: 1, isRanged: false }, 
