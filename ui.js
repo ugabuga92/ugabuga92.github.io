@@ -16,16 +16,12 @@ const UI = {
         this.els.log.prepend(line);
     },
 
-    // NEU: Shake Animation
     shakeView: function() {
         if(this.els.view) {
             this.els.view.classList.remove('shake');
-            void this.els.view.offsetWidth; // Trigger reflow
+            void this.els.view.offsetWidth; 
             this.els.view.classList.add('shake');
-            // Remove class after animation to allow re-trigger
-            setTimeout(() => {
-                if(this.els.view) this.els.view.classList.remove('shake');
-            }, 300);
+            setTimeout(() => { if(this.els.view) this.els.view.classList.remove('shake'); }, 300);
         }
     },
 
@@ -46,8 +42,9 @@ const UI = {
             view: document.getElementById('view-container'),
             log: document.getElementById('log-area'),
             
-            // New Header Elements
             hp: document.getElementById('val-hp'),
+            hpBar: document.getElementById('bar-hp'),
+            expBarTop: document.getElementById('bar-exp-top'),
             lvl: document.getElementById('val-lvl'),
             xpTxt: document.getElementById('val-xp-txt'),
             caps: document.getElementById('val-caps'),
@@ -67,28 +64,23 @@ const UI = {
             btnSave: document.getElementById('btn-save'),
             btnLogout: document.getElementById('btn-logout'),
             btnReset: document.getElementById('btn-reset'), 
-            
             btnMenu: document.getElementById('btn-menu-toggle'),
             navMenu: document.getElementById('main-nav'),
             playerCount: document.getElementById('val-players'),
             playerList: document.getElementById('player-list-overlay'),
             playerListContent: document.getElementById('player-list-content'),
-            
             loginScreen: document.getElementById('login-screen'),
             spawnScreen: document.getElementById('spawn-screen'),
             spawnMsg: document.getElementById('spawn-msg'),
             spawnList: document.getElementById('spawn-list'),
             btnSpawnRandom: document.getElementById('btn-spawn-random'),
-            
             resetOverlay: document.getElementById('reset-overlay'),
             btnConfirmReset: document.getElementById('btn-confirm-reset'),
             btnCancelReset: document.getElementById('btn-cancel-reset'),
-            
             gameScreen: document.getElementById('game-screen'),
             loginInput: document.getElementById('survivor-id-input'),
             loginStatus: document.getElementById('login-status'),
             gameOver: document.getElementById('game-over-screen'),
-            
             btnUp: document.getElementById('btn-up'),
             btnDown: document.getElementById('btn-down'),
             btnLeft: document.getElementById('btn-left'),
@@ -115,17 +107,14 @@ const UI = {
         if(this.els.btnConfirmReset) this.els.btnConfirmReset.onclick = () => this.confirmReset();
         if(this.els.btnCancelReset) this.els.btnCancelReset.onclick = () => this.cancelReset();
 
-        // FIX: Menu Toggle needs to handle display explicitly
         if(this.els.btnMenu) {
             this.els.btnMenu.onclick = (e) => {
-                e.stopPropagation(); // Stop bubbling so touchstart doesn't close it immediately
+                e.stopPropagation(); 
                 this.els.navMenu.classList.toggle('hidden');
-                // Ensure it's visible on top
                 this.els.navMenu.style.display = this.els.navMenu.classList.contains('hidden') ? 'none' : 'flex';
             };
         }
         
-        // Click outside to close menu
         document.addEventListener('click', (e) => {
             if(this.els.navMenu && !this.els.navMenu.classList.contains('hidden')) {
                 if (!this.els.navMenu.contains(e.target) && e.target !== this.els.btnMenu) {
@@ -358,11 +347,20 @@ const UI = {
         if(this.els.resetOverlay) this.els.resetOverlay.style.display = 'none';
     },
 
+    // ANIMATION FIX
     handleSaveClick: function() {
         Game.saveGame(true);
         const btn = this.els.btnSave;
-        btn.textContent = "✔";
-        setTimeout(() => btn.textContent = "💾", 1000);
+        const originalText = btn.textContent;
+        const originalClass = btn.className;
+        
+        btn.textContent = "SAVED!";
+        btn.className = "header-btn bg-[#39ff14] text-black border-[#39ff14]";
+        
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.className = originalClass;
+        }, 1000);
     },
 
     attemptLogin: async function() {
@@ -477,7 +475,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.16e)"; 
+            v.textContent = "ONLINE (v0.0.16g)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -572,15 +570,17 @@ const UI = {
         }
 
         if(this.els.lvl) this.els.lvl.textContent = Game.state.lvl; 
+        if(this.els.ammo) this.els.ammo.textContent = Game.state.ammo; 
         if(this.els.caps) this.els.caps.textContent = `${Game.state.caps} $`; 
         
-        // XP %
         const nextXp = Game.expToNextLevel(Game.state.lvl); 
         const expPct = Math.min(100, Math.floor((Game.state.xp / nextXp) * 100)); 
-        if(this.els.xpTxt) this.els.xpTxt.textContent = `${expPct}%`;
+        if(this.els.xpTxt) this.els.xpTxt.textContent = expPct;
+        if(this.els.expBarTop) this.els.expBarTop.style.width = `${expPct}%`;
         
         const maxHp = Game.state.maxHp; 
         if(this.els.hp) this.els.hp.textContent = `${Math.round(Game.state.hp)}/${maxHp}`; 
+        if(this.els.hpBar) this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`;
         
         let hasAlert = false;
         if(this.els.btnChar) {
@@ -841,6 +841,7 @@ const UI = {
         content.innerHTML = htmlBuffer;
     },
 
+    // NEU: Tabelle für Stats
     renderChar: function() { 
         const grid = document.getElementById('stat-grid'); 
         if(!grid) return; 
@@ -848,12 +849,24 @@ const UI = {
         const lvlDisplay = document.getElementById('char-lvl'); 
         if(lvlDisplay) lvlDisplay.textContent = Game.state.lvl; 
         
-        grid.innerHTML = Object.keys(Game.state.stats).map(k => { 
+        // Tabellen-Layout für saubere Ausrichtung
+        let html = '<table class="w-full text-left border-collapse">';
+        Object.keys(Game.state.stats).forEach(k => { 
             const val = Game.getStat(k); 
-            // FIX: Große Buttons (w-12 h-12)
-            const btn = Game.state.statPoints > 0 ? `<button class="w-12 h-12 border-2 border-green-500 bg-green-900/50 text-green-400 font-bold ml-2 flex items-center justify-center hover:bg-green-500 hover:text-black transition-colors" onclick="Game.upgradeStat('${k}')" style="font-size: 1.5rem;">+</button>` : ''; 
-            return `<div class="flex justify-between items-center border-b border-green-900/30 py-1 h-14"><span>${k}</span> <div class="flex items-center"><span class="text-yellow-400 font-bold mr-4 text-xl">${val}</span>${btn}</div></div>`; 
-        }).join(''); 
+            const btn = Game.state.statPoints > 0 ? `<button class="w-8 h-8 border border-green-500 bg-green-900/50 text-green-400 font-bold flex items-center justify-center hover:bg-green-500 hover:text-black transition-colors" onclick="Game.upgradeStat('${k}')">+</button>` : ''; 
+            html += `
+                <tr class="border-b border-green-900/30">
+                    <td class="py-2 pl-2 font-bold text-lg">${k}</td>
+                    <td class="py-2 pr-2 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <span class="text-yellow-400 font-bold text-xl">${val}</span>
+                            ${btn}
+                        </div>
+                    </td>
+                </tr>`;
+        });
+        html += '</table>';
+        grid.innerHTML = html;
         
         const nextXp = Game.expToNextLevel(Game.state.lvl); 
         const expPct = Math.min(100, (Game.state.xp / nextXp) * 100); 
@@ -913,7 +926,7 @@ const UI = {
     renderQuests: function() { const list = document.getElementById('quest-list'); if(!list) return; list.innerHTML = Game.state.quests.map(q => ` <div class="border border-green-900 bg-green-900/10 p-2 flex items-center gap-3 cursor-pointer hover:bg-green-900/30 transition-all" onclick="UI.showQuestDetail('${q.id}')"> <div class="text-3xl">✉️</div> <div> <div class="font-bold text-lg text-yellow-400">${q.read ? '' : '<span class="text-cyan-400">[NEU]</span> '}${q.title}</div> <div class="text-xs opacity-70">Zum Lesen klicken</div> </div> </div> `).join(''); },
     showQuestDetail: function(id) { const quest = Game.state.quests.find(q => q.id === id); if(!quest) return; quest.read = true; this.update(); const list = document.getElementById('quest-list'); const detail = document.getElementById('quest-detail'); const content = document.getElementById('quest-content'); list.classList.add('hidden'); detail.classList.remove('hidden'); content.innerHTML = `<h2 class="text-2xl font-bold text-yellow-400 border-b border-green-500 mb-4">${quest.title}</h2><div class="font-mono text-lg leading-relaxed whitespace-pre-wrap">${quest.text}</div>`; },
     closeQuestDetail: function() { document.getElementById('quest-detail').classList.add('hidden'); document.getElementById('quest-list').classList.remove('hidden'); this.renderQuests(); },
-    renderChar: function() { const grid = document.getElementById('stat-grid'); if(!grid) return; const lvlDisplay = document.getElementById('char-lvl'); if(lvlDisplay) lvlDisplay.textContent = Game.state.lvl; grid.innerHTML = Object.keys(Game.state.stats).map(k => { const val = Game.getStat(k); const btn = Game.state.statPoints > 0 ? `<button class="border border-green-500 px-1 ml-2" onclick="Game.upgradeStat('${k}')">+</button>` : ''; return `<div class="flex justify-between items-center border-b border-green-900/30 py-1"><span>${k}</span> <div class="flex items-center"><span class="text-yellow-400 font-bold">${val}</span>${btn}</div></div>`; }).join(''); const nextXp = Game.expToNextLevel(Game.state.lvl); const expPct = Math.min(100, (Game.state.xp / nextXp) * 100); document.getElementById('char-exp').textContent = Game.state.xp; document.getElementById('char-next').textContent = nextXp; document.getElementById('char-exp-bar').style.width = `${expPct}%`; document.getElementById('char-points').textContent = Game.state.statPoints; const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2}; const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}}; document.getElementById('equip-weapon-name').textContent = wpn.name; let wpnStats = `DMG: ${wpn.baseDmg}`; if(wpn.bonus) { for(let s in wpn.bonus) wpnStats += ` ${s}:${wpn.bonus[s]}`; } document.getElementById('equip-weapon-stats').textContent = wpnStats; document.getElementById('equip-body-name').textContent = arm.name; let armStats = ""; if(arm.bonus) { for(let s in arm.bonus) armStats += `${s}:${arm.bonus[s]} `; } document.getElementById('equip-body-stats').textContent = armStats || "Kein Bonus"; },
+    
     renderWiki: function() { const content = document.getElementById('wiki-content'); if(!content) return; content.innerHTML = Object.keys(Game.monsters).map(k => { const m = Game.monsters[k]; const xpText = Array.isArray(m.xp) ? `${m.xp[0]}-${m.xp[1]}` : m.xp; return `<div class="border-b border-green-900 pb-1"><div class="font-bold text-yellow-400">${m.name}</div><div class="text-xs opacity-70">HP: ~${m.hp}, XP: ${xpText}</div></div>`; }).join(''); },
     renderWorldMap: function() { const grid = document.getElementById('world-grid'); if(!grid) return; grid.innerHTML = ''; for(let y=0; y<8; y++) { for(let x=0; x<8; x++) { const d = document.createElement('div'); d.className = "border border-green-900/30 flex justify-center items-center text-xs relative"; if(x === Game.state.sector.x && y === Game.state.sector.y) { d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.style.fontWeight = "bold"; d.textContent = "YOU"; } else if(Game.worldData[`${x},${y}`]) { const biome = Game.worldData[`${x},${y}`].biome; d.style.backgroundColor = this.biomeColors[biome] || '#4a3d34'; } if(typeof Network !== 'undefined' && Network.otherPlayers) { const playersHere = Object.values(Network.otherPlayers).filter(p => p.sector && p.sector.x === x && p.sector.y === y); if(playersHere.length > 0) { const dot = document.createElement('div'); dot.className = "absolute w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]"; if(x === Game.state.sector.x && y === Game.state.sector.y) { dot.style.top = "2px"; dot.style.right = "2px"; } d.appendChild(dot); } } grid.appendChild(d); } } grid.style.gridTemplateColumns = "repeat(8, 1fr)"; },
     renderCity: function() { const con = document.getElementById('city-options'); if(!con) return; con.innerHTML = ''; const addBtn = (txt, cb, disabled=false) => { const b = document.createElement('button'); b.className = "action-button w-full mb-2 text-left p-3 flex justify-between"; b.innerHTML = txt; b.onclick = cb; if(disabled) { b.disabled = true; b.style.opacity = 0.5; } con.appendChild(b); }; addBtn("Heilen (25 Kronkorken)", () => Game.heal(), Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp); addBtn("Munition (10 Stk / 10 Kronkorken)", () => Game.buyAmmo(), Game.state.caps < 10); addBtn("Händler / Waffen & Rüstung", () => this.renderShop(con)); addBtn("🛠️ Werkbank / Crafting", () => this.toggleView('crafting')); addBtn("Stadt verlassen", () => this.switchView('map')); },
