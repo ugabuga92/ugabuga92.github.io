@@ -2,11 +2,11 @@ const UI = {
     els: {},
     timerInterval: null,
     lastInputTime: Date.now(), 
-    biomeColors: GameData.colors, 
     
-    touchState: {
-        active: false, id: null, startX: 0, startY: 0, currentX: 0, currentY: 0, moveDir: { x: 0, y: 0 }, timer: null
-    },
+    // FIX: Directly reference Game.colors
+    biomeColors: {}, 
+    
+    touchState: { active: false, id: null, startX: 0, startY: 0, currentX: 0, currentY: 0, moveDir: { x: 0, y: 0 }, timer: null },
 
     log: function(msg, color="text-green-500") { 
         if(!this.els.log) return;
@@ -37,11 +37,13 @@ const UI = {
     },
 
     init: function() {
+        // Init colors safely after Game is loaded
+        if(typeof Game !== 'undefined') this.biomeColors = Game.colors || {};
+
         this.els = {
             touchArea: document.getElementById('main-content'),
             view: document.getElementById('view-container'),
             log: document.getElementById('log-area'),
-            
             hp: document.getElementById('val-hp'),
             hpBar: document.getElementById('bar-hp'),
             expBarTop: document.getElementById('bar-exp-top'),
@@ -49,12 +51,10 @@ const UI = {
             xpTxt: document.getElementById('val-xp-txt'),
             caps: document.getElementById('val-caps'),
             name: document.getElementById('val-name'),
-
             version: document.getElementById('version-display'), 
             joyBase: null, joyStick: null,
             dialog: document.getElementById('dialog-overlay'),
             timer: document.getElementById('game-timer'),
-            
             btnNew: document.getElementById('btn-new'),
             btnInv: document.getElementById('btn-inv'),
             btnWiki: document.getElementById('btn-wiki'),
@@ -607,7 +607,8 @@ const UI = {
         if(this.els.hpBar) this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`; 
         
         const nextXp = Game.expToNextLevel(Game.state.lvl); 
-        const expPct = Math.min(100, (Game.state.xp / nextXp) * 100); 
+        const expPct = Math.min(100, Math.floor((Game.state.xp / nextXp) * 100)); 
+        if(this.els.xpTxt) this.els.xpTxt.textContent = expPct;
         if(this.els.expBarTop) this.els.expBarTop.style.width = `${expPct}%`; 
         
         let hasAlert = false;
@@ -644,21 +645,17 @@ const UI = {
         });
         
         if(this.els.lvl) {
-            if(buffActive) this.els.lvl.classList.add('blink-red'); 
+            if(Date.now() < Game.state.buffEndTime) this.els.lvl.classList.add('blink-red'); 
             else this.els.lvl.classList.remove('blink-red'); 
         }
         
         if(Game.state.view === 'map') { 
-            if(this.els.dpadToggle) this.els.dpadToggle.style.display = 'flex'; 
             if(!Game.state.inDialog && this.els.dialog && this.els.dialog.innerHTML === '') { 
                 this.els.dialog.style.display = 'none'; 
             } 
-        } else { 
-            if(this.els.dpadToggle) this.els.dpadToggle.style.display = 'none'; 
-        } 
+        }
     },
 
-    // NEU: Grid-based Inventory
     renderInventory: function() {
         const list = document.getElementById('inventory-list');
         const countDisplay = document.getElementById('inv-count');
@@ -706,10 +703,7 @@ const UI = {
                 </div>
             `;
             
-            // Interaction logic needed here? For now just visual per request, but let's add basic click handler for equip/use
             btn.onclick = () => {
-                // Show action menu or simple use
-                // For simplicity, sticking to click = use/equip based on old logic
                  if(item.type === 'junk' || item.type === 'component' || item.type === 'rare') {
                      // Do nothing or show info
                  } else {
@@ -891,63 +885,3 @@ const UI = {
             locs.forEach(l => {
                 htmlBuffer += `
                     <div class="mb-3 border-l-2 border-green-500 pl-2">
-                        <div class="font-bold text-cyan-400 text-lg uppercase">${l.name}</div>
-                        <div class="text-sm text-green-200 leading-tight">${l.desc}</div>
-                    </div>`;
-            });
-        }
-        
-        content.innerHTML = htmlBuffer;
-    },
-
-    // NEU: Worldmap Persistence Logic
-    renderWorldMap: function() { 
-        const grid = document.getElementById('world-grid'); 
-        if(!grid) return; 
-        grid.innerHTML = ''; 
-        
-        for(let y=0; y<8; y++) { 
-            for(let x=0; x<8; x++) { 
-                const d = document.createElement('div'); 
-                d.className = "border border-green-900/30 flex justify-center items-center text-xs relative"; 
-                
-                const secId = `${x},${y}`;
-                const isVisited = Game.state.visitedSectors && Game.state.visitedSectors.includes(secId);
-                const isCurrent = x === Game.state.sector.x && y === Game.state.sector.y;
-
-                if(isCurrent) { 
-                    d.style.backgroundColor = "#39ff14"; 
-                    d.style.color = "black"; 
-                    d.style.fontWeight = "bold"; 
-                    d.textContent = "YOU"; 
-                } 
-                else if(isVisited && Game.worldData[secId]) { 
-                    const biome = Game.worldData[secId].biome; 
-                    d.style.backgroundColor = this.biomeColors[biome] || '#4a3d34'; 
-                } 
-                else {
-                    // Unvisited
-                    d.style.backgroundColor = "#000";
-                    d.textContent = "?";
-                    d.style.color = "#1a331a";
-                }
-                
-                if(typeof Network !== 'undefined' && Network.otherPlayers) { 
-                    const playersHere = Object.values(Network.otherPlayers).filter(p => p.sector && p.sector.x === x && p.sector.y === y); 
-                    if(playersHere.length > 0) { 
-                        const dot = document.createElement('div'); 
-                        dot.className = "absolute w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]"; 
-                        if(isCurrent) { dot.style.top = "2px"; dot.style.right = "2px"; } 
-                        d.appendChild(dot); 
-                    } 
-                } 
-                grid.appendChild(d); 
-            } 
-        } 
-        grid.style.gridTemplateColumns = "repeat(8, 1fr)"; 
-    },
-    
-    renderCity: function() { const con = document.getElementById('city-options'); if(!con) return; con.innerHTML = ''; const addBtn = (txt, cb, disabled=false) => { const b = document.createElement('button'); b.className = "action-button w-full mb-2 text-left p-3 flex justify-between"; b.innerHTML = txt; b.onclick = cb; if(disabled) { b.disabled = true; b.style.opacity = 0.5; } con.appendChild(b); }; addBtn("Heilen (25 Kronkorken)", () => Game.heal(), Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp); addBtn("Munition (10 Stk / 10 Kronkorken)", () => Game.buyAmmo(), Game.state.caps < 10); addBtn("Händler / Waffen & Rüstung", () => this.renderShop(con)); addBtn("🛠️ Werkbank / Crafting", () => this.toggleView('crafting')); addBtn("Stadt verlassen", () => this.switchView('map')); },
-    renderShop: function(container) { container.innerHTML = ''; const backBtn = document.createElement('button'); backBtn.className = "action-button w-full mb-4 text-center border-yellow-400 text-yellow-400"; backBtn.textContent = "ZURÜCK ZUM PLATZ"; backBtn.onclick = () => this.renderCity(); container.appendChild(backBtn); Object.keys(Game.items).forEach(key => { const item = Game.items[key]; if(item.cost > 0 && Game.state.lvl >= (item.requiredLevel || 0) - 2) { const canAfford = Game.state.caps >= item.cost; const isEquipped = (Game.state.equip[item.slot] && Game.state.equip[item.slot].name === item.name); let label = `<span>${item.name}</span> <span>${item.cost} Kronkorken</span>`; if(isEquipped) label = `<span class="text-green-500">[AUSGERÜSTET]</span>`; const btn = document.createElement('button'); btn.className = "action-button w-full mb-2 flex justify-between text-sm"; btn.innerHTML = label; if(!canAfford || isEquipped) { btn.disabled = true; btn.style.opacity = 0.5; } else { btn.onclick = () => Game.buyItem(key); } container.appendChild(btn); } }); },
-    renderCombat: function() { const enemy = Game.state.enemy; if(!enemy) return; document.getElementById('enemy-name').textContent = enemy.name; document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`; document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`; }
-};
