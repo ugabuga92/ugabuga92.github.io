@@ -15,7 +15,6 @@ const Game = {
         this.cacheCtx = this.cacheCanvas.getContext('2d'); 
     }, 
     
-    // WICHTIG: initCanvas restored
     initCanvas: function() { 
         const cvs = document.getElementById('game-canvas'); 
         if(!cvs) return; 
@@ -27,7 +26,6 @@ const Game = {
         this.drawLoop(); 
     },
 
-    // WICHTIG: drawLoop restored
     drawLoop: function() { 
         if(this.state.view !== 'map' || this.state.isGameOver) return; 
         this.draw(); 
@@ -195,7 +193,6 @@ const Game = {
         UI.update();
     },
     
-    // WICHTIG: reveal restored
     reveal: function(px, py) { 
         for(let y=py-2; y<=py+2; y++) {
             for(let x=px-2; x<=px+2; x++) {
@@ -206,7 +203,6 @@ const Game = {
         }
     },
 
-    // WICHTIG: fixMapBorders restored
     fixMapBorders: function(map, sx, sy) {
         if(sy === 0) { for(let i=0; i<this.MAP_W; i++) map[0][i] = '#'; }
         if(sy === 7) { for(let i=0; i<this.MAP_W; i++) map[this.MAP_H-1][i] = '#'; }
@@ -327,15 +323,10 @@ const Game = {
         for(let reqId in recipe.req) {
             const countNeeded = recipe.req[reqId];
             const invItem = this.state.inventory.find(i => i.id === reqId);
-            // Check equipped
             let hasEquipped = false;
             if (this.state.equip.weapon && Object.keys(this.items).find(k => this.items[k].name === this.state.equip.weapon.name) === reqId) hasEquipped = true;
             if (this.state.equip.body && Object.keys(this.items).find(k => this.items[k].name === this.state.equip.body.name) === reqId) hasEquipped = true;
-            
-            if (hasEquipped || !invItem || invItem.count < countNeeded) { 
-                UI.log(`Material fehlt (oder ausgerüstet): ${this.items[reqId].name}`, "text-red-500"); 
-                return; 
-            }
+            if (hasEquipped || !invItem || invItem.count < countNeeded) { UI.log(`Material fehlt (oder ausgerüstet): ${this.items[reqId].name}`, "text-red-500"); return; }
         }
         
         for(let reqId in recipe.req) {
@@ -377,18 +368,26 @@ const Game = {
             else if (rng() < 0.30) biome = 'city'; 
             
             let poiList = [];
-            if(sx === this.state.startSector.x && sy === this.state.startSector.y) poiList.push({x:20, y:20, type:'V'}); 
+            
+            // NEU: POI Marker speichern
+            let sectorPoiType = null;
+
+            if(sx === this.state.startSector.x && sy === this.state.startSector.y) {
+                poiList.push({x:20, y:20, type:'V'}); 
+                sectorPoiType = 'V';
+            }
             if(rng() < 0.35) { 
                 let type = 'C'; const r = rng(); if(r < 0.3) type = 'S'; else if(r < 0.6) type = 'H';
                 poiList.push({x: Math.floor(rng()*(this.MAP_W-6))+3, y: Math.floor(rng()*(this.MAP_H-6))+3, type: type});
+                sectorPoiType = type;
             }
 
             if(typeof WorldGen !== 'undefined') {
                 const map = WorldGen.createSector(this.MAP_W, this.MAP_H, biome, poiList);
-                this.worldData[key] = { layout: map, explored: {}, biome: biome };
+                this.worldData[key] = { layout: map, explored: {}, biome: biome, poi: sectorPoiType };
             } else {
                 let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('.'));
-                this.worldData[key] = { layout: map, explored: {}, biome: biome };
+                this.worldData[key] = { layout: map, explored: {}, biome: biome, poi: sectorPoiType };
             }
         } 
         
@@ -404,7 +403,7 @@ const Game = {
         
         this.fixMapBorders(this.state.currentMap, sx, sy);
         this.state.explored = data.explored; 
-        let zn = "Ödland"; if(data.biome === 'city') zn = "Ruinenstadt"; if(data.biome === 'desert') zn = "Glühende Wüste"; if(data.biome === 'jungle') zn = "Überwucherte Zone"; 
+        let zn = "Ödland"; if(data.biome === 'city') zn = "D.C. Ruinen"; if(data.biome === 'desert') zn = "The Pitt / Asche"; if(data.biome === 'jungle') zn = "Oasis"; if(data.biome === 'swamp') zn = "Sumpf";
         this.state.zone = `${zn} (${sx},${sy})`; 
         
         this.findSafeSpawn();
