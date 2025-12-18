@@ -61,12 +61,12 @@
         </div>
     </div>
 
-    <!-- GLOBAL MANUAL OVERLAY (Für Login & Ingame) -->
-    <div id="manual-overlay" class="hidden z-[1000] bg-black/95">
+    <!-- FIX: style="display: none;" HINZUGEFÜGT damit es nicht sofort sichtbar ist -->
+    <div id="manual-overlay" class="hidden z-[1000] bg-black/95" style="display: none;">
         <div class="border-2 border-yellow-400 w-full max-w-2xl h-[90vh] bg-[#111] flex flex-col p-4 shadow-[0_0_30px_#aa0]">
             <div class="flex justify-between items-center border-b border-yellow-400 pb-2 mb-2">
                 <h2 class="text-2xl font-bold text-yellow-400">HANDBUCH v1.0</h2>
-                <button class="text-red-500 font-bold text-xl px-2 border border-red-500 hover:bg-red-900" onclick="document.getElementById('manual-overlay').classList.add('hidden')">X</button>
+                <button class="text-red-500 font-bold text-xl px-2 border border-red-500 hover:bg-red-900" onclick="document.getElementById('manual-overlay').classList.add('hidden'); document.getElementById('manual-overlay').style.display='none';">X</button>
             </div>
             <div id="manual-content" class="flex-grow overflow-y-auto text-green-300 font-mono space-y-4 pr-2">
                 <!-- Inhalt wird geladen -->
@@ -113,7 +113,7 @@
             
             <!-- LEFT: Name & HP -->
             <div class="flex items-center gap-2 flex-grow min-w-0">
-                <div class="text-xl font-bold leading-none hidden md:block" onclick="location.reload()">PIP-BOY</div>
+                <div class="text-xl font-bold leading-none hidden md:block cursor-pointer" onclick="location.reload()">PIP-BOY</div>
                 <div class="flex flex-col">
                     <span id="val-name" class="text-cyan-400 font-bold text-sm truncate max-w-[100px]">PLAYER</span>
                     <div class="flex items-center gap-1 text-xs">
