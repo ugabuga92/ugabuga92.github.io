@@ -186,25 +186,50 @@ const UI = {
     showManualOverlay: async function() {
         const overlay = document.getElementById('manual-overlay');
         const content = document.getElementById('manual-content');
-        if(this.els.navMenu) { this.els.navMenu.classList.add('hidden'); this.els.navMenu.style.display = 'none'; }
+        
+        if(this.els.navMenu) {
+            this.els.navMenu.classList.add('hidden');
+            this.els.navMenu.style.display = 'none';
+        }
+        
         if(overlay && content) {
             content.innerHTML = '<div class="text-center animate-pulse">Lade Handbuch...</div>';
-            overlay.style.display = 'flex'; overlay.classList.remove('hidden');
+            overlay.style.display = 'flex'; 
+            overlay.classList.remove('hidden');
+            
             const verDisplay = document.getElementById('version-display'); 
             const ver = verDisplay ? verDisplay.textContent.trim() : Date.now();
-            try { const res = await fetch(`views/manual.html?v=${ver}`); if (!res.ok) throw new Error("Manual not found"); const html = await res.text(); content.innerHTML = html; } catch(e) { content.innerHTML = `<div class="text-red-500">Fehler beim Laden: ${e.message}</div>`; }
+            try {
+                const res = await fetch(`views/manual.html?v=${ver}`);
+                if (!res.ok) throw new Error("Manual not found");
+                const html = await res.text();
+                content.innerHTML = html;
+            } catch(e) {
+                content.innerHTML = `<div class="text-red-500">Fehler beim Laden: ${e.message}</div>`;
+            }
         }
     },
 
     showChangelogOverlay: async function() {
         const overlay = document.getElementById('changelog-overlay');
         const content = document.getElementById('changelog-content');
+        
         if(overlay && content) {
             content.textContent = 'Lade Daten...';
-            overlay.style.display = 'flex'; overlay.classList.remove('hidden');
+            overlay.style.display = 'flex'; 
+            overlay.classList.remove('hidden');
+            
             const verDisplay = document.getElementById('version-display'); 
             const ver = verDisplay ? verDisplay.textContent.trim() : Date.now();
-            try { const res = await fetch(`change.log?v=${ver}`); if (!res.ok) throw new Error("Logfile nicht gefunden"); const text = await res.text(); content.textContent = text; } catch(e) { content.textContent = `Fehler beim Laden: ${e.message}`; }
+            
+            try {
+                const res = await fetch(`change.log?v=${ver}`);
+                if (!res.ok) throw new Error("Logfile nicht gefunden");
+                const text = await res.text();
+                content.textContent = text;
+            } catch(e) {
+                content.textContent = `Fehler beim Laden: ${e.message}`;
+            }
         }
     },
 
@@ -215,10 +240,15 @@ const UI = {
                 <div class="border-2 border-[#39ff14] bg-black p-6 text-center shadow-[0_0_20px_#39ff14] max-w-sm mx-4">
                     <div class="text-5xl mb-4 animate-bounce">👆</div>
                     <h2 class="text-2xl font-bold text-[#39ff14] mb-2 tracking-widest border-b border-[#39ff14] pb-2">TOUCH STEUERUNG</h2>
-                    <p class="text-green-300 mb-6 font-mono leading-relaxed">Tippe und halte IRGENDWO auf dem Hauptschirm (auch im Log), um den Joystick zu aktivieren.</p>
-                    <div class="text-xs text-[#39ff14] animate-pulse font-bold bg-[#39ff14]/20 py-2 rounded">> TIPPEN ZUM STARTEN <</div>
+                    <p class="text-green-300 mb-6 font-mono leading-relaxed">
+                        Tippe und halte IRGENDWO auf dem Hauptschirm (auch im Log), um den Joystick zu aktivieren.
+                    </p>
+                    <div class="text-xs text-[#39ff14] animate-pulse font-bold bg-[#39ff14]/20 py-2 rounded">
+                        > TIPPEN ZUM STARTEN <
+                    </div>
                 </div>
-            </div>`;
+            </div>
+        `;
         document.body.insertAdjacentHTML('beforeend', hintHTML);
         setTimeout(() => { const el = document.getElementById('mobile-hint'); if(el) el.classList.remove('opacity-0'); }, 10);
     },
@@ -361,8 +391,10 @@ const UI = {
         const btn = this.els.btnSave;
         const originalText = btn.textContent;
         const originalClass = btn.className;
+        
         btn.textContent = "SAVED!";
         btn.className = "header-btn bg-[#39ff14] text-black border-[#39ff14]";
+        
         setTimeout(() => {
             btn.textContent = originalText;
             btn.className = originalClass;
@@ -481,7 +513,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.17i)"; 
+            v.textContent = "ONLINE (v0.0.18b)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -572,9 +604,7 @@ const UI = {
         if (!Game.state) return; 
         
         if(this.els.name && typeof Network !== 'undefined') {
-            // NEU: Sektor Anzeige
-            const sec = `[${Game.state.sector.x},${Game.state.sector.y}]`;
-            this.els.name.innerHTML = `${Network.myId || "SURVIVOR"} <span class="text-xs text-green-600">${sec}</span>`;
+            this.els.name.textContent = Network.myId || "SURVIVOR";
         }
 
         if(this.els.lvl) {
@@ -879,84 +909,69 @@ const UI = {
         
         content.innerHTML = htmlBuffer;
     },
-
-    renderChar: function() { 
-        const grid = document.getElementById('stat-grid'); 
+    
+    // NEU: Worldmap Marker Logic
+    renderWorldMap: function() { 
+        const grid = document.getElementById('world-grid'); 
         if(!grid) return; 
+        grid.innerHTML = ''; 
         
-        const lvlDisplay = document.getElementById('char-lvl'); 
-        if(lvlDisplay) lvlDisplay.textContent = Game.state.lvl; 
-        
-        grid.innerHTML = Object.keys(Game.state.stats).map(k => { 
-            const val = Game.getStat(k); 
-            // FIX: Große Buttons (w-12 h-12)
-            const btn = Game.state.statPoints > 0 ? `<button class="w-12 h-12 border-2 border-green-500 bg-green-900/50 text-green-400 font-bold ml-2 flex items-center justify-center hover:bg-green-500 hover:text-black transition-colors" onclick="Game.upgradeStat('${k}')" style="font-size: 1.5rem;">+</button>` : ''; 
-            // Translate stats using GameData
-            const label = (typeof window.GameData !== 'undefined' && window.GameData.statLabels && window.GameData.statLabels[k]) ? window.GameData.statLabels[k] : k;
-            return `<div class="flex justify-between items-center border-b border-green-900/30 py-1 h-14"><span>${label}</span> <div class="flex items-center"><span class="text-yellow-400 font-bold mr-4 text-xl">${val}</span>${btn}</div></div>`; 
-        }).join(''); 
-        
-        const nextXp = Game.expToNextLevel(Game.state.lvl); 
-        const expPct = Math.min(100, (Game.state.xp / nextXp) * 100); 
-        document.getElementById('char-exp').textContent = Game.state.xp; 
-        document.getElementById('char-next').textContent = nextXp; 
-        document.getElementById('char-exp-bar').style.width = `${expPct}%`; 
-        document.getElementById('char-points').textContent = Game.state.statPoints; 
-        
-        const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2};
-        const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}};
-        
-        document.getElementById('equip-weapon-name').textContent = wpn.name;
-        let wpnStats = `DMG: ${wpn.baseDmg}`;
-        if(wpn.bonus) {
-            for(let s in wpn.bonus) wpnStats += ` ${s}:${wpn.bonus[s]}`;
-        }
-        document.getElementById('equip-weapon-stats').textContent = wpnStats;
+        for(let y=0; y<8; y++) { 
+            for(let x=0; x<8; x++) { 
+                const d = document.createElement('div'); 
+                d.className = "border border-green-900/30 flex justify-center items-center text-xs relative"; 
+                
+                const secId = `${x},${y}`;
+                const isVisited = Game.state.visitedSectors && Game.state.visitedSectors.includes(secId);
+                const isCurrent = x === Game.state.sector.x && y === Game.state.sector.y;
 
-        document.getElementById('equip-body-name').textContent = arm.name;
-        let armStats = "";
-        if(arm.bonus) {
-            for(let s in arm.bonus) armStats += `${s}:${arm.bonus[s]} `;
-        }
-        document.getElementById('equip-body-stats').textContent = armStats || "Kein Bonus";
+                if(isCurrent) { 
+                    d.style.backgroundColor = "#39ff14"; 
+                    d.style.color = "black"; 
+                    d.style.fontWeight = "bold"; 
+                    d.textContent = "YOU"; 
+                } 
+                else if(isVisited && Game.worldData[secId]) { 
+                    const biome = Game.worldData[secId].biome; 
+                    d.style.backgroundColor = this.biomeColors[biome] || '#4a3d34'; 
+                    
+                    // POI Marker
+                    const poi = Game.worldData[secId].poi;
+                    if(poi) {
+                        let color = 'white';
+                        if (poi === 'V') color = '#39ff14'; // Green
+                        else if (poi === 'C') color = '#ffd700'; // Gold
+                        else if (poi === 'S' || poi === 'H') color = '#ff3333'; // Red
+                        
+                        const dot = document.createElement('div');
+                        dot.className = "absolute w-2 h-2 rounded-full";
+                        dot.style.backgroundColor = color;
+                        dot.style.boxShadow = `0 0 4px ${color}`;
+                        d.appendChild(dot);
+                    }
+                } 
+                else {
+                    d.style.backgroundColor = "#000";
+                    d.textContent = "?";
+                    d.style.color = "#1a331a";
+                }
+                
+                if(typeof Network !== 'undefined' && Network.otherPlayers) { 
+                    const playersHere = Object.values(Network.otherPlayers).filter(p => p.sector && p.sector.x === x && p.sector.y === y); 
+                    if(playersHere.length > 0) { 
+                        const dot = document.createElement('div'); 
+                        dot.className = "absolute w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]"; 
+                        if(isCurrent) { dot.style.top = "2px"; dot.style.right = "2px"; } 
+                        d.appendChild(dot); 
+                    } 
+                } 
+                grid.appendChild(d); 
+            } 
+        } 
+        grid.style.gridTemplateColumns = "repeat(8, 1fr)"; 
     },
     
-    renderCombat: function() { 
-        const enemy = Game.state.enemy; 
-        if(!enemy) return; 
-        document.getElementById('enemy-name').textContent = enemy.name; 
-        document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`; 
-        document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`; 
-    },
-
-    restoreOverlay: function() { 
-        if(document.getElementById('joystick-base')) return; 
-        
-        const joystickHTML = `
-            <div id="joystick-base" style="position: absolute; width: 100px; height: 100px; border-radius: 50%; border: 2px solid rgba(57, 255, 20, 0.5); background: rgba(0, 0, 0, 0.2); display: none; pointer-events: none; z-index: 9999;"></div>
-            <div id="joystick-stick" style="position: absolute; width: 50px; height: 50px; border-radius: 50%; background: rgba(57, 255, 20, 0.8); display: none; pointer-events: none; z-index: 10000; box-shadow: 0 0 10px #39ff14;"></div>
-            
-            <div id="dialog-overlay" style="position: absolute; bottom: 20px; right: 20px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; max-width: 50%;"></div> 
-        `; 
-        this.els.view.insertAdjacentHTML('beforeend', joystickHTML); 
-        
-        this.els.joyBase = document.getElementById('joystick-base');
-        this.els.joyStick = document.getElementById('joystick-stick');
-        this.els.dialog = document.getElementById('dialog-overlay'); 
-    },
-    
-    toggleControls: function(show) { if (!show && this.els.dialog) this.els.dialog.innerHTML = ''; },
-    showGameOver: function() { if(this.els.gameOver) this.els.gameOver.classList.remove('hidden'); this.toggleControls(false); },
-    enterVault: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const restBtn = document.createElement('button'); restBtn.className = "action-button w-full mb-1 border-blue-500 text-blue-300"; restBtn.textContent = "Ausruhen (Gratis)"; restBtn.onclick = () => { Game.rest(); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weiter geht's"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(restBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'flex'; },
-    enterSupermarket: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const enterBtn = document.createElement('button'); enterBtn.className = "action-button w-full mb-1 border-red-500 text-red-300"; enterBtn.textContent = "Ruine betreten (Gefahr!)"; enterBtn.onclick = () => { Game.loadSector(0, 0, true, "market"); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weitergehen"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(enterBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'block'; },
-    enterCave: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const enterBtn = document.createElement('button'); enterBtn.className = "action-button w-full mb-1 border-gray-500 text-gray-300"; enterBtn.textContent = "In die Tiefe (Dungeon)"; enterBtn.onclick = () => { Game.loadSector(0, 0, true, "cave"); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weitergehen"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(enterBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'block'; },
-    leaveDialog: function() { Game.state.inDialog = false; this.els.dialog.style.display = 'none'; this.update(); },
-    renderQuests: function() { const list = document.getElementById('quest-list'); if(!list) return; list.innerHTML = Game.state.quests.map(q => ` <div class="border border-green-900 bg-green-900/10 p-2 flex items-center gap-3 cursor-pointer hover:bg-green-900/30 transition-all" onclick="UI.showQuestDetail('${q.id}')"> <div class="text-3xl">✉️</div> <div> <div class="font-bold text-lg text-yellow-400">${q.read ? '' : '<span class="text-cyan-400">[NEU]</span> '}${q.title}</div> <div class="text-xs opacity-70">Zum Lesen klicken</div> </div> </div> `).join(''); },
-    showQuestDetail: function(id) { const quest = Game.state.quests.find(q => q.id === id); if(!quest) return; quest.read = true; this.update(); const list = document.getElementById('quest-list'); const detail = document.getElementById('quest-detail'); const content = document.getElementById('quest-content'); list.classList.add('hidden'); detail.classList.remove('hidden'); content.innerHTML = `<h2 class="text-2xl font-bold text-yellow-400 border-b border-green-500 mb-4">${quest.title}</h2><div class="font-mono text-lg leading-relaxed whitespace-pre-wrap">${quest.text}</div>`; },
-    closeQuestDetail: function() { document.getElementById('quest-detail').classList.add('hidden'); document.getElementById('quest-list').classList.remove('hidden'); this.renderQuests(); },
-    
-    renderWorldMap: function() { const grid = document.getElementById('world-grid'); if(!grid) return; grid.innerHTML = ''; for(let y=0; y<8; y++) { for(let x=0; x<8; x++) { const d = document.createElement('div'); d.className = "border border-green-900/30 flex justify-center items-center text-xs relative"; if(x === Game.state.sector.x && y === Game.state.sector.y) { d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.style.fontWeight = "bold"; d.textContent = "YOU"; } else if(Game.worldData[`${x},${y}`]) { const biome = Game.worldData[`${x},${y}`].biome; d.style.backgroundColor = this.biomeColors[biome] || '#4a3d34'; } if(typeof Network !== 'undefined' && Network.otherPlayers) { const playersHere = Object.values(Network.otherPlayers).filter(p => p.sector && p.sector.x === x && p.sector.y === y); if(playersHere.length > 0) { const dot = document.createElement('div'); dot.className = "absolute w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]"; if(x === Game.state.sector.x && y === Game.state.sector.y) { dot.style.top = "2px"; dot.style.right = "2px"; } d.appendChild(dot); } } grid.appendChild(d); } } grid.style.gridTemplateColumns = "repeat(8, 1fr)"; },
     renderCity: function() { const con = document.getElementById('city-options'); if(!con) return; con.innerHTML = ''; const addBtn = (txt, cb, disabled=false) => { const b = document.createElement('button'); b.className = "action-button w-full mb-2 text-left p-3 flex justify-between"; b.innerHTML = txt; b.onclick = cb; if(disabled) { b.disabled = true; b.style.opacity = 0.5; } con.appendChild(b); }; addBtn("Heilen (25 Kronkorken)", () => Game.heal(), Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp); addBtn("Munition (10 Stk / 10 Kronkorken)", () => Game.buyAmmo(), Game.state.caps < 10); addBtn("Händler / Waffen & Rüstung", () => this.renderShop(con)); addBtn("🛠️ Werkbank / Crafting", () => this.toggleView('crafting')); addBtn("Stadt verlassen", () => this.switchView('map')); },
-    renderShop: function(container) { container.innerHTML = ''; const backBtn = document.createElement('button'); backBtn.className = "action-button w-full mb-4 text-center border-yellow-400 text-yellow-400"; backBtn.textContent = "ZURÜCK ZUM PLATZ"; backBtn.onclick = () => this.renderCity(); container.appendChild(backBtn); Object.keys(Game.items).forEach(key => { const item = Game.items[key]; if(item.cost > 0 && Game.state.lvl >= (item.requiredLevel || 0) - 2) { const canAfford = Game.state.caps >= item.cost; const isEquipped = (Game.state.equip[item.slot] && Game.state.equip[item.slot].name === item.name); let label = `<span>${item.name}</span> <span>${item.cost} Kronkorken</span>`; if(isEquipped) label = `<span class="text-green-500">[AUSGERÜSTET]</span>`; const btn = document.createElement('button'); btn.className = "action-button w-full mb-2 flex justify-between text-sm"; btn.innerHTML = label; if(!canAfford || isEquipped) { btn.disabled = true; btn.style.opacity = 0.5; } else { btn.onclick = () => Game.buyItem(key); } container.appendChild(btn); } }); },
+    renderShop: function(container) { container.innerHTML = ''; const backBtn = document.createElement('button'); backBtn.className = "action-button w-full mb-4 text-center border-yellow-400 text-yellow-400"; backBtn.textContent = "ZURÜCK ZUM PLATZ"; backBtn.onclick = () => this.renderCity(); container.appendChild(backBtn); Object.keys(Game.items).forEach(key => { const item = Game.items[key]; if(item.cost > 0 && Game.state.lvl >= (item.requiredLevel || 0) - 2) { const canAfford = Game.state.caps >= item.cost; const isEquipped = (Game.state.equip[item.slot] && Game.state.equip[item.slot].name === item.name); let label = `<span>${item.name}</span> <span>${item.cost} KK</span>`; if(isEquipped) label = `<span class="text-green-500">[AUSGERÜSTET]</span>`; const btn = document.createElement('button'); btn.className = "action-button w-full mb-2 flex justify-between text-sm"; btn.innerHTML = label; if(!canAfford || isEquipped) { btn.disabled = true; btn.style.opacity = 0.5; } else { btn.onclick = () => Game.buyItem(key); } container.appendChild(btn); } }); },
     renderCombat: function() { const enemy = Game.state.enemy; if(!enemy) return; document.getElementById('enemy-name').textContent = enemy.name; document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`; document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`; }
 };
