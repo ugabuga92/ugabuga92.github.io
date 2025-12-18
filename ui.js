@@ -2,9 +2,7 @@ const UI = {
     els: {},
     timerInterval: null,
     lastInputTime: Date.now(), 
-    
-    // SAFE ACCESS
-    biomeColors: (typeof window.GameData !== 'undefined') ? window.GameData.colors : {}, 
+    biomeColors: GameData.colors, 
     
     touchState: {
         active: false, id: null, startX: 0, startY: 0, currentX: 0, currentY: 0, moveDir: { x: 0, y: 0 }, timer: null
@@ -499,7 +497,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.17e)"; 
+            v.textContent = "ONLINE (v0.0.17f)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -593,7 +591,13 @@ const UI = {
             this.els.name.textContent = Network.myId || "SURVIVOR";
         }
 
-        if(this.els.lvl) this.els.lvl.textContent = Game.state.lvl; 
+        // NEW: Level Up Notification
+        if(Game.state.statPoints > 0) {
+            this.els.lvl.innerHTML = `${Game.state.lvl} <span class="text-yellow-400 animate-pulse ml-1 text-xs">LVL UP!</span>`;
+        } else {
+            this.els.lvl.textContent = Game.state.lvl; 
+        }
+
         if(this.els.ammo) this.els.ammo.textContent = Game.state.ammo; 
         if(this.els.caps) this.els.caps.textContent = `${Game.state.caps} Caps`; 
         if(this.els.zone) this.els.zone.textContent = Game.state.zone; 
@@ -672,55 +676,32 @@ const UI = {
         
         let totalItems = 0;
         
-        // Helper to get Icon
-        const getIcon = (type) => {
-            switch(type) {
-                case 'weapon': return '🔫';
-                case 'body': return '🛡️';
-                case 'consumable': return '💉';
-                case 'junk': return '⚙️';
-                case 'component': return '🔩';
-                case 'rare': return '⭐';
-                default: return '📦';
-            }
-        };
-
         Game.state.inventory.forEach(entry => {
             if(entry.count <= 0) return;
             totalItems += entry.count;
             const item = Game.items[entry.id];
             
-            const btn = document.createElement('div');
-            btn.className = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center cursor-pointer hover:bg-green-500 hover:text-black transition-colors group";
-            btn.innerHTML = `
-                <div class="text-2xl">${getIcon(item.type)}</div>
-                <div class="text-[10px] truncate max-w-full px-1 font-bold">${item.name}</div>
-                <div class="absolute top-0 right-0 bg-green-900 text-white text-[10px] px-1 font-mono">${entry.count}</div>
-                
-                <!-- Tooltip -->
-                <div class="hidden group-hover:flex absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-black border border-green-500 p-2 z-50 flex-col gap-1 text-left">
-                    <div class="font-bold text-yellow-400 text-sm border-b border-green-900 pb-1 mb-1">${item.name}</div>
-                    <div class="text-[10px] text-green-300">Typ: ${item.type.toUpperCase()}</div>
-                    <div class="text-[10px] text-gray-400">Wert: ${item.cost} Caps</div>
-                    ${(item.baseDmg) ? `<div class="text-[10px] text-red-400">DMG: ${item.baseDmg}</div>` : ''}
-                    ${(item.bonus) ? `<div class="text-[10px] text-blue-400">Bonus: ${JSON.stringify(item.bonus).replace(/["{}]/g,'')}</div>` : ''}
-                </div>
-            `;
+            const div = document.createElement('div');
+            div.className = "border border-green-900 bg-green-900/10 p-2 flex justify-between items-center";
             
-            btn.onclick = () => {
-                 if(item.type === 'junk' || item.type === 'component' || item.type === 'rare') {
-                 } else {
-                     Game.useItem(entry.id);
-                 }
-            };
-
-            list.appendChild(btn);
+            let btnText = "BENUTZEN";
+            if(item.type === 'weapon' || item.type === 'body') btnText = "AUSRÜSTEN";
+            if(item.type === 'junk' || item.type === 'component' || item.type === 'rare') btnText = "-";
+            
+            div.innerHTML = `
+                <div>
+                    <div class="font-bold text-yellow-400">${item.name} <span class="text-white">x${entry.count}</span></div>
+                    <div class="text-xs opacity-70">${item.type.toUpperCase()}</div>
+                </div>
+                ${btnText !== '-' ? `<button class="action-button text-sm px-2" onclick="Game.useItem('${entry.id}')">${btnText}</button>` : ''}
+            `;
+            list.appendChild(div);
         });
         
         countDisplay.textContent = totalItems;
         
         if(totalItems === 0) {
-            list.innerHTML = '<div class="col-span-4 text-center text-gray-500 italic mt-10">Leerer Rucksack...</div>';
+            list.innerHTML = '<div class="text-center text-gray-500 italic mt-10">Leerer Rucksack...</div>';
         }
     },
     
@@ -916,7 +897,15 @@ const UI = {
         document.getElementById('char-exp').textContent = Game.state.xp; 
         document.getElementById('char-next').textContent = nextXp; 
         document.getElementById('char-exp-bar').style.width = `${expPct}%`; 
-        document.getElementById('char-points').textContent = Game.state.statPoints; 
+        
+        // NEU: Auffälliger Hinweis, wenn Punkte verfügbar sind
+        const pts = Game.state.statPoints;
+        const ptsEl = document.getElementById('char-points');
+        if (pts > 0) {
+            ptsEl.innerHTML = `<span class="text-red-500 animate-pulse text-2xl font-bold bg-red-900/20 px-2 border border-red-500">${pts} VERFÜGBAR!</span>`;
+        } else {
+            ptsEl.textContent = pts;
+        }
         
         const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2};
         const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}};
@@ -970,7 +959,6 @@ const UI = {
     showQuestDetail: function(id) { const quest = Game.state.quests.find(q => q.id === id); if(!quest) return; quest.read = true; this.update(); const list = document.getElementById('quest-list'); const detail = document.getElementById('quest-detail'); const content = document.getElementById('quest-content'); list.classList.add('hidden'); detail.classList.remove('hidden'); content.innerHTML = `<h2 class="text-2xl font-bold text-yellow-400 border-b border-green-500 mb-4">${quest.title}</h2><div class="font-mono text-lg leading-relaxed whitespace-pre-wrap">${quest.text}</div>`; },
     closeQuestDetail: function() { document.getElementById('quest-detail').classList.add('hidden'); document.getElementById('quest-list').classList.remove('hidden'); this.renderQuests(); },
     
-    renderWiki: function() { const content = document.getElementById('wiki-content'); if(!content) return; content.innerHTML = Object.keys(Game.monsters).map(k => { const m = Game.monsters[k]; const xpText = Array.isArray(m.xp) ? `${m.xp[0]}-${m.xp[1]}` : m.xp; return `<div class="border-b border-green-900 pb-1"><div class="font-bold text-yellow-400">${m.name}</div><div class="text-xs opacity-70">HP: ~${m.hp}, XP: ${xpText}</div></div>`; }).join(''); },
     renderWorldMap: function() { const grid = document.getElementById('world-grid'); if(!grid) return; grid.innerHTML = ''; for(let y=0; y<8; y++) { for(let x=0; x<8; x++) { const d = document.createElement('div'); d.className = "border border-green-900/30 flex justify-center items-center text-xs relative"; if(x === Game.state.sector.x && y === Game.state.sector.y) { d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.style.fontWeight = "bold"; d.textContent = "YOU"; } else if(Game.worldData[`${x},${y}`]) { const biome = Game.worldData[`${x},${y}`].biome; d.style.backgroundColor = this.biomeColors[biome] || '#4a3d34'; } if(typeof Network !== 'undefined' && Network.otherPlayers) { const playersHere = Object.values(Network.otherPlayers).filter(p => p.sector && p.sector.x === x && p.sector.y === y); if(playersHere.length > 0) { const dot = document.createElement('div'); dot.className = "absolute w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]"; if(x === Game.state.sector.x && y === Game.state.sector.y) { dot.style.top = "2px"; dot.style.right = "2px"; } d.appendChild(dot); } } grid.appendChild(d); } } grid.style.gridTemplateColumns = "repeat(8, 1fr)"; },
     renderCity: function() { const con = document.getElementById('city-options'); if(!con) return; con.innerHTML = ''; const addBtn = (txt, cb, disabled=false) => { const b = document.createElement('button'); b.className = "action-button w-full mb-2 text-left p-3 flex justify-between"; b.innerHTML = txt; b.onclick = cb; if(disabled) { b.disabled = true; b.style.opacity = 0.5; } con.appendChild(b); }; addBtn("Heilen (25 Kronkorken)", () => Game.heal(), Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp); addBtn("Munition (10 Stk / 10 Kronkorken)", () => Game.buyAmmo(), Game.state.caps < 10); addBtn("Händler / Waffen & Rüstung", () => this.renderShop(con)); addBtn("🛠️ Werkbank / Crafting", () => this.toggleView('crafting')); addBtn("Stadt verlassen", () => this.switchView('map')); },
     renderShop: function(container) { container.innerHTML = ''; const backBtn = document.createElement('button'); backBtn.className = "action-button w-full mb-4 text-center border-yellow-400 text-yellow-400"; backBtn.textContent = "ZURÜCK ZUM PLATZ"; backBtn.onclick = () => this.renderCity(); container.appendChild(backBtn); Object.keys(Game.items).forEach(key => { const item = Game.items[key]; if(item.cost > 0 && Game.state.lvl >= (item.requiredLevel || 0) - 2) { const canAfford = Game.state.caps >= item.cost; const isEquipped = (Game.state.equip[item.slot] && Game.state.equip[item.slot].name === item.name); let label = `<span>${item.name}</span> <span>${item.cost} Kronkorken</span>`; if(isEquipped) label = `<span class="text-green-500">[AUSGERÜSTET]</span>`; const btn = document.createElement('button'); btn.className = "action-button w-full mb-2 flex justify-between text-sm"; btn.innerHTML = label; if(!canAfford || isEquipped) { btn.disabled = true; btn.style.opacity = 0.5; } else { btn.onclick = () => Game.buyItem(key); } container.appendChild(btn); } }); },
