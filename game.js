@@ -1,381 +1,109 @@
-const Game = {
-    TILE: 30, MAP_W: 40, MAP_H: 40,
-    
-    colors: GameData.colors,
-    items: GameData.items,
-    monsters: GameData.monsters,
-    recipes: GameData.recipes,
+const GameData = {
+    // --- FARBPALETTE & STYLES ---
+    colors: { 
+        '.':'#2d241b', '_':'#4a4036', ',':'#1a261a', ';':'#1e1e11', '=':'#333333', '#':'#111', 
+        'line_default': '#2a5a2a', 'line_wall': '#39ff14', 
+        'V': '#39ff14', 'C': '#eab308', 'S': '#ff0000', 'G': '#00ffff', 'H': '#888888', 
+        '^': '#111', 'v':'#111', '<':'#111', '>':'#111',
+        'M': '#3e2723', 'W': '#0d47a1', '~': '#2f4f2f', 
+        't': '#1b5e20', 'T': '#0a3d0a', 'x': '#5c4033', 'o': '#555555',
+        '+': '#666666', '"': '#3cb371', 'Y': '#deb887', 'U': '#212121',
+        
+        // CITY INTERIOR TILES
+        '$': '#ffd700', // Trader (Gold)
+        '&': '#ff8c00', // Workbench (Orange)
+        'P': '#ff3333', // Doctor / Plus (Red)
+        'E': '#39ff14', // Exit Zone (Green)
+        'F': '#00bfff', // Fountain (Deep Sky Blue)
+        '|': '#555555', // Building Wall
+        
+        // Biome Colors for Map
+        'wasteland': '#5d5345', 'desert': '#eecfa1', 'jungle': '#1a3300', 'city': '#555555', 'swamp': '#1e1e11'
+    },
 
-    state: null, worldData: {}, ctx: null, loopId: null, camera: { x: 0, y: 0 }, cacheCanvas: null, cacheCtx: null,
-
-    initCache: function() { this.cacheCanvas = document.createElement('canvas'); this.cacheCanvas.width = this.MAP_W * this.TILE; this.cacheCanvas.height = this.MAP_H * this.TILE; this.cacheCtx = this.cacheCanvas.getContext('2d'); }, 
-    calculateMaxHP: function(end) { return 100 + (end - 5) * 10; }, 
-    getStat: function(k) { if(!this.state || !this.state.stats) return 5; let val = this.state.stats[k] || 0; if(this.state.equip) { for(let slot in this.state.equip) { const item = this.state.equip[slot]; if(item && item.bonus && item.bonus[k]) val += item.bonus[k]; } } if(this.state.tempStatIncrease && this.state.tempStatIncrease.key === k) val += 1; if(Date.now() < this.state.buffEndTime) val += Math.floor(this.state.lvl * 0.8); return val; }, 
-    expToNextLevel: function(l) { return 100 * l; }, 
-    gainExp: function(amount) { this.state.xp += amount; UI.log(`+${amount} EXP.`, 'text-blue-400'); let need = this.expToNextLevel(this.state.lvl); while(this.state.xp >= need) { this.state.lvl++; this.state.statPoints++; this.state.xp -= need; need = this.expToNextLevel(this.state.lvl); this.state.maxHp = this.calculateMaxHP(this.getStat('END')); this.state.hp = this.state.maxHp; UI.log(`LEVEL UP! LVL ${this.state.lvl}`, 'text-yellow-400 font-bold'); } }, 
-    teleportTo: function(targetSector, tx, ty) { this.state.sector = targetSector; this.loadSector(targetSector.x, targetSector.y); this.state.player.x = tx; this.state.player.y = ty; this.reveal(tx, ty); if(typeof Network !== 'undefined') Network.sendMove(tx, ty, this.state.lvl, this.state.sector); UI.update(); UI.log(`Teleport erfolgreich.`, "text-green-400"); }, 
-    
-    renderStaticMap: function() { const ctx = this.cacheCtx; const ts = this.TILE; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height); for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.drawTile(ctx, x, y, this.state.currentMap[y][x]); },
-
-    init: function(saveData, spawnTarget=null) {
-        this.worldData = {};
-        this.initCache();
-        try {
-            if (saveData) {
-                this.state = saveData;
-                this.state.inDialog = false; 
-                if(!this.state.equip) this.state.equip = { weapon: this.items.fists, body: this.items.vault_suit };
-                if(!this.state.equip.weapon) this.state.equip.weapon = this.items.fists;
-                if(!this.state.equip.body) this.state.equip.body = this.items.vault_suit;
-                if(!this.state.inventory) this.state.inventory = [];
-                if(!this.state.view) this.state.view = 'map';
-                UI.log(">> Spielstand geladen.", "text-cyan-400");
-            } else {
-                let startSecX = Math.floor(Math.random() * 8);
-                let startSecY = Math.floor(Math.random() * 8);
-                let startX = 20;
-                let startY = 20;
-                if (spawnTarget && spawnTarget.sector) {
-                    startSecX = spawnTarget.sector.x;
-                    startSecY = spawnTarget.sector.y;
-                    startX = spawnTarget.x;
-                    startY = spawnTarget.y;
-                }
-                this.state = {
-                    sector: {x: startSecX, y: startSecY}, startSector: {x: startSecX, y: startSecY}, 
-                    player: {x: startX, y: startY, rot: 0},
-                    stats: { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 }, 
-                    equip: { weapon: this.items.fists, body: this.items.vault_suit },
-                    inventory: [], 
-                    hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0, 
-                    view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, explored: {}, 
-                    tempStatIncrease: {}, buffEndTime: 0,
-                    quests: [ { id: "q1", title: "Der Weg nach Hause", text: "Suche Zivilisation.", read: false } ], 
-                    startTime: Date.now(),
-                    savedPosition: null // Zum Speichern der Position beim Betreten von Gebäuden
-                };
-                this.addToInventory('stimpack', 1);
-                this.state.hp = this.calculateMaxHP(this.getStat('END')); 
-                this.state.maxHp = this.state.hp;
-                if(!spawnTarget) UI.log(">> Neuer Charakter erstellt.", "text-green-400");
-                this.saveGame(); 
-            }
-            this.loadSector(this.state.sector.x, this.state.sector.y);
-            UI.switchView('map').then(() => { 
-                if(UI.els.gameOver) UI.els.gameOver.classList.add('hidden'); 
-                if(typeof Network !== 'undefined') Network.sendMove(this.state.player.x, this.state.player.y, this.state.lvl, this.state.sector);
-            });
-        } catch(e) {
-            console.error(e);
-            if(UI.error) UI.error("GAME INIT FAIL: " + e.message);
+    // --- BIOME DEFINITIONEN ---
+    biomes: {
+        'wasteland': { 
+            ground: '.', water: 0.02, mountain: 0.05,
+            features: [ { char: 'o', prob: 0.04, solid: true }, { char: 'x', prob: 0.03, solid: false }, { char: 't', prob: 0.01, solid: true } ]
+        },
+        'jungle': { 
+            ground: ',', water: 0.10, mountain: 0.1,
+            features: [ { char: 'T', prob: 0.10, solid: true }, { char: 't', prob: 0.25, solid: true }, { char: '"', prob: 0.15, solid: false } ]
+        },
+        'desert': { 
+            ground: '_', water: 0.01, mountain: 0.15,
+            features: [ { char: 'o', prob: 0.02, solid: true }, { char: 'Y', prob: 0.03, solid: true } ]
+        },
+        'city': { 
+            ground: '=', water: 0.0, mountain: 0.0,
+            features: [ { char: '#', prob: 0.12, solid: true }, { char: '+', prob: 0.08, solid: false }, { char: 'o', prob: 0.03, solid: true } ]
+        },
+        'swamp': { 
+            ground: ';', water: 0.05, mountain: 0.0,
+            features: [ { char: '~', prob: 0.15, solid: false }, { char: 'x', prob: 0.10, solid: false }, { char: 't', prob: 0.08, solid: true } ]
         }
     },
 
-    move: function(dx, dy) {
-        if(this.state.isGameOver || this.state.view !== 'map' || this.state.inDialog) return;
-        
-        const nx = this.state.player.x + dx;
-        const ny = this.state.player.y + dy;
-        
-        if(nx < 0 || nx >= this.MAP_W || ny < 0 || ny >= this.MAP_H) {
-            this.changeSector(nx, ny);
-            return;
-        }
-
-        const tile = this.state.currentMap[ny][nx];
-        
-        // INTERAKTIONEN IN DER STADT
-        if (tile === '$') { UI.switchView('shop'); return; }
-        if (tile === '&') { UI.switchView('crafting'); return; }
-        if (tile === 'P') { UI.switchView('clinic'); return; }
-        if (tile === 'E') { this.leaveCity(); return; }
-
-        if(['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F'].includes(tile)) { 
-            UI.shakeView();
-            return; 
-        }
-        
-        this.state.player.x = nx;
-        this.state.player.y = ny;
-        
-        if(dx === 1) this.state.player.rot = Math.PI / 2;
-        if(dx === -1) this.state.player.rot = -Math.PI / 2;
-        if(dy === 1) this.state.player.rot = Math.PI;
-        if(dy === -1) this.state.player.rot = 0;
-
-        this.reveal(nx, ny);
-        
-        if(typeof Network !== 'undefined') Network.sendMove(nx, ny, this.state.lvl, this.state.sector);
-
-        if(tile === 'V') { UI.enterVault(); return; }
-        if(tile === 'S') { UI.enterSupermarket(); return; }
-        if(tile === 'H') { UI.enterCave(); return; }
-        
-        // C ist jetzt begehbar und lädt die Stadt-Map
-        if(tile === 'C') { this.enterCity(); return; } 
-        
-        if(['.', ',', '_', ';', '"', '+', 'x'].includes(tile)) {
-            if(Math.random() < 0.04) { 
-                this.startCombat();
-                return;
-            }
-        }
-        
-        UI.update();
+    // --- ITEMS ---
+    items: { 
+        stimpack: { name: "Stimpack", type: "consumable", effect: "heal", val: 50, cost: 25 },
+        meat_roach: { name: "Kakerlakenfleisch", type: "junk", cost: 2 },
+        meat_mole: { name: "Rattenfleisch", type: "junk", cost: 4 },
+        meat_fly: { name: "Blähfliegen-Düse", type: "junk", cost: 3 },
+        meat_lurk: { name: "Softshell-Fleisch", type: "junk", cost: 15 },
+        meat_scorp: { name: "Skorpion-Drüse", type: "junk", cost: 12 },
+        hide_yao: { name: "Yao Guai Leder", type: "junk", cost: 25 },
+        scrap_metal: { name: "Metallschrott", type: "component", cost: 1 },
+        adhesive: { name: "Wunderkleber", type: "component", cost: 10 },
+        screws: { name: "Schrauben", type: "component", cost: 5 },
+        gears: { name: "Zahnräder", type: "component", cost: 8 },
+        springs: { name: "Federn", type: "component", cost: 8 },
+        circuitry: { name: "Schaltkreise", type: "component", cost: 20 },
+        nuclear_mat: { name: "Nukleares Material", type: "component", cost: 35 },
+        legendary_part: { name: "★ Legendäres Modul", type: "rare", cost: 100 },
+        fists: { name: "Fäuste", slot: 'weapon', type: 'weapon', baseDmg: 2, bonus: {}, cost: 0, requiredLevel: 0, isRanged: false }, 
+        vault_suit: { name: "Vault-Anzug", slot: 'body', type: 'body', bonus: { END: 1 }, cost: 0, requiredLevel: 0 }, 
+        knife: { name: "Kampfmesser", slot: 'weapon', type: 'weapon', baseDmg: 8, bonus: { STR: 1 }, cost: 15, requiredLevel: 1, isRanged: false }, 
+        bat: { name: "Baseballschläger", slot: 'weapon', type: 'weapon', baseDmg: 12, bonus: { STR: 2 }, cost: 25, requiredLevel: 2, isRanged: false },
+        bat_spiked: { name: "Nagelschläger", slot: 'weapon', type: 'weapon', baseDmg: 18, bonus: { STR: 2 }, cost: 50, requiredLevel: 3, isRanged: false },
+        pistol: { name: "10mm Pistole", slot: 'weapon', type: 'weapon', baseDmg: 14, bonus: { AGI: 1 }, cost: 50, requiredLevel: 1, isRanged: true }, 
+        pistol_tac: { name: "Taktische 10mm", slot: 'weapon', type: 'weapon', baseDmg: 20, bonus: { AGI: 2, PER: 1 }, cost: 100, requiredLevel: 4, isRanged: true },
+        leather_armor: { name: "Lederharnisch", slot: 'body', type: 'body', bonus: { END: 2 }, cost: 30, requiredLevel: 1 }, 
+        leather_armor_h: { name: "Gehärtetes Leder", slot: 'body', type: 'body', bonus: { END: 4 }, cost: 80, requiredLevel: 3 },
+        shotgun: { name: "Kampfschrotflinte", slot: 'weapon', type: 'weapon', baseDmg: 24, bonus: { STR: 1 }, cost: 120, requiredLevel: 3, isRanged: true }, 
+        rifle_hunting: { name: "Jagdgewehr", slot: 'weapon', type: 'weapon', baseDmg: 35, bonus: { PER: 2 }, cost: 180, requiredLevel: 4, isRanged: true },
+        laser_rifle: { name: "Laser-Gewehr", slot: 'weapon', type: 'weapon', baseDmg: 30, bonus: { PER: 2, INT: 1 }, cost: 300, requiredLevel: 5, isRanged: true }, 
+        combat_armor: { name: "Kampf-Rüstung", slot: 'body', type: 'body', bonus: { END: 4 }, cost: 150, requiredLevel: 5 },
+        metal_armor: { name: "Metall-Rüstung", slot: 'body', type: 'body', bonus: { END: 6, AGI: -1 }, cost: 250, requiredLevel: 7 },
+        power_fist: { name: "Powerfaust", slot: 'weapon', type: 'weapon', baseDmg: 45, bonus: { STR: 3 }, cost: 400, requiredLevel: 8, isRanged: false },
+        plasma_rifle: { name: "Plasma-Gewehr", slot: 'weapon', type: 'weapon', baseDmg: 55, bonus: { PER: 2, INT: 2 }, cost: 600, requiredLevel: 10, isRanged: true }
     },
 
-    // NEU: City Logic
-    enterCity: function() {
-        // Speichere Position auf der Weltkarte
-        this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
-        
-        // Lade Stadt-Layout
-        const map = WorldGen.generateCityLayout(this.MAP_W, this.MAP_H);
-        this.state.currentMap = map;
-        this.state.zone = "Rusty Springs (Stadt)";
-        
-        // Setze Spieler zum Eingang (Unten Mitte)
-        this.state.player.x = 20;
-        this.state.player.y = 38;
-        this.state.player.rot = 0; // Nach oben schauen
-        
-        // Rendern
-        this.renderStaticMap();
-        this.state.explored = {}; // Stadt ist sichtbar
-        for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.state.explored[`${x},${y}`] = true;
-        
-        UI.log("Betrete Rusty Springs...", "text-yellow-400");
-        UI.update();
+    // --- MONSTER ---
+    monsters: { 
+        radRoach: { name: "Rad-Kakerlake", hp: 15, dmg: 3, xp: [10, 15], loot: 1, minLvl: 1, drops: [{id:'meat_roach', c:0.6}] }, 
+        bloatfly: { name: "Blähfliege", hp: 10, dmg: 5, xp: [12, 18], loot: 2, minLvl: 1, drops: [{id:'meat_fly', c:0.7}, {id:'nuclear_mat', c:0.05}] },
+        moleRat: { name: "Maulwurfsratte", hp: 25, dmg: 6, xp: [15, 25], loot: 3, minLvl: 1, drops: [{id:'meat_mole', c:0.5}] }, 
+        wildDog: { name: "Wilder Hund", hp: 40, dmg: 9, loot: 0, xp: [30, 50], minLvl: 2, drops: [{id:'meat_mole', c:0.4}] }, 
+        mutantRose: { name: "Mutanten-Pflanze", hp: 45, dmg: 15, loot: 5, xp: [45, 60], minLvl: 1, drops: [{id:'adhesive', c:0.4}] }, 
+        radScorpion: { name: "Radskorpion", hp: 90, dmg: 18, loot: 15, xp: [80, 100], minLvl: 3, drops: [{id:'meat_scorp', c:0.5}, {id:'nuclear_mat', c:0.1}] },
+        raider: { name: "Raider", hp: 60, dmg: 12, loot: 20, xp: [50, 70], minLvl: 2, drops: [{id:'stimpack', c:0.15}, {id:'scrap_metal', c:0.3}] }, 
+        ghoul: { name: "Wilder Ghul", hp: 50, dmg: 10, loot: 5, xp: [40, 60], minLvl: 2, drops: [{id:'nuclear_mat', c:0.1}] }, 
+        mirelurk: { name: "Mirelurk", hp: 110, dmg: 20, loot: 10, xp: [90, 120], minLvl: 4, drops: [{id:'meat_lurk', c:0.8}, {id:'adhesive', c:0.3}] },
+        protectron: { name: "Protectron", hp: 130, dmg: 15, loot: 30, xp: [100, 140], minLvl: 4, drops: [{id:'scrap_metal', c:1.0}, {id:'circuitry', c:0.4}] },
+        yaoGuai: { name: "Yao Guai", hp: 180, dmg: 35, loot: 0, xp: [180, 250], minLvl: 6, drops: [{id:'hide_yao', c:1.0}, {id:'springs', c:0.3}] },
+        sentryBot: { name: "Wachbot MK-II", hp: 250, dmg: 45, loot: 80, xp: [300, 400], minLvl: 8, drops: [{id:'scrap_metal', c:1.0}, {id:'gears', c:0.8}, {id:'nuclear_mat', c:0.5}] },
+        deathclaw: { name: "Todesklaue", hp: 400, dmg: 70, loot: 100, xp: [600, 800], minLvl: 10, drops: [{id:'hide_yao', c:1.0}, {id:'gears', c:0.5}] } 
     },
 
-    leaveCity: function() {
-        if(this.state.savedPosition) {
-            this.state.player.x = this.state.savedPosition.x;
-            this.state.player.y = this.state.savedPosition.y;
-            this.state.savedPosition = null;
-        }
-        this.loadSector(this.state.sector.x, this.state.sector.y);
-        UI.log("Verlasse Stadt.", "text-green-400");
-    },
-
-    addToInventory: function(id, count=1) { 
-        if(!this.state.inventory) this.state.inventory = []; 
-        const existing = this.state.inventory.find(i => i.id === id); 
-        if(existing) existing.count += count; 
-        else this.state.inventory.push({id: id, count: count}); 
-        UI.log(`+ ${this.items[id] ? this.items[id].name : id} (${count})`, "text-green-400"); 
-    }, 
-    
-    useItem: function(id) { const itemDef = this.items[id]; const invItem = this.state.inventory.find(i => i.id === id); if(!invItem || invItem.count <= 0) return; if(itemDef.type === 'consumable') { if(itemDef.effect === 'heal') { const healAmt = itemDef.val; if(this.state.hp >= this.state.maxHp) { UI.log("Gesundheit bereits voll.", "text-gray-500"); return; } this.state.hp = Math.min(this.state.maxHp, this.state.hp + healAmt); UI.log(`Verwendet: ${itemDef.name}. +${healAmt} HP.`, "text-blue-400"); invItem.count--; } } else if (itemDef.type === 'weapon' || itemDef.type === 'body') { const oldItemName = this.state.equip[itemDef.slot].name; const oldItemKey = Object.keys(this.items).find(key => this.items[key].name === oldItemName); if(oldItemKey && oldItemKey !== 'fists' && oldItemKey !== 'vault_suit') { this.addToInventory(oldItemKey, 1); } this.state.equip[itemDef.slot] = itemDef; invItem.count--; UI.log(`Ausgerüstet: ${itemDef.name}`, "text-yellow-400"); if(itemDef.slot === 'body') { const oldMax = this.state.maxHp; this.state.maxHp = this.calculateMaxHP(this.getStat('END')); this.state.hp += (this.state.maxHp - oldMax); } } if(invItem.count <= 0) { this.state.inventory = this.state.inventory.filter(i => i.id !== id); } UI.update(); if(this.state.view === 'inventory') UI.renderInventory(); this.saveGame(); }, 
-    
-    craftItem: function(recipeId) {
-        const recipe = this.recipes.find(r => r.id === recipeId);
-        if(!recipe) return;
-        if(this.state.lvl < recipe.lvl) { UI.log(`Benötigt Level ${recipe.lvl}!`, "text-red-500"); return; }
-        for(let reqId in recipe.req) {
-            const countNeeded = recipe.req[reqId];
-            const invItem = this.state.inventory.find(i => i.id === reqId);
-            let hasEquipped = false;
-            if (this.state.equip.weapon && Object.keys(this.items).find(k => this.items[k].name === this.state.equip.weapon.name) === reqId) hasEquipped = true;
-            if (this.state.equip.body && Object.keys(this.items).find(k => this.items[k].name === this.state.equip.body.name) === reqId) hasEquipped = true;
-            if (hasEquipped || !invItem || invItem.count < countNeeded) { UI.log(`Material fehlt (oder ausgerüstet): ${this.items[reqId].name}`, "text-red-500"); return; }
-        }
-        for(let reqId in recipe.req) {
-            const countNeeded = recipe.req[reqId];
-            const invItem = this.state.inventory.find(i => i.id === reqId);
-            invItem.count -= countNeeded;
-            if(invItem.count <= 0) this.state.inventory = this.state.inventory.filter(i => i.id !== reqId);
-        }
-        if(recipe.out === "AMMO") { this.state.ammo += recipe.count; UI.log(`Hergestellt: ${recipe.count} Munition`, "text-green-400 font-bold"); } 
-        else { this.addToInventory(recipe.out, recipe.count); UI.log(`Hergestellt: ${this.items[recipe.out].name}`, "text-green-400 font-bold"); }
-        this.saveGame();
-        if(typeof UI !== 'undefined') UI.renderCrafting(); 
-    },
-
-    saveGame: function(manual = false) { if(!this.state) return; if(manual) UI.log("Speichere...", "text-gray-500"); if(typeof Network !== 'undefined') Network.save(this.state); }, 
-
-    loadSector: function(sx_in, sy_in, isInterior = false, dungeonType = "market") { 
-        const sx = parseInt(sx_in);
-        const sy = parseInt(sy_in);
-        const key = `${sx},${sy}`; 
-        
-        const mapSeed = (sx + 1) * 5323 + (sy + 1) * 8237 + 9283;
-        if(typeof WorldGen !== 'undefined') WorldGen.setSeed(mapSeed);
-        const rng = () => { return typeof WorldGen !== 'undefined' ? WorldGen.rand() : Math.random(); };
-
-        if (isInterior) { 
-            this.generateDungeon(dungeonType); 
-            this.state.zone = dungeonType === "cave" ? "Dunkle Höhle (Gefahr!)" : "Supermarkt Ruine (Gefahr!)"; 
-            this.renderStaticMap(); 
-            return; 
-        } 
-        
-        if(!this.worldData[key]) { 
-            let biome = 'wasteland'; 
-            if (sx < 2 && sy < 2) biome = 'jungle'; 
-            else if (sx > 5 && sy > 5) biome = 'desert'; 
-            else if (sx > 5 && sy < 2) biome = 'swamp'; 
-            else if (rng() < 0.30) biome = 'city'; 
-            
-            let poiList = [];
-            if(sx === this.state.startSector.x && sy === this.state.startSector.y) poiList.push({x:20, y:20, type:'V'}); 
-            if(rng() < 0.35) { 
-                let type = 'C'; const r = rng(); if(r < 0.3) type = 'S'; else if(r < 0.6) type = 'H';
-                poiList.push({x: Math.floor(rng()*(this.MAP_W-6))+3, y: Math.floor(rng()*(this.MAP_H-6))+3, type: type});
-            }
-
-            if(typeof WorldGen !== 'undefined') {
-                const map = WorldGen.createSector(this.MAP_W, this.MAP_H, biome, poiList);
-                this.worldData[key] = { layout: map, explored: {}, biome: biome };
-            } else {
-                let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('.'));
-                this.worldData[key] = { layout: map, explored: {}, biome: biome };
-            }
-        } 
-        
-        const data = this.worldData[key]; 
-        this.state.currentMap = data.layout; 
-        this.fixMapBorders(this.state.currentMap, sx, sy);
-        this.state.explored = data.explored; 
-        
-        let zn = "Ödland"; 
-        if(data.biome === 'city') zn = "D.C. Ruinen"; 
-        if(data.biome === 'desert') zn = "The Pitt / Asche"; 
-        if(data.biome === 'jungle') zn = "Oasis"; 
-        if(data.biome === 'swamp') zn = "Sumpf";
-        this.state.zone = `${zn} (${sx},${sy})`; 
-        
-        this.findSafeSpawn();
-        this.renderStaticMap(); 
-    },
-
-    findSafeSpawn: function() {
-        const startX = this.state.player.x;
-        const startY = this.state.player.y;
-        if (this.isValidSpawn(startX, startY)) return; 
-        for (let r = 1; r <= 6; r++) {
-            for (let dy = -r; dy <= r; dy++) {
-                for (let dx = -r; dx <= r; dx++) {
-                    const nx = startX + dx;
-                    const ny = startY + dy;
-                    if (this.isValidSpawn(nx, ny)) {
-                        this.state.player.x = nx;
-                        this.state.player.y = ny;
-                        return; 
-                    }
-                }
-            }
-        }
-        this.state.player.x = 20; this.state.player.y = 20; 
-    },
-
-    isValidSpawn: function(x, y) {
-        if(x < 0 || x >= this.MAP_W || y < 0 || y >= this.MAP_H) return false;
-        const t = this.state.currentMap[y][x];
-        return ['.', '_', ',', ';', '=', '"', '+', 'x'].includes(t);
-    },
-
-    fixMapBorders: function(map, sx, sy) {
-        if(sy === 0) { for(let i=0; i<this.MAP_W; i++) map[0][i] = '#'; }
-        if(sy === 7) { for(let i=0; i<this.MAP_W; i++) map[this.MAP_H-1][i] = '#'; }
-        if(sx === 0) { for(let i=0; i<this.MAP_H; i++) map[i][0] = '#'; }
-        if(sx === 7) { for(let i=0; i<this.MAP_H; i++) map[i][this.MAP_W-1] = '#'; }
-    },
-
-    changeSector: function(px, py) { 
-        let sx=this.state.sector.x, sy=this.state.sector.y; 
-        let newPx = this.state.player.x;
-        let newPy = this.state.player.y;
-
-        if(py < 0) { sy--; newPy = this.MAP_H - 1; }
-        else if(py >= this.MAP_H) { sy++; newPy = 0; }
-        if(px < 0) { sx--; newPx = this.MAP_W - 1; }
-        else if(px >= this.MAP_W) { sx++; newPx = 0; }
-
-        if(sx < 0 || sx > 7 || sy < 0 || sy > 7) { UI.log("Ende der Weltkarte.", "text-red-500"); return; } 
-        
-        this.state.sector = {x: sx, y: sy}; 
-        this.loadSector(sx, sy); 
-        this.state.player.x = newPx;
-        this.state.player.y = newPy;
-        this.findSafeSpawn();
-        this.reveal(this.state.player.x, this.state.player.y); 
-        UI.log(`Sektorwechsel: ${sx},${sy}`, "text-blue-400"); 
-    },
-
-    draw: function() { 
-        if(!this.ctx || !this.cacheCanvas) return; 
-        const ctx = this.ctx; const cvs = ctx.canvas; 
-        let targetCamX = (this.state.player.x * this.TILE) - (cvs.width / 2); let targetCamY = (this.state.player.y * this.TILE) - (cvs.height / 2); 
-        const maxCamX = (this.MAP_W * this.TILE) - cvs.width; const maxCamY = (this.MAP_H * this.TILE) - cvs.height; 
-        this.camera.x = Math.max(0, Math.min(targetCamX, maxCamX)); this.camera.y = Math.max(0, Math.min(targetCamY, maxCamY)); 
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cvs.width, cvs.height); 
-        ctx.drawImage(this.cacheCanvas, this.camera.x, this.camera.y, cvs.width, cvs.height, 0, 0, cvs.width, cvs.height); 
-        ctx.save(); ctx.translate(-this.camera.x, -this.camera.y); 
-        const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7; 
-        const startX = Math.floor(this.camera.x / this.TILE); const startY = Math.floor(this.camera.y / this.TILE); 
-        const endX = startX + Math.ceil(cvs.width / this.TILE) + 1; const endY = startY + Math.ceil(cvs.height / this.TILE) + 1; 
-        for(let y=startY; y<endY; y++) { for(let x=startX; x<endX; x++) { if(y>=0 && y<this.MAP_H && x>=0 && x<this.MAP_W) { const t = this.state.currentMap[y][x]; if(['V', 'S', 'C', 'G', 'H', '^', 'v', '<', '>', '$', '&', 'P', 'E', 'F'].includes(t)) { this.drawTile(ctx, x, y, t, pulse); } } } } 
-        if(typeof Network !== 'undefined' && Network.otherPlayers) { for(let pid in Network.otherPlayers) { const p = Network.otherPlayers[pid]; if(p.sector && (p.sector.x !== this.state.sector.x || p.sector.y !== this.state.sector.y)) continue; const ox = p.x * this.TILE + this.TILE/2; const oy = p.y * this.TILE + this.TILE/2; ctx.fillStyle = "#00ffff"; ctx.shadowBlur = 5; ctx.shadowColor = "#00ffff"; ctx.beginPath(); ctx.arc(ox, oy, 5, 0, Math.PI*2); ctx.fill(); ctx.font = "10px monospace"; ctx.fillStyle = "white"; ctx.fillText("P", ox+6, oy); ctx.shadowBlur = 0; } } 
-        const px = this.state.player.x * this.TILE + this.TILE/2; const py = this.state.player.y * this.TILE + this.TILE/2; ctx.translate(px, py); ctx.rotate(this.state.player.rot); ctx.translate(-px, -py); ctx.fillStyle = "#39ff14"; ctx.shadowBlur = 10; ctx.shadowColor = "#39ff14"; ctx.beginPath(); ctx.moveTo(px, py - 8); ctx.lineTo(px + 6, py + 8); ctx.lineTo(px, py + 5); ctx.lineTo(px - 6, py + 8); ctx.fill(); ctx.shadowBlur = 0; ctx.restore(); 
-    },
-
-    drawTile: function(ctx, x, y, type, pulse = 1) { 
-        const ts = this.TILE; const px = x * ts; const py = y * ts; 
-        let bg = this.colors['.']; 
-        if(['_', ',', ';', '=', 'W', 'M', '~', '#', '|'].includes(type)) bg = this.colors[type];
-        
-        if (!['^','v','<','>'].includes(type)) { ctx.fillStyle = bg; ctx.fillRect(px, py, ts, ts); } 
-        if(!['^','v','<','>','M','W','~'].includes(type)) { ctx.strokeStyle = "rgba(40, 90, 40, 0.05)"; ctx.lineWidth = 1; ctx.strokeRect(px, py, ts, ts); } 
-        
-        if(['^', 'v', '<', '>'].includes(type)) { ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#1aff1a"; ctx.strokeStyle = "#000"; ctx.beginPath(); if (type === '^') { ctx.moveTo(px + ts/2, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); ctx.lineTo(px + 5, py + ts - 5); } else if (type === 'v') { ctx.moveTo(px + ts/2, py + ts - 5); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + 5, py + 5); } else if (type === '<') { ctx.moveTo(px + 5, py + ts/2); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); } else if (type === '>') { ctx.moveTo(px + ts - 5, py + ts/2); ctx.lineTo(px + 5, py + 5); ctx.lineTo(px + 5, py + ts - 5); } ctx.fill(); ctx.stroke(); return; }
-
-        ctx.beginPath(); 
-        switch(type) { 
-            case 't': ctx.fillStyle = this.colors['t']; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts - 4, py + ts - 2); ctx.lineTo(px + 4, py + ts - 2); ctx.fill(); break;
-            case 'T': ctx.fillStyle = this.colors['T']; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts - 2, py + ts - 2); ctx.lineTo(px + 2, py + ts - 2); ctx.fill(); break;
-            case 'x': ctx.strokeStyle = this.colors['x']; ctx.lineWidth = 2; ctx.moveTo(px+5, py+ts-5); ctx.lineTo(px+ts-5, py+5); ctx.moveTo(px+5, py+5); ctx.lineTo(px+ts-5, py+ts-5); ctx.stroke(); break;
-            case '"': ctx.strokeStyle = this.colors['"']; ctx.lineWidth = 1; ctx.moveTo(px+5, py+ts-5); ctx.lineTo(px+5, py+10); ctx.moveTo(px+15, py+ts-5); ctx.lineTo(px+15, py+5); ctx.moveTo(px+25, py+ts-5); ctx.lineTo(px+25, py+12); ctx.stroke(); break;
-            case 'Y': ctx.strokeStyle = this.colors['Y']; ctx.lineWidth = 3; ctx.moveTo(px+15, py+ts-5); ctx.lineTo(px+15, py+5); ctx.moveTo(px+15, py+15); ctx.lineTo(px+5, py+10); ctx.moveTo(px+15, py+10); ctx.lineTo(px+25, py+5); ctx.stroke(); break;
-            case 'o': ctx.fillStyle = this.colors['o']; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); break;
-            case '+': ctx.fillStyle = this.colors['+']; ctx.fillRect(px+5, py+10, 5, 5); ctx.fillRect(px+15, py+20, 4, 4); ctx.fillRect(px+20, py+5, 6, 6); break;
-            case 'M': ctx.fillStyle = "#3e2723"; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts, py + ts); ctx.lineTo(px, py + ts); ctx.fill(); break;
-            case 'W': ctx.strokeStyle = "#4fc3f7"; ctx.lineWidth = 2; ctx.moveTo(px+5, py+15); ctx.lineTo(px+15, py+10); ctx.lineTo(px+25, py+15); ctx.stroke(); break;
-            case '~': ctx.strokeStyle = "#556b2f"; ctx.lineWidth = 2; ctx.moveTo(px+5, py+15); ctx.lineTo(px+15, py+10); ctx.lineTo(px+25, py+15); ctx.stroke(); break;
-            case '=': ctx.strokeStyle = "#5d4037"; ctx.lineWidth = 2; ctx.moveTo(px, py+5); ctx.lineTo(px+ts, py+5); ctx.moveTo(px, py+25); ctx.lineTo(px+ts, py+25); ctx.stroke(); break;
-            case 'U': ctx.fillStyle = "#000"; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI, true); ctx.fill(); break;
-            case 'V': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['V']; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#000"; ctx.font="bold 12px monospace"; ctx.fillText("101", px+5, py+20); break; 
-            case 'C': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['C']; ctx.fillRect(px+6, py+14, 18, 12); ctx.beginPath(); ctx.moveTo(px+4, py+14); ctx.lineTo(px+15, py+4); ctx.lineTo(px+26, py+14); ctx.fill(); break; 
-            case 'S': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['S']; ctx.arc(px+ts/2, py+12, 6, 0, Math.PI*2); ctx.fill(); ctx.fillRect(px+10, py+18, 10, 6); break; 
-            case 'H': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['H']; ctx.arc(px+ts/2, py+ts/2, ts/2.5, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(px+ts/2, py+ts/2, ts/4, 0, Math.PI*2); ctx.fill(); break; 
-            
-            // NEU: City Icons
-            case '$': ctx.fillStyle = this.colors['$']; ctx.fillText("$$", px+5, py+20); break;
-            case '&': ctx.fillStyle = this.colors['&']; ctx.fillText("🔧", px+5, py+20); break;
-            case 'P': ctx.fillStyle = this.colors['P']; ctx.fillText("✚", px+8, py+20); break;
-            case 'E': ctx.fillStyle = this.colors['E']; ctx.fillText("EXIT", px+2, py+20); break;
-            case 'F': ctx.fillStyle = this.colors['F']; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); break;
-            case '|': ctx.fillStyle = this.colors['|']; ctx.fillRect(px, py, ts, ts); break;
-        } 
-        ctx.globalAlpha = 1; 
-    },
-    
-    generateCityLayout: function(map) {}, generateDungeon: function(type) { let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('B')); let floorChar = type === "cave" ? '.' : '='; for(let i=0; i<8; i++) { let rx = Math.floor(Math.random() * 20) + 5; let ry = Math.floor(Math.random() * 20) + 5; let w = Math.floor(Math.random() * 8) + 3; let h = Math.floor(Math.random() * 8) + 3; for(let y=ry; y<ry+h; y++) for(let x=rx; x<rx+w; x++) { if(y<this.MAP_H-1 && x<this.MAP_W-1) map[y][x] = floorChar; } } map[35][20] = 'G'; this.state.currentMap = map; this.state.player.x = 20; this.state.player.y = 34; this.state.explored = {}; this.reveal(20, 34); },
-    addClusters: function(map, type, count, size) {}, clearGate: function(map, x, y, char, ground) {},
-    initCanvas: function() { const cvs = document.getElementById('game-canvas'); if(!cvs) return; const viewContainer = document.getElementById('view-container'); cvs.width = viewContainer.offsetWidth; cvs.height = viewContainer.offsetHeight; this.ctx = cvs.getContext('2d'); if(this.loopId) cancelAnimationFrame(this.loopId); this.drawLoop(); },
-    drawLoop: function() { if(this.state.view !== 'map' || this.state.isGameOver) return; this.draw(); this.loopId = requestAnimationFrame(() => this.drawLoop()); },
-    reveal: function(px, py) { for(let y=py-2; y<=py+2; y++) for(let x=px-2; x<=px+2; x++) if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) this.state.explored[`${x},${y}`] = true; },
-    startCombat: function() { let pool = []; let lvl = this.state.lvl; let biome = this.worldData[`${this.state.sector.x},${this.state.sector.y}`]?.biome || 'wasteland'; let zone = this.state.zone; if(zone.includes("Supermarkt")) { pool = [this.monsters.raider, this.monsters.ghoul, this.monsters.wildDog]; if(lvl >= 4) pool.push(this.monsters.superMutant); } else if (zone.includes("Höhle")) { pool = [this.monsters.moleRat, this.monsters.radScorpion, this.monsters.bloatfly]; if(lvl >= 3) pool.push(this.monsters.ghoul); } else if(biome === 'city') { pool = [this.monsters.raider, this.monsters.ghoul, this.monsters.protectron]; if(lvl >= 5) pool.push(this.monsters.superMutant); if(lvl >= 7) pool.push(this.monsters.sentryBot); } else if(biome === 'desert') { pool = [this.monsters.radScorpion, this.monsters.raider, this.monsters.moleRat]; } else if(biome === 'jungle') { pool = [this.monsters.bloatfly, this.monsters.mutantRose, this.monsters.yaoGuai]; } else if(biome === 'swamp') { pool = [this.monsters.mirelurk, this.monsters.bloatfly]; if(lvl >= 5) pool.push(this.monsters.ghoul); } else { pool = [this.monsters.moleRat, this.monsters.radRoach, this.monsters.bloatfly]; if(lvl >= 2) pool.push(this.monsters.raider); if(lvl >= 3) pool.push(this.monsters.wildDog); } if(lvl >= 8 && Math.random() < 0.1) pool = [this.monsters.deathclaw]; else if (Math.random() < 0.01) pool = [this.monsters.deathclaw]; const template = pool[Math.floor(Math.random()*pool.length)]; let enemy = { ...template }; const isLegendary = Math.random() < 0.15; if(isLegendary) { enemy.isLegendary = true; enemy.name = "Legendäre " + enemy.name; enemy.hp *= 2; enemy.maxHp = enemy.hp; enemy.dmg = Math.floor(enemy.dmg*1.5); enemy.loot *= 3; if(Array.isArray(enemy.xp)) enemy.xp = [enemy.xp[0]*3, enemy.xp[1]*3]; } else enemy.maxHp = enemy.hp; this.state.enemy = enemy; this.state.inDialog = true; if(Date.now() < this.state.buffEndTime) UI.log("⚡ S.P.E.C.I.A.L. OVERDRIVE aktiv!", "text-yellow-400"); UI.switchView('combat').then(() => UI.renderCombat()); UI.log(isLegendary ? "LEGENDÄRER GEGNER!" : "Kampf gestartet!", isLegendary ? "text-yellow-400" : "text-red-500"); },
-    getRandomXP: function(xpData) { if (Array.isArray(xpData)) return Math.floor(Math.random() * (xpData[1] - xpData[0] + 1)) + xpData[0]; return xpData; },
-    combatAction: function(act) { if(this.state.isGameOver) return; if(!this.state.enemy) return; if(this.state.enemy.hp <= 0) return; if(act === 'attack') { const wpn = this.state.equip.weapon; if(wpn.isRanged) { if(this.state.ammo > 0) this.state.ammo--; else { UI.log("Keine Munition! Fäuste.", "text-red-500"); this.state.equip.weapon = this.items.fists; this.enemyTurn(); return; } } if(Math.random() > 0.3) { const baseDmg = wpn.baseDmg || 2; const dmg = Math.floor(baseDmg + (this.getStat('STR') * 1.5)); this.state.enemy.hp -= dmg; UI.log(`Treffer: ${dmg} Schaden.`, "text-green-400"); if(this.state.enemy.hp <= 0) { const enemy = this.state.enemy; this.state.caps += enemy.loot; UI.log(`Sieg! ${enemy.loot} Kronkorken.`, "text-yellow-400"); this.gainExp(this.getRandomXP(enemy.xp)); if(enemy.isLegendary) { this.addToInventory('legendary_part', 1); UI.log("★ DROP: Legendäres Modul", "text-yellow-400 font-bold"); if(Math.random() < 0.5) { const bonusCaps = this.state.lvl * 50; this.state.caps += bonusCaps; UI.log(`★ BONUS: ${bonusCaps} Caps`, "text-yellow-400"); } } if(enemy.drops) { enemy.drops.forEach(drop => { if(Math.random() < drop.c) { this.addToInventory(drop.id, 1); } }); } this.endCombat(); return; } } else UI.log("Verfehlt!", "text-gray-500"); this.enemyTurn(); } else if (act === 'flee') { if(Math.random() < 0.4 + (this.getStat('AGI')*0.05)) { UI.log("Geflohen.", "text-green-400"); this.endCombat(); } else { UI.log("Flucht gescheitert!", "text-red-500"); this.enemyTurn(); } } UI.update(); if(this.state.view === 'combat') UI.renderCombat(); },
-    rollLegendaryLoot: function() { const result = Math.floor(Math.random() * 16) + 3; let msg = "", type = ""; if(result <= 7) { type = "CAPS"; const amt = this.state.lvl * 80; this.state.caps += amt; msg = `KRONKORKEN REGEN: +${amt} Caps!`; } else if (result <= 12) { type = "AMMO"; const amt = this.state.lvl * 25; this.state.ammo += amt; msg = `MUNITIONS JACKPOT: +${amt} Schuss!`; } else { type = "BUFF"; this.state.buffEndTime = Date.now() + 300000; msg = `S.P.E.C.I.A.L. OVERDRIVE! (5 Min)`; } return { val: result, msg: msg, type: type }; },
-    enemyTurn: function() { if(this.state.enemy.hp <= 0) return; if(Math.random() < 0.8) { const armor = (this.getStat('END') * 0.5); const dmg = Math.max(1, Math.floor(this.state.enemy.dmg - armor)); this.state.hp -= dmg; UI.log(`Schaden erhalten: ${dmg}`, "text-red-400"); this.checkDeath(); } else UI.log("Gegner verfehlt.", "text-gray-500"); },
-    checkDeath: function() { if(this.state.hp <= 0) { this.state.hp = 0; this.state.isGameOver = true; if(typeof Network !== 'undefined') Network.deleteSave(); UI.update(); UI.showGameOver(); } },
-    endCombat: function() { this.state.enemy = null; this.state.inDialog = false; UI.switchView('map'); this.saveGame(); },
-    rest: function() { this.state.hp = this.state.maxHp; UI.log("Ausgeruht. HP voll.", "text-blue-400"); UI.update(); this.saveGame(); },
-    heal: function() { if(this.state.caps >= 25) { this.state.caps -= 25; this.rest(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
-    buyAmmo: function() { if(this.state.caps >= 10) { this.state.caps -= 10; this.state.ammo += 10; UI.log("Munition gekauft.", "text-green-400"); UI.update(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
-    buyItem: function(key) { const item = this.items[key]; if(this.state.caps >= item.cost) { this.state.caps -= item.cost; this.addToInventory(key, 1); UI.log(`Gekauft: ${item.name}`, "text-green-400"); UI.renderCity(); UI.update(); this.saveGame(); } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); } },
-    hardReset: function() { if(typeof Network !== 'undefined') Network.deleteSave(); this.state = null; location.reload(); },
-    upgradeStat: function(key) { if(this.state.statPoints > 0) { this.state.stats[key]++; this.state.statPoints--; if(key === 'END') this.state.maxHp = this.calculateMaxHP(this.getStat('END')); UI.renderChar(); UI.update(); this.saveGame(); } }
+    // --- REZEPTE ---
+    recipes: [
+        { id: "stimpack", out: "stimpack", count: 1, req: { "meat_fly": 1, "adhesive": 1 }, lvl: 1 },
+        { id: "ammo_pack", out: "AMMO", count: 15, req: { "scrap_metal": 2 }, lvl: 1 },
+        { id: "bat_upgrade", out: "bat_spiked", count: 1, req: { "bat": 1, "scrap_metal": 5, "adhesive": 1 }, lvl: 2 },
+        { id: "leather_upgrade", out: "leather_armor_h", count: 1, req: { "leather_armor": 1, "hide_yao": 2, "adhesive": 2 }, lvl: 3 },
+        { id: "pistol_mod", out: "pistol_tac", count: 1, req: { "pistol": 1, "screws": 3, "gears": 2 }, lvl: 4 },
+        { id: "laser_mod", out: "laser_rifle", count: 1, req: { "rifle_hunting": 1, "circuitry": 2, "nuclear_mat": 1 }, lvl: 6 }
+    ]
 };
