@@ -1,6 +1,18 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.16c] - 2025-12-18 09:15 (Usability & Manual Update)
+
+MOBILE: Header Layout optimiert. Auf Smartphones werden weniger Infos angezeigt, um Überlappungen zu vermeiden.
+
+CONTROL: Die Touch-Zone für den Joystick wurde auf den gesamten unteren Bereich (inkl. Log) erweitert.
+
+UI: Stat-Upgrade Buttons im Charakter-Screen sind wieder groß (40x40px).
+
+UI: Horizontales Scrollen in Menüs unterbunden.
+
+MANUAL: Neues Handbuch integriert. Zugriff über "?" im Login-Screen oder "HANDBUCH" im In-Game Menü.
+
 [v0.0.16b] - 2025-12-18 07:45 (Wiki UI Fix)
 
 FIX: wiki.html wurde aktualisiert, um sicherzustellen, dass die Tabs für "Items", "Baupläne" und "Orte" vorhanden sind.
