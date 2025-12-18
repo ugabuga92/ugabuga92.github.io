@@ -1,5 +1,15 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.0.17d] - 2025-12-18 14:15 (Explorer & Knowledge Update)
+
+WIKI: Das Wiki ("Datenbank") wurde vollständig implementiert. Es liest nun dynamisch alle Items, Rezepte und Monster aus den Spieldaten aus. Tabs für Kategorien funktionieren.
+
+INVENTAR: Neues Grid-Layout für das Inventar. Items werden als Kacheln mit Symbolen dargestellt. Mouseover/Touch zeigt Details (Stats, Wert) in einem Tooltip an.
+
+WELT: Persistenter "Fog of War" auf der Weltkarte. Besuchte Sektoren bleiben nun farbig markiert, unbekannte bleiben dunkel.
+
+UI: Weltkarten-Legende aktualisiert und Sumpf-Biom hinzugefügt.
+
 [v0.0.17c] - 2025-12-18 13:30 (System Interface Update)
 
 UI: Retro-Fadenkreuz-Mauszeiger (cursor: crosshair) und dunkle Scrollbalken hinzugefügt.
