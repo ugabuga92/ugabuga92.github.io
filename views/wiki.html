@@ -2,15 +2,15 @@
     <h1 class="text-3xl font-bold mb-4 text-center border-b border-green-500 w-full tracking-widest text-yellow-400">SURVIVAL GUIDE</h1>
     
     <!-- Navigation Tabs -->
-    <div class="flex gap-2 mb-4 overflow-x-auto pb-2 shrink-0">
-        <button id="wiki-btn-monsters" class="border border-green-500 px-3 py-1 text-sm font-bold whitespace-nowrap hover:bg-green-500 hover:text-black transition-colors" onclick="UI.renderWiki('monsters')">BESTIARIUM</button>
-        <button id="wiki-btn-items" class="border border-green-500 px-3 py-1 text-sm font-bold whitespace-nowrap hover:bg-green-500 hover:text-black transition-colors" onclick="UI.renderWiki('items')">ITEMS</button>
-        <button id="wiki-btn-crafting" class="border border-green-500 px-3 py-1 text-sm font-bold whitespace-nowrap hover:bg-green-500 hover:text-black transition-colors" onclick="UI.renderWiki('crafting')">BAUPLÄNE</button>
-        <button id="wiki-btn-locs" class="border border-green-500 px-3 py-1 text-sm font-bold whitespace-nowrap hover:bg-green-500 hover:text-black transition-colors" onclick="UI.renderWiki('locs')">ORTE</button>
+    <div class="flex gap-2 mb-4 overflow-x-auto pb-2 shrink-0 border-b border-green-900/50">
+        <button id="wiki-btn-monsters" class="border border-green-500 px-3 py-1 text-sm font-bold whitespace-nowrap hover:bg-green-500 hover:text-black transition-colors bg-green-500 text-black" onclick="UI.renderWiki('monsters')">BESTIARIUM</button>
+        <button id="wiki-btn-items" class="border border-green-500 px-3 py-1 text-sm font-bold whitespace-nowrap hover:bg-green-500 hover:text-black transition-colors text-green-500" onclick="UI.renderWiki('items')">ITEMS</button>
+        <button id="wiki-btn-crafting" class="border border-green-500 px-3 py-1 text-sm font-bold whitespace-nowrap hover:bg-green-500 hover:text-black transition-colors text-green-500" onclick="UI.renderWiki('crafting')">BAUPLÄNE</button>
+        <button id="wiki-btn-locs" class="border border-green-500 px-3 py-1 text-sm font-bold whitespace-nowrap hover:bg-green-500 hover:text-black transition-colors text-green-500" onclick="UI.renderWiki('locs')">ORTE</button>
     </div>
 
     <!-- Content Area -->
-    <div id="wiki-content" class="w-full flex-grow overflow-y-auto pr-1">
+    <div id="wiki-content" class="w-full flex-grow overflow-y-auto pr-1 space-y-2">
         <div class="text-center animate-pulse mt-10">Lade Datenbank...</div>
     </div>
 
