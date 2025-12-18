@@ -1,7 +1,6 @@
 const Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     
-    // Referenz auf externe Daten für kürzeren Code
     colors: GameData.colors,
     items: GameData.items,
     monsters: GameData.monsters,
@@ -15,8 +14,7 @@ const Game = {
     expToNextLevel: function(l) { return 100 * l; }, 
     gainExp: function(amount) { this.state.xp += amount; UI.log(`+${amount} EXP.`, 'text-blue-400'); let need = this.expToNextLevel(this.state.lvl); while(this.state.xp >= need) { this.state.lvl++; this.state.statPoints++; this.state.xp -= need; need = this.expToNextLevel(this.state.lvl); this.state.maxHp = this.calculateMaxHP(this.getStat('END')); this.state.hp = this.state.maxHp; UI.log(`LEVEL UP! LVL ${this.state.lvl}`, 'text-yellow-400 font-bold'); } }, 
     teleportTo: function(targetSector, tx, ty) { this.state.sector = targetSector; this.loadSector(targetSector.x, targetSector.y); this.state.player.x = tx; this.state.player.y = ty; this.reveal(tx, ty); if(typeof Network !== 'undefined') Network.sendMove(tx, ty, this.state.lvl, this.state.sector); UI.update(); UI.log(`Teleport erfolgreich.`, "text-green-400"); }, 
-    getPseudoRandomGate: function(val1, val2, max) { const seed = (val1 * 9301 + val2 * 49297) % 233280; return 3 + (seed % (max - 6)); },
-
+    
     renderStaticMap: function() { const ctx = this.cacheCtx; const ts = this.TILE; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height); for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.drawTile(ctx, x, y, this.state.currentMap[y][x]); },
 
     init: function(saveData, spawnTarget=null) {
@@ -26,8 +24,6 @@ const Game = {
             if (saveData) {
                 this.state = saveData;
                 this.state.inDialog = false; 
-                
-                // Fallback für alte Saves ohne Equip
                 if(!this.state.equip) this.state.equip = { weapon: this.items.fists, body: this.items.vault_suit };
                 if(!this.state.equip.weapon) this.state.equip.weapon = this.items.fists;
                 if(!this.state.equip.body) this.state.equip.body = this.items.vault_suit;
@@ -45,7 +41,6 @@ const Game = {
                     startSecY = spawnTarget.sector.y;
                     startX = spawnTarget.x;
                     startY = spawnTarget.y;
-                    UI.log(`>> Spawn bei Signal: ${startSecX},${startSecY}`, "text-yellow-400");
                 }
                 this.state = {
                     sector: {x: startSecX, y: startSecY}, startSector: {x: startSecX, y: startSecY}, 
@@ -84,7 +79,6 @@ const Game = {
         const nx = this.state.player.x + dx;
         const ny = this.state.player.y + dy;
         
-        // FIX: Sektorwechsel-Prüfung verbessert
         if(nx < 0 || nx >= this.MAP_W || ny < 0 || ny >= this.MAP_H) {
             this.changeSector(nx, ny);
             return;
@@ -96,6 +90,7 @@ const Game = {
         if (tile === '&') { UI.switchView('crafting'); return; }
         if (tile === 'P') { UI.switchView('clinic'); return; }
         if (tile === 'E') { this.leaveCity(); return; }
+        if (tile === 'X') { this.openChest(nx, ny); return; } // NEU: Chest
 
         if(['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F'].includes(tile)) { 
             UI.shakeView();
@@ -114,12 +109,13 @@ const Game = {
         
         if(typeof Network !== 'undefined') Network.sendMove(nx, ny, this.state.lvl, this.state.sector);
 
-        if(tile === 'V') { UI.switchView('vault'); return; } // NEU: Vault View
-        if(tile === 'S') { UI.enterSupermarket(); return; }
-        if(tile === 'H') { UI.enterCave(); return; }
+        if(tile === 'V') { UI.switchView('vault'); return; }
+        // FIX: Warnung vor Dungeon Eintritt
+        if(tile === 'S') { UI.showDungeonWarning(() => this.enterDungeon("market")); return; }
+        if(tile === 'H') { UI.showDungeonWarning(() => this.enterDungeon("cave")); return; }
         if(tile === 'C') { this.enterCity(); return; } 
         
-        if(['.', ',', '_', ';', '"', '+', 'x'].includes(tile)) {
+        if(['.', ',', '_', ';', '"', '+', 'x', 'B'].includes(tile)) {
             if(Math.random() < 0.04) { 
                 this.startCombat();
                 return;
@@ -127,6 +123,48 @@ const Game = {
         }
         
         UI.update();
+    },
+    
+    // NEU: Dungeon Entry Logic
+    enterDungeon: function(type) {
+        this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
+        
+        // Seed für Dungeon basierend auf Koordinaten und Zeit für Abwechslung
+        WorldGen.setSeed((this.state.sector.x + 1) * (this.state.sector.y + 1) * Date.now()); 
+        
+        const data = WorldGen.generateDungeonLayout(this.MAP_W, this.MAP_H);
+        this.state.currentMap = data.map;
+        this.state.zone = type === "cave" ? "Dunkle Höhle (Gefahr)" : "Supermarkt Ruine (Gefahr)";
+        
+        this.state.player.x = data.startX;
+        this.state.player.y = data.startY;
+        this.state.explored = {};
+        // Im Dungeon ist Sichtweite begrenzt, aber wir machen es erstmal voll sichtbar für Usability
+        for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.state.explored[`${x},${y}`] = true;
+        
+        this.renderStaticMap();
+        UI.log("Dungeon betreten!", "text-red-500");
+        UI.update();
+    },
+    
+    openChest: function(x, y) {
+        this.state.currentMap[y][x] = 'B'; // Truhe entfernen
+        this.renderStaticMap(); // Map neu zeichnen
+        
+        const caps = Math.floor(Math.random() * 200) + 100;
+        this.state.caps += caps;
+        this.addToInventory('legendary_part', 1);
+        
+        UI.log(`TRUHE GEÖFFNET! +${caps} Caps, +1 Legendäres Modul`, "text-yellow-400 font-bold animate-pulse");
+        UI.shakeView();
+        
+        // Bonus Items
+        if(Math.random() < 0.5) this.addToInventory('stimpack', 2);
+        if(Math.random() < 0.5) this.addToInventory('nuclear_mat', 1);
+        
+        setTimeout(() => {
+            this.leaveCity(); // Teleport raus
+        }, 2000);
     },
 
     enterCity: function() {
@@ -151,36 +189,12 @@ const Game = {
             this.state.savedPosition = null;
         }
         this.loadSector(this.state.sector.x, this.state.sector.y);
-        UI.log("Verlasse Stadt.", "text-green-400");
+        UI.log("Zurück im Ödland.", "text-green-400");
     },
 
     addToInventory: function(id, count=1) { if(!this.state.inventory) this.state.inventory = []; const existing = this.state.inventory.find(i => i.id === id); if(existing) existing.count += count; else this.state.inventory.push({id: id, count: count}); UI.log(`Erhalten: ${this.items[id].name} (${count})`, "text-green-400"); }, 
     useItem: function(id) { const itemDef = this.items[id]; const invItem = this.state.inventory.find(i => i.id === id); if(!invItem || invItem.count <= 0) return; if(itemDef.type === 'consumable') { if(itemDef.effect === 'heal') { const healAmt = itemDef.val; if(this.state.hp >= this.state.maxHp) { UI.log("Gesundheit bereits voll.", "text-gray-500"); return; } this.state.hp = Math.min(this.state.maxHp, this.state.hp + healAmt); UI.log(`Verwendet: ${itemDef.name}. +${healAmt} HP.`, "text-blue-400"); invItem.count--; } } else if (itemDef.type === 'weapon' || itemDef.type === 'body') { const oldItemName = this.state.equip[itemDef.slot].name; const oldItemKey = Object.keys(this.items).find(key => this.items[key].name === oldItemName); if(oldItemKey && oldItemKey !== 'fists' && oldItemKey !== 'vault_suit') { this.addToInventory(oldItemKey, 1); } this.state.equip[itemDef.slot] = itemDef; invItem.count--; UI.log(`Ausgerüstet: ${itemDef.name}`, "text-yellow-400"); if(itemDef.slot === 'body') { const oldMax = this.state.maxHp; this.state.maxHp = this.calculateMaxHP(this.getStat('END')); this.state.hp += (this.state.maxHp - oldMax); } } if(invItem.count <= 0) { this.state.inventory = this.state.inventory.filter(i => i.id !== id); } UI.update(); if(this.state.view === 'inventory') UI.renderInventory(); this.saveGame(); }, 
-    
-    craftItem: function(recipeId) {
-        const recipe = this.recipes.find(r => r.id === recipeId);
-        if(!recipe) return;
-        if(this.state.lvl < recipe.lvl) { UI.log(`Benötigt Level ${recipe.lvl}!`, "text-red-500"); return; }
-        for(let reqId in recipe.req) {
-            const countNeeded = recipe.req[reqId];
-            const invItem = this.state.inventory.find(i => i.id === reqId);
-            let hasEquipped = false;
-            if (this.state.equip.weapon && Object.keys(this.items).find(k => this.items[k].name === this.state.equip.weapon.name) === reqId) hasEquipped = true;
-            if (this.state.equip.body && Object.keys(this.items).find(k => this.items[k].name === this.state.equip.body.name) === reqId) hasEquipped = true;
-            if (hasEquipped || !invItem || invItem.count < countNeeded) { UI.log(`Material fehlt (oder ausgerüstet): ${this.items[reqId].name}`, "text-red-500"); return; }
-        }
-        for(let reqId in recipe.req) {
-            const countNeeded = recipe.req[reqId];
-            const invItem = this.state.inventory.find(i => i.id === reqId);
-            invItem.count -= countNeeded;
-            if(invItem.count <= 0) this.state.inventory = this.state.inventory.filter(i => i.id !== reqId);
-        }
-        if(recipe.out === "AMMO") { this.state.ammo += recipe.count; UI.log(`Hergestellt: ${recipe.count} Munition`, "text-green-400 font-bold"); } 
-        else { this.addToInventory(recipe.out, recipe.count); UI.log(`Hergestellt: ${this.items[recipe.out].name}`, "text-green-400 font-bold"); }
-        this.saveGame();
-        if(typeof UI !== 'undefined') UI.renderCrafting(); 
-    },
-
+    craftItem: function(recipeId) { const recipe = this.recipes.find(r => r.id === recipeId); if(!recipe) return; if(this.state.lvl < recipe.lvl) { UI.log(`Benötigt Level ${recipe.lvl}!`, "text-red-500"); return; } for(let reqId in recipe.req) { const countNeeded = recipe.req[reqId]; const invItem = this.state.inventory.find(i => i.id === reqId); let hasEquipped = false; if (this.state.equip.weapon && Object.keys(this.items).find(k => this.items[k].name === this.state.equip.weapon.name) === reqId) hasEquipped = true; if (this.state.equip.body && Object.keys(this.items).find(k => this.items[k].name === this.state.equip.body.name) === reqId) hasEquipped = true; if (hasEquipped || !invItem || invItem.count < countNeeded) { UI.log(`Material fehlt (oder ausgerüstet): ${this.items[reqId].name}`, "text-red-500"); return; } } for(let reqId in recipe.req) { const countNeeded = recipe.req[reqId]; const invItem = this.state.inventory.find(i => i.id === reqId); invItem.count -= countNeeded; if(invItem.count <= 0) this.state.inventory = this.state.inventory.filter(i => i.id !== reqId); } if(recipe.out === "AMMO") { this.state.ammo += recipe.count; UI.log(`Hergestellt: ${recipe.count} Munition`, "text-green-400 font-bold"); } else { this.addToInventory(recipe.out, recipe.count); UI.log(`Hergestellt: ${this.items[recipe.out].name}`, "text-green-400 font-bold"); } this.saveGame(); if(typeof UI !== 'undefined') UI.renderCrafting(); },
     saveGame: function(manual = false) { if(!this.state) return; if(manual) UI.log("Speichere...", "text-gray-500"); if(typeof Network !== 'undefined') Network.save(this.state); }, 
 
     loadSector: function(sx_in, sy_in, isInterior = false, dungeonType = "market") { 
@@ -193,9 +207,8 @@ const Game = {
         const rng = () => { return typeof WorldGen !== 'undefined' ? WorldGen.rand() : Math.random(); };
 
         if (isInterior) { 
-            this.generateDungeon(dungeonType); 
-            this.state.zone = dungeonType === "cave" ? "Dunkle Höhle (Gefahr!)" : "Supermarkt Ruine (Gefahr!)"; 
-            this.renderStaticMap(); 
+            // Dieser Block sollte durch enterDungeon obsolet sein, bleibt als Fallback
+            this.enterDungeon(dungeonType);
             return; 
         } 
         
@@ -234,147 +247,33 @@ const Game = {
         
         this.fixMapBorders(this.state.currentMap, sx, sy);
         this.state.explored = data.explored; 
-        
-        let zn = "Ödland"; 
-        if(data.biome === 'city') zn = "D.C. Ruinen"; 
-        if(data.biome === 'desert') zn = "The Pitt / Asche"; 
-        if(data.biome === 'jungle') zn = "Oasis"; 
-        if(data.biome === 'swamp') zn = "Sumpf";
+        let zn = "Ödland"; if(data.biome === 'city') zn = "D.C. Ruinen"; if(data.biome === 'desert') zn = "The Pitt / Asche"; if(data.biome === 'jungle') zn = "Oasis"; if(data.biome === 'swamp') zn = "Sumpf";
         this.state.zone = `${zn} (${sx},${sy})`; 
-        
         this.findSafeSpawn();
         this.renderStaticMap(); 
     },
 
-    findSafeSpawn: function() {
-        const startX = this.state.player.x;
-        const startY = this.state.player.y;
-        if (this.isValidSpawn(startX, startY)) return; 
-        for (let r = 1; r <= 6; r++) {
-            for (let dy = -r; dy <= r; dy++) {
-                for (let dx = -r; dx <= r; dx++) {
-                    const nx = startX + dx;
-                    const ny = startY + dy;
-                    if (this.isValidSpawn(nx, ny)) {
-                        this.state.player.x = nx;
-                        this.state.player.y = ny;
-                        return; 
-                    }
-                }
-            }
-        }
-        this.state.player.x = 20; this.state.player.y = 20; 
-    },
-
-    isValidSpawn: function(x, y) {
-        if(x < 0 || x >= this.MAP_W || y < 0 || y >= this.MAP_H) return false;
-        const t = this.state.currentMap[y][x];
-        return ['.', '_', ',', ';', '=', '"', '+', 'x'].includes(t);
-    },
-
-    fixMapBorders: function(map, sx, sy) {
-        if(sy === 0) { for(let i=0; i<this.MAP_W; i++) map[0][i] = '#'; }
-        if(sy === 7) { for(let i=0; i<this.MAP_W; i++) map[this.MAP_H-1][i] = '#'; }
-        if(sx === 0) { for(let i=0; i<this.MAP_H; i++) map[i][0] = '#'; }
-        if(sx === 7) { for(let i=0; i<this.MAP_H; i++) map[i][this.MAP_W-1] = '#'; }
-    },
-
-    // FIX: changeSector Logic
     changeSector: function(px, py) { 
         let sx=this.state.sector.x, sy=this.state.sector.y; 
         let newPx = px;
         let newPy = py;
+        if(py < 0) { sy--; newPy = this.MAP_H - 1; newPx = this.state.player.x; }
+        else if(py >= this.MAP_H) { sy++; newPy = 0; newPx = this.state.player.x; }
+        if(px < 0) { sx--; newPx = this.MAP_W - 1; newPy = this.state.player.y; }
+        else if(px >= this.MAP_W) { sx++; newPx = 0; newPy = this.state.player.y; }
 
-        // Prüfe WELCHE Grenze überschritten wurde
-        if(py < 0) { 
-            sy--; 
-            newPy = this.MAP_H - 1; // Kommt von oben -> landet unten
-            newPx = this.state.player.x; // X bleibt gleich
-        }
-        else if(py >= this.MAP_H) { 
-            sy++; 
-            newPy = 0; // Kommt von unten -> landet oben
-            newPx = this.state.player.x;
-        }
-        
-        if(px < 0) { 
-            sx--; 
-            newPx = this.MAP_W - 1; // Kommt von links -> landet rechts
-            newPy = this.state.player.y; // Y bleibt gleich
-        }
-        else if(px >= this.MAP_W) { 
-            sx++; 
-            newPx = 0; // Kommt von rechts -> landet links
-            newPy = this.state.player.y;
-        }
-
-        // Welt-Grenze Check
-        if(sx < 0 || sx > 7 || sy < 0 || sy > 7) { 
-            UI.log("Ende der Weltkarte.", "text-red-500"); 
-            return; 
-        } 
+        if(sx < 0 || sx > 7 || sy < 0 || sy > 7) { UI.log("Ende der Weltkarte.", "text-red-500"); return; } 
         
         this.state.sector = {x: sx, y: sy}; 
         this.loadSector(sx, sy); 
         this.state.player.x = newPx;
         this.state.player.y = newPy;
-        this.findSafeSpawn(); // Falls der neue Spawn blockiert ist
+        this.findSafeSpawn();
         this.reveal(this.state.player.x, this.state.player.y); 
         UI.log(`Sektorwechsel: ${sx},${sy}`, "text-blue-400"); 
     },
-
-    draw: function() { 
-        if(!this.ctx || !this.cacheCanvas) return; 
-        const ctx = this.ctx; const cvs = ctx.canvas; 
-        let targetCamX = (this.state.player.x * this.TILE) - (cvs.width / 2); let targetCamY = (this.state.player.y * this.TILE) - (cvs.height / 2); 
-        const maxCamX = (this.MAP_W * this.TILE) - cvs.width; const maxCamY = (this.MAP_H * this.TILE) - cvs.height; 
-        this.camera.x = Math.max(0, Math.min(targetCamX, maxCamX)); this.camera.y = Math.max(0, Math.min(targetCamY, maxCamY)); 
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cvs.width, cvs.height); 
-        ctx.drawImage(this.cacheCanvas, this.camera.x, this.camera.y, cvs.width, cvs.height, 0, 0, cvs.width, cvs.height); 
-        ctx.save(); ctx.translate(-this.camera.x, -this.camera.y); 
-        const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7; 
-        const startX = Math.floor(this.camera.x / this.TILE); const startY = Math.floor(this.camera.y / this.TILE); 
-        const endX = startX + Math.ceil(cvs.width / this.TILE) + 1; const endY = startY + Math.ceil(cvs.height / this.TILE) + 1; 
-        for(let y=startY; y<endY; y++) { for(let x=startX; x<endX; x++) { if(y>=0 && y<this.MAP_H && x>=0 && x<this.MAP_W) { const t = this.state.currentMap[y][x]; if(['V', 'S', 'C', 'G', 'H', '^', 'v', '<', '>', '$', '&', 'P', 'E', 'F'].includes(t)) { this.drawTile(ctx, x, y, t, pulse); } } } } 
-        if(typeof Network !== 'undefined' && Network.otherPlayers) { for(let pid in Network.otherPlayers) { const p = Network.otherPlayers[pid]; if(p.sector && (p.sector.x !== this.state.sector.x || p.sector.y !== this.state.sector.y)) continue; const ox = p.x * this.TILE + this.TILE/2; const oy = p.y * this.TILE + this.TILE/2; ctx.fillStyle = "#00ffff"; ctx.shadowBlur = 5; ctx.shadowColor = "#00ffff"; ctx.beginPath(); ctx.arc(ox, oy, 5, 0, Math.PI*2); ctx.fill(); ctx.font = "10px monospace"; ctx.fillStyle = "white"; ctx.fillText("P", ox+6, oy); ctx.shadowBlur = 0; } } 
-        const px = this.state.player.x * this.TILE + this.TILE/2; const py = this.state.player.y * this.TILE + this.TILE/2; ctx.translate(px, py); ctx.rotate(this.state.player.rot); ctx.translate(-px, -py); ctx.fillStyle = "#39ff14"; ctx.shadowBlur = 10; ctx.shadowColor = "#39ff14"; ctx.beginPath(); ctx.moveTo(px, py - 8); ctx.lineTo(px + 6, py + 8); ctx.lineTo(px, py + 5); ctx.lineTo(px - 6, py + 8); ctx.fill(); ctx.shadowBlur = 0; ctx.restore(); 
-    },
-
-    drawTile: function(ctx, x, y, type, pulse = 1) { 
-        const ts = this.TILE; const px = x * ts; const py = y * ts; 
-        let bg = this.colors['.']; if(type === '_') bg = this.colors['_']; if(type === ',') bg = this.colors[',']; if(type === '=') bg = this.colors['=']; if(type === 'W') bg = this.colors['W']; if(type === 'M') bg = this.colors['M']; if(type === '#') bg = this.colors['#'];
-        if (type !== '~' && !['^','v','<','>'].includes(type)) { ctx.fillStyle = bg; ctx.fillRect(px, py, ts, ts); } 
-        if(!['^','v','<','>','M','W'].includes(type)) { ctx.strokeStyle = "rgba(40, 90, 40, 0.1)"; ctx.lineWidth = 1; ctx.strokeRect(px, py, ts, ts); } 
-        if(['^', 'v', '<', '>'].includes(type)) { ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#1aff1a"; ctx.strokeStyle = "#000"; ctx.beginPath(); if (type === '^') { ctx.moveTo(px + ts/2, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); ctx.lineTo(px + 5, py + ts - 5); } else if (type === 'v') { ctx.moveTo(px + ts/2, py + ts - 5); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + 5, py + 5); } else if (type === '<') { ctx.moveTo(px + 5, py + ts/2); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); } else if (type === '>') { ctx.moveTo(px + ts - 5, py + ts/2); ctx.lineTo(px + 5, py + 5); ctx.lineTo(px + 5, py + ts - 5); } ctx.fill(); ctx.stroke(); return; }
-        ctx.beginPath(); 
-        switch(type) { 
-            case 't': ctx.fillStyle = this.colors['t']; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts - 4, py + ts - 2); ctx.lineTo(px + 4, py + ts - 2); ctx.fill(); break;
-            case 'M': ctx.fillStyle = "#5d4037"; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts, py + ts); ctx.lineTo(px, py + ts); ctx.fill(); break;
-            case 'W': ctx.strokeStyle = "#4fc3f7"; ctx.lineWidth = 2; ctx.moveTo(px+5, py+15); ctx.lineTo(px+15, py+10); ctx.lineTo(px+25, py+15); ctx.stroke(); break;
-            case '=': ctx.strokeStyle = "#5d4037"; ctx.lineWidth = 2; ctx.moveTo(px, py+5); ctx.lineTo(px+ts, py+5); ctx.moveTo(px, py+25); ctx.lineTo(px+ts, py+25); ctx.stroke(); break;
-            case 'U': ctx.fillStyle = "#000"; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI, true); ctx.fill(); break;
-            case 'G': ctx.globalAlpha = pulse; ctx.strokeStyle = this.colors['G']; ctx.lineWidth = 3; ctx.moveTo(px+ts/2, py+4); ctx.lineTo(px+ts/2, py+26); ctx.moveTo(px+10, py+10); ctx.lineTo(px+ts/2, py+4); ctx.lineTo(px+20, py+10); ctx.stroke(); break;
-            case 'V': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['V']; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#000"; ctx.font="bold 12px monospace"; ctx.fillText("101", px+5, py+20); break; 
-            case 'C': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['C']; ctx.fillRect(px+6, py+14, 18, 12); ctx.beginPath(); ctx.moveTo(px+4, py+14); ctx.lineTo(px+15, py+4); ctx.lineTo(px+26, py+14); ctx.fill(); break; 
-            case 'S': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['S']; ctx.arc(px+ts/2, py+12, 6, 0, Math.PI*2); ctx.fill(); ctx.fillRect(px+10, py+18, 10, 6); break; 
-            case 'H': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['H']; ctx.arc(px+ts/2, py+ts/2, ts/2.5, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(px+ts/2, py+ts/2, ts/4, 0, Math.PI*2); ctx.fill(); break; 
-            
-            // NEU: City Icons
-            case '$': ctx.fillStyle = this.colors['$']; ctx.fillText("$$", px+5, py+20); break;
-            case '&': ctx.fillStyle = this.colors['&']; ctx.fillText("🔧", px+5, py+20); break;
-            case 'P': ctx.fillStyle = this.colors['P']; ctx.fillText("✚", px+8, py+20); break;
-            case 'E': ctx.fillStyle = this.colors['E']; ctx.fillText("EXIT", px+2, py+20); break;
-            case 'F': ctx.fillStyle = this.colors['F']; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); break;
-            case '|': ctx.fillStyle = this.colors['|']; ctx.fillRect(px, py, ts, ts); break;
-        } 
-        ctx.globalAlpha = 1; 
-    },
-    
-    generateCityLayout: function(map) {}, generateDungeon: function(type) { let map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('B')); let floorChar = type === "cave" ? '.' : '='; for(let i=0; i<8; i++) { let rx = Math.floor(Math.random() * 20) + 5; let ry = Math.floor(Math.random() * 20) + 5; let w = Math.floor(Math.random() * 8) + 3; let h = Math.floor(Math.random() * 8) + 3; for(let y=ry; y<ry+h; y++) for(let x=rx; x<rx+w; x++) { if(y<this.MAP_H-1 && x<this.MAP_W-1) map[y][x] = floorChar; } } map[35][20] = 'G'; this.state.currentMap = map; this.state.player.x = 20; this.state.player.y = 34; this.state.explored = {}; this.reveal(20, 34); },
-    addClusters: function(map, type, count, size) {}, clearGate: function(map, x, y, char, ground) {},
-    initCanvas: function() { const cvs = document.getElementById('game-canvas'); if(!cvs) return; const viewContainer = document.getElementById('view-container'); cvs.width = viewContainer.offsetWidth; cvs.height = viewContainer.offsetHeight; this.ctx = cvs.getContext('2d'); if(this.loopId) cancelAnimationFrame(this.loopId); this.drawLoop(); },
-    drawLoop: function() { if(this.state.view !== 'map' || this.state.isGameOver) return; this.draw(); this.loopId = requestAnimationFrame(() => this.drawLoop()); },
-    reveal: function(px, py) { for(let y=py-2; y<=py+2; y++) for(let x=px-2; x<=px+2; x++) if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) this.state.explored[`${x},${y}`] = true; },
+    draw: function() { if(!this.ctx || !this.cacheCanvas) return; const ctx = this.ctx; const cvs = ctx.canvas; let targetCamX = (this.state.player.x * this.TILE) - (cvs.width / 2); let targetCamY = (this.state.player.y * this.TILE) - (cvs.height / 2); const maxCamX = (this.MAP_W * this.TILE) - cvs.width; const maxCamY = (this.MAP_H * this.TILE) - cvs.height; this.camera.x = Math.max(0, Math.min(targetCamX, maxCamX)); this.camera.y = Math.max(0, Math.min(targetCamY, maxCamY)); ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cvs.width, cvs.height); ctx.drawImage(this.cacheCanvas, this.camera.x, this.camera.y, cvs.width, cvs.height, 0, 0, cvs.width, cvs.height); ctx.save(); ctx.translate(-this.camera.x, -this.camera.y); const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7; const startX = Math.floor(this.camera.x / this.TILE); const startY = Math.floor(this.camera.y / this.TILE); const endX = startX + Math.ceil(cvs.width / this.TILE) + 1; const endY = startY + Math.ceil(cvs.height / this.TILE) + 1; for(let y=startY; y<endY; y++) { for(let x=startX; x<endX; x++) { if(y>=0 && y<this.MAP_H && x>=0 && x<this.MAP_W) { const t = this.state.currentMap[y][x]; if(['V', 'S', 'C', 'G', 'H', '^', 'v', '<', '>', '$', '&', 'P', 'E', 'F', 'X'].includes(t)) { this.drawTile(ctx, x, y, t, pulse); } } } } if(typeof Network !== 'undefined' && Network.otherPlayers) { for(let pid in Network.otherPlayers) { const p = Network.otherPlayers[pid]; if(p.sector && (p.sector.x !== this.state.sector.x || p.sector.y !== this.state.sector.y)) continue; const ox = p.x * this.TILE + this.TILE/2; const oy = p.y * this.TILE + this.TILE/2; ctx.fillStyle = "#00ffff"; ctx.shadowBlur = 5; ctx.shadowColor = "#00ffff"; ctx.beginPath(); ctx.arc(ox, oy, 5, 0, Math.PI*2); ctx.fill(); ctx.font = "10px monospace"; ctx.fillStyle = "white"; ctx.fillText("P", ox+6, oy); ctx.shadowBlur = 0; } } const px = this.state.player.x * this.TILE + this.TILE/2; const py = this.state.player.y * this.TILE + this.TILE/2; ctx.translate(px, py); ctx.rotate(this.state.player.rot); ctx.translate(-px, -py); ctx.fillStyle = "#39ff14"; ctx.shadowBlur = 10; ctx.shadowColor = "#39ff14"; ctx.beginPath(); ctx.moveTo(px, py - 8); ctx.lineTo(px + 6, py + 8); ctx.lineTo(px, py + 5); ctx.lineTo(px - 6, py + 8); ctx.fill(); ctx.shadowBlur = 0; ctx.restore(); },
+    drawTile: function(ctx, x, y, type, pulse = 1) { const ts = this.TILE; const px = x * ts; const py = y * ts; let bg = this.colors['.']; if(['_', ',', ';', '=', 'W', 'M', '~', '#', '|', 'B'].includes(type)) bg = this.colors[type]; if (!['^','v','<','>'].includes(type)) { ctx.fillStyle = bg; ctx.fillRect(px, py, ts, ts); } if(!['^','v','<','>','M','W','~'].includes(type)) { ctx.strokeStyle = "rgba(40, 90, 40, 0.05)"; ctx.lineWidth = 1; ctx.strokeRect(px, py, ts, ts); } if(['^', 'v', '<', '>'].includes(type)) { ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#1aff1a"; ctx.strokeStyle = "#000"; ctx.beginPath(); if (type === '^') { ctx.moveTo(px + ts/2, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); ctx.lineTo(px + 5, py + ts - 5); } else if (type === 'v') { ctx.moveTo(px + ts/2, py + ts - 5); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + 5, py + 5); } else if (type === '<') { ctx.moveTo(px + 5, py + ts/2); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); } else if (type === '>') { ctx.moveTo(px + ts - 5, py + ts/2); ctx.lineTo(px + 5, py + 5); ctx.lineTo(px + 5, py + ts - 5); } ctx.fill(); ctx.stroke(); return; } ctx.beginPath(); switch(type) { case 't': ctx.fillStyle = this.colors['t']; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts - 4, py + ts - 2); ctx.lineTo(px + 4, py + ts - 2); ctx.fill(); break; case 'T': ctx.fillStyle = this.colors['T']; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts - 2, py + ts - 2); ctx.lineTo(px + 2, py + ts - 2); ctx.fill(); break; case 'x': ctx.strokeStyle = this.colors['x']; ctx.lineWidth = 2; ctx.moveTo(px+5, py+ts-5); ctx.lineTo(px+ts-5, py+5); ctx.moveTo(px+5, py+5); ctx.lineTo(px+ts-5, py+ts-5); ctx.stroke(); break; case '"': ctx.strokeStyle = this.colors['"']; ctx.lineWidth = 1; ctx.moveTo(px+5, py+ts-5); ctx.lineTo(px+5, py+10); ctx.moveTo(px+15, py+ts-5); ctx.lineTo(px+15, py+5); ctx.moveTo(px+25, py+ts-5); ctx.lineTo(px+25, py+12); ctx.stroke(); break; case 'Y': ctx.strokeStyle = this.colors['Y']; ctx.lineWidth = 3; ctx.moveTo(px+15, py+ts-5); ctx.lineTo(px+15, py+5); ctx.moveTo(px+15, py+15); ctx.lineTo(px+5, py+10); ctx.moveTo(px+15, py+10); ctx.lineTo(px+25, py+5); ctx.stroke(); break; case 'o': ctx.fillStyle = this.colors['o']; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); break; case '+': ctx.fillStyle = this.colors['+']; ctx.fillRect(px+5, py+10, 5, 5); ctx.fillRect(px+15, py+20, 4, 4); ctx.fillRect(px+20, py+5, 6, 6); break; case 'M': ctx.fillStyle = "#3e2723"; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts, py + ts); ctx.lineTo(px, py + ts); ctx.fill(); break; case 'W': ctx.strokeStyle = "#4fc3f7"; ctx.lineWidth = 2; ctx.moveTo(px+5, py+15); ctx.lineTo(px+15, py+10); ctx.lineTo(px+25, py+15); ctx.stroke(); break; case '~': ctx.strokeStyle = "#556b2f"; ctx.lineWidth = 2; ctx.moveTo(px+5, py+15); ctx.lineTo(px+15, py+10); ctx.lineTo(px+25, py+15); ctx.stroke(); break; case '=': ctx.strokeStyle = "#5d4037"; ctx.lineWidth = 2; ctx.moveTo(px, py+5); ctx.lineTo(px+ts, py+5); ctx.moveTo(px, py+25); ctx.lineTo(px+ts, py+25); ctx.stroke(); break; case 'U': ctx.fillStyle = "#000"; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI, true); ctx.fill(); break; case 'V': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['V']; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#000"; ctx.font="bold 12px monospace"; ctx.fillText("101", px+5, py+20); break; case 'C': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['C']; ctx.fillRect(px+6, py+14, 18, 12); ctx.beginPath(); ctx.moveTo(px+4, py+14); ctx.lineTo(px+15, py+4); ctx.lineTo(px+26, py+14); ctx.fill(); break; case 'S': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['S']; ctx.arc(px+ts/2, py+12, 6, 0, Math.PI*2); ctx.fill(); ctx.fillRect(px+10, py+18, 10, 6); break; case 'H': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['H']; ctx.arc(px+ts/2, py+ts/2, ts/2.5, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(px+ts/2, py+ts/2, ts/4, 0, Math.PI*2); ctx.fill(); break; case '$': ctx.fillStyle = this.colors['$']; ctx.fillText("$$", px+5, py+20); break; case '&': ctx.fillStyle = this.colors['&']; ctx.fillText("🔧", px+5, py+20); break; case 'P': ctx.fillStyle = this.colors['P']; ctx.fillText("✚", px+8, py+20); break; case 'E': ctx.fillStyle = this.colors['E']; ctx.fillText("EXIT", px+2, py+20); break; case 'F': ctx.fillStyle = this.colors['F']; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); break; case '|': ctx.fillStyle = this.colors['|']; ctx.fillRect(px, py, ts, ts); break; case 'X': ctx.fillStyle = this.colors['X']; ctx.fillRect(px+5, py+10, 20, 15); ctx.fillStyle = "#ffd700"; ctx.fillRect(px+12, py+15, 6, 5); break; } ctx.globalAlpha = 1; },
     startCombat: function() { let pool = []; let lvl = this.state.lvl; let biome = this.worldData[`${this.state.sector.x},${this.state.sector.y}`]?.biome || 'wasteland'; let zone = this.state.zone; if(zone.includes("Supermarkt")) { pool = [this.monsters.raider, this.monsters.ghoul, this.monsters.wildDog]; if(lvl >= 4) pool.push(this.monsters.superMutant); } else if (zone.includes("Höhle")) { pool = [this.monsters.moleRat, this.monsters.radScorpion, this.monsters.bloatfly]; if(lvl >= 3) pool.push(this.monsters.ghoul); } else if(biome === 'city') { pool = [this.monsters.raider, this.monsters.ghoul, this.monsters.protectron]; if(lvl >= 5) pool.push(this.monsters.superMutant); if(lvl >= 7) pool.push(this.monsters.sentryBot); } else if(biome === 'desert') { pool = [this.monsters.radScorpion, this.monsters.raider, this.monsters.moleRat]; } else if(biome === 'jungle') { pool = [this.monsters.bloatfly, this.monsters.mutantRose, this.monsters.yaoGuai]; } else if(biome === 'swamp') { pool = [this.monsters.mirelurk, this.monsters.bloatfly]; if(lvl >= 5) pool.push(this.monsters.ghoul); } else { pool = [this.monsters.moleRat, this.monsters.radRoach, this.monsters.bloatfly]; if(lvl >= 2) pool.push(this.monsters.raider); if(lvl >= 3) pool.push(this.monsters.wildDog); } if(lvl >= 8 && Math.random() < 0.1) pool = [this.monsters.deathclaw]; else if (Math.random() < 0.01) pool = [this.monsters.deathclaw]; const template = pool[Math.floor(Math.random()*pool.length)]; let enemy = { ...template }; const isLegendary = Math.random() < 0.15; if(isLegendary) { enemy.isLegendary = true; enemy.name = "Legendäre " + enemy.name; enemy.hp *= 2; enemy.maxHp = enemy.hp; enemy.dmg = Math.floor(enemy.dmg*1.5); enemy.loot *= 3; if(Array.isArray(enemy.xp)) enemy.xp = [enemy.xp[0]*3, enemy.xp[1]*3]; } else enemy.maxHp = enemy.hp; this.state.enemy = enemy; this.state.inDialog = true; if(Date.now() < this.state.buffEndTime) UI.log("⚡ S.P.E.C.I.A.L. OVERDRIVE aktiv!", "text-yellow-400"); UI.switchView('combat').then(() => UI.renderCombat()); UI.log(isLegendary ? "LEGENDÄRER GEGNER!" : "Kampf gestartet!", isLegendary ? "text-yellow-400" : "text-red-500"); },
     getRandomXP: function(xpData) { if (Array.isArray(xpData)) return Math.floor(Math.random() * (xpData[1] - xpData[0] + 1)) + xpData[0]; return xpData; },
     combatAction: function(act) { if(this.state.isGameOver) return; if(!this.state.enemy) return; if(this.state.enemy.hp <= 0) return; if(act === 'attack') { const wpn = this.state.equip.weapon; if(wpn.isRanged) { if(this.state.ammo > 0) this.state.ammo--; else { UI.log("Keine Munition! Fäuste.", "text-red-500"); this.state.equip.weapon = this.items.fists; this.enemyTurn(); return; } } if(Math.random() > 0.3) { const baseDmg = wpn.baseDmg || 2; const dmg = Math.floor(baseDmg + (this.getStat('STR') * 1.5)); this.state.enemy.hp -= dmg; UI.log(`Treffer: ${dmg} Schaden.`, "text-green-400"); if(this.state.enemy.hp <= 0) { const enemy = this.state.enemy; this.state.caps += enemy.loot; UI.log(`Sieg! ${enemy.loot} Kronkorken.`, "text-yellow-400"); this.gainExp(this.getRandomXP(enemy.xp)); if(enemy.isLegendary) { this.addToInventory('legendary_part', 1); UI.log("★ DROP: Legendäres Modul", "text-yellow-400 font-bold"); if(Math.random() < 0.5) { const bonusCaps = this.state.lvl * 50; this.state.caps += bonusCaps; UI.log(`★ BONUS: ${bonusCaps} Caps`, "text-yellow-400"); } } if(enemy.drops) { enemy.drops.forEach(drop => { if(Math.random() < drop.c) { this.addToInventory(drop.id, 1); } }); } this.endCombat(); return; } } else UI.log("Verfehlt!", "text-gray-500"); this.enemyTurn(); } else if (act === 'flee') { if(Math.random() < 0.4 + (this.getStat('AGI')*0.05)) { UI.log("Geflohen.", "text-green-400"); this.endCombat(); } else { UI.log("Flucht gescheitert!", "text-red-500"); this.enemyTurn(); } } UI.update(); if(this.state.view === 'combat') UI.renderCombat(); },
@@ -386,13 +285,6 @@ const Game = {
     heal: function() { if(this.state.caps >= 25) { this.state.caps -= 25; this.rest(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
     buyAmmo: function() { if(this.state.caps >= 10) { this.state.caps -= 10; this.state.ammo += 10; UI.log("Munition gekauft.", "text-green-400"); UI.update(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
     buyItem: function(key) { const item = this.items[key]; if(this.state.caps >= item.cost) { this.state.caps -= item.cost; this.addToInventory(key, 1); UI.log(`Gekauft: ${item.name}`, "text-green-400"); UI.renderCity(); UI.update(); this.saveGame(); } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); } },
-    
-    // NEU: HARD RESET
-    hardReset: function() { 
-        if(typeof Network !== 'undefined') Network.deleteSave(); 
-        this.state = null; 
-        location.reload(); 
-    },
-    
+    hardReset: function() { if(typeof Network !== 'undefined') Network.deleteSave(); this.state = null; location.reload(); },
     upgradeStat: function(key) { if(this.state.statPoints > 0) { this.state.stats[key]++; this.state.statPoints--; if(key === 'END') this.state.maxHp = this.calculateMaxHP(this.getStat('END')); UI.renderChar(); UI.update(); this.saveGame(); } }
 };
