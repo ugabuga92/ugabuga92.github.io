@@ -41,7 +41,6 @@ const UI = {
             touchArea: document.getElementById('main-content'),
             view: document.getElementById('view-container'),
             log: document.getElementById('log-area'),
-            
             hp: document.getElementById('val-hp'),
             hpBar: document.getElementById('bar-hp'),
             expBarTop: document.getElementById('bar-exp-top'),
@@ -49,7 +48,6 @@ const UI = {
             xpTxt: document.getElementById('val-xp-txt'),
             caps: document.getElementById('val-caps'),
             name: document.getElementById('val-name'),
-
             version: document.getElementById('version-display'), 
             joyBase: null, joyStick: null,
             dialog: document.getElementById('dialog-overlay'),
@@ -190,6 +188,31 @@ const UI = {
                 content.innerHTML = html;
             } catch(e) {
                 content.innerHTML = `<div class="text-red-500">Fehler beim Laden: ${e.message}</div>`;
+            }
+        }
+    },
+
+    // NEU: Changelog Loader
+    showChangelogOverlay: async function() {
+        const overlay = document.getElementById('changelog-overlay');
+        const content = document.getElementById('changelog-content');
+        
+        if(overlay && content) {
+            content.textContent = 'Lade Daten...';
+            overlay.style.display = 'flex'; 
+            overlay.classList.remove('hidden');
+            
+            const verDisplay = document.getElementById('version-display'); 
+            const ver = verDisplay ? verDisplay.textContent.trim() : Date.now();
+            
+            try {
+                // Fetch change.log file
+                const res = await fetch(`change.log?v=${ver}`);
+                if (!res.ok) throw new Error("Logfile nicht gefunden");
+                const text = await res.text();
+                content.textContent = text;
+            } catch(e) {
+                content.textContent = `Fehler beim Laden: ${e.message}`;
             }
         }
     },
@@ -474,7 +497,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.17b)"; 
+            v.textContent = "ONLINE (v0.0.17c)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
