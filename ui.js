@@ -36,7 +36,6 @@ const UI = {
 
     init: function() {
         this.els = {
-            // FIX: Touch Area ist jetzt das gesamte Main-Content Element (inkl. Log)
             touchArea: document.getElementById('main-content'),
             view: document.getElementById('view-container'),
             log: document.getElementById('log-area'),
@@ -113,7 +112,6 @@ const UI = {
 
         if(this.els.btnSpawnRandom) this.els.btnSpawnRandom.onclick = () => this.selectSpawn(null);
 
-        // TOUCH EVENTS auf MAIN CONTENT (Erweitert)
         if(this.els.touchArea) {
             this.els.touchArea.addEventListener('touchstart', (e) => this.handleTouchStart(e), {passive: false});
             this.els.touchArea.addEventListener('touchmove', (e) => this.handleTouchMove(e), {passive: false});
@@ -147,19 +145,18 @@ const UI = {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
     },
 
-    // NEU: Manual Overlay Logic
+    // NEU: Manual Overlay Logic (Fix für display: block)
     showManualOverlay: async function() {
         const overlay = document.getElementById('manual-overlay');
         const content = document.getElementById('manual-content');
         
-        // Menü schließen falls offen
         if(this.els.navMenu) this.els.navMenu.classList.add('hidden');
         
         if(overlay && content) {
             content.innerHTML = '<div class="text-center animate-pulse">Lade Handbuch...</div>';
+            overlay.style.display = 'flex'; // Zwingend anzeigen
             overlay.classList.remove('hidden');
             
-            // Fetch content from views/manual.html
             const verDisplay = document.getElementById('version-display'); 
             const ver = verDisplay ? verDisplay.textContent.trim() : Date.now();
             try {
@@ -173,10 +170,11 @@ const UI = {
         }
     },
 
+    // FIX: Sanftes Einblenden des Mobile Hints
     showMobileControlsHint: function() {
         if(document.getElementById('mobile-hint')) return;
         const hintHTML = `
-            <div id="mobile-hint" class="absolute inset-0 z-[100] flex flex-col justify-center items-center bg-black/80 pointer-events-auto backdrop-blur-sm" onclick="this.style.opacity='0'; setTimeout(() => this.remove(), 500)" style="transition: opacity 0.5s;">
+            <div id="mobile-hint" class="absolute inset-0 z-[100] flex flex-col justify-center items-center bg-black/80 pointer-events-auto backdrop-blur-sm opacity-0 transition-opacity duration-500" onclick="this.style.opacity='0'; setTimeout(() => this.remove(), 500)">
                 <div class="border-2 border-[#39ff14] bg-black p-6 text-center shadow-[0_0_20px_#39ff14] max-w-sm mx-4">
                     <div class="text-5xl mb-4 animate-bounce">👆</div>
                     <h2 class="text-2xl font-bold text-[#39ff14] mb-2 tracking-widest border-b border-[#39ff14] pb-2">TOUCH STEUERUNG</h2>
@@ -190,15 +188,16 @@ const UI = {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', hintHTML);
+        // Trigger reflow for animation
+        setTimeout(() => {
+            const el = document.getElementById('mobile-hint');
+            if(el) el.classList.remove('opacity-0');
+        }, 10);
     },
 
     handleTouchStart: function(e) {
-        // Prüfe ob ein Button oder Link gedrückt wurde, dann keinen Joystick starten
         if(e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.closest('.no-joystick')) return;
-        
         if(Game.state.view !== 'map' || Game.state.inDialog || this.touchState.active) return;
-        
-        // e.preventDefault(); // Entfernt um Scrolling in Listen zu erlauben, aber Joystick fängt es ab
         
         const touch = e.changedTouches[0];
         this.touchState.active = true;
@@ -225,7 +224,7 @@ const UI = {
             }
         }
         if(!touch) return;
-        e.preventDefault(); // Verhindert Scrollen WÄHREND der Joystick aktiv ist
+        e.preventDefault(); 
         this.touchState.currentX = touch.clientX;
         this.touchState.currentY = touch.clientY;
         this.updateJoystickVisuals();
@@ -279,10 +278,7 @@ const UI = {
     },
 
     showJoystick: function(x, y) {
-        if(!this.els.joyBase) {
-            // Falls noch nicht initialisiert (z.B. durch View Wechsel)
-            this.restoreOverlay();
-        }
+        if(!this.els.joyBase) this.restoreOverlay();
         if(this.els.joyBase) {
             this.els.joyBase.style.left = (x - 50) + 'px';
             this.els.joyBase.style.top = (y - 50) + 'px';
@@ -460,7 +456,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.16c)"; 
+            v.textContent = "ONLINE (v0.0.16d)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -841,9 +837,9 @@ const UI = {
         
         grid.innerHTML = Object.keys(Game.state.stats).map(k => { 
             const val = Game.getStat(k); 
-            // FIX: Große Buttons wiederhergestellt
-            const btn = Game.state.statPoints > 0 ? `<button class="w-10 h-10 border-2 border-green-500 bg-green-900/50 text-green-400 font-bold ml-2 flex items-center justify-center hover:bg-green-500 hover:text-black transition-colors" onclick="Game.upgradeStat('${k}')">+</button>` : ''; 
-            return `<div class="flex justify-between items-center border-b border-green-900/30 py-1 h-12"><span>${k}</span> <div class="flex items-center"><span class="text-yellow-400 font-bold mr-2">${val}</span>${btn}</div></div>`; 
+            // FIX: Große Buttons (w-12 h-12)
+            const btn = Game.state.statPoints > 0 ? `<button class="w-12 h-12 border-2 border-green-500 bg-green-900/50 text-green-400 font-bold ml-2 flex items-center justify-center hover:bg-green-500 hover:text-black transition-colors" onclick="Game.upgradeStat('${k}')" style="font-size: 1.5rem;">+</button>` : ''; 
+            return `<div class="flex justify-between items-center border-b border-green-900/30 py-1 h-14"><span>${k}</span> <div class="flex items-center"><span class="text-yellow-400 font-bold mr-4 text-xl">${val}</span>${btn}</div></div>`; 
         }).join(''); 
         
         const nextXp = Game.expToNextLevel(Game.state.lvl); 
@@ -904,7 +900,6 @@ const UI = {
     renderQuests: function() { const list = document.getElementById('quest-list'); if(!list) return; list.innerHTML = Game.state.quests.map(q => ` <div class="border border-green-900 bg-green-900/10 p-2 flex items-center gap-3 cursor-pointer hover:bg-green-900/30 transition-all" onclick="UI.showQuestDetail('${q.id}')"> <div class="text-3xl">✉️</div> <div> <div class="font-bold text-lg text-yellow-400">${q.read ? '' : '<span class="text-cyan-400">[NEU]</span> '}${q.title}</div> <div class="text-xs opacity-70">Zum Lesen klicken</div> </div> </div> `).join(''); },
     showQuestDetail: function(id) { const quest = Game.state.quests.find(q => q.id === id); if(!quest) return; quest.read = true; this.update(); const list = document.getElementById('quest-list'); const detail = document.getElementById('quest-detail'); const content = document.getElementById('quest-content'); list.classList.add('hidden'); detail.classList.remove('hidden'); content.innerHTML = `<h2 class="text-2xl font-bold text-yellow-400 border-b border-green-500 mb-4">${quest.title}</h2><div class="font-mono text-lg leading-relaxed whitespace-pre-wrap">${quest.text}</div>`; },
     closeQuestDetail: function() { document.getElementById('quest-detail').classList.add('hidden'); document.getElementById('quest-list').classList.remove('hidden'); this.renderQuests(); },
-    
     renderWiki: function() { const content = document.getElementById('wiki-content'); if(!content) return; content.innerHTML = Object.keys(Game.monsters).map(k => { const m = Game.monsters[k]; const xpText = Array.isArray(m.xp) ? `${m.xp[0]}-${m.xp[1]}` : m.xp; return `<div class="border-b border-green-900 pb-1"><div class="font-bold text-yellow-400">${m.name}</div><div class="text-xs opacity-70">HP: ~${m.hp}, XP: ${xpText}</div></div>`; }).join(''); },
     renderWorldMap: function() { const grid = document.getElementById('world-grid'); if(!grid) return; grid.innerHTML = ''; for(let y=0; y<8; y++) { for(let x=0; x<8; x++) { const d = document.createElement('div'); d.className = "border border-green-900/30 flex justify-center items-center text-xs relative"; if(x === Game.state.sector.x && y === Game.state.sector.y) { d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.style.fontWeight = "bold"; d.textContent = "YOU"; } else if(Game.worldData[`${x},${y}`]) { const biome = Game.worldData[`${x},${y}`].biome; d.style.backgroundColor = this.biomeColors[biome] || '#4a3d34'; } if(typeof Network !== 'undefined' && Network.otherPlayers) { const playersHere = Object.values(Network.otherPlayers).filter(p => p.sector && p.sector.x === x && p.sector.y === y); if(playersHere.length > 0) { const dot = document.createElement('div'); dot.className = "absolute w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]"; if(x === Game.state.sector.x && y === Game.state.sector.y) { dot.style.top = "2px"; dot.style.right = "2px"; } d.appendChild(dot); } } grid.appendChild(d); } } grid.style.gridTemplateColumns = "repeat(8, 1fr)"; },
     renderCity: function() { const con = document.getElementById('city-options'); if(!con) return; con.innerHTML = ''; const addBtn = (txt, cb, disabled=false) => { const b = document.createElement('button'); b.className = "action-button w-full mb-2 text-left p-3 flex justify-between"; b.innerHTML = txt; b.onclick = cb; if(disabled) { b.disabled = true; b.style.opacity = 0.5; } con.appendChild(b); }; addBtn("Heilen (25 Kronkorken)", () => Game.heal(), Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp); addBtn("Munition (10 Stk / 10 Kronkorken)", () => Game.buyAmmo(), Game.state.caps < 10); addBtn("Händler / Waffen & Rüstung", () => this.renderShop(con)); addBtn("🛠️ Werkbank / Crafting", () => this.toggleView('crafting')); addBtn("Stadt verlassen", () => this.switchView('map')); },
