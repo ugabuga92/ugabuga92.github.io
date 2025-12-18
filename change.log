@@ -1,6 +1,14 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 ==============================
 
+[v0.0.17c] - 2025-12-18 13:30 (System Interface Update)
+
+UI: Retro-Fadenkreuz-Mauszeiger (cursor: crosshair) und dunkle Scrollbalken hinzugefügt.
+
+LOGIN: Neues Layout mit "ANLEITUNG" und "CHANGELOG" Buttons unter dem Login-Button.
+
+FEATURE: "CHANGELOG"-Button öffnet nun ein Overlay, das change.log direkt im Spiel anzeigt.
+
 [v0.0.17b] - 2025-12-18 12:45 (Full System Restore)
 
 SYSTEM: Komplette Wiederherstellung aller Kerndateien (data.js, index.html, game.js, ui.js, world_gen.js).
