@@ -115,14 +115,39 @@ const UI = {
             };
         }
         
+        // GLOBAL CLICK HANDLER: CLOSE MENUS ON OUTSIDE CLICK
         document.addEventListener('click', (e) => {
+            // Close Nav Menu
             if(this.els.navMenu && !this.els.navMenu.classList.contains('hidden')) {
                 if (!this.els.navMenu.contains(e.target) && e.target !== this.els.btnMenu) {
                     this.els.navMenu.classList.add('hidden');
                     this.els.navMenu.style.display = 'none';
                 }
             }
+            
+            // NEW: Close any active view (Inventory, Char, etc.) when clicking on Log or outside
+            // Only if NOT in map view and NOT clicking inside the view container
+            if (Game.state && Game.state.view !== 'map' && Game.state.view !== 'combat' && Game.state.view !== 'city' && Game.state.view !== 'shop' && Game.state.view !== 'crafting' && Game.state.view !== 'clinic') {
+                const viewContainer = document.getElementById('view-container');
+                // Check if click was OUTSIDE the view content (e.g. on the log panel)
+                if (!viewContainer.contains(e.target)) {
+                    this.switchView('map');
+                }
+            }
         });
+        
+        // FIX: Click on Log Panel specifically closes menus
+        if(this.els.log.parentElement) {
+            this.els.log.parentElement.addEventListener('click', () => {
+                if (Game.state && Game.state.view !== 'map' && Game.state.view !== 'combat' && !Game.state.view.includes('city')) { // Don't close city views on log click, might be annoying? Actually user requested it.
+                     // User said: "Wenn man in ein Menü gehts, soll man über INS Log klicken zurück zur Spielwelt kommen."
+                     // So we close EVERYTHING except map and combat.
+                     if (Game.state.view !== 'combat') {
+                         this.switchView('map');
+                     }
+                }
+            });
+        }
 
         if(this.els.playerCount) this.els.playerCount.onclick = () => this.togglePlayerList();
 
@@ -497,7 +522,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.17g)"; 
+            v.textContent = "ONLINE (v0.0.17h)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -591,24 +616,25 @@ const UI = {
             this.els.name.textContent = Network.myId || "SURVIVOR";
         }
 
-        if(this.els.lvl) this.els.lvl.textContent = Game.state.lvl; 
+        if(this.els.lvl) {
+            if(Game.state.statPoints > 0) {
+                this.els.lvl.innerHTML = `${Game.state.lvl} <span class="text-yellow-400 animate-pulse ml-1 text-xs">LVL UP!</span>`;
+            } else {
+                this.els.lvl.textContent = Game.state.lvl; 
+            }
+        }
+
         if(this.els.ammo) this.els.ammo.textContent = Game.state.ammo; 
         if(this.els.caps) this.els.caps.textContent = `${Game.state.caps}`; 
-        if(this.els.zone) this.els.zone.textContent = Game.state.zone; 
         
-        const buffActive = Date.now() < Game.state.buffEndTime; 
-        if(this.els.hpBar) {
-            if(buffActive) { this.els.hpBar.style.backgroundColor = "#ffff00"; this.els.hpBar.parentElement.style.borderColor = "#ffff00"; } 
-            else { this.els.hpBar.style.backgroundColor = "#39ff14"; this.els.hpBar.parentElement.style.borderColor = "#1a4d1a"; } 
-        }
+        const nextXp = Game.expToNextLevel(Game.state.lvl); 
+        const expPct = Math.min(100, Math.floor((Game.state.xp / nextXp) * 100)); 
+        if(this.els.xpTxt) this.els.xpTxt.textContent = expPct;
+        if(this.els.expBarTop) this.els.expBarTop.style.width = `${expPct}%`;
         
         const maxHp = Game.state.maxHp; 
         if(this.els.hp) this.els.hp.textContent = `${Math.round(Game.state.hp)}/${maxHp}`; 
-        if(this.els.hpBar) this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`; 
-        
-        const nextXp = Game.expToNextLevel(Game.state.lvl); 
-        const expPct = Math.min(100, (Game.state.xp / nextXp) * 100); 
-        if(this.els.expBarTop) this.els.expBarTop.style.width = `${expPct}%`; 
+        if(this.els.hpBar) this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`;
         
         let hasAlert = false;
         if(this.els.btnChar) {
@@ -649,13 +675,10 @@ const UI = {
         }
         
         if(Game.state.view === 'map') { 
-            if(this.els.dpadToggle) this.els.dpadToggle.style.display = 'flex'; 
             if(!Game.state.inDialog && this.els.dialog && this.els.dialog.innerHTML === '') { 
                 this.els.dialog.style.display = 'none'; 
             } 
-        } else { 
-            if(this.els.dpadToggle) this.els.dpadToggle.style.display = 'none'; 
-        } 
+        }
     },
 
     renderInventory: function() {
@@ -903,13 +926,12 @@ const UI = {
         const lvlDisplay = document.getElementById('char-lvl'); 
         if(lvlDisplay) lvlDisplay.textContent = Game.state.lvl; 
         
-        // FIX: Translate stat keys
         grid.innerHTML = Object.keys(Game.state.stats).map(k => { 
             const val = Game.getStat(k); 
-            // Use translation or fallback
-            const label = (typeof window.GameData !== 'undefined' && window.GameData.statLabels && window.GameData.statLabels[k]) ? window.GameData.statLabels[k] : k;
-
+            // FIX: Große Buttons (w-12 h-12)
             const btn = Game.state.statPoints > 0 ? `<button class="w-12 h-12 border-2 border-green-500 bg-green-900/50 text-green-400 font-bold ml-2 flex items-center justify-center hover:bg-green-500 hover:text-black transition-colors" onclick="Game.upgradeStat('${k}')" style="font-size: 1.5rem;">+</button>` : ''; 
+            // Translate stats using GameData
+            const label = (typeof window.GameData !== 'undefined' && window.GameData.statLabels && window.GameData.statLabels[k]) ? window.GameData.statLabels[k] : k;
             return `<div class="flex justify-between items-center border-b border-green-900/30 py-1 h-14"><span>${label}</span> <div class="flex items-center"><span class="text-yellow-400 font-bold mr-4 text-xl">${val}</span>${btn}</div></div>`; 
         }).join(''); 
         
@@ -918,8 +940,16 @@ const UI = {
         document.getElementById('char-exp').textContent = Game.state.xp; 
         document.getElementById('char-next').textContent = nextXp; 
         document.getElementById('char-exp-bar').style.width = `${expPct}%`; 
-        document.getElementById('char-points').textContent = Game.state.statPoints; 
         
+        // NEU: Auffälliger Hinweis, wenn Punkte verfügbar sind
+        const pts = Game.state.statPoints;
+        const ptsEl = document.getElementById('char-points');
+        if (pts > 0) {
+            ptsEl.innerHTML = `<span class="text-red-500 animate-pulse text-2xl font-bold bg-red-900/20 px-2 border border-red-500">${pts} VERFÜGBAR!</span>`;
+        } else {
+            ptsEl.textContent = pts;
+        }
+
         const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2};
         const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}};
         
