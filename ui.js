@@ -223,37 +223,6 @@ const UI = {
         setTimeout(() => { const el = document.getElementById('mobile-hint'); if(el) el.classList.remove('opacity-0'); }, 10);
     },
 
-    // NEU: Dungeon Warnung
-    showDungeonWarning: function(confirmCallback) {
-        if(document.getElementById('dungeon-warning')) return;
-        const html = `
-            <div id="dungeon-warning" class="absolute inset-0 z-[200] flex flex-col justify-center items-center bg-black/95">
-                <div class="border-4 border-red-600 p-8 text-center animate-pulse bg-red-900/20 max-w-sm shadow-[0_0_50px_red]">
-                    <h1 class="text-5xl font-bold text-red-600 mb-4 tracking-widest">WARNUNG</h1>
-                    <p class="text-red-400 mb-8 text-xl font-bold">HOHE GEFAHR!<br>TÖDLICHE KREATUREN.<br>KEINE RÜCKKEHR OHNE SIEG.</p>
-                    <div class="flex gap-4 justify-center">
-                        <button id="btn-enter-dungeon" class="action-button border-red-600 text-red-500 px-6 py-4 font-bold text-xl hover:bg-red-900">BETRETEN</button>
-                        <button id="btn-cancel-dungeon" class="action-button border-green-500 text-green-500 px-6 py-4 font-bold text-xl hover:bg-green-900">FLUCHT</button>
-                    </div>
-                </div>
-            </div>`;
-        document.body.insertAdjacentHTML('beforeend', html);
-        
-        document.getElementById('btn-enter-dungeon').onclick = () => {
-            document.getElementById('dungeon-warning').remove();
-            confirmCallback();
-        };
-        document.getElementById('btn-cancel-dungeon').onclick = () => {
-            document.getElementById('dungeon-warning').remove();
-            // Step back to avoid loop
-            Game.move(0, 0); // Refresh view only? No, move player back?
-            // Actually, we are still on the tile. We need to move player 1 tile back or just don't enter.
-            // But next move will trigger it again.
-            // Simple workaround: Teleport player 1 tile away based on rotation?
-            // For now just stay and update UI, user must walk away.
-        };
-    },
-
     handleTouchStart: function(e) {
         if(e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.closest('.no-joystick')) return;
         if(Game.state.view !== 'map' || Game.state.inDialog || this.touchState.active) return;
@@ -392,10 +361,8 @@ const UI = {
         const btn = this.els.btnSave;
         const originalText = btn.textContent;
         const originalClass = btn.className;
-        
         btn.textContent = "SAVED!";
         btn.className = "header-btn bg-[#39ff14] text-black border-[#39ff14]";
-        
         setTimeout(() => {
             btn.textContent = originalText;
             btn.className = originalClass;
@@ -514,7 +481,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.18a)"; 
+            v.textContent = "ONLINE (v0.0.17i)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -605,7 +572,9 @@ const UI = {
         if (!Game.state) return; 
         
         if(this.els.name && typeof Network !== 'undefined') {
-            this.els.name.textContent = Network.myId || "SURVIVOR";
+            // NEU: Sektor Anzeige
+            const sec = `[${Game.state.sector.x},${Game.state.sector.y}]`;
+            this.els.name.innerHTML = `${Network.myId || "SURVIVOR"} <span class="text-xs text-green-600">${sec}</span>`;
         }
 
         if(this.els.lvl) {
@@ -714,7 +683,7 @@ const UI = {
                 <div class="hidden group-hover:flex absolute ${tooltipPos} left-1/2 -translate-x-1/2 w-48 bg-black border border-green-500 p-2 z-[9999] flex-col gap-1 text-left shadow-[0_0_10px_#000]">
                     <div class="font-bold text-yellow-400 text-sm border-b border-green-900 pb-1 mb-1">${item.name}</div>
                     <div class="text-[10px] text-green-300">Typ: ${item.type.toUpperCase()}</div>
-                    <div class="text-[10px] text-gray-400">Wert: ${item.cost} Caps</div>
+                    <div class="text-[10px] text-gray-400">Wert: ${item.cost} KK</div>
                     ${(item.baseDmg) ? `<div class="text-[10px] text-red-400">DMG: ${item.baseDmg}</div>` : ''}
                     ${(item.bonus) ? `<div class="text-[10px] text-blue-400">Bonus: ${JSON.stringify(item.bonus).replace(/["{}]/g,'')}</div>` : ''}
                     <div class="text-[9px] text-center text-green-500 mt-1">[KLICK] AKTION</div>
@@ -932,16 +901,8 @@ const UI = {
         document.getElementById('char-exp').textContent = Game.state.xp; 
         document.getElementById('char-next').textContent = nextXp; 
         document.getElementById('char-exp-bar').style.width = `${expPct}%`; 
+        document.getElementById('char-points').textContent = Game.state.statPoints; 
         
-        // NEU: Auffälliger Hinweis, wenn Punkte verfügbar sind
-        const pts = Game.state.statPoints;
-        const ptsEl = document.getElementById('char-points');
-        if (pts > 0) {
-            ptsEl.innerHTML = `<span class="text-red-500 animate-pulse text-2xl font-bold bg-red-900/20 px-2 border border-red-500">${pts} VERFÜGBAR!</span>`;
-        } else {
-            ptsEl.textContent = pts;
-        }
-
         const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2};
         const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}};
         
