@@ -1,5 +1,5 @@
 const GameData = {
-    // --- FARBPALETTE & STYLES ---
+    // --- FARBPALETTE ---
     colors: { 
         '.':'#2d241b', '_':'#4a4036', ',':'#1a261a', ';':'#1e1e11', '=':'#333333', '#':'#111', 
         'line_default': '#2a5a2a', 'line_wall': '#39ff14', 
@@ -8,20 +8,13 @@ const GameData = {
         'M': '#3e2723', 'W': '#0d47a1', '~': '#2f4f2f', 
         't': '#1b5e20', 'T': '#0a3d0a', 'x': '#5c4033', 'o': '#555555',
         '+': '#666666', '"': '#3cb371', 'Y': '#deb887', 'U': '#212121',
-        
-        // CITY INTERIOR TILES
-        '$': '#ffd700', // Trader (Gold)
-        '&': '#ff8c00', // Workbench (Orange)
-        'P': '#ff3333', // Doctor / Plus (Red)
-        'E': '#39ff14', // Exit Zone (Green)
-        'F': '#00bfff', // Fountain (Deep Sky Blue)
-        '|': '#555555', // Building Wall
-        
-        // Biome Colors for Map
+        // City Tiles
+        '$': '#ffd700', '&': '#ff8c00', 'P': '#ff3333', 'E': '#39ff14', 'F': '#00bfff', '|': '#555555',
+        // Map Colors
         'wasteland': '#5d5345', 'desert': '#eecfa1', 'jungle': '#1a3300', 'city': '#555555', 'swamp': '#1e1e11'
     },
 
-    // --- BIOME DEFINITIONEN ---
+    // --- BIOME ---
     biomes: {
         'wasteland': { 
             ground: '.', water: 0.02, mountain: 0.05,
@@ -62,6 +55,7 @@ const GameData = {
         circuitry: { name: "Schaltkreise", type: "component", cost: 20 },
         nuclear_mat: { name: "Nukleares Material", type: "component", cost: 35 },
         legendary_part: { name: "★ Legendäres Modul", type: "rare", cost: 100 },
+        
         fists: { name: "Fäuste", slot: 'weapon', type: 'weapon', baseDmg: 2, bonus: {}, cost: 0, requiredLevel: 0, isRanged: false }, 
         vault_suit: { name: "Vault-Anzug", slot: 'body', type: 'body', bonus: { END: 1 }, cost: 0, requiredLevel: 0 }, 
         knife: { name: "Kampfmesser", slot: 'weapon', type: 'weapon', baseDmg: 8, bonus: { STR: 1 }, cost: 15, requiredLevel: 1, isRanged: false }, 
