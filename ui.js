@@ -5,14 +5,7 @@ const UI = {
     biomeColors: GameData.colors, 
     
     touchState: {
-        active: false,
-        id: null,
-        startX: 0,
-        startY: 0,
-        currentX: 0,
-        currentY: 0,
-        moveDir: { x: 0, y: 0 },
-        timer: null
+        active: false, id: null, startX: 0, startY: 0, currentX: 0, currentY: 0, moveDir: { x: 0, y: 0 }, timer: null
     },
 
     log: function(msg, color="text-green-500") { 
@@ -21,6 +14,19 @@ const UI = {
         line.className = color;
         line.textContent = `> ${msg}`;
         this.els.log.prepend(line);
+    },
+
+    // NEU: Shake Animation
+    shakeView: function() {
+        if(this.els.view) {
+            this.els.view.classList.remove('shake');
+            void this.els.view.offsetWidth; // Trigger reflow
+            this.els.view.classList.add('shake');
+            // Remove class after animation to allow re-trigger
+            setTimeout(() => {
+                if(this.els.view) this.els.view.classList.remove('shake');
+            }, 300);
+        }
     },
 
     error: function(msg) {
@@ -40,18 +46,18 @@ const UI = {
             view: document.getElementById('view-container'),
             log: document.getElementById('log-area'),
             
+            // New Header Elements
             hp: document.getElementById('val-hp'),
-            hpBar: document.getElementById('bar-hp'),
-            expBarTop: document.getElementById('bar-exp-top'),
             lvl: document.getElementById('val-lvl'),
-            ammo: document.getElementById('val-ammo'),
+            xpTxt: document.getElementById('val-xp-txt'),
             caps: document.getElementById('val-caps'),
-            zone: document.getElementById('current-zone-display'),
+            name: document.getElementById('val-name'),
+
             version: document.getElementById('version-display'), 
             joyBase: null, joyStick: null,
             dialog: document.getElementById('dialog-overlay'),
-            text: document.getElementById('encounter-text'),
             timer: document.getElementById('game-timer'),
+            
             btnNew: document.getElementById('btn-new'),
             btnInv: document.getElementById('btn-inv'),
             btnWiki: document.getElementById('btn-wiki'),
@@ -61,24 +67,32 @@ const UI = {
             btnSave: document.getElementById('btn-save'),
             btnLogout: document.getElementById('btn-logout'),
             btnReset: document.getElementById('btn-reset'), 
+            
             btnMenu: document.getElementById('btn-menu-toggle'),
             navMenu: document.getElementById('main-nav'),
             playerCount: document.getElementById('val-players'),
             playerList: document.getElementById('player-list-overlay'),
             playerListContent: document.getElementById('player-list-content'),
-            name: document.getElementById('val-name'),
+            
             loginScreen: document.getElementById('login-screen'),
             spawnScreen: document.getElementById('spawn-screen'),
             spawnMsg: document.getElementById('spawn-msg'),
             spawnList: document.getElementById('spawn-list'),
             btnSpawnRandom: document.getElementById('btn-spawn-random'),
+            
             resetOverlay: document.getElementById('reset-overlay'),
             btnConfirmReset: document.getElementById('btn-confirm-reset'),
             btnCancelReset: document.getElementById('btn-cancel-reset'),
+            
             gameScreen: document.getElementById('game-screen'),
             loginInput: document.getElementById('survivor-id-input'),
             loginStatus: document.getElementById('login-status'),
-            gameOver: document.getElementById('game-over-screen')
+            gameOver: document.getElementById('game-over-screen'),
+            
+            btnUp: document.getElementById('btn-up'),
+            btnDown: document.getElementById('btn-down'),
+            btnLeft: document.getElementById('btn-left'),
+            btnRight: document.getElementById('btn-right')
         };
 
         ['mousemove', 'keydown', 'click', 'touchstart'].forEach(evt => {
@@ -101,7 +115,26 @@ const UI = {
         if(this.els.btnConfirmReset) this.els.btnConfirmReset.onclick = () => this.confirmReset();
         if(this.els.btnCancelReset) this.els.btnCancelReset.onclick = () => this.cancelReset();
 
-        if(this.els.btnMenu) this.els.btnMenu.onclick = () => this.els.navMenu.classList.toggle('hidden');
+        // FIX: Menu Toggle needs to handle display explicitly
+        if(this.els.btnMenu) {
+            this.els.btnMenu.onclick = (e) => {
+                e.stopPropagation(); // Stop bubbling so touchstart doesn't close it immediately
+                this.els.navMenu.classList.toggle('hidden');
+                // Ensure it's visible on top
+                this.els.navMenu.style.display = this.els.navMenu.classList.contains('hidden') ? 'none' : 'flex';
+            };
+        }
+        
+        // Click outside to close menu
+        document.addEventListener('click', (e) => {
+            if(this.els.navMenu && !this.els.navMenu.classList.contains('hidden')) {
+                if (!this.els.navMenu.contains(e.target) && e.target !== this.els.btnMenu) {
+                    this.els.navMenu.classList.add('hidden');
+                    this.els.navMenu.style.display = 'none';
+                }
+            }
+        });
+
         if(this.els.playerCount) this.els.playerCount.onclick = () => this.togglePlayerList();
 
         if(this.els.btnInv) this.els.btnInv.onclick = () => this.toggleView('inventory');
@@ -145,16 +178,18 @@ const UI = {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
     },
 
-    // NEU: Manual Overlay Logic (Fix für display: block)
     showManualOverlay: async function() {
         const overlay = document.getElementById('manual-overlay');
         const content = document.getElementById('manual-content');
         
-        if(this.els.navMenu) this.els.navMenu.classList.add('hidden');
+        if(this.els.navMenu) {
+            this.els.navMenu.classList.add('hidden');
+            this.els.navMenu.style.display = 'none';
+        }
         
         if(overlay && content) {
             content.innerHTML = '<div class="text-center animate-pulse">Lade Handbuch...</div>';
-            overlay.style.display = 'flex'; // Zwingend anzeigen
+            overlay.style.display = 'flex'; 
             overlay.classList.remove('hidden');
             
             const verDisplay = document.getElementById('version-display'); 
@@ -170,7 +205,6 @@ const UI = {
         }
     },
 
-    // FIX: Sanftes Einblenden des Mobile Hints
     showMobileControlsHint: function() {
         if(document.getElementById('mobile-hint')) return;
         const hintHTML = `
@@ -188,17 +222,12 @@ const UI = {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', hintHTML);
-        // Trigger reflow for animation
-        setTimeout(() => {
-            const el = document.getElementById('mobile-hint');
-            if(el) el.classList.remove('opacity-0');
-        }, 10);
+        setTimeout(() => { const el = document.getElementById('mobile-hint'); if(el) el.classList.remove('opacity-0'); }, 10);
     },
 
     handleTouchStart: function(e) {
         if(e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.closest('.no-joystick')) return;
         if(Game.state.view !== 'map' || Game.state.inDialog || this.touchState.active) return;
-        
         const touch = e.changedTouches[0];
         this.touchState.active = true;
         this.touchState.id = touch.identifier;
@@ -207,9 +236,7 @@ const UI = {
         this.touchState.currentX = touch.clientX;
         this.touchState.currentY = touch.clientY;
         this.touchState.moveDir = {x:0, y:0};
-
         this.showJoystick(touch.clientX, touch.clientY);
-        
         if(this.touchState.timer) clearInterval(this.touchState.timer);
         this.touchState.timer = setInterval(() => this.processJoystickMovement(), 150); 
     },
@@ -316,35 +343,26 @@ const UI = {
     },
 
     handleReset: function() {
-        this.els.navMenu.classList.add('hidden');
-        if(this.els.resetOverlay) {
-            this.els.resetOverlay.style.display = 'flex';
+        if(this.els.navMenu) {
+            this.els.navMenu.classList.add('hidden');
+            this.els.navMenu.style.display = 'none';
         }
+        if(this.els.resetOverlay) this.els.resetOverlay.style.display = 'flex';
     },
     
     confirmReset: function() {
-        if(typeof Game !== 'undefined') {
-            Game.hardReset();
-        }
+        if(typeof Game !== 'undefined') Game.hardReset();
     },
     
     cancelReset: function() {
-        if(this.els.resetOverlay) {
-            this.els.resetOverlay.style.display = 'none';
-        }
+        if(this.els.resetOverlay) this.els.resetOverlay.style.display = 'none';
     },
 
     handleSaveClick: function() {
         Game.saveGame(true);
         const btn = this.els.btnSave;
-        const originalText = btn.textContent;
-        const originalColor = btn.className;
-        btn.textContent = "SAVED!";
-        btn.className = "action-button px-3 py-1 text-sm md:text-base border-green-500 text-green-400 font-bold";
-        setTimeout(() => {
-            btn.textContent = originalText;
-            btn.className = originalColor;
-        }, 1000);
+        btn.textContent = "✔";
+        setTimeout(() => btn.textContent = "💾", 1000);
     },
 
     attemptLogin: async function() {
@@ -426,7 +444,10 @@ const UI = {
             this.els.loginInput.value = "";
             this.els.loginInput.focus();
         }
-        if(this.els.navMenu) this.els.navMenu.classList.add('hidden');
+        if(this.els.navMenu) {
+            this.els.navMenu.classList.add('hidden');
+            this.els.navMenu.style.display = 'none';
+        }
         if(this.els.playerList) this.els.playerList.style.display = 'none';
     },
 
@@ -456,7 +477,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.16d)"; 
+            v.textContent = "ONLINE (v0.0.16e)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -486,7 +507,10 @@ const UI = {
     switchView: async function(name) { 
         this.stopJoystick();
 
-        if(this.els.navMenu) this.els.navMenu.classList.add('hidden');
+        if(this.els.navMenu) {
+            this.els.navMenu.classList.add('hidden');
+            this.els.navMenu.style.display = 'none';
+        }
         if(this.els.playerList) this.els.playerList.style.display = 'none';
 
         const verDisplay = document.getElementById('version-display'); 
@@ -548,23 +572,15 @@ const UI = {
         }
 
         if(this.els.lvl) this.els.lvl.textContent = Game.state.lvl; 
-        if(this.els.ammo) this.els.ammo.textContent = Game.state.ammo; 
-        if(this.els.caps) this.els.caps.textContent = `${Game.state.caps} Caps`; 
-        if(this.els.zone) this.els.zone.textContent = Game.state.zone; 
+        if(this.els.caps) this.els.caps.textContent = `${Game.state.caps} $`; 
         
-        const buffActive = Date.now() < Game.state.buffEndTime; 
-        if(this.els.hpBar) {
-            if(buffActive) { this.els.hpBar.style.backgroundColor = "#ffff00"; this.els.hpBar.parentElement.style.borderColor = "#ffff00"; } 
-            else { this.els.hpBar.style.backgroundColor = "#39ff14"; this.els.hpBar.parentElement.style.borderColor = "#1a4d1a"; } 
-        }
+        // XP %
+        const nextXp = Game.expToNextLevel(Game.state.lvl); 
+        const expPct = Math.min(100, Math.floor((Game.state.xp / nextXp) * 100)); 
+        if(this.els.xpTxt) this.els.xpTxt.textContent = `${expPct}%`;
         
         const maxHp = Game.state.maxHp; 
         if(this.els.hp) this.els.hp.textContent = `${Math.round(Game.state.hp)}/${maxHp}`; 
-        if(this.els.hpBar) this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`; 
-        
-        const nextXp = Game.expToNextLevel(Game.state.lvl); 
-        const expPct = Math.min(100, (Game.state.xp / nextXp) * 100); 
-        if(this.els.expBarTop) this.els.expBarTop.style.width = `${expPct}%`; 
         
         let hasAlert = false;
         if(this.els.btnChar) {
@@ -600,18 +616,15 @@ const UI = {
         });
         
         if(this.els.lvl) {
-            if(buffActive) this.els.lvl.classList.add('blink-red'); 
+            if(Date.now() < Game.state.buffEndTime) this.els.lvl.classList.add('blink-red'); 
             else this.els.lvl.classList.remove('blink-red'); 
         }
         
         if(Game.state.view === 'map') { 
-            if(this.els.dpadToggle) this.els.dpadToggle.style.display = 'flex'; 
             if(!Game.state.inDialog && this.els.dialog && this.els.dialog.innerHTML === '') { 
                 this.els.dialog.style.display = 'none'; 
             } 
-        } else { 
-            if(this.els.dpadToggle) this.els.dpadToggle.style.display = 'none'; 
-        } 
+        }
     },
 
     renderInventory: function() {
@@ -900,6 +913,7 @@ const UI = {
     renderQuests: function() { const list = document.getElementById('quest-list'); if(!list) return; list.innerHTML = Game.state.quests.map(q => ` <div class="border border-green-900 bg-green-900/10 p-2 flex items-center gap-3 cursor-pointer hover:bg-green-900/30 transition-all" onclick="UI.showQuestDetail('${q.id}')"> <div class="text-3xl">✉️</div> <div> <div class="font-bold text-lg text-yellow-400">${q.read ? '' : '<span class="text-cyan-400">[NEU]</span> '}${q.title}</div> <div class="text-xs opacity-70">Zum Lesen klicken</div> </div> </div> `).join(''); },
     showQuestDetail: function(id) { const quest = Game.state.quests.find(q => q.id === id); if(!quest) return; quest.read = true; this.update(); const list = document.getElementById('quest-list'); const detail = document.getElementById('quest-detail'); const content = document.getElementById('quest-content'); list.classList.add('hidden'); detail.classList.remove('hidden'); content.innerHTML = `<h2 class="text-2xl font-bold text-yellow-400 border-b border-green-500 mb-4">${quest.title}</h2><div class="font-mono text-lg leading-relaxed whitespace-pre-wrap">${quest.text}</div>`; },
     closeQuestDetail: function() { document.getElementById('quest-detail').classList.add('hidden'); document.getElementById('quest-list').classList.remove('hidden'); this.renderQuests(); },
+    renderChar: function() { const grid = document.getElementById('stat-grid'); if(!grid) return; const lvlDisplay = document.getElementById('char-lvl'); if(lvlDisplay) lvlDisplay.textContent = Game.state.lvl; grid.innerHTML = Object.keys(Game.state.stats).map(k => { const val = Game.getStat(k); const btn = Game.state.statPoints > 0 ? `<button class="border border-green-500 px-1 ml-2" onclick="Game.upgradeStat('${k}')">+</button>` : ''; return `<div class="flex justify-between items-center border-b border-green-900/30 py-1"><span>${k}</span> <div class="flex items-center"><span class="text-yellow-400 font-bold">${val}</span>${btn}</div></div>`; }).join(''); const nextXp = Game.expToNextLevel(Game.state.lvl); const expPct = Math.min(100, (Game.state.xp / nextXp) * 100); document.getElementById('char-exp').textContent = Game.state.xp; document.getElementById('char-next').textContent = nextXp; document.getElementById('char-exp-bar').style.width = `${expPct}%`; document.getElementById('char-points').textContent = Game.state.statPoints; const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2}; const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}}; document.getElementById('equip-weapon-name').textContent = wpn.name; let wpnStats = `DMG: ${wpn.baseDmg}`; if(wpn.bonus) { for(let s in wpn.bonus) wpnStats += ` ${s}:${wpn.bonus[s]}`; } document.getElementById('equip-weapon-stats').textContent = wpnStats; document.getElementById('equip-body-name').textContent = arm.name; let armStats = ""; if(arm.bonus) { for(let s in arm.bonus) armStats += `${s}:${arm.bonus[s]} `; } document.getElementById('equip-body-stats').textContent = armStats || "Kein Bonus"; },
     renderWiki: function() { const content = document.getElementById('wiki-content'); if(!content) return; content.innerHTML = Object.keys(Game.monsters).map(k => { const m = Game.monsters[k]; const xpText = Array.isArray(m.xp) ? `${m.xp[0]}-${m.xp[1]}` : m.xp; return `<div class="border-b border-green-900 pb-1"><div class="font-bold text-yellow-400">${m.name}</div><div class="text-xs opacity-70">HP: ~${m.hp}, XP: ${xpText}</div></div>`; }).join(''); },
     renderWorldMap: function() { const grid = document.getElementById('world-grid'); if(!grid) return; grid.innerHTML = ''; for(let y=0; y<8; y++) { for(let x=0; x<8; x++) { const d = document.createElement('div'); d.className = "border border-green-900/30 flex justify-center items-center text-xs relative"; if(x === Game.state.sector.x && y === Game.state.sector.y) { d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.style.fontWeight = "bold"; d.textContent = "YOU"; } else if(Game.worldData[`${x},${y}`]) { const biome = Game.worldData[`${x},${y}`].biome; d.style.backgroundColor = this.biomeColors[biome] || '#4a3d34'; } if(typeof Network !== 'undefined' && Network.otherPlayers) { const playersHere = Object.values(Network.otherPlayers).filter(p => p.sector && p.sector.x === x && p.sector.y === y); if(playersHere.length > 0) { const dot = document.createElement('div'); dot.className = "absolute w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]"; if(x === Game.state.sector.x && y === Game.state.sector.y) { dot.style.top = "2px"; dot.style.right = "2px"; } d.appendChild(dot); } } grid.appendChild(d); } } grid.style.gridTemplateColumns = "repeat(8, 1fr)"; },
     renderCity: function() { const con = document.getElementById('city-options'); if(!con) return; con.innerHTML = ''; const addBtn = (txt, cb, disabled=false) => { const b = document.createElement('button'); b.className = "action-button w-full mb-2 text-left p-3 flex justify-between"; b.innerHTML = txt; b.onclick = cb; if(disabled) { b.disabled = true; b.style.opacity = 0.5; } con.appendChild(b); }; addBtn("Heilen (25 Kronkorken)", () => Game.heal(), Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp); addBtn("Munition (10 Stk / 10 Kronkorken)", () => Game.buyAmmo(), Game.state.caps < 10); addBtn("Händler / Waffen & Rüstung", () => this.renderShop(con)); addBtn("🛠️ Werkbank / Crafting", () => this.toggleView('crafting')); addBtn("Stadt verlassen", () => this.switchView('map')); },
