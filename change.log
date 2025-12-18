@@ -1,5 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.0.18h] - 2025-12-18 (Emergency Fix)
+------------------------------------------------
+- FIX: Kritische Funktionen (expToNextLevel, getStat, gainExp, saveGame) wiederhergestellt, die zu Abstürzen führten.
+- FIX: 'findSafeSpawn' Logik gehärtet, um sicherzustellen, dass sie beim Sektor-Laden verfügbar ist.
+- FIX: Spielabsturz beim Timer-Update (UI Loop) behoben.
+
+
 [v0.0.18f] - 2025-12-18 19:30 (System Restoration Update)
 
 SYSTEM: Komplette Wiederherstellung von game.js, um den initCanvas-Absturz und alle fehlenden Methoden zu beheben.
