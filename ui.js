@@ -36,8 +36,11 @@ const UI = {
 
     init: function() {
         this.els = {
+            // FIX: Touch Area ist jetzt das gesamte Main-Content Element (inkl. Log)
+            touchArea: document.getElementById('main-content'),
             view: document.getElementById('view-container'),
             log: document.getElementById('log-area'),
+            
             hp: document.getElementById('val-hp'),
             hpBar: document.getElementById('bar-hp'),
             expBarTop: document.getElementById('bar-exp-top'),
@@ -110,24 +113,20 @@ const UI = {
 
         if(this.els.btnSpawnRandom) this.els.btnSpawnRandom.onclick = () => this.selectSpawn(null);
 
-        if(this.els.view) {
-            this.els.view.addEventListener('touchstart', (e) => this.handleTouchStart(e), {passive: false});
-            this.els.view.addEventListener('touchmove', (e) => this.handleTouchMove(e), {passive: false});
-            this.els.view.addEventListener('touchend', (e) => this.handleTouchEnd(e));
-            this.els.view.addEventListener('touchcancel', (e) => this.handleTouchEnd(e));
+        // TOUCH EVENTS auf MAIN CONTENT (Erweitert)
+        if(this.els.touchArea) {
+            this.els.touchArea.addEventListener('touchstart', (e) => this.handleTouchStart(e), {passive: false});
+            this.els.touchArea.addEventListener('touchmove', (e) => this.handleTouchMove(e), {passive: false});
+            this.els.touchArea.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+            this.els.touchArea.addEventListener('touchcancel', (e) => this.handleTouchEnd(e));
         }
 
         window.addEventListener('keydown', (e) => {
             if (!Game.state || Game.state.isGameOver) return;
 
             if (Game.state.view === 'combat') {
-                if (e.key === ' ') {
-                    e.preventDefault(); 
-                    Game.combatAction('attack');
-                }
-                if (e.key === 'Escape') {
-                    Game.combatAction('flee');
-                }
+                if (e.key === ' ') { e.preventDefault(); Game.combatAction('attack'); }
+                if (e.key === 'Escape') { Game.combatAction('flee'); }
             }
             else if (Game.state.view === 'map' && !Game.state.inDialog) {
                 if(e.key === 'w' || e.key === 'ArrowUp') Game.move(0, -1);
@@ -148,6 +147,32 @@ const UI = {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
     },
 
+    // NEU: Manual Overlay Logic
+    showManualOverlay: async function() {
+        const overlay = document.getElementById('manual-overlay');
+        const content = document.getElementById('manual-content');
+        
+        // Menü schließen falls offen
+        if(this.els.navMenu) this.els.navMenu.classList.add('hidden');
+        
+        if(overlay && content) {
+            content.innerHTML = '<div class="text-center animate-pulse">Lade Handbuch...</div>';
+            overlay.classList.remove('hidden');
+            
+            // Fetch content from views/manual.html
+            const verDisplay = document.getElementById('version-display'); 
+            const ver = verDisplay ? verDisplay.textContent.trim() : Date.now();
+            try {
+                const res = await fetch(`views/manual.html?v=${ver}`);
+                if (!res.ok) throw new Error("Manual not found");
+                const html = await res.text();
+                content.innerHTML = html;
+            } catch(e) {
+                content.innerHTML = `<div class="text-red-500">Fehler beim Laden: ${e.message}</div>`;
+            }
+        }
+    },
+
     showMobileControlsHint: function() {
         if(document.getElementById('mobile-hint')) return;
         const hintHTML = `
@@ -156,7 +181,7 @@ const UI = {
                     <div class="text-5xl mb-4 animate-bounce">👆</div>
                     <h2 class="text-2xl font-bold text-[#39ff14] mb-2 tracking-widest border-b border-[#39ff14] pb-2">TOUCH STEUERUNG</h2>
                     <p class="text-green-300 mb-6 font-mono leading-relaxed">
-                        Tippe und halte auf dem Bildschirm, um den Joystick zu aktivieren und dich zu bewegen.
+                        Tippe und halte IRGENDWO auf dem Hauptschirm (auch im Log), um den Joystick zu aktivieren.
                     </p>
                     <div class="text-xs text-[#39ff14] animate-pulse font-bold bg-[#39ff14]/20 py-2 rounded">
                         > TIPPEN ZUM STARTEN <
@@ -168,7 +193,13 @@ const UI = {
     },
 
     handleTouchStart: function(e) {
+        // Prüfe ob ein Button oder Link gedrückt wurde, dann keinen Joystick starten
+        if(e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.closest('.no-joystick')) return;
+        
         if(Game.state.view !== 'map' || Game.state.inDialog || this.touchState.active) return;
+        
+        // e.preventDefault(); // Entfernt um Scrolling in Listen zu erlauben, aber Joystick fängt es ab
+        
         const touch = e.changedTouches[0];
         this.touchState.active = true;
         this.touchState.id = touch.identifier;
@@ -177,7 +208,9 @@ const UI = {
         this.touchState.currentX = touch.clientX;
         this.touchState.currentY = touch.clientY;
         this.touchState.moveDir = {x:0, y:0};
+
         this.showJoystick(touch.clientX, touch.clientY);
+        
         if(this.touchState.timer) clearInterval(this.touchState.timer);
         this.touchState.timer = setInterval(() => this.processJoystickMovement(), 150); 
     },
@@ -192,6 +225,7 @@ const UI = {
             }
         }
         if(!touch) return;
+        e.preventDefault(); // Verhindert Scrollen WÄHREND der Joystick aktiv ist
         this.touchState.currentX = touch.clientX;
         this.touchState.currentY = touch.clientY;
         this.updateJoystickVisuals();
@@ -245,13 +279,20 @@ const UI = {
     },
 
     showJoystick: function(x, y) {
-        if(!this.els.joyBase) return;
-        this.els.joyBase.style.left = (x - 50) + 'px';
-        this.els.joyBase.style.top = (y - 50) + 'px';
-        this.els.joyBase.style.display = 'block';
-        this.els.joyStick.style.left = (x - 25) + 'px';
-        this.els.joyStick.style.top = (y - 25) + 'px';
-        this.els.joyStick.style.display = 'block';
+        if(!this.els.joyBase) {
+            // Falls noch nicht initialisiert (z.B. durch View Wechsel)
+            this.restoreOverlay();
+        }
+        if(this.els.joyBase) {
+            this.els.joyBase.style.left = (x - 50) + 'px';
+            this.els.joyBase.style.top = (y - 50) + 'px';
+            this.els.joyBase.style.display = 'block';
+        }
+        if(this.els.joyStick) {
+            this.els.joyStick.style.left = (x - 25) + 'px';
+            this.els.joyStick.style.top = (y - 25) + 'px';
+            this.els.joyStick.style.display = 'block';
+        }
     },
 
     updateJoystickVisuals: function() {
@@ -419,7 +460,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.16b)"; 
+            v.textContent = "ONLINE (v0.0.16c)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -483,7 +524,7 @@ const UI = {
             
             if (name === 'char') this.renderChar(); 
             if (name === 'inventory') this.renderInventory(); 
-            if (name === 'wiki') this.renderWiki(); // Default: Monsters
+            if (name === 'wiki') this.renderWiki(); 
             if (name === 'worldmap') this.renderWorldMap(); 
             if (name === 'city') this.renderCity(); 
             if (name === 'combat') this.renderCombat(); 
@@ -692,7 +733,6 @@ const UI = {
             }
         });
 
-        // Use a buffer string for better performance
         let htmlBuffer = '';
 
         if(category === 'monsters') {
@@ -728,7 +768,6 @@ const UI = {
         } 
         else if (category === 'items') {
             const categories = {};
-            // Safely iterate Game.items
             if (Game.items) {
                 Object.keys(Game.items).forEach(k => {
                     const i = Game.items[k];
@@ -802,8 +841,9 @@ const UI = {
         
         grid.innerHTML = Object.keys(Game.state.stats).map(k => { 
             const val = Game.getStat(k); 
-            const btn = Game.state.statPoints > 0 ? `<button class="border border-green-500 px-1 ml-2" onclick="Game.upgradeStat('${k}')">+</button>` : ''; 
-            return `<div class="flex justify-between items-center border-b border-green-900/30 py-1"><span>${k}</span> <div class="flex items-center"><span class="text-yellow-400 font-bold">${val}</span>${btn}</div></div>`; 
+            // FIX: Große Buttons wiederhergestellt
+            const btn = Game.state.statPoints > 0 ? `<button class="w-10 h-10 border-2 border-green-500 bg-green-900/50 text-green-400 font-bold ml-2 flex items-center justify-center hover:bg-green-500 hover:text-black transition-colors" onclick="Game.upgradeStat('${k}')">+</button>` : ''; 
+            return `<div class="flex justify-between items-center border-b border-green-900/30 py-1 h-12"><span>${k}</span> <div class="flex items-center"><span class="text-yellow-400 font-bold mr-2">${val}</span>${btn}</div></div>`; 
         }).join(''); 
         
         const nextXp = Game.expToNextLevel(Game.state.lvl); 
@@ -864,9 +904,8 @@ const UI = {
     renderQuests: function() { const list = document.getElementById('quest-list'); if(!list) return; list.innerHTML = Game.state.quests.map(q => ` <div class="border border-green-900 bg-green-900/10 p-2 flex items-center gap-3 cursor-pointer hover:bg-green-900/30 transition-all" onclick="UI.showQuestDetail('${q.id}')"> <div class="text-3xl">✉️</div> <div> <div class="font-bold text-lg text-yellow-400">${q.read ? '' : '<span class="text-cyan-400">[NEU]</span> '}${q.title}</div> <div class="text-xs opacity-70">Zum Lesen klicken</div> </div> </div> `).join(''); },
     showQuestDetail: function(id) { const quest = Game.state.quests.find(q => q.id === id); if(!quest) return; quest.read = true; this.update(); const list = document.getElementById('quest-list'); const detail = document.getElementById('quest-detail'); const content = document.getElementById('quest-content'); list.classList.add('hidden'); detail.classList.remove('hidden'); content.innerHTML = `<h2 class="text-2xl font-bold text-yellow-400 border-b border-green-500 mb-4">${quest.title}</h2><div class="font-mono text-lg leading-relaxed whitespace-pre-wrap">${quest.text}</div>`; },
     closeQuestDetail: function() { document.getElementById('quest-detail').classList.add('hidden'); document.getElementById('quest-list').classList.remove('hidden'); this.renderQuests(); },
-    renderChar: function() { const grid = document.getElementById('stat-grid'); if(!grid) return; const lvlDisplay = document.getElementById('char-lvl'); if(lvlDisplay) lvlDisplay.textContent = Game.state.lvl; grid.innerHTML = Object.keys(Game.state.stats).map(k => { const val = Game.getStat(k); const btn = Game.state.statPoints > 0 ? `<button class="border border-green-500 px-1 ml-2" onclick="Game.upgradeStat('${k}')">+</button>` : ''; return `<div class="flex justify-between items-center border-b border-green-900/30 py-1"><span>${k}</span> <div class="flex items-center"><span class="text-yellow-400 font-bold">${val}</span>${btn}</div></div>`; }).join(''); const nextXp = Game.expToNextLevel(Game.state.lvl); const expPct = Math.min(100, (Game.state.xp / nextXp) * 100); document.getElementById('char-exp').textContent = Game.state.xp; document.getElementById('char-next').textContent = nextXp; document.getElementById('char-exp-bar').style.width = `${expPct}%`; document.getElementById('char-points').textContent = Game.state.statPoints; const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2}; const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}}; document.getElementById('equip-weapon-name').textContent = wpn.name; let wpnStats = `DMG: ${wpn.baseDmg}`; if(wpn.bonus) { for(let s in wpn.bonus) wpnStats += ` ${s}:${wpn.bonus[s]}`; } document.getElementById('equip-weapon-stats').textContent = wpnStats; document.getElementById('equip-body-name').textContent = arm.name; let armStats = ""; if(arm.bonus) { for(let s in arm.bonus) armStats += `${s}:${arm.bonus[s]} `; } document.getElementById('equip-body-stats').textContent = armStats || "Kein Bonus"; },
     
-    // Wiki Rendering ist nun direkt in renderWiki implementiert (siehe oben)
+    renderWiki: function() { const content = document.getElementById('wiki-content'); if(!content) return; content.innerHTML = Object.keys(Game.monsters).map(k => { const m = Game.monsters[k]; const xpText = Array.isArray(m.xp) ? `${m.xp[0]}-${m.xp[1]}` : m.xp; return `<div class="border-b border-green-900 pb-1"><div class="font-bold text-yellow-400">${m.name}</div><div class="text-xs opacity-70">HP: ~${m.hp}, XP: ${xpText}</div></div>`; }).join(''); },
     renderWorldMap: function() { const grid = document.getElementById('world-grid'); if(!grid) return; grid.innerHTML = ''; for(let y=0; y<8; y++) { for(let x=0; x<8; x++) { const d = document.createElement('div'); d.className = "border border-green-900/30 flex justify-center items-center text-xs relative"; if(x === Game.state.sector.x && y === Game.state.sector.y) { d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.style.fontWeight = "bold"; d.textContent = "YOU"; } else if(Game.worldData[`${x},${y}`]) { const biome = Game.worldData[`${x},${y}`].biome; d.style.backgroundColor = this.biomeColors[biome] || '#4a3d34'; } if(typeof Network !== 'undefined' && Network.otherPlayers) { const playersHere = Object.values(Network.otherPlayers).filter(p => p.sector && p.sector.x === x && p.sector.y === y); if(playersHere.length > 0) { const dot = document.createElement('div'); dot.className = "absolute w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]"; if(x === Game.state.sector.x && y === Game.state.sector.y) { dot.style.top = "2px"; dot.style.right = "2px"; } d.appendChild(dot); } } grid.appendChild(d); } } grid.style.gridTemplateColumns = "repeat(8, 1fr)"; },
     renderCity: function() { const con = document.getElementById('city-options'); if(!con) return; con.innerHTML = ''; const addBtn = (txt, cb, disabled=false) => { const b = document.createElement('button'); b.className = "action-button w-full mb-2 text-left p-3 flex justify-between"; b.innerHTML = txt; b.onclick = cb; if(disabled) { b.disabled = true; b.style.opacity = 0.5; } con.appendChild(b); }; addBtn("Heilen (25 Kronkorken)", () => Game.heal(), Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp); addBtn("Munition (10 Stk / 10 Kronkorken)", () => Game.buyAmmo(), Game.state.caps < 10); addBtn("Händler / Waffen & Rüstung", () => this.renderShop(con)); addBtn("🛠️ Werkbank / Crafting", () => this.toggleView('crafting')); addBtn("Stadt verlassen", () => this.switchView('map')); },
     renderShop: function(container) { container.innerHTML = ''; const backBtn = document.createElement('button'); backBtn.className = "action-button w-full mb-4 text-center border-yellow-400 text-yellow-400"; backBtn.textContent = "ZURÜCK ZUM PLATZ"; backBtn.onclick = () => this.renderCity(); container.appendChild(backBtn); Object.keys(Game.items).forEach(key => { const item = Game.items[key]; if(item.cost > 0 && Game.state.lvl >= (item.requiredLevel || 0) - 2) { const canAfford = Game.state.caps >= item.cost; const isEquipped = (Game.state.equip[item.slot] && Game.state.equip[item.slot].name === item.name); let label = `<span>${item.name}</span> <span>${item.cost} Kronkorken</span>`; if(isEquipped) label = `<span class="text-green-500">[AUSGERÜSTET]</span>`; const btn = document.createElement('button'); btn.className = "action-button w-full mb-2 flex justify-between text-sm"; btn.innerHTML = label; if(!canAfford || isEquipped) { btn.disabled = true; btn.style.opacity = 0.5; } else { btn.onclick = () => Game.buyItem(key); } container.appendChild(btn); } }); },
