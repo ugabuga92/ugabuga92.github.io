@@ -13,31 +13,25 @@ const WorldGen = {
 
     createSector: function(width, height, biomeType, poiList) {
         let map = Array(height).fill().map(() => Array(width).fill('.'));
-        
+        let conf = { ground: '.', water: 0, mountain: 0, features: [] };
         if (typeof window.GameData !== 'undefined' && window.GameData.biomes) {
             if (!window.GameData.biomes[biomeType]) biomeType = 'wasteland';
-            var conf = window.GameData.biomes[biomeType];
-        } else { var conf = {ground:'.', features:[]}; }
+            conf = window.GameData.biomes[biomeType];
+        }
 
         for(let y = 0; y < height; y++) {
             for(let x = 0; x < width; x++) {
                 const r = this.rand();
                 map[y][x] = conf.ground;
-
-                if(r < conf.water) {
-                    map[y][x] = 'W';
-                } else if(r < conf.water + conf.mountain) {
-                    map[y][x] = 'M';
-                } else {
+                if(r < conf.water) map[y][x] = 'W';
+                else if(r < conf.water + conf.mountain) map[y][x] = 'M';
+                else {
                     const d = this.rand();
                     let currentProb = 0;
                     if(conf.features) {
                         for(let feat of conf.features) {
                             currentProb += feat.prob;
-                            if(d < currentProb) {
-                                map[y][x] = feat.char;
-                                break;
-                            }
+                            if(d < currentProb) { map[y][x] = feat.char; break; }
                         }
                     }
                 }
@@ -48,7 +42,6 @@ const WorldGen = {
             poiList.forEach(poi => {
                 if(poi.x >= 0 && poi.x < width && poi.y >= 0 && poi.y < height) {
                     map[poi.y][poi.x] = poi.type;
-                    // Größerer Radius für POI-Freiraum
                     for(let dy=-3; dy<=3; dy++) {
                         for(let dx=-3; dx<=3; dx++) {
                             const ny = poi.y+dy, nx = poi.x+dx;
@@ -118,22 +111,15 @@ const WorldGen = {
             else { if(Math.abs(end.x - x) > Math.abs(end.y - y)) x += (end.x > x ? 1 : -1); else y += (end.y > y ? 1 : -1); }
             if(x < 0 || x >= map[0].length || y < 0 || y >= map.length) continue;
             
-            // FIX: Breitere Straßen & Hindernis-Clearing
-            // Wir setzen nicht nur den aktuellen Punkt, sondern auch Nachbarn auf begehbar
             const clearRadius = (cx, cy) => {
-                map[cy][cx] = '='; // Road
-                // Check neighbors
+                map[cy][cx] = '='; 
                 if (cx+1 < map[0].length && map[cy][cx+1] === 'M') map[cy][cx+1] = 'U';
                 if (cx-1 >= 0 && map[cy][cx-1] === 'M') map[cy][cx-1] = 'U';
                 if (cy+1 < map.length && map[cy+1][cx] === 'M') map[cy+1][cx] = 'U';
                 if (cy-1 >= 0 && map[cy-1][cx] === 'M') map[cy-1][cx] = 'U';
-                
-                // Wasserbrücken
                 if (map[cy][cx] === 'W' || map[cy][cx] === '~') map[cy][cx] = '=';
             };
-            
             clearRadius(x, y);
-            // Optional: Extra Breite für weniger Frust
             if (x+1 < map[0].length) map[y][x+1] = '=';
         }
     }
