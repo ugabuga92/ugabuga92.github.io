@@ -28,6 +28,8 @@ const Game = {
                 if(!this.state.equip.weapon) this.state.equip.weapon = this.items.fists;
                 if(!this.state.equip.body) this.state.equip.body = this.items.vault_suit;
                 if(!this.state.inventory) this.state.inventory = [];
+                // NEU: Visited Sectors Initialisierung für alte Saves
+                if(!this.state.visitedSectors) this.state.visitedSectors = [];
                 if(!this.state.view) this.state.view = 'map';
                 UI.log(">> Spielstand geladen.", "text-cyan-400");
             } else {
@@ -49,10 +51,12 @@ const Game = {
                     inventory: [], 
                     hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0, 
                     view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, explored: {}, 
+                    // NEU: Tracking für besuchte Sektoren
+                    visitedSectors: [`${startSecX},${startSecY}`],
                     tempStatIncrease: {}, buffEndTime: 0,
                     quests: [ { id: "q1", title: "Der Weg nach Hause", text: "Suche Zivilisation.", read: false } ], 
                     startTime: Date.now(),
-                    savedPosition: null // Zum Speichern der Position beim Betreten von Gebäuden
+                    savedPosition: null 
                 };
                 this.addToInventory('stimpack', 1);
                 this.state.hp = this.calculateMaxHP(this.getStat('END')); 
@@ -84,7 +88,6 @@ const Game = {
 
         const tile = this.state.currentMap[ny][nx];
         
-        // INTERAKTIONEN IN DER STADT
         if (tile === '$') { UI.switchView('shop'); return; }
         if (tile === '&') { UI.switchView('crafting'); return; }
         if (tile === 'P') { UI.switchView('clinic'); return; }
@@ -110,8 +113,6 @@ const Game = {
         if(tile === 'V') { UI.enterVault(); return; }
         if(tile === 'S') { UI.enterSupermarket(); return; }
         if(tile === 'H') { UI.enterCave(); return; }
-        
-        // C ist jetzt begehbar und lädt die Stadt-Map
         if(tile === 'C') { this.enterCity(); return; } 
         
         if(['.', ',', '_', ';', '"', '+', 'x'].includes(tile)) {
@@ -124,26 +125,17 @@ const Game = {
         UI.update();
     },
 
-    // NEU: City Logic
     enterCity: function() {
-        // Speichere Position auf der Weltkarte
         this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
-        
-        // Lade Stadt-Layout
         const map = WorldGen.generateCityLayout(this.MAP_W, this.MAP_H);
         this.state.currentMap = map;
         this.state.zone = "Rusty Springs (Stadt)";
-        
-        // Setze Spieler zum Eingang (Unten Mitte)
         this.state.player.x = 20;
         this.state.player.y = 38;
-        this.state.player.rot = 0; // Nach oben schauen
-        
-        // Rendern
+        this.state.player.rot = 0; 
         this.renderStaticMap();
-        this.state.explored = {}; // Stadt ist sichtbar
+        this.state.explored = {}; 
         for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.state.explored[`${x},${y}`] = true;
-        
         UI.log("Betrete Rusty Springs...", "text-yellow-400");
         UI.update();
     },
@@ -235,6 +227,15 @@ const Game = {
         
         const data = this.worldData[key]; 
         this.state.currentMap = data.layout; 
+        
+        // NEU: Sektor als besucht markieren
+        if(this.state.visitedSectors) {
+            const secId = `${sx},${sy}`;
+            if(!this.state.visitedSectors.includes(secId)) {
+                this.state.visitedSectors.push(secId);
+            }
+        }
+        
         this.fixMapBorders(this.state.currentMap, sx, sy);
         this.state.explored = data.explored; 
         
@@ -349,7 +350,6 @@ const Game = {
             case 'S': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['S']; ctx.arc(px+ts/2, py+12, 6, 0, Math.PI*2); ctx.fill(); ctx.fillRect(px+10, py+18, 10, 6); break; 
             case 'H': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['H']; ctx.arc(px+ts/2, py+ts/2, ts/2.5, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(px+ts/2, py+ts/2, ts/4, 0, Math.PI*2); ctx.fill(); break; 
             
-            // NEU: City Icons
             case '$': ctx.fillStyle = this.colors['$']; ctx.fillText("$$", px+5, py+20); break;
             case '&': ctx.fillStyle = this.colors['&']; ctx.fillText("🔧", px+5, py+20); break;
             case 'P': ctx.fillStyle = this.colors['P']; ctx.fillText("✚", px+8, py+20); break;
