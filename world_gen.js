@@ -13,21 +13,32 @@ const WorldGen = {
 
     createSector: function(width, height, biomeType, poiList) {
         let map = Array(height).fill().map(() => Array(width).fill('.'));
-        if (typeof GameData === 'undefined' || !GameData.biomes[biomeType]) biomeType = 'wasteland'; 
+        
+        // USE GAMEDATA
+        if (typeof GameData === 'undefined' || !GameData.biomes[biomeType]) {
+            biomeType = 'wasteland'; 
+        }
+        
         const conf = GameData.biomes[biomeType];
 
         for(let y = 0; y < height; y++) {
             for(let x = 0; x < width; x++) {
                 const r = this.rand();
                 map[y][x] = conf.ground;
-                if(r < conf.water) map[y][x] = 'W';
-                else if(r < conf.water + conf.mountain) map[y][x] = 'M';
-                else {
+
+                if(r < conf.water) {
+                    map[y][x] = 'W';
+                } else if(r < conf.water + conf.mountain) {
+                    map[y][x] = 'M';
+                } else {
                     const d = this.rand();
                     let currentProb = 0;
                     for(let feat of conf.features) {
                         currentProb += feat.prob;
-                        if(d < currentProb) { map[y][x] = feat.char; break; }
+                        if(d < currentProb) {
+                            map[y][x] = feat.char;
+                            break;
+                        }
                     }
                 }
             }
@@ -58,40 +69,33 @@ const WorldGen = {
         return map;
     },
 
-    // NEU: Handgemachtes Stadt-Layout
     generateCityLayout: function(width, height) {
-        let map = Array(height).fill().map(() => Array(width).fill('=')); // Paved ground
+        let map = Array(height).fill().map(() => Array(width).fill('=')); 
         
-        // Mauer drumherum (aber innen drin)
         for(let y=0; y<height; y++) { map[y][0] = '|'; map[y][width-1] = '|'; }
         for(let x=0; x<width; x++) { map[0][x] = '|'; map[height-1][x] = '|'; }
         
-        // Ausgang unten mitte
         map[height-1][width/2] = 'E';
         map[height-1][width/2-1] = 'E';
         map[height-1][width/2+1] = 'E';
 
-        // Brunnen in der Mitte
         const cx = Math.floor(width/2), cy = Math.floor(height/2);
         for(let dy=-1; dy<=1; dy++) for(let dx=-1; dx<=1; dx++) map[cy+dy][cx+dx] = 'F';
 
-        // Gebäude 1: Shop (Links Oben)
         for(let y=5; y<12; y++) for(let x=5; x<15; x++) map[y][x] = '|';
         for(let y=6; y<11; y++) for(let x=6; x<14; x++) map[y][x] = '.';
-        map[11][10] = '='; // Tür
-        map[8][10] = '$'; // Händler
+        map[11][10] = '='; 
+        map[8][10] = '$'; 
 
-        // Gebäude 2: Klinik (Rechts Oben)
         for(let y=5; y<12; y++) for(let x=25; x<35; x++) map[y][x] = '|';
         for(let y=6; y<11; y++) for(let x=26; x<34; x++) map[y][x] = '.';
-        map[11][30] = '='; // Tür
-        map[8][30] = 'P'; // Doctor (Plus)
+        map[11][30] = '='; 
+        map[8][30] = 'P'; 
 
-        // Gebäude 3: Werkstatt (Links Unten)
         for(let y=25; y<32; y++) for(let x=5; x<15; x++) map[y][x] = '|';
         for(let y=26; y<31; y++) for(let x=6; x<14; x++) map[y][x] = '.';
-        map[25][10] = '='; // Tür
-        map[28][10] = '&'; // Werkbank
+        map[25][10] = '='; 
+        map[28][10] = '&'; 
 
         return map;
     },
