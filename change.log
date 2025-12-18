@@ -1,5 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.0.17f] - 2025-12-18 16:30 (UX Fixes & Vault View)
+
+BUGFIX: changeSector in game.js korrigiert. Der Gebietswechsel funktionierte nicht mehr zuverlässig. Die Positionsberechnung beim Wechsel (z.B. von Ost nach West) ist nun präziser.
+
+FEATURE: Neue vault.html View. Das Betreten eines Vaults öffnet nun einen eigenen Screen mit animiertem Zahnrad-Hintergrund, statt eines einfachen Dialogs.
+
+UX: Level-Up Indikator im Header blinkt nun "LVL UP!", wenn Skillpunkte verfügbar sind. Im Charakter-Menü wird dies zusätzlich durch einen fetten roten Balken hervorgehoben.
+
 [v0.0.17xxx] - 2025-12-18 12:45 (Full System Restore)
 
 SYSTEM: Komplette Wiederherstellung aller Kerndateien (data.js, index.html, game.js, ui.js, world_gen.js).
