@@ -95,18 +95,19 @@
                     <span class="text-yellow-400 font-bold text-sm">LVL <span id="val-lvl">1</span></span>
                     <span class="text-yellow-400 font-bold text-sm ml-2"> <span id="val-caps" class="text-yellow-400 text-lg">0</span>C</span>
                 </div>
+                <!-- FIX: Dark text on bright bars for readability -->
                 <div class="flex items-center gap-2 w-full max-w-xs">
                     <span class="text-xs font-bold w-6">HP</span>
                     <div class="flex-grow h-3 bg-gray-900 border border-[#39ff14] relative">
                         <div id="bar-hp" class="absolute top-0 left-0 h-full bg-[#1aff1a] transition-all duration-300" style="width: 100%"></div>
-                        <div id="val-hp" class="absolute inset-0 text-[10px] flex items-center justify-center text-black font-bold leading-none">100/100</div>
+                        <div id="val-hp" class="absolute inset-0 text-[10px] flex items-center justify-center text-black font-bold leading-none" style="text-shadow: none;">100/100</div>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 w-full max-w-xs">
                     <span class="text-xs font-bold w-6 text-yellow-400">XP</span>
                     <div class="flex-grow h-3 bg-gray-900 border border-yellow-500 relative">
                         <div id="bar-exp-top" class="absolute top-0 left-0 h-full bg-yellow-500 transition-all duration-300" style="width: 0%"></div>
-                        <div class="absolute inset-0 text-[10px] flex items-center justify-center text-black font-bold leading-none"><span id="val-xp-txt">0</span>%</div>
+                        <div class="absolute inset-0 text-[10px] flex items-center justify-center text-black font-bold leading-none" style="text-shadow: none;"><span id="val-xp-txt">0</span>%</div>
                     </div>
                 </div>
             </div>
@@ -123,7 +124,8 @@
                 <button id="btn-manual-game" class="action-button w-full text-left text-yellow-400 border-yellow-400" onclick="UI.showManualOverlay()">HANDBUCH</button>
                 <div class="border-t border-green-900 my-1"></div>
                 <button id="btn-logout" class="action-button w-full text-left text-red-400 border-red-500">LOGOUT</button>
-                <div class="text-[10px] text-center opacity-50 mt-1"><span id="val-players">?</span> ONLINE | <span id="version-display">...</span></div>
+                <!-- FIX: White text for readability -->
+                <div class="text-[10px] text-center text-white opacity-80 mt-1"><span id="val-players">?</span> ONLINE | <span id="version-display">...</span></div>
             </div>
         </header>
         <div id="main-content">
@@ -137,7 +139,7 @@
                     </div>
                     <div id="log-panel">
                         <div class="bg-[#1aff1a] text-black font-bold px-2 flex justify-between items-center flex-shrink-0" style="box-shadow: 0 0 10px #1aff1a;"><h2>LOG</h2><span id="game-timer" class="font-mono text-sm">00:00:00</span></div>
-                        <div id="log-area" class="flex-grow overflow-y-auto p-2 text-sm flex flex-col-reverse font-mono leading-relaxed text-green-400"></div>
+                        <div id="log-area" class="flex-grow overflow-y-auto p-2 text-sm flex flex-col-reverse font-mono leading-relaxed text-green-400 cursor-pointer"></div>
                     </div>
                 </div>
             </div>
