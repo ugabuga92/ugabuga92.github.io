@@ -2,9 +2,10 @@ const UI = {
     els: {},
     timerInterval: null,
     lastInputTime: Date.now(), 
-    biomeColors: { 'wasteland': '#5d5345', 'desert': '#eecfa1', 'jungle': '#1a3300', 'city': '#555555', 'swamp': '#1e1e11' },
     
-    // JOYSTICK STATE
+    // Nutze zentrale Farben
+    biomeColors: GameData.colors, 
+    
     touchState: {
         active: false,
         id: null,
@@ -52,15 +53,10 @@ const UI = {
             caps: document.getElementById('val-caps'),
             zone: document.getElementById('current-zone-display'),
             version: document.getElementById('version-display'), 
-            
-            // Joystick Elements
-            joyBase: null,
-            joyStick: null,
-            
+            joyBase: null, joyStick: null,
             dialog: document.getElementById('dialog-overlay'),
             text: document.getElementById('encounter-text'),
             timer: document.getElementById('game-timer'),
-            
             btnNew: document.getElementById('btn-new'),
             btnInv: document.getElementById('btn-inv'),
             btnWiki: document.getElementById('btn-wiki'),
@@ -70,24 +66,20 @@ const UI = {
             btnSave: document.getElementById('btn-save'),
             btnLogout: document.getElementById('btn-logout'),
             btnReset: document.getElementById('btn-reset'), 
-            
             btnMenu: document.getElementById('btn-menu-toggle'),
             navMenu: document.getElementById('main-nav'),
             playerCount: document.getElementById('val-players'),
             playerList: document.getElementById('player-list-overlay'),
             playerListContent: document.getElementById('player-list-content'),
             name: document.getElementById('val-name'),
-
             loginScreen: document.getElementById('login-screen'),
             spawnScreen: document.getElementById('spawn-screen'),
             spawnMsg: document.getElementById('spawn-msg'),
             spawnList: document.getElementById('spawn-list'),
             btnSpawnRandom: document.getElementById('btn-spawn-random'),
-            
             resetOverlay: document.getElementById('reset-overlay'),
             btnConfirmReset: document.getElementById('btn-confirm-reset'),
             btnCancelReset: document.getElementById('btn-cancel-reset'),
-            
             gameScreen: document.getElementById('game-screen'),
             loginInput: document.getElementById('survivor-id-input'),
             loginStatus: document.getElementById('login-status'),
@@ -125,7 +117,6 @@ const UI = {
 
         if(this.els.btnSpawnRandom) this.els.btnSpawnRandom.onclick = () => this.selectSpawn(null);
 
-        // TOUCH EVENTS
         if(this.els.view) {
             this.els.view.addEventListener('touchstart', (e) => this.handleTouchStart(e), {passive: false});
             this.els.view.addEventListener('touchmove', (e) => this.handleTouchMove(e), {passive: false});
@@ -160,14 +151,12 @@ const UI = {
         this.timerInterval = setInterval(() => this.updateTimer(), 1000);
     },
     
-    // --- HELPER: DETECT MOBILE ---
     isMobile: function() {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
     },
 
     showMobileControlsHint: function() {
         if(document.getElementById('mobile-hint')) return;
-        
         const hintHTML = `
             <div id="mobile-hint" class="absolute inset-0 z-[100] flex flex-col justify-center items-center bg-black/80 pointer-events-auto backdrop-blur-sm" onclick="this.style.opacity='0'; setTimeout(() => this.remove(), 500)" style="transition: opacity 0.5s;">
                 <div class="border-2 border-[#39ff14] bg-black p-6 text-center shadow-[0_0_20px_#39ff14] max-w-sm mx-4">
@@ -185,10 +174,8 @@ const UI = {
         document.body.insertAdjacentHTML('beforeend', hintHTML);
     },
 
-    // --- JOYSTICK LOGIC START ---
     handleTouchStart: function(e) {
         if(Game.state.view !== 'map' || Game.state.inDialog || this.touchState.active) return;
-        
         const touch = e.changedTouches[0];
         this.touchState.active = true;
         this.touchState.id = touch.identifier;
@@ -197,16 +184,13 @@ const UI = {
         this.touchState.currentX = touch.clientX;
         this.touchState.currentY = touch.clientY;
         this.touchState.moveDir = {x:0, y:0};
-
         this.showJoystick(touch.clientX, touch.clientY);
-        
         if(this.touchState.timer) clearInterval(this.touchState.timer);
         this.touchState.timer = setInterval(() => this.processJoystickMovement(), 150); 
     },
 
     handleTouchMove: function(e) {
         if(!this.touchState.active) return;
-        
         let touch = null;
         for(let i=0; i<e.changedTouches.length; i++) {
             if(e.changedTouches[i].identifier === this.touchState.id) {
@@ -215,17 +199,14 @@ const UI = {
             }
         }
         if(!touch) return;
-
         this.touchState.currentX = touch.clientX;
         this.touchState.currentY = touch.clientY;
-        
         this.updateJoystickVisuals();
         this.calculateDirection();
     },
 
     handleTouchEnd: function(e) {
         if(!this.touchState.active) return;
-        
         let found = false;
         for(let i=0; i<e.changedTouches.length; i++) {
             if(e.changedTouches[i].identifier === this.touchState.id) {
@@ -234,7 +215,6 @@ const UI = {
             }
         }
         if(!found) return;
-
         this.stopJoystick();
     },
 
@@ -253,12 +233,10 @@ const UI = {
         const dx = this.touchState.currentX - this.touchState.startX;
         const dy = this.touchState.currentY - this.touchState.startY;
         const threshold = 20; 
-
         if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) {
             this.touchState.moveDir = {x:0, y:0};
             return;
         }
-
         if (Math.abs(dx) > Math.abs(dy)) {
             this.touchState.moveDir = { x: dx > 0 ? 1 : -1, y: 0 };
         } else {
@@ -278,7 +256,6 @@ const UI = {
         this.els.joyBase.style.left = (x - 50) + 'px';
         this.els.joyBase.style.top = (y - 50) + 'px';
         this.els.joyBase.style.display = 'block';
-        
         this.els.joyStick.style.left = (x - 25) + 'px';
         this.els.joyStick.style.top = (y - 25) + 'px';
         this.els.joyStick.style.display = 'block';
@@ -288,18 +265,15 @@ const UI = {
         if(!this.els.joyBase) return;
         const dx = this.touchState.currentX - this.touchState.startX;
         const dy = this.touchState.currentY - this.touchState.startY;
-        
         const dist = Math.sqrt(dx*dx + dy*dy);
         const maxDist = 40;
         let visualX = dx;
         let visualY = dy;
-        
         if(dist > maxDist) {
             const ratio = maxDist / dist;
             visualX = dx * ratio;
             visualY = dy * ratio;
         }
-
         this.els.joyStick.style.transform = `translate(${visualX}px, ${visualY}px)`;
     },
 
@@ -310,7 +284,6 @@ const UI = {
             this.els.joyStick.style.transform = 'translate(0px, 0px)';
         }
     },
-    // --- JOYSTICK LOGIC END ---
 
     handleReset: function() {
         this.els.navMenu.classList.add('hidden');
@@ -364,7 +337,6 @@ const UI = {
                 this.els.gameScreen.classList.remove('hidden');
                 this.els.gameScreen.classList.remove('opacity-0');
                 Game.init(saveData);
-                // NEU: Zeige Mobile Hint wenn auf Mobile
                 if(this.isMobile()) {
                     this.showMobileControlsHint();
                 }
@@ -404,7 +376,6 @@ const UI = {
         this.els.gameScreen.classList.remove('hidden');
         this.els.gameScreen.classList.remove('opacity-0');
         Game.init(null, targetPlayer);
-        // NEU: Zeige Mobile Hint wenn auf Mobile
         if(this.isMobile()) {
             this.showMobileControlsHint();
         }
@@ -455,7 +426,7 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.textContent = "ONLINE (v0.0.15g)"; 
+            v.textContent = "ONLINE (v0.0.16a)"; 
             v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14";
         } else if (status === 'offline') {
             v.textContent = "OFFLINE"; v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red";
@@ -483,7 +454,6 @@ const UI = {
     },
 
     switchView: async function(name) { 
-        // FIX: Joystick IMMER stoppen bei View-Wechsel
         this.stopJoystick();
 
         if(this.els.navMenu) this.els.navMenu.classList.add('hidden');
