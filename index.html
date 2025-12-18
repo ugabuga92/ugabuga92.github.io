@@ -11,7 +11,28 @@
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
         :root { --pip-green: #1aff1a; --pip-glow: #2bff2b; --pip-dim: #0d330d; --pip-bg: #051105; }
-        body { background-color: #000; color: var(--pip-green); font-family: 'VT323', monospace; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow: hidden; user-select: none; -webkit-user-select: none; }
+        
+        /* RETRO CURSOR & SCROLLBARS */
+        body { 
+            background-color: #000; 
+            color: var(--pip-green); 
+            font-family: 'VT323', monospace; 
+            display: flex; justify-content: center; align-items: center; 
+            min-height: 100vh; margin: 0; overflow: hidden; 
+            user-select: none; -webkit-user-select: none;
+            cursor: crosshair; /* Taktischer Cursor */
+        }
+        
+        /* Custom Scrollbar Webkit */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #001100; border-left: 1px solid var(--pip-dim); }
+        ::-webkit-scrollbar-thumb { background: var(--pip-dim); border: 1px solid var(--pip-green); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--pip-green); }
+        ::-webkit-scrollbar-corner { background: #000; }
+        
+        /* Firefox Scrollbar */
+        * { scrollbar-width: thin; scrollbar-color: var(--pip-dim) #001100; }
+
         #pipboy-case { background: linear-gradient(145deg, #1a1a1a, #0d0d0d); padding: 10px; border-radius: 20px; box-shadow: inset 0 0 20px #000, 0 0 0 5px #2a2a2a, 0 0 30px rgba(0,0,0,0.8); width: 100%; max-width: 1200px; height: 100vh; display: flex; flex-direction: column; position: relative; }
         @media (min-width: 768px) { #pipboy-case { height: 95vh; padding: 15px; border-radius: 30px; } }
         
@@ -34,10 +55,8 @@
         #main-panel { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
         #layout-split { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; min-height: 0; }
         @media (min-width: 768px) { #layout-split { flex-direction: row; } }
-        
         #view-container { position: relative; flex-grow: 1; display: flex; justify-content: center; align-items: center; height: 65%; border-right: 2px solid var(--pip-green); overflow-x: hidden; }
         @media (min-width: 768px) { #view-container { width: 75%; height: 100%; border-bottom: none; } }
-        
         #log-panel { display: flex; flex-direction: column; flex-shrink: 0; border-top: 2px solid var(--pip-green); height: 35%; min-height: 100px; background-color: #020a02; }
         @media (min-width: 768px) { #log-panel { width: 25%; height: 100%; border-top: none; border-left: none; } }
         
@@ -52,7 +71,7 @@
         .blink-red { animation: blink-red-anim 1s infinite; }
         @keyframes blink-red-anim { 0%, 100% { opacity: 1; color: red; } 50% { opacity: 0.5; } }
         
-        #login-screen, #spawn-screen, #reset-overlay, #manual-overlay { position: absolute; inset: 0; z-index: 999; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #login-screen, #spawn-screen, #reset-overlay, #manual-overlay, #changelog-overlay { position: absolute; inset: 0; z-index: 999; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .login-box { border: 2px solid var(--pip-green); padding: 20px; text-align: center; box-shadow: 0 0 20px var(--pip-dim); width: 90%; max-width: 400px; display: flex; flex-direction: column; }
         #survivor-id-input { background: #000; border: 2px solid var(--pip-green); color: var(--pip-green); font-family: inherit; font-size: 24px; padding: 10px; margin: 20px 0; text-align: center; text-transform: uppercase; outline: none; width: 100%; }
         #player-list-overlay { position: absolute; top: 60px; right: 20px; z-index: 90; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--pip-green); padding: 10px; min-width: 200px; display: none; flex-direction: column; box-shadow: 0 0 15px var(--pip-dim); }
@@ -66,16 +85,22 @@
             <h1 class="text-5xl md:text-6xl font-bold glow-text mb-2">PIP-BOY 3003</h1>
             <div class="text-xl mb-4 opacity-80">AUTHENTICATION REQUIRED</div>
             <input type="text" id="survivor-id-input" placeholder="SURVIVOR ID" maxlength="15" autofocus>
-            <div class="flex gap-2 w-full mt-4">
-                <button id="btn-login" class="action-button flex-grow py-3 font-bold text-xl">LOGIN</button>
-                <button id="btn-manual-login" class="action-button px-4 py-3 font-bold text-xl border-yellow-400 text-yellow-400" onclick="UI.showManualOverlay()">?</button>
+            
+            <!-- BUTTONS: Login Full Width -->
+            <button id="btn-login" class="action-button w-full py-3 font-bold text-xl mb-2">LOGIN</button>
+            
+            <!-- BUTTONS: Manual & Changelog Half Width -->
+            <div class="flex gap-2 w-full">
+                <button id="btn-manual-login" class="action-button flex-1 py-2 font-bold text-lg border-yellow-400 text-yellow-400" onclick="UI.showManualOverlay()">ANLEITUNG</button>
+                <button id="btn-changelog" class="action-button flex-1 py-2 font-bold text-lg border-blue-400 text-blue-400" onclick="UI.showChangelogOverlay()">CHANGELOG</button>
             </div>
+
             <div id="login-status" class="mt-4 text-yellow-400 min-h-[1.5em] text-sm font-mono"></div>
             <div class="mt-4 text-xs text-[#1aff1a] opacity-50 border-t border-[#1aff1a]/30 pt-2 w-full">VERSION <span id="login-version-display">LOADING...</span></div>
         </div>
     </div>
 
-    <!-- Manual Overlay Fixed -->
+    <!-- Manual Overlay -->
     <div id="manual-overlay" class="hidden z-[1000] bg-black/95" style="display: none;">
         <div class="border-2 border-yellow-400 w-full max-w-2xl h-[90vh] bg-[#111] flex flex-col p-4 shadow-[0_0_30px_#aa0]">
             <div class="flex justify-between items-center border-b border-yellow-400 pb-2 mb-2">
@@ -83,6 +108,17 @@
                 <button class="text-red-500 font-bold text-xl px-2 border border-red-500 hover:bg-red-900" onclick="document.getElementById('manual-overlay').classList.add('hidden'); document.getElementById('manual-overlay').style.display='none';">X</button>
             </div>
             <div id="manual-content" class="flex-grow overflow-y-auto text-green-300 font-mono space-y-4 pr-2"></div>
+        </div>
+    </div>
+
+    <!-- Changelog Overlay (NEW) -->
+    <div id="changelog-overlay" class="hidden z-[1000] bg-black/95" style="display: none;">
+        <div class="border-2 border-blue-400 w-full max-w-2xl h-[90vh] bg-[#050510] flex flex-col p-4 shadow-[0_0_30px_#00a]">
+            <div class="flex justify-between items-center border-b border-blue-400 pb-2 mb-2">
+                <h2 class="text-2xl font-bold text-blue-400">PATCH NOTES</h2>
+                <button class="text-red-500 font-bold text-xl px-2 border border-red-500 hover:bg-red-900" onclick="document.getElementById('changelog-overlay').classList.add('hidden'); document.getElementById('changelog-overlay').style.display='none';">X</button>
+            </div>
+            <div id="changelog-content" class="flex-grow overflow-y-auto text-blue-200 font-mono text-sm leading-relaxed whitespace-pre-wrap pr-2"></div>
         </div>
     </div>
 
@@ -94,7 +130,6 @@
 
     <div id="game-screen" class="hidden opacity-0 transition-opacity duration-1000">
         
-        <!-- HEADER LAYOUT -->
         <header class="flex items-center justify-between p-2 border-b-2 border-[#39ff14] bg-[#001100] z-30 h-20 shrink-0 relative gap-2">
             <div class="flex flex-col justify-center h-full min-w-0 flex-grow leading-tight gap-1">
                 <div class="flex items-baseline gap-2">
@@ -155,7 +190,6 @@
         </div>
     </div>
 </div>
-<!-- SCRIPT LOADER FIX: data.js FIRST -->
 <script>
     function loadScript(src) { return new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject; document.body.appendChild(s); }); }
     window.onload = function() {
@@ -166,7 +200,6 @@
             if(verDisplay) { verDisplay.textContent = ver; verDisplay.classList.remove('animate-pulse'); }
             if(loginVerDisplay) { loginVerDisplay.textContent = ver; }
             console.log("Loading V:", ver);
-            // LOAD DATA FIRST
             loadScript('data.js?v=' + ver)
                 .then(() => loadScript('world_gen.js?v=' + ver))
                 .then(() => loadScript('network.js?v=' + ver))
