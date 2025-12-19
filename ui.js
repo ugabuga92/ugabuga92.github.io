@@ -527,6 +527,22 @@ const UI = {
         if(Game.state.view === 'map') this.update(); 
     },
 
+    restoreOverlay: function() { 
+        if(document.getElementById('joystick-base')) return; 
+        
+        const joystickHTML = `
+            <div id="joystick-base" style="position: absolute; width: 100px; height: 100px; border-radius: 50%; border: 2px solid rgba(57, 255, 20, 0.5); background: rgba(0, 0, 0, 0.2); display: none; pointer-events: none; z-index: 9999;"></div>
+            <div id="joystick-stick" style="position: absolute; width: 50px; height: 50px; border-radius: 50%; background: rgba(57, 255, 20, 0.8); display: none; pointer-events: none; z-index: 10000; box-shadow: 0 0 10px #39ff14;"></div>
+            
+            <div id="dialog-overlay" style="position: absolute; bottom: 20px; right: 20px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; max-width: 50%;"></div> 
+        `; 
+        this.els.view.insertAdjacentHTML('beforeend', joystickHTML); 
+        
+        this.els.joyBase = document.getElementById('joystick-base');
+        this.els.joyStick = document.getElementById('joystick-stick');
+        this.els.dialog = document.getElementById('dialog-overlay'); 
+    },
+
     switchView: async function(name) { 
         this.stopJoystick();
 
@@ -540,11 +556,10 @@ const UI = {
         const ver = verDisplay ? verDisplay.textContent.trim() : Date.now(); 
         
         if (name === 'map') {
-            // FIX: BUTTON HINZUFÜGEN
             this.els.view.innerHTML = `
                 <div id="map-view" class="w-full h-full flex justify-center items-center bg-black relative">
                     <canvas id="game-canvas" class="w-full h-full object-contain" style="image-rendering: pixelated;"></canvas>
-                    <button onclick="UI.switchView('worldmap')" class="absolute top-4 right-4 bg-black/80 border-2 border-green-500 text-green-500 p-2 rounded-full hover:bg-green-900 hover:text-white transition-all z-20 shadow-[0_0_15px_#39ff14] animate-pulse" title="Weltkarte öffnen">
+                    <button onclick="UI.switchView('worldmap')" class="absolute top-4 right-4 bg-black/80 border-2 border-green-500 text-green-500 p-2 rounded-full hover:bg-green-900 hover:text-white transition-all z-20 shadow-[0_0_15px_#39ff14] animate-pulse cursor-pointer" title="Weltkarte öffnen">
                         <span class="text-2xl">🌍</span>
                     </button>
                 </div>`;
@@ -565,7 +580,7 @@ const UI = {
             this.els.view.innerHTML = html; 
             Game.state.view = name; 
             
-            // FIX: OVERLAY IMMER WIEDERHERSTELLEN FÜR ALLE VIEWS
+            // FIX: Restore Overlay for dialogs!
             this.restoreOverlay();
 
             if (name === 'combat') { 
@@ -671,7 +686,10 @@ const UI = {
     },
 
     showItemConfirm: function(itemId) {
-        if(!this.els.dialog || !Game.items[itemId]) return;
+        if(!this.els.dialog) {
+            this.restoreOverlay();
+        }
+        if(!Game.items[itemId]) return;
         
         const item = Game.items[itemId];
         Game.state.inDialog = true;
@@ -954,7 +972,7 @@ const UI = {
         const lvlDisplay = document.getElementById('char-lvl'); 
         if(lvlDisplay) lvlDisplay.textContent = Game.state.lvl; 
         
-        // FIX: FESTE REIHENFOLGE
+        // FIX: FESTE REIHENFOLGE DER STATS
         const statOrder = ['STR', 'PER', 'END', 'INT', 'AGI', 'LUC'];
         
         grid.innerHTML = statOrder.map(k => { 
@@ -999,7 +1017,7 @@ const UI = {
     renderCombat: function() { const enemy = Game.state.enemy; if(!enemy) return; document.getElementById('enemy-name').textContent = enemy.name; document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`; document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`; },
 
     showDungeonWarning: function(callback) {
-        if(!this.els.dialog) return;
+        if(!this.els.dialog) { this.restoreOverlay(); }
         Game.state.inDialog = true;
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
@@ -1036,7 +1054,7 @@ const UI = {
     },
 
     showDungeonLocked: function(minutesLeft) {
-        if(!this.els.dialog) return;
+        if(!this.els.dialog) { this.restoreOverlay(); }
         Game.state.inDialog = true;
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
@@ -1058,7 +1076,7 @@ const UI = {
     },
 
     showDungeonVictory: function(caps, lvl) {
-        if(!this.els.dialog) return;
+        if(!this.els.dialog) { this.restoreOverlay(); }
         Game.state.inDialog = true;
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
@@ -1076,5 +1094,49 @@ const UI = {
         `;
         
         this.els.dialog.appendChild(box);
+    },
+
+    toggleControls: function(show) { if (!show && this.els.dialog) this.els.dialog.innerHTML = ''; },
+    showGameOver: function() { if(this.els.gameOver) this.els.gameOver.classList.remove('hidden'); this.toggleControls(false); },
+    leaveDialog: function() { Game.state.inDialog = false; this.els.dialog.style.display = 'none'; this.update(); },
+    
+    // NEU: POI Marker hinzugefügt
+    renderWorldMap: function() { 
+        const grid = document.getElementById('world-grid'); 
+        if(!grid) return; 
+        grid.innerHTML = ''; 
+        for(let y=0; y<8; y++) { 
+            for(let x=0; x<8; x++) { 
+                const d = document.createElement('div'); 
+                d.className = "border border-green-900/30 flex justify-center items-center text-xs relative cursor-help"; 
+                d.title = `Sektor [${x},${y}]`;
+                
+                if(x === Game.state.sector.x && y === Game.state.sector.y) { 
+                    d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.style.fontWeight = "bold"; d.textContent = "YOU"; 
+                } else if(Game.worldData[`${x},${y}`]) { 
+                    const data = Game.worldData[`${x},${y}`];
+                    d.style.backgroundColor = this.biomeColors[data.biome] || '#4a3d34'; 
+                    // POI Marker
+                    if(data.poi) {
+                        d.textContent = data.poi;
+                        d.style.color = "white";
+                        d.style.fontWeight = "bold";
+                        d.style.textShadow = "0 0 2px black";
+                    }
+                } 
+                
+                if(typeof Network !== 'undefined' && Network.otherPlayers) { 
+                    const playersHere = Object.values(Network.otherPlayers).filter(p => p.sector && p.sector.x === x && p.sector.y === y); 
+                    if(playersHere.length > 0) { 
+                        const dot = document.createElement('div'); 
+                        dot.className = "absolute w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]"; 
+                        if(x === Game.state.sector.x && y === Game.state.sector.y) { dot.style.top = "2px"; dot.style.right = "2px"; } 
+                        d.appendChild(dot); 
+                    } 
+                } 
+                grid.appendChild(d); 
+            } 
+        } 
+        grid.style.gridTemplateColumns = "repeat(8, 1fr)"; 
     }
 };
