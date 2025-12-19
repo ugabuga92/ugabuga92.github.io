@@ -19,7 +19,7 @@
         /* VIEW CONTAINER SECURITY */
         #view-container > * { max-width: 100%; overflow-x: hidden; }
 
-        /* ALERT GLOW STYLES (NEU) */
+        /* ALERT GLOW STYLES */
         .alert-glow-yellow { box-shadow: 0 0 15px yellow !important; border-color: yellow !important; color: yellow !important; text-shadow: 0 0 5px yellow; }
         .alert-glow-cyan { box-shadow: 0 0 15px cyan !important; border-color: cyan !important; color: cyan !important; text-shadow: 0 0 5px cyan; }
         .alert-glow-red { box-shadow: 0 0 15px red !important; border-color: red !important; color: red !important; animation: pulse-red 2s infinite; }
@@ -80,7 +80,7 @@
             <h1 class="text-5xl md:text-6xl font-bold glow-text mb-2">PIP-BOY 3003</h1>
             <div class="text-xl mb-4 opacity-80">AUTHENTICATION REQUIRED</div>
             
-            <form id="login-form" onsubmit="event.preventDefault(); document.getElementById('btn-login').click();" autocomplete="off">
+            <form id="login-form" autocomplete="off">
                 <input type="text" id="survivor-id-input" placeholder="SURVIVOR ID" maxlength="15" autofocus autocomplete="off" name="survivor_id_field">
             </form>
 
@@ -93,7 +93,7 @@
             <div class="mt-4 text-xs text-[#1aff1a] opacity-50 border-t border-[#1aff1a]/30 pt-2 w-full">VERSION <span id="login-version-display">LOADING...</span></div>
         </div>
     </div>
-
+    
     <div id="manual-overlay" class="hidden z-[1000] bg-black/95" style="display: none;">
         <div class="border-2 border-yellow-400 w-full max-w-2xl h-[90vh] bg-[#111] flex flex-col p-4 shadow-[0_0_30px_#aa0]">
             <div class="flex justify-between items-center border-b border-yellow-400 pb-2 mb-2">
