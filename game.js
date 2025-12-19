@@ -59,13 +59,10 @@ const Game = {
                 if(!this.state.cooldowns) this.state.cooldowns = {}; 
                 UI.log(">> Spielstand geladen.", "text-cyan-400");
             } else {
-                // Default Start
                 let startSecX = Math.floor(Math.random() * 8);
                 let startSecY = Math.floor(Math.random() * 8);
                 let startX = 20;
                 let startY = 20;
-
-                // FIX: Override wenn SpawnTarget existiert
                 if (spawnTarget && spawnTarget.sector) {
                     startSecX = spawnTarget.sector.x;
                     startSecY = spawnTarget.sector.y;
@@ -73,7 +70,6 @@ const Game = {
                     startY = spawnTarget.y;
                     UI.log(`>> Ziel-Signal gefunden: Sektor ${startSecX},${startSecY}`, "text-yellow-400");
                 }
-
                 this.state = {
                     sector: {x: startSecX, y: startSecY}, startSector: {x: startSecX, y: startSecY}, 
                     player: {x: startX, y: startY, rot: 0},
@@ -100,12 +96,9 @@ const Game = {
                 if(!spawnTarget) UI.log(">> Neuer Charakter erstellt.", "text-green-400");
                 this.saveGame(); 
             }
-
-            // Karte laden
+            
             this.loadSector(this.state.sector.x, this.state.sector.y);
-
-            // FIX: Wenn SpawnTarget da war, erzwingen wir die Position NACH dem Laden des Sektors nochmal,
-            // damit findSafeSpawn uns nicht woanders hin wirft.
+            
             if(spawnTarget && !saveData) {
                 this.state.player.x = spawnTarget.x;
                 this.state.player.y = spawnTarget.y;
@@ -386,7 +379,10 @@ const Game = {
         }
         
         this.fixMapBorders(this.state.currentMap, sx, sy);
-        this.state.explored = data.explored; 
+        
+        // FIX: HIER WURDE DER BUG BEHOBEN (Zeile entfernt: this.state.explored = data.explored)
+        // Wir verlassen uns auf das globale 'explored' object im state, das geladen wurde.
+        
         let zn = "Ödland"; if(data.biome === 'city') zn = "Ruinenstadt"; if(data.biome === 'desert') zn = "Aschewüste"; if(data.biome === 'jungle') zn = "Dschungel"; if(data.biome === 'swamp') zn = "Sumpf";
         this.state.zone = `${zn} (${sx},${sy})`; 
         
