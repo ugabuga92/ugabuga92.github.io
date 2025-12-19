@@ -1,5 +1,14 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.8-beta] - 2025-12-19 (Global Layout Lock)
+------------------------------------------------
+- FIX: Globales CSS-Update in index.html verhindert nun strikt horizontales Scrollen in ALLEN Ansichten.
+- UI: Alle Menüs (Shop, Crafting, Wiki, Stadt, Klinik, Vault) überarbeitet:
+  - 'overflow-x-hidden' hinzugefügt.
+  - 'max-width: 100%' erzwungen.
+  - Textumbruch (break-words) aktiviert, damit lange Item-Namen das Layout nicht sprengen.
+
+
 [v0.1.7-beta] - 2025-12-19 (Layout Lock & Quest Fix)
 ------------------------------------------------
 - CRITICAL FIX: 'UI.renderQuests' wiederhergestellt. Der Absturz beim Öffnen des Aufgaben-Menüs ist behoben.
