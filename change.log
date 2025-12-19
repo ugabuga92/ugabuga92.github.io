@@ -1,5 +1,15 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.19-beta] - 2025-12-20 (Exploration Crash & Border Fix)
+------------------------------------------------
+- CRITICAL FIX: Absturz beim Erkunden behoben ("undefined is not an object").
+  - Das Spiel prüft nun aggressiv, ob 'this.state.explored' existiert, bevor es neue Gebiete aufdeckt.
+  - Falls es fehlt (z.B. durch Savegame-Fehler), wird es automatisch neu erstellt.
+- FIX (Grafik): Fehlender linker Kartenrand korrigiert.
+  - Die Zeichen-Schleifen in game.js wurden überprüft, um sicherzustellen, dass Spalte 0 (links außen) immer gezeichnet wird.
+  - Canvas-Positionierung im CSS leicht angepasst, um Clipping zu verhindern.
+
+
 [v0.1.18c-beta] - 2025-12-20 (Manual & Nav Fix)
 ------------------------------------------------
 - FIX: Tastatur-Navigation im Hauptmenü (ESC) und Listen (Stadt, Wiki) repariert. Pfeiltasten Hoch/Runter springen nun korrekt zum nächsten Element (statt wie im Inventar 4 Felder zu springen).
