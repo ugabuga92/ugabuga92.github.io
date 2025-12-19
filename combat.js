@@ -1,50 +1,63 @@
 const Combat = {
     // V.A.T.S. Konfiguration
-    VATS: {
-        HEAD: { id: 'head', name: 'KOPF', hitMod: -25, dmgMult: 2.5, label: "CRITICAL" },
-        TORSO: { id: 'torso', name: 'TORSO', hitMod: 0, dmgMult: 1.0, label: "STANDARD" },
-        LEGS: { id: 'legs', name: 'BEINE', hitMod: -10, dmgMult: 0.8, label: "SLOW" }
-    },
+    VATS: [
+        { id: 'head', name: 'KOPF', hitMod: -25, dmgMult: 2.5, label: "CRITICAL" },
+        { id: 'torso', name: 'TORSO', hitMod: 0, dmgMult: 1.0, label: "STANDARD" },
+        { id: 'legs', name: 'BEINE', hitMod: -10, dmgMult: 0.8, label: "SLOW" }
+    ],
 
     active: false,
+    selectedPartIndex: 1, // Start bei Torso (Index 1)
 
     start: function(enemy) {
         if(!Game.state) return;
         Game.state.enemy = enemy;
         Game.state.inDialog = true;
         this.active = true;
+        this.selectedPartIndex = 1; // Reset auf Torso
 
-        // Intro Sound/Effekt (simuliert durch Log)
         if(Date.now() < Game.state.buffEndTime) UI.log("⚡ S.P.E.C.I.A.L. OVERDRIVE aktiv!", "text-yellow-400");
         
-        // View Wechseln
         UI.switchView('combat').then(() => {
-            UI.renderCombat();
+            this.render();
         });
 
         UI.log(enemy.isLegendary ? "LEGENDÄRER GEGNER!" : "Kampf gestartet!", enemy.isLegendary ? "text-yellow-400" : "text-red-500");
     },
 
-    // Berechnet Trefferchance basierend auf PER
-    calcHitChance: function(partId) {
+    calcHitChance: function(partIndex) {
+        const part = this.VATS[partIndex];
         const per = Game.getStat('PER');
-        let baseChance = 60 + (per * 4); // Basis: 60% + 4% pro PER Punkt
-        
-        // Modifikatoren je nach Körperteil
-        if(partId === 'head') baseChance += this.VATS.HEAD.hitMod;
-        if(partId === 'legs') baseChance += this.VATS.LEGS.hitMod;
-        
-        return Math.min(95, Math.max(5, baseChance)); // Min 5%, Max 95%
+        let baseChance = 60 + (per * 4); 
+        if(part.hitMod) baseChance += part.hitMod;
+        return Math.min(95, Math.max(5, baseChance));
     },
 
-    // Die Aktion des Spielers
+    // Neue Controls
+    moveSelection: function(dir) {
+        this.selectedPartIndex += dir;
+        if(this.selectedPartIndex < 0) this.selectedPartIndex = this.VATS.length - 1;
+        if(this.selectedPartIndex >= this.VATS.length) this.selectedPartIndex = 0;
+        this.render();
+    },
+
+    confirmSelection: function() {
+        const part = this.VATS[this.selectedPartIndex];
+        this.playerAttack(part.id);
+    },
+
+    // Manuelles Setzen per Maus
+    selectPart: function(index) {
+        this.selectedPartIndex = index;
+        this.render();
+    },
+
     playerAttack: function(partId) {
         if(!Game.state.enemy || Game.state.isGameOver) return;
 
         const enemy = Game.state.enemy;
         const wpn = Game.state.equip.weapon;
         
-        // Munitionscheck
         if(wpn.isRanged) { 
             if(Game.state.ammo > 0) Game.state.ammo--; 
             else { 
@@ -55,26 +68,21 @@ const Combat = {
             } 
         }
 
-        // Treffer Berechnung
-        const chance = this.calcHitChance(partId);
+        const partIndex = this.VATS.findIndex(p => p.id === partId);
+        const chance = this.calcHitChance(partIndex);
         const roll = Math.random() * 100;
-        const partConfig = Object.values(this.VATS).find(p => p.id === partId);
+        const partConfig = this.VATS[partIndex];
 
         if(roll <= chance) {
-            // TREFFER
             const baseDmg = wpn.baseDmg || 2;
             const strBonus = Game.getStat('STR') * 1.5;
             let dmg = Math.floor((baseDmg + strBonus) * partConfig.dmgMult);
             
             Game.state.enemy.hp -= dmg;
             
-            // Effekt Text
             let effectTxt = "";
-            if(partId === 'head') effectTxt = " (CRIT!)";
-            if(partId === 'legs') {
-                effectTxt = " (Verkrüppelt!)";
-                // TODO: Gegner verlangsamen Logik für Beta 0.2
-            }
+            if(partConfig.id === 'head') effectTxt = " (CRIT!)";
+            if(partConfig.id === 'legs') effectTxt = " (Verkrüppelt!)";
 
             UI.log(`Treffer [${partConfig.name}]: ${dmg} Schaden${effectTxt}`, "text-green-400 font-bold");
             UI.shakeView();
@@ -84,12 +92,11 @@ const Combat = {
                 return;
             }
         } else {
-            // DANEBEN
             UI.log(`Verfehlt [${partConfig.name}]! (${Math.floor(chance)}%)`, "text-gray-500");
         }
 
         this.enemyTurn();
-        UI.renderCombat(); // Update UI (HP bars etc)
+        this.render(); 
     },
 
     flee: function() {
@@ -100,13 +107,12 @@ const Combat = {
             UI.log("Flucht gescheitert!", "text-red-500"); 
             this.enemyTurn(); 
         }
-        UI.renderCombat();
+        this.render();
     },
 
     enemyTurn: function() {
         if(!Game.state.enemy || Game.state.enemy.hp <= 0) return;
         
-        // Gegner greift an
         if(Math.random() < 0.8) { 
             const armor = (Game.getStat('END') * 0.5); 
             const dmg = Math.max(1, Math.floor(Game.state.enemy.dmg - armor)); 
@@ -131,7 +137,7 @@ const Combat = {
         Game.state.caps += enemy.loot; 
         UI.log(`Sieg! ${enemy.loot} Kronkorken.`, "text-yellow-400"); 
         
-        if(Game.gainExp) Game.gainExp(this.getRandomXP(enemy.xp)); // Nutzen der Game function
+        if(Game.gainExp) Game.gainExp(this.getRandomXP(enemy.xp)); 
         
         if(enemy.isLegendary) { 
             Game.addToInventory('legendary_part', 1); 
@@ -164,5 +170,39 @@ const Combat = {
     getRandomXP: function(xpData) { 
         if (Array.isArray(xpData)) return Math.floor(Math.random() * (xpData[1] - xpData[0] + 1)) + xpData[0]; 
         return xpData; 
+    },
+
+    // UI Helper
+    render: function() {
+        if (!this.active || !Game.state.enemy) return;
+        
+        const enemy = Game.state.enemy;
+        const hpPct = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
+        
+        const hpBar = document.getElementById('enemy-hp-bar');
+        if(hpBar) hpBar.style.width = `${hpPct}%`;
+        
+        const hpText = document.getElementById('enemy-hp-text');
+        if(hpText) hpText.textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`;
+
+        // Buttons updaten
+        this.VATS.forEach((part, index) => {
+            const btn = document.getElementById(`btn-vats-${index}`);
+            const chanceEl = document.getElementById(`chance-vats-${index}`);
+            
+            if(btn && chanceEl) {
+                const chance = this.calcHitChance(index);
+                chanceEl.textContent = Math.floor(chance) + "%";
+                
+                // Active State Styling
+                if(index === this.selectedPartIndex) {
+                    btn.classList.add('bg-green-500', 'text-black', 'border-black');
+                    btn.classList.remove('bg-green-900/20', 'text-green-500', 'border-green-500');
+                } else {
+                    btn.classList.remove('bg-green-500', 'text-black', 'border-black');
+                    btn.classList.add('bg-green-900/20', 'text-green-500', 'border-green-500');
+                }
+            }
+        });
     }
 };
