@@ -33,6 +33,18 @@ const Network = {
         if (!this.active) return null;
         this.myId = userId;
         try {
+            // NEU: Check ob Spieler bereits online ist
+            const playerRef = this.db.ref('players/' + this.myId);
+            const pSnap = await playerRef.once('value');
+            if (pSnap.exists()) {
+                const pData = pSnap.val();
+                // Wenn lastSeen weniger als 2 Minuten her ist -> Login verweigern
+                if (pData.lastSeen && Date.now() - pData.lastSeen < 120000) {
+                    throw new Error("ALREADY_ONLINE");
+                }
+                // Ansonsten: Überschreiben erlaubt (Zombie-Session)
+            }
+
             const snapshot = await this.db.ref('saves/' + this.myId).once('value');
             const saveData = snapshot.val();
             console.log("DB LOAD:", this.myId, saveData ? "FOUND" : "NULL");
@@ -45,22 +57,38 @@ const Network = {
     },
 
     startPresence: function() {
+        // Disconnect Handler setzen
         this.db.ref('players/' + this.myId).onDisconnect().remove();
         
         this.db.ref('players').on('value', (snapshot) => {
-            const data = snapshot.val() || {};
-            
+            const rawData = snapshot.val() || {};
+            const now = Date.now();
+            const cleanData = {};
+
+            // NEU: Ghost Filter & Datenbereinigung
+            for (let pid in rawData) {
+                // Filter mich selbst raus
+                if (pid === this.myId) continue;
+
+                const p = rawData[pid];
+                // Wenn lastSeen existiert und älter als 5 Minuten ist -> Ignorieren (Ghost)
+                if (p.lastSeen && (now - p.lastSeen > 300000)) {
+                    continue; 
+                }
+                cleanData[pid] = p;
+            }
+
+            this.otherPlayers = cleanData;
+
             if(typeof UI !== 'undefined') {
                 const el = document.getElementById('val-players');
-                if(el) el.textContent = `${Object.keys(data).length} ONLINE`;
+                if(el) el.textContent = `${Object.keys(this.otherPlayers).length + 1} ONLINE`; // +1 für mich
                 
                 if(UI.els.spawnScreen && UI.els.spawnScreen.style.display !== 'none') {
-                    UI.renderSpawnList(data);
+                    UI.renderSpawnList(this.otherPlayers);
                 }
             }
 
-            delete data[this.myId];
-            this.otherPlayers = data;
             if(typeof Game !== 'undefined' && Game.draw) Game.draw();
         });
         
@@ -68,6 +96,9 @@ const Network = {
             UI.setConnectionState('online');
             UI.log(`TERMINAL LINK: ID ${this.myId}`, "text-green-400 font-bold");
         }
+        
+        // Initialen Ping senden
+        this.sendMove(20, 20, 1, {x:0, y:0}); 
     },
 
     save: function(gameState) {
@@ -98,6 +129,7 @@ const Network = {
 
     sendMove: function(x, y, level, sector) {
         if (!this.active || !this.myId) return;
+        // NEU: lastSeen wird immer aktualisiert für Ghost-Erkennung
         this.db.ref('players/' + this.myId).set({
             x: x, y: y, lvl: level, sector: sector, lastSeen: Date.now()
         });
