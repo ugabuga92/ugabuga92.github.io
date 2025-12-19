@@ -1,5 +1,15 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.14-beta] - 2025-12-19 (Keyboard Control & Map Fix)
+------------------------------------------------
+- FIX: Weltkarten-Bug behoben. Bereits aufgedeckte Gebiete werden nach dem Neuladen nicht mehr "vergessen".
+- FEATURE: Vollständige Tastatur-Steuerung ("Keyboard First").
+  - Menüs, Shops, Inventar und Dialoge sind nun komplett mit WASD/Pfeiltasten bedienbar.
+  - ENTER/SPACE bestätigt Aktionen.
+  - ESC schließt Menüs.
+- UI: Neuer visueller Fokus-Indikator (weißer Rahmen) zeigt das aktuell gewählte Element an.
+
+
 [v0.1.13-beta] - 2025-12-19 (Glow & Footer Polish)
 ------------------------------------------------
 - UI: Menü-Benachrichtigungen (Glow-Effekte) für Charakter (Gelb) und Aufgaben (Cyan) pulsieren nun animiert.
