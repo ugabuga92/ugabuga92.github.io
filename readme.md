@@ -1,72 +1,99 @@
-# ☢️ PIP-BOY 3000 Mk-V Web-RPG
+# PIP-BOY 3003 - SURVIVAL HANDBUCH
 
-**Version:** 0.0.12a (Beta)  
-**Status:** Online Multiplayer Survival
-
-Ein atmosphärisches, browserbasiertes Retro-RPG im Fallout-Stil. Überlebe im Ödland, sammle Ausrüstung, kämpfe gegen Mutanten und triff andere Spieler in Echtzeit – alles verpackt in einem nostalgischen grünen Terminal-Interface mit CRT-Simulation.
+Willkommen im Ödland, Vault-Bewohner!
+Dieses Terminal-Interface (v0.1.18c) ist dein bester Freund im Kampf ums Überleben.
 
 ---
 
-## ⭐ Key Features
+## 1. STEUERUNG
 
-### 💀 Hardcore Survival (Permadeath)
-* **High Stakes:** Das Leben im Ödland ist hart. Wenn deine HP auf 0 fallen, ist dein Charakter **unwiderruflich tot**.
-* **Datenbank-Löschung:** Dein Spielstand wird beim Tod sofort vom Server gelöscht. Ein neuer Login erfordert einen neuen Charakter.
-* **AFK-Schutz:** Wer länger als 5 Minuten inaktiv ist, wird automatisch ausgeloggt (und gespeichert), um den Hungertod vor dem Bildschirm zu vermeiden.
+### PC (Tastatur)
+* **WASD / Pfeiltasten**: Bewegung auf der Karte & Menü-Navigation.
+* **LEERTASTE / ENTER**: Aktion ausführen / Bestätigen / Feuern (im Kampf).
+* **ESC**: Hauptmenü öffnen / Zurück / Fenster schließen.
+* **1, 2, 3**: Im V.A.T.S. Kampf Körperteile auswählen.
 
-### 🎒 Inventar & Wirtschaft
-* **Rucksack-System:** Gegenstände landen nun in deinem Inventar. Du musst taktisch entscheiden, wann du Stimpacks benutzt oder welche Waffe du ausrüstest.
-* **Loot & Handel:** Finde Schrott, Munition und legendäre Ausrüstung.
-* **Städte & Händler:** Besuche Orte wie "Rusty Springs", um deine Kronkorken (Caps) gegen bessere Ausrüstung oder Heilung einzutauschen.
-
-### 📡 Echtzeit-Multiplayer
-* **Shared World:** Du bist nicht allein. Sieh die Position anderer Spieler in Echtzeit auf deiner Karte (blauer Punkt).
-* **Global Scan:** Ein Klick auf die Online-Anzeige öffnet eine Liste aller aktiven Signale im Netzwerk.
-* **Cloud Save:** Dein Fortschritt (Position, Stats, Inventar) wird via Firebase in der Cloud gespeichert und ist geräteübergreifend abrufbar (via Survivor-ID).
-
-### 🖥️ UI & Retro-Design
-* **Authentischer Look:** Scanlines, Phosphor-Nachleuchten, Wölbungseffekte und die klassische VT323-Schriftart.
-* **Responsive:** Funktioniert auf Desktop und Mobile.
-    * **Desktop:** Tastatursteuerung (WASD/Pfeile).
-    * **Mobile:** Touch-optimiertes D-Pad und smartes Hamburger-Menü.
-* **Notification System:** Das Menü blinkt rot, wenn Skill-Punkte verfügbar sind oder neue Quests warten.
-
-### 🌍 Prozedurale Welt
-* **Unendliche Erkundung:** Die Welt ist in 8x8 Sektoren unterteilt. Jeder Sektor wird beim Betreten prozedural generiert.
-* **Biome:**
-    * ☠️ **Ödland:** Standard-Zone, moderates Risiko.
-    * 🌵 **Wüste:** Hohe Sichtweite, gefährliche Skorpione.
-    * 🌿 **Dschungel:** Überwucherte Ruinen, unübersichtlich.
-    * 🏙️ **Ruinenstadt:** Hoher Loot, tödliche Gegner.
-* **Smarter Spawn:** Das System verhindert, dass du in Wänden oder Hindernissen spawnst.
-
-### 🎯 Das V.A.T.S. System (Vault-Tec Assisted Targeting System):**
-   * Der Kampf ist kein Glücksspiel mehr. Du hast jetzt taktische Optionen:
-   * KOPF: Schwer zu treffen, aber massiver Schaden (Kritisch).
-   * TORSO: Hohe Trefferchance, standard Schaden.
-   * BEINE: Mittlere Chance. Treffer verlangsamen den Gegner (weniger Schaden durch Gegner im nächsten Zug).
-   * Wahrnehmung (PER): Dein S.P.E.C.I.A.L. Stat bestimmt direkt deine Präzision!
+### MOBILE (Touch)
+* **Joystick**: Tippe und HALTE irgendwo auf den Bildschirm, um den Joystick zu aktivieren. Ziehe zum Bewegen.
+* **Tippen**: Interaktion mit Buttons, Gegnern und Loot.
 
 ---
 
-## 🎮 Steuerung
+## 2. DAS INTERFACE (HUD)
 
-| Aktion | Desktop (Tastatur) | Mobile (Touch) |
-| :--- | :--- | :--- |
-| **Bewegen** | W, A, S, D / Pfeiltasten | D-Pad Overlay |
-| **Interaktion** | Automatisch bei Kontakt | Automatisch bei Kontakt |
-| **Menü** | Maus-Klick auf Header | Hamburger-Button (☰) |
-| **Kampf** | Buttons im UI | Buttons im UI |
-
----
-
-## 🛠️ Tech Stack
-
-* **Frontend:** HTML5, Tailwind CSS (Styling), Vanilla JS (Logik).
-* **Rendering:** HTML5 Canvas API (Pixel-Perfect Map Rendering).
-* **Backend:** Google Firebase Realtime Database (Sync & Savegames).
-* **Assets:** Rein prozedurale Grafiken (SVG & Canvas paths), keine externen Bilddateien.
+* **HP (Lebenspunkte)**: Fallen sie auf 0, ist das Spiel vorbei.
+* **XP (Erfahrung)**: Füllt den gelben Balken. Ist er voll, steigst du ein Level auf.
+* **LVL (Level)**: Dein Charakter-Level. Erhöht sich durch XP.
+* **KK (Kronkorken)**: Die Währung im Ödland. Zum Handeln benötigt.
+* **GLOW-EFFEKTE**:
+    * **GELB blinkend**: Du hast unverteilte Skill-Punkte (Charakter-Menü öffnen!).
+    * **CYAN blinkend**: Neue Aufgaben verfügbar.
+    * **ROT pulsierend**: Warnung oder Menü-Hinweis.
 
 ---
 
-> *"War... war never changes. But the browser does."*
+## 3. DIE WELTKARTE & SYMBOLE
+
+Die Welt ist in 64 Sektoren (8x8 Grid) unterteilt. Jede Bewegung verbraucht Zeit (nicht wirklich, aber RP-technisch).
+
+### Symbole auf der Karte:
+* **YOU**: Deine aktuelle Position (Grün markiert).
+* **V**: Vault 101 (Sicherer Startpunkt, kostenlose Heilung).
+* **C**: Stadt (Rusty Springs). Hier gibt es Händler und einen Arzt.
+* **S**: Supermarkt-Ruine (Dungeon, Level 1-3).
+* **H**: Höhle (Dungeon, Level 1-3).
+* **X**: Schatztruhe (In Dungeons).
+* **v**: Treppe nach unten (In Dungeons).
+* **#**: Feste Wände / Hindernisse.
+* **M, T, t**: Berge, Bäume (Hindernisse).
+* **. , _ "**: Offenes Gelände (Zufallskämpfe möglich).
+
+---
+
+## 4. KAMPFSYSTEM (V.A.T.S.)
+
+Triffst du auf einen Gegner, startet das V.A.T.S. (Vault-Tec Assisted Targeting System).
+
+* **WAHRNEHMUNG (PER)**: Bestimmt deine Trefferchance. Je höher, desto besser.
+* **TREFFERZONEN**:
+    * **KOPF**: Geringe Chance, aber **Kritischer Schaden** (2.5x).
+    * **TORSO**: Hohe Chance, normaler Schaden.
+    * **BEINE**: Mittlere Chance.
+
+* **Flucht**: Mit ESC oder dem Button möglich. Hängt von **Beweglichkeit (AGI)** ab.
+* **Munition**: Fernkampfwaffen brauchen Munition. Ist sie leer, kämpfst du mit Fäusten.
+
+---
+
+## 5. CHARAKTER & S.P.E.C.I.A.L.
+
+Bei jedem Level-Up erhältst du einen Stat-Punkt.
+
+* **STR (Stärke)**: Erhöht Nahkampfschaden.
+* **PER (Wahrnehmung)**: Erhöht V.A.T.S. Präzision.
+* **END (Ausdauer)**: Erhöht maximale Lebenspunkte (HP).
+* **INT (Intelligenz)**: (WIP) Einfluss auf Crafting/XP.
+* **AGI (Beweglichkeit)**: Erhöht Fluchtchance.
+* **LUC (Glück)**: (WIP) Einfluss auf kritische Treffer & Loot.
+
+---
+
+## 6. DUNGEONS
+
+Dungeons (Ruinen, Höhlen) sind gefährliche Orte mit mehreren Ebenen.
+* Die Gegner werden mit jeder Ebene stärker (+20%).
+* Auf der letzten Ebene (3) wartet eine **Truhe (X)** mit Belohnungen (KK, legendäre Teile).
+* **Vorsicht**: Nach Abschluss wird ein Dungeon für 10 Minuten versiegelt!
+
+---
+
+## 7. CRAFTING & ITEMS
+
+In Städten findest du Werkbänke.
+* **Schrott & Komponenten**: Werden von Monstern fallen gelassen.
+* **Munition herstellen**: Benötigt Schrott.
+* **Stimpak**: Heilt sofort 25 HP.
+
+---
+
+*Vault-Tec wünscht einen angenehmen Aufenthalt im Ödland!*
