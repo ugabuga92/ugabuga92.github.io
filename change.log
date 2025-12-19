@@ -1,5 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.11-beta] - 2025-12-19 (Login Logic Fix)
+------------------------------------------------
+- CRITICAL FIX: Doppelter Login behoben.
+  - Eine "Busy"-Sperre in ui.js verhindert nun, dass Enter-Taste und Button-Klick gleichzeitig zwei Login-Vorgänge starten.
+  - Dies behebt auch das Problem, dass der "Sprung zu Spieler" beim Erstellen eines neuen Charakters fehlschlug (da der zweite, ungewollte Login den Spawn überschrieb).
+- CLEANUP: HTML-Formularstruktur bereinigt, um Konflikte mit Browser-Autofill und Enter-Taste zu vermeiden.
+
+
 [v0.1.10-beta] - 2025-12-19 (Network & Spawn Fixes)
 ------------------------------------------------
 - FIX: Doppelter Login endgültig behoben. Ein neuer "Heartbeat" sendet alle 5 Sekunden ein Lebenszeichen.
