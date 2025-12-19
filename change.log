@@ -1,5 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.9-beta] - 2025-12-19 (UI Centering & Glow Fix)
+------------------------------------------------
+- FIX: Menü-Glow-Effekte (Charakter, Aufgaben, Menü) repariert. Sie nutzen nun feste CSS-Klassen statt dynamischer Tailwind-Werte.
+- UI (Dialoge): Alle Popups (Warnungen, Bestätigungen) sind nun exakt in der Bildschirmmitte zentriert, statt unten rechts.
+- UI (Layout): Wiki und Charakter-Menü sind nun auf breiten Bildschirmen zentriert (max-width limit), um die Lesbarkeit zu verbessern.
+
+
 [v0.1.8-beta] - 2025-12-19 (Global Layout Lock)
 ------------------------------------------------
 - FIX: Globales CSS-Update in index.html verhindert nun strikt horizontales Scrollen in ALLEN Ansichten.
