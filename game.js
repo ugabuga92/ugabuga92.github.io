@@ -80,7 +80,12 @@ const Game = {
                     visitedSectors: [`${startSecX},${startSecY}`],
                     tempStatIncrease: {}, buffEndTime: 0,
                     cooldowns: {}, 
-                    quests: [ { id: "q1", title: "Der Weg nach Hause", text: "Suche Zivilisation.", read: false } ], 
+                    // NEU: Mehr Start-Quests
+                    quests: [ 
+                        { id: "q1", title: "Der Weg nach Hause", text: "Suche Zivilisation und finde Vault 101.", read: false },
+                        { id: "q2", title: "Jäger & Sammler", text: "Besorge Fleisch von mutierten Tieren für den Handel.", read: false },
+                        { id: "q3", title: "Rusty Springs", text: "Finde die Handelsstadt im Sektor [3,3].", read: false }
+                    ], 
                     startTime: Date.now(),
                     savedPosition: null
                 };
