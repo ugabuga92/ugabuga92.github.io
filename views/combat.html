@@ -12,28 +12,28 @@
 
     <div class="flex-grow flex flex-col justify-center items-center gap-4 z-10 w-full max-w-sm mx-auto">
         
-        <button onclick="Combat.playerAttack('head')" class="w-full border-2 border-green-500 bg-green-900/20 hover:bg-green-500 hover:text-black p-2 flex justify-between items-center group transition-all">
+        <button id="btn-vats-0" onclick="Combat.selectPart(0); Combat.confirmSelection();" class="w-full border-2 border-green-500 bg-green-900/20 hover:bg-green-500 hover:text-black p-2 flex justify-between items-center group transition-all">
             <div class="flex flex-col text-left">
-                <span class="font-bold text-xl">[1] KOPF</span>
+                <span class="font-bold text-xl">[KOPF]</span>
                 <span class="text-xs opacity-70">CRITICAL HIT</span>
             </div>
-            <div class="text-2xl font-bold font-mono"><span id="chance-head">0%</span></div>
+            <div class="text-2xl font-bold font-mono"><span id="chance-vats-0">0%</span></div>
         </button>
 
-        <button onclick="Combat.playerAttack('torso')" class="w-full border-2 border-green-500 bg-green-900/20 hover:bg-green-500 hover:text-black p-4 flex justify-between items-center group transition-all transform scale-105 shadow-[0_0_15px_#00ff00]">
+        <button id="btn-vats-1" onclick="Combat.selectPart(1); Combat.confirmSelection();" class="w-full border-2 border-green-500 bg-green-900/20 hover:bg-green-500 hover:text-black p-4 flex justify-between items-center group transition-all transform scale-105 shadow-[0_0_15px_#00ff00]">
             <div class="flex flex-col text-left">
-                <span class="font-bold text-2xl">[2] TORSO</span>
+                <span class="font-bold text-2xl">[TORSO]</span>
                 <span class="text-xs opacity-70">STANDARD TARGET</span>
             </div>
-            <div class="text-3xl font-bold font-mono"><span id="chance-torso">0%</span></div>
+            <div class="text-3xl font-bold font-mono"><span id="chance-vats-1">0%</span></div>
         </button>
 
-        <button onclick="Combat.playerAttack('legs')" class="w-full border-2 border-green-500 bg-green-900/20 hover:bg-green-500 hover:text-black p-2 flex justify-between items-center group transition-all">
+        <button id="btn-vats-2" onclick="Combat.selectPart(2); Combat.confirmSelection();" class="w-full border-2 border-green-500 bg-green-900/20 hover:bg-green-500 hover:text-black p-2 flex justify-between items-center group transition-all">
             <div class="flex flex-col text-left">
-                <span class="font-bold text-xl">[3] BEINE</span>
+                <span class="font-bold text-xl">[BEINE]</span>
                 <span class="text-xs opacity-70">CRIPPLE</span>
             </div>
-            <div class="text-2xl font-bold font-mono"><span id="chance-legs">0%</span></div>
+            <div class="text-2xl font-bold font-mono"><span id="chance-vats-2">0%</span></div>
         </button>
 
     </div>
@@ -43,11 +43,11 @@
         <div class="text-xs text-green-500 text-right">
             <div>WAHRNEHMUNG: <span class="text-white font-bold" id="combat-per-val">--</span></div>
             <div>STATUS: <span class="text-red-500 font-bold blink-red">DANGER</span></div>
+            <div class="mt-2 text-[10px] text-green-300 opacity-70">STEUERUNG: WASD + SPACE</div>
         </div>
     </div>
 </div>
 <script>
-    // Init Stats Display
     document.getElementById('combat-per-val').textContent = Game.getStat('PER');
-    UI.renderCombat();
+    if(typeof Combat !== 'undefined') Combat.render();
 </script>
