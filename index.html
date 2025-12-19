@@ -12,57 +12,44 @@
     <style>
         :root { --pip-green: #1aff1a; --pip-glow: #2bff2b; --pip-dim: #0d330d; --pip-bg: #051105; }
         
-        /* GLOBAL LOCK */
         html, body { width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; position: fixed; }
         body { background-color: #000; color: var(--pip-green); font-family: 'VT323', monospace; display: flex; justify-content: center; align-items: center; user-select: none; -webkit-user-select: none; cursor: crosshair; }
         
         #view-container > * { max-width: 100%; overflow-x: hidden; }
 
-        /* --- AGGRESSIVE GLOW STYLES --- */
-        
-        /* RED PULSE (MENU) */
-        @keyframes pulse-red-intense {
-            0% { box-shadow: 0 0 5px red; border-color: #800000; color: #ffcccc; }
-            50% { box-shadow: 0 0 25px red, inset 0 0 10px red; border-color: red; color: white; background-color: rgba(255, 0, 0, 0.2); }
-            100% { box-shadow: 0 0 5px red; border-color: #800000; color: #ffcccc; }
-        }
-        .alert-glow-red {
-            animation: pulse-red-intense 1.5s infinite !important;
-            border-width: 2px !important;
-            font-weight: bold !important;
-        }
+        /* --- GLOW STYLES --- */
+        .alert-glow-red { box-shadow: 0 0 15px red !important; border-color: red !important; color: red !important; animation: pulse-red 2s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 5px red; } 50% { box-shadow: 0 0 20px red; } 100% { box-shadow: 0 0 5px red; } }
 
-        /* YELLOW PULSE (CHAR) */
-        @keyframes pulse-yellow-intense {
-            0% { box-shadow: 0 0 5px #ffd700; border-color: #b8860b; color: #ffffcc; }
-            50% { box-shadow: 0 0 25px #ffd700, inset 0 0 10px #ffd700; border-color: #ffd700; color: white; background-color: rgba(255, 215, 0, 0.2); }
-            100% { box-shadow: 0 0 5px #ffd700; border-color: #b8860b; color: #ffffcc; }
-        }
-        .alert-glow-yellow {
-            animation: pulse-yellow-intense 1.5s infinite !important;
-            border-width: 2px !important;
-            font-weight: bold !important;
-        }
+        .alert-glow-yellow { box-shadow: 0 0 15px yellow !important; border-color: yellow !important; color: yellow !important; text-shadow: 0 0 5px yellow; animation: pulse-yellow 2s infinite; }
+        @keyframes pulse-yellow { 0% { box-shadow: 0 0 5px yellow; } 50% { box-shadow: 0 0 20px yellow; } 100% { box-shadow: 0 0 5px yellow; } }
 
-        /* CYAN PULSE (QUESTS) */
-        @keyframes pulse-cyan-intense {
-            0% { box-shadow: 0 0 5px cyan; border-color: #008b8b; color: #e0ffff; }
-            50% { box-shadow: 0 0 25px cyan, inset 0 0 10px cyan; border-color: cyan; color: white; background-color: rgba(0, 255, 255, 0.2); }
-            100% { box-shadow: 0 0 5px cyan; border-color: #008b8b; color: #e0ffff; }
-        }
-        .alert-glow-cyan {
-            animation: pulse-cyan-intense 1.5s infinite !important;
-            border-width: 2px !important;
-            font-weight: bold !important;
-        }
+        .alert-glow-cyan { box-shadow: 0 0 15px cyan !important; border-color: cyan !important; color: cyan !important; text-shadow: 0 0 5px cyan; animation: pulse-cyan 2s infinite; }
+        @keyframes pulse-cyan { 0% { box-shadow: 0 0 5px cyan; } 50% { box-shadow: 0 0 20px cyan; } 100% { box-shadow: 0 0 5px cyan; } }
 
-        /* KEYBOARD FOCUS */
+        /* --- THEMED FOCUS STYLE (GRÜN) --- */
         .key-focus {
-            outline: 3px solid white !important;
-            box-shadow: 0 0 20px white, inset 0 0 10px white !important;
-            background-color: rgba(255, 255, 255, 0.2) !important;
-            z-index: 50;
+            outline: 2px solid var(--pip-green) !important;
+            box-shadow: 0 0 15px var(--pip-green), inset 0 0 5px var(--pip-green) !important;
+            background-color: rgba(57, 255, 20, 0.15) !important;
+            z-index: 60;
             position: relative;
+            animation: pulse-focus 1.5s infinite;
+        }
+        @keyframes pulse-focus { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        /* --- PLAYER LIST CENTERED --- */
+        #player-list-overlay { 
+            position: absolute; 
+            top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            z-index: 90; 
+            background: rgba(0, 0, 0, 0.95); 
+            border: 2px solid var(--pip-green); 
+            padding: 20px; 
+            min-width: 300px; 
+            display: none; 
+            flex-direction: column; 
+            box-shadow: 0 0 30px var(--pip-dim); 
         }
 
         ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -108,7 +95,6 @@
         .login-box { border: 2px solid var(--pip-green); padding: 20px; text-align: center; box-shadow: 0 0 20px var(--pip-dim); width: 90%; max-width: 400px; display: flex; flex-direction: column; }
         #login-form { width: 100%; }
         #survivor-id-input { background: #000; border: 2px solid var(--pip-green); color: var(--pip-green); font-family: inherit; font-size: 24px; padding: 10px; margin: 20px 0; text-align: center; text-transform: uppercase; outline: none; width: 100%; }
-        #player-list-overlay { position: absolute; top: 60px; right: 20px; z-index: 90; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--pip-green); padding: 10px; min-width: 200px; display: none; flex-direction: column; box-shadow: 0 0 15px var(--pip-dim); }
     </style>
     <script>window.onerror=function(m,u,l){console.error("ERR:",m);if(typeof UI!=='undefined'&&UI.error)UI.error(m);return false;};</script>
 </head>
@@ -156,6 +142,7 @@
     <div id="spawn-screen" style="display: none;"><div class="login-box crt-effect-container"><h1 class="text-3xl md:text-4xl font-bold glow-text mb-4">NEUER CHARAKTER</h1><div id="spawn-msg" class="text-sm mb-4 text-red-400 font-bold"></div><div id="spawn-list" class="flex flex-col gap-2 max-h-[250px] overflow-y-auto mb-4 border border-green-900 p-2 text-left"></div><button id="btn-spawn-random" class="action-button w-full mb-2">ZUFALLS-START</button><button class="action-button w-full border-red-500 text-red-500" onclick="location.reload()">ABBRUCH</button></div></div>
     <div id="reset-overlay" style="display: none;"><div class="login-box crt-effect-container border-red-500" style="box-shadow: 0 0 20px #500;"><h1 class="text-4xl font-bold text-red-500 mb-4 animate-pulse">ACHTUNG!</h1><div class="text-lg mb-8 text-red-400 font-bold">CHARAKTER LÖSCHEN?<br>ALLES GEHT VERLOREN!</div><div class="flex flex-col gap-2 w-full"><button id="btn-confirm-reset" class="action-button w-full border-red-500 text-red-500 font-bold hover:bg-red-900">JA, LÖSCHEN</button><button id="btn-cancel-reset" class="action-button w-full border-green-500 text-green-500">ABBRECHEN</button></div></div></div>
     <div id="game-over-screen" class="absolute inset-0 z-50 bg-black/95 flex flex-col justify-center items-center hidden"><h1 class="text-6xl text-red-600 font-bold border-4 border-red-600 p-6 mb-6 blink-red tracking-widest">CRITICAL FAILURE</h1><button id="btn-restart" onclick="location.reload()" class="border-2 border-red-500 text-red-500 px-8 py-3 hover:bg-red-900 text-xl font-bold uppercase cursor-pointer">NEUSTART</button></div>
+    
     <div id="player-list-overlay"><div class="font-bold border-b border-green-500 mb-2 pb-1 text-center">SIGNALE</div><div id="player-list-content" class="text-sm space-y-1"></div><button class="action-button w-full mt-2 text-xs" onclick="UI.togglePlayerList()">SCHLIESSEN</button></div>
 
     <div id="game-screen" class="hidden opacity-0 transition-opacity duration-1000">
