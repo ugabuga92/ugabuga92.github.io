@@ -1,14 +1,11 @@
-<div class="p-4 w-full h-full flex flex-col items-center justify-start overflow-y-auto">
-    <h1 class="text-3xl font-bold mb-4 text-center border-b border-green-500 w-full tracking-widest text-yellow-400">WERKBANK</h1>
+<div class="p-4 w-full max-w-full h-full flex flex-col items-center overflow-y-auto overflow-x-hidden">
+    <h1 class="text-3xl font-bold mb-4 text-center border-b border-green-500 w-full text-yellow-400">WERKBANK</h1>
     
-    <div class="w-full mb-4 text-sm bg-green-900/20 p-2 border border-green-900 text-center">
-        Wähle einen Bauplan. Du benötigst die entsprechenden Komponenten im Inventar.
-    </div>
+    <div id="crafting-list" class="w-full space-y-2 mb-4">
+        </div>
 
-    <div id="crafting-list" class="w-full max-w-lg space-y-2 mb-4">
-        <div class="text-center animate-pulse">Lade Baupläne...</div>
-    </div>
-
-    <!-- FIX: Geht zurück zur Stadt -->
-    <button class="action-button w-full mt-auto" onclick="UI.switchView('city')">ZURÜCK ZUR STADT</button>
+    <button class="action-button w-full mt-auto shrink-0" onclick="UI.switchView('city')">ZURÜCK ZUR STADT</button>
 </div>
+<script>
+    UI.renderCrafting();
+</script>
