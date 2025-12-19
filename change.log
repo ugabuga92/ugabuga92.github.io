@@ -1,5 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.6-beta] - 2025-12-19 (Mobile Layout & Glow Update)
+------------------------------------------------
+- UI (Mobile): "SPEICHERN"-Button im Header auf Smartphones ausgeblendet, um Platz zu sparen.
+- UI (Menü): "SPEICHERN"-Button zum Dropdown-Menü hinzugefügt (für Mobile-User).
+- UI (Alerts): Benachrichtigungen ("!") verändern nicht mehr den Text. Stattdessen erhalten die betroffenen Buttons (Charakter, Aufgaben, Menü) einen farbigen Leucht-Effekt (Glow).
+- UI (Map): Weltkarten-Button Positionierung gehärtet.
+
+
 [v0.1.5-beta] - 2025-12-19 (Stability & UI Order Update)
 ------------------------------------------------
 - CRITICAL FIX: Strukturfehler in ui.js behoben (Doppelte Funktionsnamen entfernt), der 'restoreOverlay' und damit alle Dialoge (Inventar, Warnungen, V.A.T.S.) blockierte.
