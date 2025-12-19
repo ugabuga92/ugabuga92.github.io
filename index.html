@@ -122,7 +122,7 @@
                 </div>
             </div>
             <div class="flex flex-col sm:flex-row items-center gap-2 shrink-0">
-                <button id="btn-save" class="header-btn border-yellow-400 text-yellow-400 hover:bg-yellow-900" title="Speichern">SPEICHERN</button>
+                <button id="btn-save" class="header-btn border-yellow-400 text-yellow-400 hover:bg-yellow-900 hidden md:flex" title="Speichern">SPEICHERN</button>
                 <button id="btn-menu-toggle" class="header-btn border-[#39ff14]" title="Menü">MENÜ</button>
             </div>
             <div id="main-nav" class="hidden absolute top-20 right-0 z-[100] flex-col bg-black border-2 border-[#39ff14] p-2 gap-2 shadow-[0_5px_15px_#000] w-56">
@@ -132,8 +132,11 @@
                 <button id="btn-quests" class="action-button w-full text-left">AUFGABEN</button>
                 <button id="btn-wiki" class="action-button w-full text-left">WIKI</button>
                 <button id="btn-manual-game" class="action-button w-full text-left text-yellow-400 border-yellow-400" onclick="UI.showManualOverlay()">HANDBUCH</button>
+                
                 <div class="border-t border-green-900 my-1"></div>
+                <button id="btn-menu-save" class="action-button w-full text-left border-yellow-400 text-yellow-400">SPEICHERN</button>
                 <button id="btn-logout" class="action-button w-full text-left text-red-400 border-red-500">LOGOUT</button>
+                
                 <div class="text-[10px] text-center text-white opacity-80 mt-1"><span id="val-players">?</span> ONLINE | <span id="version-display">...</span></div>
             </div>
         </header>
@@ -169,7 +172,7 @@
                 .then(() => loadScript('world_gen.js?v=' + ver))
                 .then(() => loadScript('network.js?v=' + ver))
                 .then(() => loadScript('ui.js?v=' + ver))
-                .then(() => loadScript('combat.js?v=' + ver))  /* NEUE ZEILE */
+                .then(() => loadScript('combat.js?v=' + ver))
                 .then(() => loadScript('game.js?v=' + ver))
                 .then(() => { if(typeof UI !== 'undefined') UI.init(); console.log("System Ready."); });
         });
