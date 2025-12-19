@@ -1,5 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.0.18k] - 2025-12-19 (Security & Usability Update)
+------------------------------------------------
+- FIX: Doppel-Login verhindert. Aktive Sessions blockieren neue Login-Versuche für die gleiche ID.
+- FIX: "Ghost Gamer" Fix. Inaktive Spieler (>5 Min ohne Ping) werden automatisch ausgeblendet.
+- UI: Sicherheitsabfrage für Items hinzugefügt. Klick auf Item öffnet nun Bestätigungs-Dialog statt sofortiger Nutzung.
+
+
 [v0.0.18j] - 2025-12-19 (Dungeon Master Update)
 ------------------------------------------------
 - FEATURE: Multi-Level Dungeons! Dungeons haben nun 3 Ebenen. Treppen (v) führen tiefer hinab.
