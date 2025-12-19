@@ -399,7 +399,13 @@ const UI = {
                 if(this.els.spawnMsg) this.els.spawnMsg.textContent = `KEIN SPIELSTAND FÜR ID '${id}' GEFUNDEN.`;
             }
         } catch(e) {
-            this.error("LOGIN FEHLGESCHLAGEN: " + e.message);
+            // NEU: Fehlerbehandlung für Doppel-Login
+            if (e.message === "ALREADY_ONLINE") {
+                this.els.loginStatus.textContent = "FEHLER: BENUTZER BEREITS EINGELOGGT";
+                this.els.loginStatus.className = "mt-4 text-red-500 font-bold blink-red";
+            } else {
+                this.error("LOGIN FEHLGESCHLAGEN: " + e.message);
+            }
         }
     },
 
@@ -641,6 +647,46 @@ const UI = {
         }
     },
 
+    // NEU: Item Confirm Logic
+    showItemConfirm: function(itemId) {
+        if(!this.els.dialog || !Game.items[itemId]) return;
+        
+        const item = Game.items[itemId];
+        Game.state.inDialog = true;
+        this.els.dialog.innerHTML = '';
+        this.els.dialog.style.display = 'flex';
+        
+        const box = document.createElement('div');
+        box.className = "bg-black border-2 border-green-500 p-4 shadow-[0_0_15px_green] max-w-sm text-center mb-4 mr-4";
+        box.innerHTML = `
+            <h2 class="text-xl font-bold text-green-400 mb-2">${item.name}</h2>
+            <p class="text-green-200 mb-4 text-sm">Möchtest du diesen Gegenstand benutzen?</p>
+        `;
+
+        const btnContainer = document.createElement('div');
+        btnContainer.className = "flex gap-2 justify-center w-full";
+
+        const btnYes = document.createElement('button');
+        btnYes.className = "border border-green-500 text-green-500 hover:bg-green-900 px-4 py-2 font-bold w-full";
+        btnYes.textContent = "BENUTZEN";
+        btnYes.onclick = () => {
+            Game.useItem(itemId);
+            this.leaveDialog();
+        };
+
+        const btnNo = document.createElement('button');
+        btnNo.className = "border border-red-500 text-red-500 hover:bg-red-900 px-4 py-2 font-bold w-full";
+        btnNo.textContent = "ABBRECHEN";
+        btnNo.onclick = () => {
+            this.leaveDialog();
+        };
+
+        btnContainer.appendChild(btnYes);
+        btnContainer.appendChild(btnNo);
+        box.appendChild(btnContainer);
+        this.els.dialog.appendChild(box);
+    },
+
     renderInventory: function() {
         const list = document.getElementById('inventory-list');
         const countDisplay = document.getElementById('inv-count');
@@ -689,10 +735,12 @@ const UI = {
                 </div>
             `;
             
+            // FIX: Jetzt Sicherheitsabfrage statt direkt Nutzung
             btn.onclick = () => {
                  if(item.type === 'junk' || item.type === 'component' || item.type === 'rare') {
+                     // Crafting Items machen nichts bei Klick
                  } else {
-                     Game.useItem(entry.id);
+                     this.showItemConfirm(entry.id);
                  }
             };
 
@@ -991,7 +1039,6 @@ const UI = {
         this.els.dialog.appendChild(box);
     },
 
-    // NEU: Locked Screen (10 Min Sperre)
     showDungeonLocked: function(minutesLeft) {
         if(!this.els.dialog) return;
         Game.state.inDialog = true;
@@ -1014,7 +1061,6 @@ const UI = {
         this.els.dialog.appendChild(box);
     },
 
-    // NEU: Victory Screen (Golden)
     showDungeonVictory: function(caps, lvl) {
         if(!this.els.dialog) return;
         Game.state.inDialog = true;
@@ -1036,7 +1082,7 @@ const UI = {
         
         this.els.dialog.appendChild(box);
         
-        // Automatisches Schließen passiert durch leaveCity() Timeout, aber hier nur visuell
+        // Automatisches Schließen passiert durch leaveCity() Timeout
     },
 
     enterVault: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const restBtn = document.createElement('button'); restBtn.className = "action-button w-full mb-1 border-blue-500 text-blue-300"; restBtn.textContent = "Ausruhen (Gratis)"; restBtn.onclick = () => { Game.rest(); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weiter geht's"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(restBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'flex'; },
