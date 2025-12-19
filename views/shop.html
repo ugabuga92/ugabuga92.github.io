@@ -1,24 +1,21 @@
-<div class="p-4 w-full h-full flex flex-col items-center justify-start overflow-y-auto">
+<div class="p-4 w-full max-w-full h-full flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden">
     <h1 class="text-3xl font-bold mb-4 text-center border-b border-green-500 w-full tracking-widest text-yellow-400">HANDELSPOSTEN</h1>
     
     <div class="w-full flex justify-between mb-4 text-sm bg-green-900/20 p-2 border border-green-900">
         <span class="text-white">ANGEBOT DES TAGES</span>
-        <span>CAPS: <span id="shop-caps" class="text-yellow-400 font-bold">0</span></span>
+        <span>KK: <span id="shop-caps" class="text-yellow-400 font-bold">0</span></span>
     </div>
 
-    <button class="action-button w-full mb-2 border-yellow-400 text-yellow-400" onclick="Game.buyAmmo()">
-        MUNITION KAUFEN (10 STK / 10 CAPS)
+    <button class="action-button w-full mb-2 border-yellow-400 text-yellow-400 whitespace-normal break-words" onclick="Game.buyAmmo()">
+        MUNITION KAUFEN (10 STK / 10 KK)
     </button>
 
     <div id="shop-list" class="w-full space-y-2 mb-4">
-        <!-- Gefüllt von UI.renderShop() -->
-    </div>
+        </div>
 
-    <!-- FIX: Geht zurück zur Stadt -->
-    <button class="action-button w-full mt-auto" onclick="UI.switchView('city')">ZURÜCK ZUR STADT</button>
+    <button class="action-button w-full mt-auto shrink-0" onclick="UI.switchView('city')">ZURÜCK ZUR STADT</button>
 </div>
 <script>
-    // Init Shop
     document.getElementById('shop-caps').textContent = Game.state.caps;
     UI.renderShop(document.getElementById('shop-list'));
 </script>
