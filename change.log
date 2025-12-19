@@ -1,5 +1,15 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.17-beta] - 2025-12-19 (Green Glow & Menu Controls)
+------------------------------------------------
+- UI: Fokus-Indikator (Tastatur-Auswahl) ist nun ein pulsierender grüner Glow (passend zum Theme), statt hartem Weiß.
+- UI: Spieler-Liste (Online User) ist nun zentriert und besser lesbar.
+- FEATURE: Erweitertes ESC-Menü.
+  - ESC im Spiel öffnet/schließt nun das Hauptmenü.
+  - Das Menü ist vollständig mit Tastatur navigierbar.
+- FIX: "Speichern"-Button bleibt nicht mehr auf "SAVED!" hängen, sondern setzt sich korrekt zurück.
+
+
 [v0.1.16-beta] - 2025-12-19 (UI Full Recovery)
 ------------------------------------------------
 - CRITICAL FIX: Die Datei 'ui.js' war unvollständig. Alle fehlenden Funktionen (attemptLogin, renderQuests, Dungeons, etc.) wurden wiederhergestellt.
