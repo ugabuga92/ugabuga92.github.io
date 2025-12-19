@@ -1,5 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.4-beta] - 2025-12-19 (UI Emergency Fixes)
+------------------------------------------------
+- FIX: Inventar-Benutzung repariert. Das Bestätigungs-Overlay fehlte in Menüs, weshalb Klicks auf Items nichts bewirkten.
+- FIX: Weltkarten-Button (🌍) ist nun korrekt auf der Spielkarte sichtbar.
+- UI: Charakter-Stats werden nun immer in der korrekten S.P.E.C.I.A.L. Reihenfolge angezeigt (STR, PER, END, INT, AGI, LUC).
+- UI: Dialog-System stabilisiert (wird nun in jeder Ansicht korrekt geladen).
+
+
 [v0.1.3-beta] - 2025-12-19 (Pathfinder Update)
 ------------------------------------------------
 - UI: Neuer "Weltkarte"-Button (🌍) direkt auf dem Spielfeld (oben rechts) für schnellen Zugriff.
