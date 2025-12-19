@@ -217,7 +217,7 @@ const Game = {
         UI.log(`Sektorwechsel: ${sx},${sy}`, "text-blue-400"); 
     },
 
-    // --- SUB-ZONES (Dungeons) ---
+    // --- SUB-ZONES ---
     tryEnterDungeon: function(type) {
         const key = `${this.state.sector.x},${this.state.sector.y}_${type}`;
         const cd = this.state.cooldowns ? this.state.cooldowns[key] : 0;
@@ -279,7 +279,7 @@ const Game = {
         
         if(!this.state.cooldowns) this.state.cooldowns = {};
         const key = `${this.state.sector.x},${this.state.sector.y}_${this.state.dungeonType}`;
-        this.state.cooldowns[key] = Date.now() + (10 * 60 * 1000); // 10 Minuten
+        this.state.cooldowns[key] = Date.now() + (10 * 60 * 1000); 
 
         UI.showDungeonVictory(caps, multiplier);
         
@@ -441,6 +441,12 @@ const Game = {
         if(typeof UI !== 'undefined') UI.renderCrafting(); 
     },
 
+    // --- INTERACTIONS (RESTORED) ---
+    rest: function() { this.state.hp = this.state.maxHp; UI.log("Ausgeruht. HP voll.", "text-blue-400"); UI.update(); this.saveGame(); },
+    heal: function() { if(this.state.caps >= 25) { this.state.caps -= 25; this.rest(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
+    buyAmmo: function() { if(this.state.caps >= 10) { this.state.caps -= 10; this.state.ammo += 10; UI.log("Munition gekauft.", "text-green-400"); UI.update(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
+    buyItem: function(key) { const item = this.items[key]; if(this.state.caps >= item.cost) { this.state.caps -= item.cost; this.addToInventory(key, 1); UI.log(`Gekauft: ${item.name}`, "text-green-400"); UI.renderCity(); UI.update(); this.saveGame(); } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); } },
+
     // --- HELPER FUNCTIONS ---
     calculateMaxHP: function(end) { return 100 + (end - 5) * 10; }, 
     
@@ -521,7 +527,6 @@ const Game = {
              enemy.maxHp = enemy.hp; 
         }
         
-        // DELEGATE TO COMBAT MODULE
         if(typeof Combat !== 'undefined') {
             Combat.start(enemy);
         } else {
@@ -529,7 +534,6 @@ const Game = {
         }
     },
     
-    // Combat actions sind jetzt in combat.js, aber wir behalten hardReset etc.
     hardReset: function() { if(typeof Network !== 'undefined') Network.deleteSave(); this.state = null; location.reload(); },
     upgradeStat: function(key) { if(this.state.statPoints > 0) { this.state.stats[key]++; this.state.statPoints--; if(key === 'END') this.state.maxHp = this.calculateMaxHP(this.getStat('END')); UI.renderChar(); UI.update(); this.saveGame(); } },
     
