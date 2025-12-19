@@ -4,6 +4,7 @@ const Network = {
     otherPlayers: {},
     active: false,
     initialJoinDone: false,
+    heartbeatInterval: null, // NEU: Variable für den Interval
 
     config: {
         apiKey: "AIzaSyCgSK4nJ3QOVMBd7m9RSmURflSRWN4ejBY",
@@ -33,16 +34,16 @@ const Network = {
         if (!this.active) return null;
         this.myId = userId;
         try {
-            // NEU: Check ob Spieler bereits online ist
             const playerRef = this.db.ref('players/' + this.myId);
             const pSnap = await playerRef.once('value');
+            
             if (pSnap.exists()) {
                 const pData = pSnap.val();
-                // Wenn lastSeen weniger als 2 Minuten her ist -> Login verweigern
-                if (pData.lastSeen && Date.now() - pData.lastSeen < 120000) {
+                // Check: Ist der Spieler wirklich online? (Heartbeat < 20 Sekunden)
+                // Wenn er älter als 20 Sekunden ist, werten wir es als Absturz und erlauben den Login.
+                if (pData.lastSeen && Date.now() - pData.lastSeen < 20000) {
                     throw new Error("ALREADY_ONLINE");
                 }
-                // Ansonsten: Überschreiben erlaubt (Zombie-Session)
             }
 
             const snapshot = await this.db.ref('saves/' + this.myId).once('value');
@@ -57,22 +58,20 @@ const Network = {
     },
 
     startPresence: function() {
-        // Disconnect Handler setzen
+        // Wenn ich disconnecte, lösche meinen Eintrag
         this.db.ref('players/' + this.myId).onDisconnect().remove();
         
+        // Listener für andere Spieler
         this.db.ref('players').on('value', (snapshot) => {
             const rawData = snapshot.val() || {};
             const now = Date.now();
             const cleanData = {};
 
-            // NEU: Ghost Filter & Datenbereinigung
             for (let pid in rawData) {
-                // Filter mich selbst raus
                 if (pid === this.myId) continue;
-
                 const p = rawData[pid];
-                // Wenn lastSeen existiert und älter als 5 Minuten ist -> Ignorieren (Ghost)
-                if (p.lastSeen && (now - p.lastSeen > 300000)) {
+                // Ghost Filter: Wer sich 2 Minuten nicht gemeldet hat, fliegt aus der lokalen Liste
+                if (p.lastSeen && (now - p.lastSeen > 120000)) {
                     continue; 
                 }
                 cleanData[pid] = p;
@@ -82,7 +81,7 @@ const Network = {
 
             if(typeof UI !== 'undefined') {
                 const el = document.getElementById('val-players');
-                if(el) el.textContent = `${Object.keys(this.otherPlayers).length + 1} ONLINE`; // +1 für mich
+                if(el) el.textContent = `${Object.keys(this.otherPlayers).length + 1} ONLINE`; 
                 
                 if(UI.els.spawnScreen && UI.els.spawnScreen.style.display !== 'none') {
                     UI.renderSpawnList(this.otherPlayers);
@@ -99,13 +98,16 @@ const Network = {
         
         // Initialen Ping senden
         this.sendMove(20, 20, 1, {x:0, y:0}); 
+
+        // NEU: Heartbeat Loop starten (alle 5 Sekunden)
+        if(this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+        this.heartbeatInterval = setInterval(() => {
+            this.sendHeartbeat();
+        }, 5000);
     },
 
     save: function(gameState) {
-        if(!this.active || !this.myId) {
-            console.error("Save failed: No network or ID");
-            return;
-        }
+        if(!this.active || !this.myId) return;
         const saveObj = JSON.parse(JSON.stringify(gameState));
         this.db.ref('saves/' + this.myId).set(saveObj)
             .then(() => { if(typeof UI !== 'undefined') UI.log("SPIEL GESPEICHERT.", "text-cyan-400"); })
@@ -119,6 +121,8 @@ const Network = {
     },
 
     disconnect: function() {
+        if (this.heartbeatInterval) clearInterval(this.heartbeatInterval); // Heartbeat stoppen
+        
         if(this.myId && this.db) {
             this.db.ref('players/' + this.myId).remove();
             this.db.ref('players').off(); 
@@ -127,9 +131,16 @@ const Network = {
         this.myId = null;
     },
 
+    // Aktualisiert nur den Timestamp, nicht die Position (spart Daten)
+    sendHeartbeat: function() {
+        if (!this.active || !this.myId) return;
+        this.db.ref('players/' + this.myId).update({
+            lastSeen: Date.now()
+        });
+    },
+
     sendMove: function(x, y, level, sector) {
         if (!this.active || !this.myId) return;
-        // NEU: lastSeen wird immer aktualisiert für Ghost-Erkennung
         this.db.ref('players/' + this.myId).set({
             x: x, y: y, lvl: level, sector: sector, lastSeen: Date.now()
         });
