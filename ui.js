@@ -62,7 +62,7 @@ const UI = {
             btnChar: document.getElementById('btn-char'),
             btnQuests: document.getElementById('btn-quests'),
             btnSave: document.getElementById('btn-save'),
-            btnMenuSave: document.getElementById('btn-menu-save'), // NEU
+            btnMenuSave: document.getElementById('btn-menu-save'),
             btnLogout: document.getElementById('btn-logout'),
             btnReset: document.getElementById('btn-reset'), 
             btnMenu: document.getElementById('btn-menu-toggle'),
@@ -102,7 +102,7 @@ const UI = {
         if(btnLogin) btnLogin.onclick = () => this.attemptLogin();
 
         if(this.els.btnSave) this.els.btnSave.onclick = () => this.handleSaveClick();
-        if(this.els.btnMenuSave) this.els.btnMenuSave.onclick = () => this.handleSaveClick(); // NEU
+        if(this.els.btnMenuSave) this.els.btnMenuSave.onclick = () => this.handleSaveClick();
         if(this.els.btnLogout) this.els.btnLogout.onclick = () => this.logout('MANUELL AUSGELOGGT');
         if(this.els.btnReset) this.els.btnReset.onclick = () => this.handleReset();
 
@@ -162,14 +162,12 @@ const UI = {
         window.addEventListener('keydown', (e) => {
             if (!Game.state || Game.state.isGameOver) return;
 
-            // COMBAT STEUERUNG
             if (Game.state.view === 'combat' && typeof Combat !== 'undefined') {
                 if (e.key === 'ArrowUp' || e.key === 'w') Combat.moveSelection(-1);
                 if (e.key === 'ArrowDown' || e.key === 's') Combat.moveSelection(1);
                 if (e.key === ' ' || e.key === 'Enter') Combat.confirmSelection();
                 if (e.key === 'Escape') Combat.flee();
             }
-            // MAP STEUERUNG
             else if (Game.state.view === 'map' && !Game.state.inDialog) {
                 if(e.key === 'w' || e.key === 'ArrowUp') Game.move(0, -1);
                 if(e.key === 's' || e.key === 'ArrowDown') Game.move(0, 1);
@@ -374,15 +372,13 @@ const UI = {
 
     handleSaveClick: function() {
         Game.saveGame(true);
-        // Feedback für beide Buttons (Header & Menü)
         [this.els.btnSave, this.els.btnMenuSave].forEach(btn => {
             if(!btn) return;
             const originalText = btn.textContent;
             const originalClass = btn.className;
             btn.textContent = "SAVED!";
-            btn.className = "header-btn bg-[#39ff14] text-black border-[#39ff14] w-full text-left"; // Style override
+            btn.className = "header-btn bg-[#39ff14] text-black border-[#39ff14] w-full text-left";
             if(btn === this.els.btnSave) btn.className = "header-btn bg-[#39ff14] text-black border-[#39ff14] hidden md:flex";
-            
             setTimeout(() => {
                 btn.textContent = originalText;
                 btn.className = originalClass;
@@ -646,37 +642,31 @@ const UI = {
         if(this.els.hp) this.els.hp.textContent = `${Math.round(Game.state.hp)}/${maxHp}`; 
         if(this.els.hpBar) this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`;
         
-        // --- ALERT SYSTEM (GLOW) ---
         let hasAlert = false;
-
-        // CHAR Alert (Level Up)
         if(this.els.btnChar) {
             if(Game.state.statPoints > 0) { 
-                this.els.btnChar.classList.add('shadow-[0_0_10px_yellow]', 'border-yellow-400', 'text-yellow-400');
+                this.els.btnChar.innerHTML = "CHAR <span class='text-yellow-400'>!</span>"; 
                 hasAlert = true;
             } else { 
-                this.els.btnChar.classList.remove('shadow-[0_0_10px_yellow]', 'border-yellow-400', 'text-yellow-400');
+                this.els.btnChar.textContent = "CHARAKTER"; 
             }
         } 
-
-        // QUESTS Alert (Unread)
         const unreadQuests = Game.state.quests.some(q => !q.read); 
         if(this.els.btnQuests) {
             if(unreadQuests) { 
-                this.els.btnQuests.classList.add('shadow-[0_0_10px_cyan]', 'border-cyan-400', 'text-cyan-400');
+                this.els.btnQuests.innerHTML = "AUFGABEN <span class='text-cyan-400'>!</span>"; 
                 hasAlert = true;
             } else { 
-                this.els.btnQuests.classList.remove('shadow-[0_0_10px_cyan]', 'border-cyan-400', 'text-cyan-400');
+                this.els.btnQuests.textContent = "AUFGABEN"; 
             }
         } 
-
-        // MAIN MENU Alert (Bubble up)
         if(this.els.btnMenu) {
             if(hasAlert) {
-                // Pulsierender Rand, KEIN fetter Text
-                this.els.btnMenu.classList.add('shadow-[0_0_10px_red]', 'border-red-500', 'animate-pulse');
+                this.els.btnMenu.classList.add('border-red-500', 'text-red-500');
+                this.els.btnMenu.innerHTML = 'MENÜ <span class="text-xl font-bold animate-pulse">!</span>';
             } else {
-                this.els.btnMenu.classList.remove('shadow-[0_0_10px_red]', 'border-red-500', 'animate-pulse');
+                this.els.btnMenu.classList.remove('border-red-500', 'text-red-500');
+                this.els.btnMenu.innerHTML = 'MENÜ <span class="text-xl">☰</span>';
             }
         }
         
@@ -698,7 +688,10 @@ const UI = {
     },
 
     showItemConfirm: function(itemId) {
-        if(!this.els.dialog || !Game.items[itemId]) return;
+        if(!this.els.dialog) {
+            this.restoreOverlay();
+        }
+        if(!Game.items[itemId]) return;
         
         const item = Game.items[itemId];
         Game.state.inDialog = true;
@@ -1022,126 +1015,41 @@ const UI = {
     
     renderCombat: function() { const enemy = Game.state.enemy; if(!enemy) return; document.getElementById('enemy-name').textContent = enemy.name; document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`; document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`; },
 
-    showDungeonWarning: function(callback) {
-        if(!this.els.dialog) { this.restoreOverlay(); }
-        Game.state.inDialog = true;
-        this.els.dialog.innerHTML = '';
-        this.els.dialog.style.display = 'flex';
+    restoreOverlay: function() { 
+        if(document.getElementById('joystick-base')) return; 
         
-        const box = document.createElement('div');
-        box.className = "bg-black border-2 border-red-600 p-4 shadow-[0_0_20px_red] max-w-sm text-center animate-pulse mb-4 mr-4";
-        box.innerHTML = `
-            <h2 class="text-3xl font-bold text-red-600 mb-2 tracking-widest">⚠️ WARNING ⚠️</h2>
-            <p class="text-red-400 mb-4 font-bold">HOHE GEFAHR!<br>Sicher, dass du eintreten willst?</p>
-        `;
-
-        const btnContainer = document.createElement('div');
-        btnContainer.className = "flex gap-2 justify-center w-full";
-
-        const btnYes = document.createElement('button');
-        btnYes.className = "border border-red-500 text-red-500 hover:bg-red-900 px-4 py-2 font-bold w-full";
-        btnYes.textContent = "BETRETEN";
-        btnYes.onclick = () => {
-            this.leaveDialog();
-            if(callback) callback();
-        };
-
-        const btnNo = document.createElement('button');
-        btnNo.className = "border border-green-500 text-green-500 hover:bg-green-900 px-4 py-2 font-bold w-full";
-        btnNo.textContent = "FLUCHT";
-        btnNo.onclick = () => {
-            this.leaveDialog();
-        };
-
-        btnContainer.appendChild(btnYes);
-        btnContainer.appendChild(btnNo);
-        box.appendChild(btnContainer);
-        this.els.dialog.appendChild(box);
+        const joystickHTML = `
+            <div id="joystick-base" style="position: absolute; width: 100px; height: 100px; border-radius: 50%; border: 2px solid rgba(57, 255, 20, 0.5); background: rgba(0, 0, 0, 0.2); display: none; pointer-events: none; z-index: 9999;"></div>
+            <div id="joystick-stick" style="position: absolute; width: 50px; height: 50px; border-radius: 50%; background: rgba(57, 255, 20, 0.8); display: none; pointer-events: none; z-index: 10000; box-shadow: 0 0 10px #39ff14;"></div>
+            
+            <div id="dialog-overlay" style="position: absolute; bottom: 20px; right: 20px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; max-width: 50%;"></div> 
+        `; 
+        this.els.view.insertAdjacentHTML('beforeend', joystickHTML); 
+        
+        this.els.joyBase = document.getElementById('joystick-base');
+        this.els.joyStick = document.getElementById('joystick-stick');
+        this.els.dialog = document.getElementById('dialog-overlay'); 
     },
-
-    showDungeonLocked: function(minutesLeft) {
-        if(!this.els.dialog) { this.restoreOverlay(); }
-        Game.state.inDialog = true;
-        this.els.dialog.innerHTML = '';
-        this.els.dialog.style.display = 'flex';
-        
-        const box = document.createElement('div');
-        box.className = "bg-black border-2 border-gray-600 p-4 shadow-[0_0_20px_gray] max-w-sm text-center mb-4 mr-4";
-        box.innerHTML = `
-            <h2 class="text-3xl font-bold text-gray-400 mb-2 tracking-widest">🔒 LOCKED</h2>
-            <p class="text-gray-300 mb-4 font-bold">Dieses Gebiet ist versiegelt.<br>Versuche es in ${minutesLeft} Minuten wieder.</p>
-        `;
-        
-        const btn = document.createElement('button');
-        btn.className = "border border-gray-500 text-gray-500 hover:bg-gray-900 px-4 py-2 font-bold w-full";
-        btn.textContent = "VERSTANDEN";
-        btn.onclick = () => this.leaveDialog();
-        
-        box.appendChild(btn);
-        this.els.dialog.appendChild(box);
-    },
-
-    showDungeonVictory: function(caps, lvl) {
-        if(!this.els.dialog) { this.restoreOverlay(); }
-        Game.state.inDialog = true;
-        this.els.dialog.innerHTML = '';
-        this.els.dialog.style.display = 'flex';
-        
-        const box = document.createElement('div');
-        box.className = "bg-black border-4 border-yellow-400 p-6 shadow-[0_0_30px_gold] max-w-md text-center mb-4 mr-4 animate-bounce";
-        box.innerHTML = `
-            <div class="text-6xl mb-2">👑⚔️</div>
-            <h2 class="text-4xl font-bold text-yellow-400 mb-2 tracking-widest text-shadow-gold">VICTORY!</h2>
-            <p class="text-yellow-200 mb-4 font-bold text-lg">DUNGEON (LVL ${lvl}) GECLEARED!</p>
-            <div class="text-2xl text-white font-bold border-t border-b border-yellow-500 py-2 mb-4 bg-yellow-900/30">
-                +${caps} KRONKORKEN
-            </div>
-            <p class="text-xs text-yellow-600">Komme in 10 Minuten wieder!</p>
-        `;
-        
-        this.els.dialog.appendChild(box);
-    },
-
+    
     toggleControls: function(show) { if (!show && this.els.dialog) this.els.dialog.innerHTML = ''; },
     showGameOver: function() { if(this.els.gameOver) this.els.gameOver.classList.remove('hidden'); this.toggleControls(false); },
+    enterVault: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const restBtn = document.createElement('button'); restBtn.className = "action-button w-full mb-1 border-blue-500 text-blue-300"; restBtn.textContent = "Ausruhen (Gratis)"; restBtn.onclick = () => { Game.rest(); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weiter geht's"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(restBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'flex'; },
+    enterSupermarket: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const enterBtn = document.createElement('button'); enterBtn.className = "action-button w-full mb-1 border-red-500 text-red-300"; enterBtn.textContent = "Ruine betreten (Gefahr!)"; enterBtn.onclick = () => { Game.loadSector(0, 0, true, "market"); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weitergehen"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(enterBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'block'; },
+    enterCave: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const enterBtn = document.createElement('button'); enterBtn.className = "action-button w-full mb-1 border-gray-500 text-gray-300"; enterBtn.textContent = "In die Tiefe (Dungeon)"; enterBtn.onclick = () => { Game.loadSector(0, 0, true, "cave"); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weitergehen"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(enterBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'block'; },
     leaveDialog: function() { Game.state.inDialog = false; this.els.dialog.style.display = 'none'; this.update(); },
     
-    renderWorldMap: function() { 
-        const grid = document.getElementById('world-grid'); 
-        if(!grid) return; 
-        grid.innerHTML = ''; 
-        for(let y=0; y<8; y++) { 
-            for(let x=0; x<8; x++) { 
-                const d = document.createElement('div'); 
-                d.className = "border border-green-900/30 flex justify-center items-center text-xs relative cursor-help"; 
-                d.title = `Sektor [${x},${y}]`;
-                
-                if(x === Game.state.sector.x && y === Game.state.sector.y) { 
-                    d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.style.fontWeight = "bold"; d.textContent = "YOU"; 
-                } else if(Game.worldData[`${x},${y}`]) { 
-                    const data = Game.worldData[`${x},${y}`];
-                    d.style.backgroundColor = this.biomeColors[data.biome] || '#4a3d34'; 
-                    // POI Marker
-                    if(data.poi) {
-                        d.textContent = data.poi;
-                        d.style.color = "white";
-                        d.style.fontWeight = "bold";
-                        d.style.textShadow = "0 0 2px black";
-                    }
-                } 
-                
-                if(typeof Network !== 'undefined' && Network.otherPlayers) { 
-                    const playersHere = Object.values(Network.otherPlayers).filter(p => p.sector && p.sector.x === x && p.sector.y === y); 
-                    if(playersHere.length > 0) { 
-                        const dot = document.createElement('div'); 
-                        dot.className = "absolute w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]"; 
-                        if(x === Game.state.sector.x && y === Game.state.sector.y) { dot.style.top = "2px"; dot.style.right = "2px"; } 
-                        d.appendChild(dot); 
-                    } 
-                } 
-                grid.appendChild(d); 
-            } 
-        } 
-        grid.style.gridTemplateColumns = "repeat(8, 1fr)"; 
-    }
+    // FIX: RenderQuests wieder eingefügt
+    renderQuests: function() { 
+        const list = document.getElementById('quest-list'); 
+        if(!list) return; 
+        list.innerHTML = Game.state.quests.map(q => ` <div class="border border-green-900 bg-green-900/10 p-2 flex items-center gap-3 cursor-pointer hover:bg-green-900/30 transition-all" onclick="UI.showQuestDetail('${q.id}')"> <div class="text-3xl">✉️</div> <div> <div class="font-bold text-lg text-yellow-400">${q.read ? '' : '<span class="text-cyan-400">[NEU]</span> '}${q.title}</div> <div class="text-xs opacity-70">Zum Lesen klicken</div> </div> </div> `).join(''); 
+    },
+    
+    showQuestDetail: function(id) { const quest = Game.state.quests.find(q => q.id === id); if(!quest) return; quest.read = true; this.update(); const list = document.getElementById('quest-list'); const detail = document.getElementById('quest-detail'); const content = document.getElementById('quest-content'); list.classList.add('hidden'); detail.classList.remove('hidden'); content.innerHTML = `<h2 class="text-2xl font-bold text-yellow-400 border-b border-green-500 mb-4">${quest.title}</h2><div class="font-mono text-lg leading-relaxed whitespace-pre-wrap">${quest.text}</div>`; },
+    closeQuestDetail: function() { document.getElementById('quest-detail').classList.add('hidden'); document.getElementById('quest-list').classList.remove('hidden'); this.renderQuests(); },
+    
+    renderWorldMap: function() { const grid = document.getElementById('world-grid'); if(!grid) return; grid.innerHTML = ''; for(let y=0; y<8; y++) { for(let x=0; x<8; x++) { const d = document.createElement('div'); d.className = "border border-green-900/30 flex justify-center items-center text-xs relative"; if(x === Game.state.sector.x && y === Game.state.sector.y) { d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.style.fontWeight = "bold"; d.textContent = "YOU"; } else if(Game.worldData[`${x},${y}`]) { const biome = Game.worldData[`${x},${y}`].biome; d.style.backgroundColor = this.biomeColors[biome] || '#4a3d34'; } if(typeof Network !== 'undefined' && Network.otherPlayers) { const playersHere = Object.values(Network.otherPlayers).filter(p => p.sector && p.sector.x === x && p.sector.y === y); if(playersHere.length > 0) { const dot = document.createElement('div'); dot.className = "absolute w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]"; if(x === Game.state.sector.x && y === Game.state.sector.y) { dot.style.top = "2px"; dot.style.right = "2px"; } d.appendChild(dot); } } grid.appendChild(d); } } grid.style.gridTemplateColumns = "repeat(8, 1fr)"; },
+    renderCity: function() { const con = document.getElementById('city-options'); if(!con) return; con.innerHTML = ''; const addBtn = (txt, cb, disabled=false) => { const b = document.createElement('button'); b.className = "action-button w-full mb-2 text-left p-3 flex justify-between"; b.innerHTML = txt; b.onclick = cb; if(disabled) { b.disabled = true; b.style.opacity = 0.5; } con.appendChild(b); }; addBtn("Heilen (25 Kronkorken)", () => Game.heal(), Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp); addBtn("Munition (10 Stk / 10 Kronkorken)", () => Game.buyAmmo(), Game.state.caps < 10); addBtn("Händler / Waffen & Rüstung", () => this.renderShop(con)); addBtn("🛠️ Werkbank / Crafting", () => this.toggleView('crafting')); addBtn("Stadt verlassen", () => this.switchView('map')); },
+    renderShop: function(container) { container.innerHTML = ''; const backBtn = document.createElement('button'); backBtn.className = "action-button w-full mb-4 text-center border-yellow-400 text-yellow-400"; backBtn.textContent = "ZURÜCK ZUM PLATZ"; backBtn.onclick = () => this.renderCity(); container.appendChild(backBtn); Object.keys(Game.items).forEach(key => { const item = Game.items[key]; if(item.cost > 0 && Game.state.lvl >= (item.requiredLevel || 0) - 2) { const canAfford = Game.state.caps >= item.cost; const isEquipped = (Game.state.equip[item.slot] && Game.state.equip[item.slot].name === item.name); let label = `<span>${item.name}</span> <span>${item.cost} Kronkorken</span>`; if(isEquipped) label = `<span class="text-green-500">[AUSGERÜSTET]</span>`; const btn = document.createElement('button'); btn.className = "action-button w-full mb-2 flex justify-between text-sm"; btn.innerHTML = label; if(!canAfford || isEquipped) { btn.disabled = true; btn.style.opacity = 0.5; } else { btn.onclick = () => Game.buyItem(key); } container.appendChild(btn); } }); },
+    renderCombat: function() { const enemy = Game.state.enemy; if(!enemy) return; document.getElementById('enemy-name').textContent = enemy.name; document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`; document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`; }
 };
