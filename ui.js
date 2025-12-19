@@ -157,12 +157,15 @@ const UI = {
             this.els.touchArea.addEventListener('touchcancel', (e) => this.handleTouchEnd(e));
         }
 
+        // Tastensteuerung im Kampf angepasst
         window.addEventListener('keydown', (e) => {
             if (!Game.state || Game.state.isGameOver) return;
 
             if (Game.state.view === 'combat') {
-                if (e.key === ' ') { e.preventDefault(); Game.combatAction('attack'); }
-                if (e.key === 'Escape') { Game.combatAction('flee'); }
+                if (e.key === '1') Combat.playerAttack('head');
+                if (e.key === '2') Combat.playerAttack('torso');
+                if (e.key === '3') Combat.playerAttack('legs');
+                if (e.key === 'Escape') Combat.flee();
             }
             else if (Game.state.view === 'map' && !Game.state.inDialog) {
                 if(e.key === 'w' || e.key === 'ArrowUp') Game.move(0, -1);
@@ -399,7 +402,6 @@ const UI = {
                 if(this.els.spawnMsg) this.els.spawnMsg.textContent = `KEIN SPIELSTAND FÜR ID '${id}' GEFUNDEN.`;
             }
         } catch(e) {
-            // NEU: Fehlerbehandlung für Doppel-Login
             if (e.message === "ALREADY_ONLINE") {
                 this.els.loginStatus.textContent = "FEHLER: BENUTZER BEREITS EINGELOGGT";
                 this.els.loginStatus.className = "mt-4 text-red-500 font-bold blink-red";
@@ -647,7 +649,6 @@ const UI = {
         }
     },
 
-    // NEU: Item Confirm Logic
     showItemConfirm: function(itemId) {
         if(!this.els.dialog || !Game.items[itemId]) return;
         
@@ -735,10 +736,8 @@ const UI = {
                 </div>
             `;
             
-            // FIX: Jetzt Sicherheitsabfrage statt direkt Nutzung
             btn.onclick = () => {
                  if(item.type === 'junk' || item.type === 'component' || item.type === 'rare') {
-                     // Crafting Items machen nichts bei Klick
                  } else {
                      this.showItemConfirm(entry.id);
                  }
@@ -973,12 +972,23 @@ const UI = {
         document.getElementById('equip-body-stats').textContent = armStats || "Kein Bonus";
     },
     
+    // NEU: Update renderCombat um Combat.js Daten zu nutzen
     renderCombat: function() { 
+        if(!Game.state.enemy) return;
         const enemy = Game.state.enemy; 
-        if(!enemy) return; 
+        const hpPct = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
+        
+        // Update HP Bar
         document.getElementById('enemy-name').textContent = enemy.name; 
         document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`; 
-        document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`; 
+        document.getElementById('enemy-hp-bar').style.width = `${hpPct}%`; 
+        
+        // Update Hit Chances für Buttons
+        if(typeof Combat !== 'undefined') {
+            document.getElementById('chance-head').textContent = Math.floor(Combat.calcHitChance('head')) + "%";
+            document.getElementById('chance-torso').textContent = Math.floor(Combat.calcHitChance('torso')) + "%";
+            document.getElementById('chance-legs').textContent = Math.floor(Combat.calcHitChance('legs')) + "%";
+        }
     },
 
     restoreOverlay: function() { 
@@ -999,8 +1009,6 @@ const UI = {
     
     toggleControls: function(show) { if (!show && this.els.dialog) this.els.dialog.innerHTML = ''; },
     showGameOver: function() { if(this.els.gameOver) this.els.gameOver.classList.remove('hidden'); this.toggleControls(false); },
-    
-    // --- DIALOGS & INTERACTIONS ---
     
     showDungeonWarning: function(callback) {
         if(!this.els.dialog) return;
@@ -1081,14 +1089,12 @@ const UI = {
         `;
         
         this.els.dialog.appendChild(box);
-        
-        // Automatisches Schließen passiert durch leaveCity() Timeout
     },
 
     enterVault: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const restBtn = document.createElement('button'); restBtn.className = "action-button w-full mb-1 border-blue-500 text-blue-300"; restBtn.textContent = "Ausruhen (Gratis)"; restBtn.onclick = () => { Game.rest(); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weiter geht's"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(restBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'flex'; },
-    
+    enterSupermarket: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const enterBtn = document.createElement('button'); enterBtn.className = "action-button w-full mb-1 border-red-500 text-red-300"; enterBtn.textContent = "Ruine betreten (Gefahr!)"; enterBtn.onclick = () => { Game.loadSector(0, 0, true, "market"); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weitergehen"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(enterBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'block'; },
+    enterCave: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const enterBtn = document.createElement('button'); enterBtn.className = "action-button w-full mb-1 border-gray-500 text-gray-300"; enterBtn.textContent = "In die Tiefe (Dungeon)"; enterBtn.onclick = () => { Game.loadSector(0, 0, true, "cave"); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weitergehen"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(enterBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'block'; },
     leaveDialog: function() { Game.state.inDialog = false; this.els.dialog.style.display = 'none'; this.update(); },
-    
     renderQuests: function() { const list = document.getElementById('quest-list'); if(!list) return; list.innerHTML = Game.state.quests.map(q => ` <div class="border border-green-900 bg-green-900/10 p-2 flex items-center gap-3 cursor-pointer hover:bg-green-900/30 transition-all" onclick="UI.showQuestDetail('${q.id}')"> <div class="text-3xl">✉️</div> <div> <div class="font-bold text-lg text-yellow-400">${q.read ? '' : '<span class="text-cyan-400">[NEU]</span> '}${q.title}</div> <div class="text-xs opacity-70">Zum Lesen klicken</div> </div> </div> `).join(''); },
     showQuestDetail: function(id) { const quest = Game.state.quests.find(q => q.id === id); if(!quest) return; quest.read = true; this.update(); const list = document.getElementById('quest-list'); const detail = document.getElementById('quest-detail'); const content = document.getElementById('quest-content'); list.classList.add('hidden'); detail.classList.remove('hidden'); content.innerHTML = `<h2 class="text-2xl font-bold text-yellow-400 border-b border-green-500 mb-4">${quest.title}</h2><div class="font-mono text-lg leading-relaxed whitespace-pre-wrap">${quest.text}</div>`; },
     closeQuestDetail: function() { document.getElementById('quest-detail').classList.add('hidden'); document.getElementById('quest-list').classList.remove('hidden'); this.renderQuests(); },
@@ -1096,5 +1102,4 @@ const UI = {
     renderWorldMap: function() { const grid = document.getElementById('world-grid'); if(!grid) return; grid.innerHTML = ''; for(let y=0; y<8; y++) { for(let x=0; x<8; x++) { const d = document.createElement('div'); d.className = "border border-green-900/30 flex justify-center items-center text-xs relative"; if(x === Game.state.sector.x && y === Game.state.sector.y) { d.style.backgroundColor = "#39ff14"; d.style.color = "black"; d.style.fontWeight = "bold"; d.textContent = "YOU"; } else if(Game.worldData[`${x},${y}`]) { const biome = Game.worldData[`${x},${y}`].biome; d.style.backgroundColor = this.biomeColors[biome] || '#4a3d34'; } if(typeof Network !== 'undefined' && Network.otherPlayers) { const playersHere = Object.values(Network.otherPlayers).filter(p => p.sector && p.sector.x === x && p.sector.y === y); if(playersHere.length > 0) { const dot = document.createElement('div'); dot.className = "absolute w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]"; if(x === Game.state.sector.x && y === Game.state.sector.y) { dot.style.top = "2px"; dot.style.right = "2px"; } d.appendChild(dot); } } grid.appendChild(d); } } grid.style.gridTemplateColumns = "repeat(8, 1fr)"; },
     renderCity: function() { const con = document.getElementById('city-options'); if(!con) return; con.innerHTML = ''; const addBtn = (txt, cb, disabled=false) => { const b = document.createElement('button'); b.className = "action-button w-full mb-2 text-left p-3 flex justify-between"; b.innerHTML = txt; b.onclick = cb; if(disabled) { b.disabled = true; b.style.opacity = 0.5; } con.appendChild(b); }; addBtn("Heilen (25 Kronkorken)", () => Game.heal(), Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp); addBtn("Munition (10 Stk / 10 Kronkorken)", () => Game.buyAmmo(), Game.state.caps < 10); addBtn("Händler / Waffen & Rüstung", () => this.renderShop(con)); addBtn("🛠️ Werkbank / Crafting", () => this.toggleView('crafting')); addBtn("Stadt verlassen", () => this.switchView('map')); },
     renderShop: function(container) { container.innerHTML = ''; const backBtn = document.createElement('button'); backBtn.className = "action-button w-full mb-4 text-center border-yellow-400 text-yellow-400"; backBtn.textContent = "ZURÜCK ZUM PLATZ"; backBtn.onclick = () => this.renderCity(); container.appendChild(backBtn); Object.keys(Game.items).forEach(key => { const item = Game.items[key]; if(item.cost > 0 && Game.state.lvl >= (item.requiredLevel || 0) - 2) { const canAfford = Game.state.caps >= item.cost; const isEquipped = (Game.state.equip[item.slot] && Game.state.equip[item.slot].name === item.name); let label = `<span>${item.name}</span> <span>${item.cost} Kronkorken</span>`; if(isEquipped) label = `<span class="text-green-500">[AUSGERÜSTET]</span>`; const btn = document.createElement('button'); btn.className = "action-button w-full mb-2 flex justify-between text-sm"; btn.innerHTML = label; if(!canAfford || isEquipped) { btn.disabled = true; btn.style.opacity = 0.5; } else { btn.onclick = () => Game.buyItem(key); } container.appendChild(btn); } }); },
-    renderCombat: function() { const enemy = Game.state.enemy; if(!enemy) return; document.getElementById('enemy-name').textContent = enemy.name; document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`; document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`; }
 };
