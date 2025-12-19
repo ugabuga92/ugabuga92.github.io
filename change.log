@@ -1,5 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.11c-beta] - 2025-12-19 (Code Restore Update)
+------------------------------------------------
+- FIX: `ui.js` wurde "entpackt". Alle Funktionen sind wieder vollständig lesbar und formatiert (Zeilenanzahl wieder normal).
+- UI: Alle vorherigen Fixes (Login-Sperre, Zentrierung, Glow-Effekte) sind enthalten.
+
+
 [v0.1.11-beta] - 2025-12-19 (Login Logic Fix)
 ------------------------------------------------
 - CRITICAL FIX: Doppelter Login behoben.
