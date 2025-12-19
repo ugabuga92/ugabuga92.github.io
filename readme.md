@@ -40,6 +40,13 @@ Ein atmosphärisches, browserbasiertes Retro-RPG im Fallout-Stil. Überlebe im �
     * 🏙️ **Ruinenstadt:** Hoher Loot, tödliche Gegner.
 * **Smarter Spawn:** Das System verhindert, dass du in Wänden oder Hindernissen spawnst.
 
+### 🎯 Das V.A.T.S. System (Vault-Tec Assisted Targeting System):**
+   * Der Kampf ist kein Glücksspiel mehr. Du hast jetzt taktische Optionen:
+   * KOPF: Schwer zu treffen, aber massiver Schaden (Kritisch).
+   * TORSO: Hohe Trefferchance, standard Schaden.
+   * BEINE: Mittlere Chance. Treffer verlangsamen den Gegner (weniger Schaden durch Gegner im nächsten Zug).
+   * Wahrnehmung (PER): Dein S.P.E.C.I.A.L. Stat bestimmt direkt deine Präzision!
+
 ---
 
 ## 🎮 Steuerung
