@@ -59,16 +59,21 @@ const Game = {
                 if(!this.state.cooldowns) this.state.cooldowns = {}; 
                 UI.log(">> Spielstand geladen.", "text-cyan-400");
             } else {
+                // Default Start
                 let startSecX = Math.floor(Math.random() * 8);
                 let startSecY = Math.floor(Math.random() * 8);
                 let startX = 20;
                 let startY = 20;
+
+                // FIX: Override wenn SpawnTarget existiert
                 if (spawnTarget && spawnTarget.sector) {
                     startSecX = spawnTarget.sector.x;
                     startSecY = spawnTarget.sector.y;
                     startX = spawnTarget.x;
                     startY = spawnTarget.y;
+                    UI.log(`>> Ziel-Signal gefunden: Sektor ${startSecX},${startSecY}`, "text-yellow-400");
                 }
+
                 this.state = {
                     sector: {x: startSecX, y: startSecY}, startSector: {x: startSecX, y: startSecY}, 
                     player: {x: startX, y: startY, rot: 0},
@@ -80,7 +85,6 @@ const Game = {
                     visitedSectors: [`${startSecX},${startSecY}`],
                     tempStatIncrease: {}, buffEndTime: 0,
                     cooldowns: {}, 
-                    // NEU: Mehr Start-Quests
                     quests: [ 
                         { id: "q1", title: "Der Weg nach Hause", text: "Suche Zivilisation und finde Vault 101.", read: false },
                         { id: "q2", title: "Jäger & Sammler", text: "Besorge Fleisch von mutierten Tieren für den Handel.", read: false },
@@ -92,10 +96,21 @@ const Game = {
                 this.addToInventory('stimpack', 1);
                 this.state.hp = this.calculateMaxHP(this.getStat('END')); 
                 this.state.maxHp = this.state.hp;
+                
                 if(!spawnTarget) UI.log(">> Neuer Charakter erstellt.", "text-green-400");
                 this.saveGame(); 
             }
+
+            // Karte laden
             this.loadSector(this.state.sector.x, this.state.sector.y);
+
+            // FIX: Wenn SpawnTarget da war, erzwingen wir die Position NACH dem Laden des Sektors nochmal,
+            // damit findSafeSpawn uns nicht woanders hin wirft.
+            if(spawnTarget && !saveData) {
+                this.state.player.x = spawnTarget.x;
+                this.state.player.y = spawnTarget.y;
+            }
+
             UI.switchView('map').then(() => { 
                 if(UI.els.gameOver) UI.els.gameOver.classList.add('hidden'); 
                 if(typeof Network !== 'undefined') Network.sendMove(this.state.player.x, this.state.player.y, this.state.lvl, this.state.sector);
@@ -446,7 +461,7 @@ const Game = {
         if(typeof UI !== 'undefined') UI.renderCrafting(); 
     },
 
-    // --- INTERACTIONS (RESTORED) ---
+    // --- INTERACTIONS ---
     rest: function() { this.state.hp = this.state.maxHp; UI.log("Ausgeruht. HP voll.", "text-blue-400"); UI.update(); this.saveGame(); },
     heal: function() { if(this.state.caps >= 25) { this.state.caps -= 25; this.rest(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
     buyAmmo: function() { if(this.state.caps >= 10) { this.state.caps -= 10; this.state.ammo += 10; UI.log("Munition gekauft.", "text-green-400"); UI.update(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
