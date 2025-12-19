@@ -39,9 +39,15 @@ const Game = {
         const ctx = this.cacheCtx; 
         ctx.fillStyle = "#000"; 
         ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height); 
-        for(let y=0; y<this.MAP_H; y++) 
-            for(let x=0; x<this.MAP_W; x++) 
-                this.drawTile(ctx, x, y, this.state.currentMap[y][x]); 
+        
+        // FIX: Sicherstellen, dass x=0 gezeichnet wird
+        for(let y=0; y<this.MAP_H; y++) {
+            for(let x=0; x<this.MAP_W; x++) {
+                if(this.state.currentMap && this.state.currentMap[y]) {
+                    this.drawTile(ctx, x, y, this.state.currentMap[y][x]); 
+                }
+            }
+        }
     },
 
     // --- GAME START ---
@@ -57,12 +63,16 @@ const Game = {
                 if(!this.state.equip) this.state.equip = { weapon: this.items.fists, body: this.items.vault_suit };
                 if(!this.state.inventory) this.state.inventory = [];
                 if(!this.state.cooldowns) this.state.cooldowns = {}; 
+                // FIX: Explored Safety Check
+                if(!this.state.explored) this.state.explored = {};
+                
                 UI.log(">> Spielstand geladen.", "text-cyan-400");
             } else {
                 let startSecX = Math.floor(Math.random() * 8);
                 let startSecY = Math.floor(Math.random() * 8);
                 let startX = 20;
                 let startY = 20;
+
                 if (spawnTarget && spawnTarget.sector) {
                     startSecX = spawnTarget.sector.x;
                     startSecY = spawnTarget.sector.y;
@@ -70,6 +80,7 @@ const Game = {
                     startY = spawnTarget.y;
                     UI.log(`>> Ziel-Signal gefunden: Sektor ${startSecX},${startSecY}`, "text-yellow-400");
                 }
+
                 this.state = {
                     sector: {x: startSecX, y: startSecY}, startSector: {x: startSecX, y: startSecY}, 
                     player: {x: startX, y: startY, rot: 0},
@@ -77,7 +88,8 @@ const Game = {
                     equip: { weapon: this.items.fists, body: this.items.vault_suit },
                     inventory: [], 
                     hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0, 
-                    view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, explored: {}, 
+                    view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, 
+                    explored: {}, // Start leer
                     visitedSectors: [`${startSecX},${startSecY}`],
                     tempStatIncrease: {}, buffEndTime: 0,
                     cooldowns: {}, 
@@ -96,9 +108,9 @@ const Game = {
                 if(!spawnTarget) UI.log(">> Neuer Charakter erstellt.", "text-green-400");
                 this.saveGame(); 
             }
-            
+
             this.loadSector(this.state.sector.x, this.state.sector.y);
-            
+
             if(spawnTarget && !saveData) {
                 this.state.player.x = spawnTarget.x;
                 this.state.player.y = spawnTarget.y;
@@ -168,6 +180,9 @@ const Game = {
     },
     
     reveal: function(px, py) { 
+        // FIX: Crash Prevention
+        if(!this.state.explored) this.state.explored = {};
+        
         for(let y=py-2; y<=py+2; y++) {
             for(let x=px-2; x<=px+2; x++) {
                 if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) {
@@ -268,8 +283,10 @@ const Game = {
         
         const typeName = type === "cave" ? "Dunkle Höhle" : "Supermarkt Ruine";
         this.state.zone = `${typeName} (Ebene ${level})`;
-        this.state.explored = {};
+        // Dungeons sind immer voll erkundet oder dunkel? Hier resetten wir es.
+        this.state.explored = {}; 
         for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.state.explored[`${x},${y}`] = true;
+        
         this.renderStaticMap();
         UI.log(`${typeName} - Ebene ${level} betreten!`, "text-red-500");
         UI.update();
@@ -313,8 +330,10 @@ const Game = {
         this.state.player.y = 38;
         this.state.player.rot = 0; 
         this.renderStaticMap();
+        
         this.state.explored = {}; 
         for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.state.explored[`${x},${y}`] = true;
+        
         UI.log("Betrete Rusty Springs...", "text-yellow-400");
         UI.update();
     },
@@ -380,8 +399,9 @@ const Game = {
         
         this.fixMapBorders(this.state.currentMap, sx, sy);
         
-        // FIX: HIER WURDE DER BUG BEHOBEN (Zeile entfernt: this.state.explored = data.explored)
-        // Wir verlassen uns auf das globale 'explored' object im state, das geladen wurde.
+        // FIX: WICHTIG! Wir nutzen das explored Objekt aus dem Speicher, NICHT das vom neu generierten Sektor (sonst vergessen wir alles)
+        // ABER wir müssen sicherstellen, dass es existiert.
+        if(!this.state.explored) this.state.explored = {};
         
         let zn = "Ödland"; if(data.biome === 'city') zn = "Ruinenstadt"; if(data.biome === 'desert') zn = "Aschewüste"; if(data.biome === 'jungle') zn = "Dschungel"; if(data.biome === 'swamp') zn = "Sumpf";
         this.state.zone = `${zn} (${sx},${sy})`; 
@@ -456,12 +476,6 @@ const Game = {
         this.saveGame();
         if(typeof UI !== 'undefined') UI.renderCrafting(); 
     },
-
-    // --- INTERACTIONS ---
-    rest: function() { this.state.hp = this.state.maxHp; UI.log("Ausgeruht. HP voll.", "text-blue-400"); UI.update(); this.saveGame(); },
-    heal: function() { if(this.state.caps >= 25) { this.state.caps -= 25; this.rest(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
-    buyAmmo: function() { if(this.state.caps >= 10) { this.state.caps -= 10; this.state.ammo += 10; UI.log("Munition gekauft.", "text-green-400"); UI.update(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
-    buyItem: function(key) { const item = this.items[key]; if(this.state.caps >= item.cost) { this.state.caps -= item.cost; this.addToInventory(key, 1); UI.log(`Gekauft: ${item.name}`, "text-green-400"); UI.renderCity(); UI.update(); this.saveGame(); } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); } },
 
     // --- HELPER FUNCTIONS ---
     calculateMaxHP: function(end) { return 100 + (end - 5) * 10; }, 
@@ -550,6 +564,7 @@ const Game = {
         }
     },
     
+    // Combat actions sind jetzt in combat.js, aber wir behalten hardReset etc.
     hardReset: function() { if(typeof Network !== 'undefined') Network.deleteSave(); this.state = null; location.reload(); },
     upgradeStat: function(key) { if(this.state.statPoints > 0) { this.state.stats[key]++; this.state.statPoints--; if(key === 'END') this.state.maxHp = this.calculateMaxHP(this.getStat('END')); UI.renderChar(); UI.update(); this.saveGame(); } },
     
