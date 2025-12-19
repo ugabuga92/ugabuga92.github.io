@@ -1,5 +1,14 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.13-beta] - 2025-12-19 (Glow & Footer Polish)
+------------------------------------------------
+- UI: Menü-Benachrichtigungen (Glow-Effekte) für Charakter (Gelb) und Aufgaben (Cyan) pulsieren nun animiert.
+- UI: Footer-Leiste im Menü bereinigt.
+  - "ONLINE" Text entfernt.
+  - Versionsnummer wird nun korrekt aus der Datei geladen und nicht mehr überschrieben.
+  - Format: "X USER | v0.1.13-beta".
+
+
 [v0.1.12-beta] - 2025-12-19 (Enter Key Hotfix)
 ------------------------------------------------
 - FIX: Die Enter-Taste im Login-Screen funktioniert wieder.
