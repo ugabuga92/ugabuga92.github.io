@@ -1,5 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.5-beta] - 2025-12-19 (Stability & UI Order Update)
+------------------------------------------------
+- CRITICAL FIX: Strukturfehler in ui.js behoben (Doppelte Funktionsnamen entfernt), der 'restoreOverlay' und damit alle Dialoge (Inventar, Warnungen, V.A.T.S.) blockierte.
+- UI (Map): Weltkarten-Button (🌍) ist nun fester Bestandteil des Map-Overlays mit erhöhtem Z-Index, um immer klickbar zu sein.
+- UI (Char): Stats werden nun strikt in der Reihenfolge S.P.E.C.I.A.L. (Stärke, Wahrnehmung, Ausdauer, Intelligenz, Beweglichkeit, Glück) angezeigt.
+- UI (Inventar): Die fehlerhafte Hover-Anzeige wurde komplett entfernt. Ein Klick öffnet nun direkt das Bestätigungs-Fenster mit Item-Details.
+
+
 [v0.1.4-beta] - 2025-12-19 (UI Emergency Fixes)
 ------------------------------------------------
 - FIX: Inventar-Benutzung repariert. Das Bestätigungs-Overlay fehlte in Menüs, weshalb Klicks auf Items nichts bewirkten.
