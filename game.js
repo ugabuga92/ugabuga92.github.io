@@ -23,10 +23,7 @@ const Game = {
         cvs.width = viewContainer.clientWidth; 
         cvs.height = viewContainer.clientHeight; 
         this.ctx = cvs.getContext('2d'); 
-        
-        // Pixel Art Look erzwingen
         this.ctx.imageSmoothingEnabled = false;
-        
         if(this.loopId) cancelAnimationFrame(this.loopId); 
         this.drawLoop(); 
     },
@@ -43,8 +40,6 @@ const Game = {
         const ctx = this.cacheCtx; 
         ctx.fillStyle = "#000"; 
         ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height); 
-        
-        // FIX: Start bei 0 für korrekten linken Rand
         for(let y=0; y<this.MAP_H; y++) {
             for(let x=0; x<this.MAP_W; x++) {
                 if(this.state.currentMap && this.state.currentMap[y]) {
@@ -54,22 +49,23 @@ const Game = {
         }
     },
 
-    // --- GAME START ---
-    init: function(saveData, spawnTarget=null) {
+    // --- GAME START (MIT SLOT LOGIK) ---
+    init: function(saveData, spawnTarget=null, slotIndex=0, newName=null) {
         this.worldData = {};
         this.initCache();
         try {
             if (saveData) {
                 this.state = saveData;
-                // Safety Checks für alte Spielstände
+                // Add missing properties for legacy saves
                 if(!this.state.explored) this.state.explored = {};
                 if(!this.state.inDialog) this.state.inDialog = false; 
                 if(!this.state.view) this.state.view = 'map';
                 if(!this.state.visitedSectors) this.state.visitedSectors = [];
-                
-                UI.log(">> SYSTEM NEUSTART...", "text-cyan-400");
+                // Update Slot
+                this.state.saveSlot = slotIndex;
+                UI.log(">> Spielstand geladen.", "text-cyan-400");
             } else {
-                // Neues Spiel
+                // New Game
                 let startSecX = Math.floor(Math.random() * 8);
                 let startSecY = Math.floor(Math.random() * 8);
                 let startX = 20;
@@ -84,8 +80,9 @@ const Game = {
                 }
 
                 this.state = {
-                    sector: {x: startSecX, y: startSecY}, 
-                    startSector: {x: startSecX, y: startSecY}, 
+                    saveSlot: slotIndex,
+                    playerName: newName || "SURVIVOR",
+                    sector: {x: startSecX, y: startSecY}, startSector: {x: startSecX, y: startSecY}, 
                     player: {x: startX, y: startY, rot: 0},
                     stats: { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 }, 
                     equip: { weapon: this.items.fists, body: this.items.vault_suit },
@@ -106,14 +103,12 @@ const Game = {
                 this.state.hp = this.calculateMaxHP(this.getStat('END')); 
                 this.state.maxHp = this.state.hp;
                 
-                if(!spawnTarget) UI.log(">> Neuer Charakter erstellt.", "text-green-400");
+                UI.log(">> Neuer Charakter erstellt.", "text-green-400");
                 this.saveGame(); 
             }
 
-            // Karte laden
             this.loadSector(this.state.sector.x, this.state.sector.y);
 
-            // Spawn Position erzwingen (nach LoadSector, damit findSafeSpawn nichts überschreibt)
             if(spawnTarget && !saveData) {
                 this.state.player.x = spawnTarget.x;
                 this.state.player.y = spawnTarget.y;
@@ -137,7 +132,6 @@ const Game = {
         const nx = this.state.player.x + dx;
         const ny = this.state.player.y + dy;
         
-        // Sector Change
         if(nx < 0 || nx >= this.MAP_W || ny < 0 || ny >= this.MAP_H) {
             this.changeSector(nx, ny);
             return;
@@ -145,7 +139,6 @@ const Game = {
 
         const tile = this.state.currentMap[ny][nx];
         
-        // Interactions
         if (tile === '$') { UI.switchView('shop'); return; }
         if (tile === '&') { UI.switchView('crafting'); return; }
         if (tile === 'P') { UI.switchView('clinic'); return; }
@@ -153,7 +146,6 @@ const Game = {
         if (tile === 'X') { this.openChest(nx, ny); return; } 
         if (tile === 'v') { this.descendDungeon(); return; }
 
-        // Blockers
         if(['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F'].includes(tile)) { 
             UI.shakeView();
             return; 
@@ -162,23 +154,20 @@ const Game = {
         this.state.player.x = nx;
         this.state.player.y = ny;
         
-        // Rotation
         if(dx === 1) this.state.player.rot = Math.PI / 2;
         if(dx === -1) this.state.player.rot = -Math.PI / 2;
         if(dy === 1) this.state.player.rot = Math.PI;
         if(dy === -1) this.state.player.rot = 0;
 
-        // Reveal & Save
         this.reveal(nx, ny);
+        
         if(typeof Network !== 'undefined') Network.sendHeartbeat();
 
-        // Tile Triggers
         if(tile === 'V') { UI.switchView('vault'); return; }
         if(tile === 'S') { this.tryEnterDungeon("market"); return; }
         if(tile === 'H') { this.tryEnterDungeon("cave"); return; }
         if(tile === 'C') { this.enterCity(); return; } 
         
-        // Random Encounters
         if(['.', ',', '_', ';', '"', '+', 'x', 'B'].includes(tile)) {
             if(Math.random() < 0.04) { 
                 this.startCombat();
@@ -189,12 +178,10 @@ const Game = {
         UI.update();
     },
     
-    // FIX: Explored Key Logic (Global Persistence)
     reveal: function(px, py) { 
         if(!this.state.explored) this.state.explored = {};
         
         const radius = 2; 
-        // WICHTIG: Key enthält nun den Sektor, damit es persistent ist
         const secKey = `${this.state.sector.x},${this.state.sector.y}`;
         
         for(let y = py - radius; y <= py + radius; y++) {
@@ -214,21 +201,14 @@ const Game = {
         if(sx === 7) { for(let i=0; i<this.MAP_H; i++) map[i][this.MAP_W-1] = '#'; }
     },
 
-    // DIE FEHLENDE FUNKTION (WIEDER DA!)
     findSafeSpawn: function() {
         if(!this.state || !this.state.currentMap) return;
-        
         const isSafe = (x, y) => {
             if(x < 0 || x >= this.MAP_W || y < 0 || y >= this.MAP_H) return false;
             const t = this.state.currentMap[y][x];
-            // Nicht sicher: Wände, Bäume, Wasser
             return !['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F'].includes(t);
         };
-
-        // Wenn aktuelle Position sicher, bleib da
         if(isSafe(this.state.player.x, this.state.player.y)) return;
-        
-        // Sonst suche Spirale nach außen
         const rMax = 6;
         for(let r=1; r<=rMax; r++) {
             for(let dy=-r; dy<=r; dy++) {
@@ -243,7 +223,6 @@ const Game = {
                 }
             }
         }
-        // Fallback
         this.state.player.x = 20;
         this.state.player.y = 20;
     },
@@ -252,22 +231,17 @@ const Game = {
         let sx=this.state.sector.x, sy=this.state.sector.y; 
         let newPx = px;
         let newPy = py;
-        
         if(py < 0) { sy--; newPy = this.MAP_H - 1; newPx = this.state.player.x; }
         else if(py >= this.MAP_H) { sy++; newPy = 0; newPx = this.state.player.x; }
         if(px < 0) { sx--; newPx = this.MAP_W - 1; newPy = this.state.player.y; }
         else if(px >= this.MAP_W) { sx++; newPx = 0; newPy = this.state.player.y; }
 
-        if(sx < 0 || sx > 7 || sy < 0 || sy > 7) { 
-            UI.log("Ende der Weltkarte.", "text-red-500"); 
-            return; 
-        } 
+        if(sx < 0 || sx > 7 || sy < 0 || sy > 7) { UI.log("Ende der Weltkarte.", "text-red-500"); return; } 
         
         this.state.sector = {x: sx, y: sy}; 
         this.loadSector(sx, sy); 
         this.state.player.x = newPx;
         this.state.player.y = newPy;
-        
         this.findSafeSpawn(); 
         this.reveal(this.state.player.x, this.state.player.y); 
         this.saveGame();
@@ -300,7 +274,6 @@ const Game = {
             this.state.player.x = data.startX;
             this.state.player.y = data.startY;
 
-            // Make Exit visible only on level 3? No, always visible as 'v' or 'X'
             if(level < 3) {
                 for(let y=0; y<this.MAP_H; y++) {
                     for(let x=0; x<this.MAP_W; x++) {
@@ -314,10 +287,9 @@ const Game = {
         
         const typeName = type === "cave" ? "Dunkle Höhle" : "Supermarkt Ruine";
         this.state.zone = `${typeName} (Ebene ${level})`;
-        // Reset local fog for dungeons (optional choice, feels more scary)
+        // Dungeons use local fog of war (reset on entry)
         this.state.explored = {}; 
-        for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.state.explored[`${this.state.sector.x},${this.state.sector.y}_${x},${y}`] = true; // Hack to make it visible or just ignore fog in draw?
-        // Actually, let's keep fog logic consistent. We fill explored for dungeon cells.
+        for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.state.explored[`${this.state.sector.x},${this.state.sector.y}_${x},${y}`] = true;
         
         this.renderStaticMap();
         UI.log(`${typeName} - Ebene ${level} betreten!`, "text-red-500");
@@ -363,13 +335,10 @@ const Game = {
         this.state.player.rot = 0; 
         
         this.renderStaticMap();
-        // Stadt ist immer hell
-        // We simulate this by momentarily filling explored. 
-        // Better: In draw(), if zone is city, ignore fog. But keeping it simple:
-        // We skip fog check in Draw for city? No, let's reveal all.
+        // Stadt voll aufgedeckt
+        this.state.explored = {}; 
         const secKey = `${this.state.sector.x},${this.state.sector.y}`;
-        // Achtung: Wenn wir hier explored füllen, merkt er sich das für die "echte" Map darunter.
-        // Das ist okay für jetzt.
+        for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.state.explored[`${secKey}_${x},${y}`] = true;
         
         UI.log("Betrete Rusty Springs...", "text-yellow-400");
         UI.update();
@@ -436,7 +405,6 @@ const Game = {
         
         this.fixMapBorders(this.state.currentMap, sx, sy);
         
-        // FIX: Explored darf NICHT überschrieben werden!
         if(!this.state.explored) this.state.explored = {};
         
         let zn = "Ödland"; 
@@ -449,7 +417,6 @@ const Game = {
         this.findSafeSpawn();
         this.renderStaticMap(); 
         
-        // Initial Reveal around player after loading to ensure visibility
         this.reveal(this.state.player.x, this.state.player.y);
     },
 
@@ -653,7 +620,7 @@ const Game = {
             for(let x=startX; x<endX; x++) { 
                 if(y>=0 && y<this.MAP_H && x>=0 && x<this.MAP_W) { 
                     
-                    // FOG OF WAR
+                    // FOG OF WAR CHECK
                     const tileKey = `${secKey}_${x},${y}`;
                     
                     // City is always visible
@@ -663,10 +630,10 @@ const Game = {
                         // Draw Black Mask
                         ctx.fillStyle = "#000";
                         ctx.fillRect(x * this.TILE, y * this.TILE, this.TILE, this.TILE);
-                        continue; 
+                        continue; // Don't draw objects under fog
                     }
 
-                    // Draw Dynamic Tiles
+                    // Draw Dynamic Tiles (POIs)
                     const t = this.state.currentMap[y][x]; 
                     if(['V', 'S', 'C', 'G', 'H', '^', 'v', '<', '>', '$', '&', 'P', 'E', 'F', 'X'].includes(t)) { 
                         this.drawTile(ctx, x, y, t, pulse); 
@@ -722,9 +689,12 @@ const Game = {
         const ts = this.TILE; const px = x * ts; const py = y * ts; 
         let bg = this.colors['.']; if(['_', ',', ';', '=', 'W', 'M', '~', '|', 'B'].includes(type)) bg = this.colors[type]; 
         
+        // Base Color
         if (!['^','v','<','>'].includes(type) && type !== '#') { ctx.fillStyle = bg; ctx.fillRect(px, py, ts, ts); } 
+        // Grid Line
         if(!['^','v','<','>','M','W','~'].includes(type) && type !== '#') { ctx.strokeStyle = "rgba(40, 90, 40, 0.05)"; ctx.lineWidth = 1; ctx.strokeRect(px, py, ts, ts); } 
         
+        // Portals
         if(['^', 'v', '<', '>'].includes(type)) { 
             ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#1aff1a"; ctx.strokeStyle = "#000"; ctx.beginPath(); 
             if (type === '^') { ctx.moveTo(px + ts/2, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); ctx.lineTo(px + 5, py + ts - 5); } 
