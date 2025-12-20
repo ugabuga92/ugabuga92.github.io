@@ -1,5 +1,14 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.2.3-alpha] - 2025-12-20 (Touch & Explored Fix)
+------------------------------------------------
+- CRITICAL FIX: Absturz beim Erkunden der Karte behoben (TypeError: undefined is not an object).
+  - Das 'explored'-Objekt wird nun sicher initialisiert, bevor darauf zugegriffen wird.
+- UI (Mobile): Neuer Button "CHARAKTER ERSTELLEN" im Auswahl-Screen hinzugefügt.
+  - Ermöglicht das Erstellen eines neuen Charakters per Touch/Klick, nachdem ein leerer Slot gewählt wurde.
+- UI: Slot-Design verbessert, um den aktiven Slot deutlicher hervorzuheben.
+
+
 [v0.1.23-beta] - 2025-12-20 (UI FINAL RESTORE)
 ------------------------------------------------
 - SYSTEM: 'ui.js' Hard-Restore. Die Datei wurde auf volle Länge zurückgesetzt.
