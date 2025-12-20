@@ -1,5 +1,14 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.2.7-beta] - 2025-12-20 (Permadeath Warning & Vault Fix)
+------------------------------------------------
+- CRITICAL FIX: 'Game.rest' wurde wiederhergestellt. Heilung im Vault funktioniert nun wieder.
+- UI: Neues "PERMADEATH INTRO" beim ersten Spielstart eines Charakters.
+  - Großes Overlay mit Totenkopf-ASCII-Art.
+  - Warnung, dass der Tod endgültig ist.
+- FIX: Netzwerk-Initialisierung verbessert, um "Netzwerkfehler" beim Login auf einigen Geräten zu vermeiden.
+
+
 [v0.2.6-beta] - 2025-12-20 (Layout Fix & Intro)
 ------------------------------------------------
 - FIX: UI Layout auf Mobile korrigiert. Das Log-Fenster ist nun deutlich kleiner (30%), das Spielfeld dominiert wieder den Bildschirm.
