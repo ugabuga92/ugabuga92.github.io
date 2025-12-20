@@ -8,7 +8,7 @@ const Game = {
 
     state: null, worldData: {}, ctx: null, loopId: null, camera: { x: 0, y: 0 }, cacheCanvas: null, cacheCtx: null,
 
-    // --- INITIALIZATION & RENDERING ---
+    // --- INITIALIZATION ---
     initCache: function() { 
         this.cacheCanvas = document.createElement('canvas'); 
         this.cacheCanvas.width = this.MAP_W * this.TILE; 
@@ -49,23 +49,25 @@ const Game = {
         }
     },
 
-    // --- GAME START (MIT SLOT LOGIK) ---
+    // --- GAME START ---
     init: function(saveData, spawnTarget=null, slotIndex=0, newName=null) {
         this.worldData = {};
         this.initCache();
         try {
             if (saveData) {
                 this.state = saveData;
-                // Add missing properties for legacy saves
-                if(!this.state.explored) this.state.explored = {};
+                // EXTREM WICHTIG: Sicherstellen, dass explored existiert
+                if(!this.state.explored || typeof this.state.explored !== 'object') {
+                    this.state.explored = {};
+                }
+                
                 if(!this.state.inDialog) this.state.inDialog = false; 
                 if(!this.state.view) this.state.view = 'map';
                 if(!this.state.visitedSectors) this.state.visitedSectors = [];
-                // Update Slot
                 this.state.saveSlot = slotIndex;
+                
                 UI.log(">> Spielstand geladen.", "text-cyan-400");
             } else {
-                // New Game
                 let startSecX = Math.floor(Math.random() * 8);
                 let startSecY = Math.floor(Math.random() * 8);
                 let startX = 20;
@@ -125,7 +127,25 @@ const Game = {
         }
     },
 
-    // --- MOVEMENT & MAP LOGIC ---
+    // --- MAP LOGIC ---
+    // FIX: Absturz-Prävention
+    reveal: function(px, py) { 
+        if(!this.state) return;
+        if(!this.state.explored) this.state.explored = {}; // SAFETY FIRST
+        
+        const radius = 2; 
+        const secKey = `${this.state.sector.x},${this.state.sector.y}`;
+        
+        for(let y = py - radius; y <= py + radius; y++) {
+            for(let x = px - radius; x <= px + radius; x++) {
+                if(x >= 0 && x < this.MAP_W && y >= 0 && y < this.MAP_H) {
+                    const tileKey = `${secKey}_${x},${y}`;
+                    this.state.explored[tileKey] = true;
+                }
+            }
+        }
+    },
+
     move: function(dx, dy) {
         if(!this.state || this.state.isGameOver || this.state.view !== 'map' || this.state.inDialog) return;
         
@@ -160,7 +180,6 @@ const Game = {
         if(dy === -1) this.state.player.rot = 0;
 
         this.reveal(nx, ny);
-        
         if(typeof Network !== 'undefined') Network.sendHeartbeat();
 
         if(tile === 'V') { UI.switchView('vault'); return; }
@@ -174,63 +193,14 @@ const Game = {
                 return;
             }
         }
-        
         UI.update();
-    },
-    
-    reveal: function(px, py) { 
-        if(!this.state.explored) this.state.explored = {};
-        
-        const radius = 2; 
-        const secKey = `${this.state.sector.x},${this.state.sector.y}`;
-        
-        for(let y = py - radius; y <= py + radius; y++) {
-            for(let x = px - radius; x <= px + radius; x++) {
-                if(x >= 0 && x < this.MAP_W && y >= 0 && y < this.MAP_H) {
-                    const tileKey = `${secKey}_${x},${y}`;
-                    this.state.explored[tileKey] = true;
-                }
-            }
-        }
-    },
-
-    fixMapBorders: function(map, sx, sy) {
-        if(sy === 0) { for(let i=0; i<this.MAP_W; i++) map[0][i] = '#'; }
-        if(sy === 7) { for(let i=0; i<this.MAP_W; i++) map[this.MAP_H-1][i] = '#'; }
-        if(sx === 0) { for(let i=0; i<this.MAP_H; i++) map[i][0] = '#'; }
-        if(sx === 7) { for(let i=0; i<this.MAP_H; i++) map[i][this.MAP_W-1] = '#'; }
-    },
-
-    findSafeSpawn: function() {
-        if(!this.state || !this.state.currentMap) return;
-        const isSafe = (x, y) => {
-            if(x < 0 || x >= this.MAP_W || y < 0 || y >= this.MAP_H) return false;
-            const t = this.state.currentMap[y][x];
-            return !['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F'].includes(t);
-        };
-        if(isSafe(this.state.player.x, this.state.player.y)) return;
-        const rMax = 6;
-        for(let r=1; r<=rMax; r++) {
-            for(let dy=-r; dy<=r; dy++) {
-                for(let dx=-r; dx<=r; dx++) {
-                    const tx = this.state.player.x + dx;
-                    const ty = this.state.player.y + dy;
-                    if(isSafe(tx, ty)) {
-                        this.state.player.x = tx;
-                        this.state.player.y = ty;
-                        return;
-                    }
-                }
-            }
-        }
-        this.state.player.x = 20;
-        this.state.player.y = 20;
     },
 
     changeSector: function(px, py) { 
         let sx=this.state.sector.x, sy=this.state.sector.y; 
         let newPx = px;
         let newPy = py;
+        
         if(py < 0) { sy--; newPy = this.MAP_H - 1; newPx = this.state.player.x; }
         else if(py >= this.MAP_H) { sy++; newPy = 0; newPx = this.state.player.x; }
         if(px < 0) { sx--; newPx = this.MAP_W - 1; newPy = this.state.player.y; }
@@ -245,114 +215,7 @@ const Game = {
         this.findSafeSpawn(); 
         this.reveal(this.state.player.x, this.state.player.y); 
         this.saveGame();
-        
         UI.log(`Sektorwechsel: ${sx},${sy}`, "text-blue-400"); 
-    },
-
-    // --- SUB-ZONES ---
-    tryEnterDungeon: function(type) {
-        const key = `${this.state.sector.x},${this.state.sector.y}_${type}`;
-        const cd = this.state.cooldowns ? this.state.cooldowns[key] : 0;
-        if(cd && Date.now() < cd) {
-             const minLeft = Math.ceil((cd - Date.now())/60000);
-             UI.showDungeonLocked(minLeft);
-             return;
-        }
-        UI.showDungeonWarning(() => this.enterDungeon(type));
-    },
-
-    enterDungeon: function(type, level=1) {
-        if(level === 1) this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
-        
-        this.state.dungeonLevel = level;
-        this.state.dungeonType = type;
-
-        if(typeof WorldGen !== 'undefined') {
-            WorldGen.setSeed((this.state.sector.x + 1) * (this.state.sector.y + 1) * Date.now() + level); 
-            const data = WorldGen.generateDungeonLayout(this.MAP_W, this.MAP_H);
-            this.state.currentMap = data.map;
-            this.state.player.x = data.startX;
-            this.state.player.y = data.startY;
-
-            if(level < 3) {
-                for(let y=0; y<this.MAP_H; y++) {
-                    for(let x=0; x<this.MAP_W; x++) {
-                        if(this.state.currentMap[y][x] === 'X') {
-                            this.state.currentMap[y][x] = 'v';
-                        }
-                    }
-                }
-            }
-        }
-        
-        const typeName = type === "cave" ? "Dunkle Höhle" : "Supermarkt Ruine";
-        this.state.zone = `${typeName} (Ebene ${level})`;
-        // Dungeons use local fog of war (reset on entry)
-        this.state.explored = {}; 
-        for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.state.explored[`${this.state.sector.x},${this.state.sector.y}_${x},${y}`] = true;
-        
-        this.renderStaticMap();
-        UI.log(`${typeName} - Ebene ${level} betreten!`, "text-red-500");
-        UI.update();
-    },
-
-    descendDungeon: function() {
-        this.enterDungeon(this.state.dungeonType, this.state.dungeonLevel + 1);
-        UI.shakeView();
-        UI.log("Du steigst tiefer hinab...", "text-purple-400 font-bold");
-    },
-    
-    openChest: function(x, y) {
-        this.state.currentMap[y][x] = 'B'; 
-        this.renderStaticMap(); 
-        
-        const multiplier = this.state.dungeonLevel || 1;
-        const caps = (Math.floor(Math.random() * 200) + 100) * multiplier;
-        this.state.caps += caps;
-        this.addToInventory('legendary_part', 1 * multiplier);
-        
-        if(!this.state.cooldowns) this.state.cooldowns = {};
-        const key = `${this.state.sector.x},${this.state.sector.y}_${this.state.dungeonType}`;
-        this.state.cooldowns[key] = Date.now() + (10 * 60 * 1000); 
-
-        UI.showDungeonVictory(caps, multiplier);
-        
-        if(Math.random() < 0.5) this.addToInventory('stimpack', 2);
-        if(Math.random() < 0.5) this.addToInventory('nuclear_mat', 1);
-        
-        setTimeout(() => { this.leaveCity(); }, 4000);
-    },
-
-    enterCity: function() {
-        this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
-        if(typeof WorldGen !== 'undefined') {
-            const map = WorldGen.generateCityLayout(this.MAP_W, this.MAP_H);
-            this.state.currentMap = map;
-        }
-        this.state.zone = "Rusty Springs (Stadt)";
-        this.state.player.x = 20;
-        this.state.player.y = 38;
-        this.state.player.rot = 0; 
-        
-        this.renderStaticMap();
-        // Stadt voll aufgedeckt
-        this.state.explored = {}; 
-        const secKey = `${this.state.sector.x},${this.state.sector.y}`;
-        for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.state.explored[`${secKey}_${x},${y}`] = true;
-        
-        UI.log("Betrete Rusty Springs...", "text-yellow-400");
-        UI.update();
-    },
-
-    leaveCity: function() {
-        if(this.state.savedPosition) {
-            this.state.player.x = this.state.savedPosition.x;
-            this.state.player.y = this.state.savedPosition.y;
-            this.state.savedPosition = null;
-        }
-        this.state.dungeonLevel = 0; 
-        this.loadSector(this.state.sector.x, this.state.sector.y);
-        UI.log("Zurück im Ödland.", "text-green-400");
     },
 
     loadSector: function(sx_in, sy_in) { 
@@ -418,6 +281,150 @@ const Game = {
         this.renderStaticMap(); 
         
         this.reveal(this.state.player.x, this.state.player.y);
+    },
+
+    fixMapBorders: function(map, sx, sy) {
+        if(sy === 0) { for(let i=0; i<this.MAP_W; i++) map[0][i] = '#'; }
+        if(sy === 7) { for(let i=0; i<this.MAP_W; i++) map[this.MAP_H-1][i] = '#'; }
+        if(sx === 0) { for(let i=0; i<this.MAP_H; i++) map[i][0] = '#'; }
+        if(sx === 7) { for(let i=0; i<this.MAP_H; i++) map[i][this.MAP_W-1] = '#'; }
+    },
+    
+    findSafeSpawn: function() {
+        if(!this.state || !this.state.currentMap) return;
+        const isSafe = (x, y) => {
+            if(x < 0 || x >= this.MAP_W || y < 0 || y >= this.MAP_H) return false;
+            const t = this.state.currentMap[y][x];
+            return !['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F'].includes(t);
+        };
+        if(isSafe(this.state.player.x, this.state.player.y)) return;
+        const rMax = 6;
+        for(let r=1; r<=rMax; r++) {
+            for(let dy=-r; dy<=r; dy++) {
+                for(let dx=-r; dx<=r; dx++) {
+                    const tx = this.state.player.x + dx;
+                    const ty = this.state.player.y + dy;
+                    if(isSafe(tx, ty)) {
+                        this.state.player.x = tx;
+                        this.state.player.y = ty;
+                        return;
+                    }
+                }
+            }
+        }
+        this.state.player.x = 20;
+        this.state.player.y = 20;
+    },
+
+    // --- SUB-ZONES ---
+    tryEnterDungeon: function(type) {
+        const key = `${this.state.sector.x},${this.state.sector.y}_${type}`;
+        const cd = this.state.cooldowns ? this.state.cooldowns[key] : 0;
+        if(cd && Date.now() < cd) {
+             const minLeft = Math.ceil((cd - Date.now())/60000);
+             UI.showDungeonLocked(minLeft);
+             return;
+        }
+        UI.showDungeonWarning(() => this.enterDungeon(type));
+    },
+
+    enterDungeon: function(type, level=1) {
+        if(level === 1) this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
+        
+        this.state.dungeonLevel = level;
+        this.state.dungeonType = type;
+
+        if(typeof WorldGen !== 'undefined') {
+            WorldGen.setSeed((this.state.sector.x + 1) * (this.state.sector.y + 1) * Date.now() + level); 
+            const data = WorldGen.generateDungeonLayout(this.MAP_W, this.MAP_H);
+            this.state.currentMap = data.map;
+            this.state.player.x = data.startX;
+            this.state.player.y = data.startY;
+
+            if(level < 3) {
+                for(let y=0; y<this.MAP_H; y++) {
+                    for(let x=0; x<this.MAP_W; x++) {
+                        if(this.state.currentMap[y][x] === 'X') {
+                            this.state.currentMap[y][x] = 'v';
+                        }
+                    }
+                }
+            }
+        }
+        
+        const typeName = type === "cave" ? "Dunkle Höhle" : "Supermarkt Ruine";
+        this.state.zone = `${typeName} (Ebene ${level})`;
+        // Dungeon Fog Reset (optional)
+        this.state.explored = {}; 
+        const secKey = `${this.state.sector.x},${this.state.sector.y}`;
+        // Mark current view as explored so we don't start in black
+        this.reveal(this.state.player.x, this.state.player.y);
+        
+        this.renderStaticMap();
+        UI.log(`${typeName} - Ebene ${level} betreten!`, "text-red-500");
+        UI.update();
+    },
+
+    descendDungeon: function() {
+        this.enterDungeon(this.state.dungeonType, this.state.dungeonLevel + 1);
+        UI.shakeView();
+        UI.log("Du steigst tiefer hinab...", "text-purple-400 font-bold");
+    },
+    
+    openChest: function(x, y) {
+        this.state.currentMap[y][x] = 'B'; 
+        this.renderStaticMap(); 
+        
+        const multiplier = this.state.dungeonLevel || 1;
+        const caps = (Math.floor(Math.random() * 200) + 100) * multiplier;
+        this.state.caps += caps;
+        this.addToInventory('legendary_part', 1 * multiplier);
+        
+        if(!this.state.cooldowns) this.state.cooldowns = {};
+        const key = `${this.state.sector.x},${this.state.sector.y}_${this.state.dungeonType}`;
+        this.state.cooldowns[key] = Date.now() + (10 * 60 * 1000); 
+
+        UI.showDungeonVictory(caps, multiplier);
+        
+        if(Math.random() < 0.5) this.addToInventory('stimpack', 2);
+        if(Math.random() < 0.5) this.addToInventory('nuclear_mat', 1);
+        
+        setTimeout(() => { this.leaveCity(); }, 4000);
+    },
+
+    enterCity: function() {
+        this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
+        if(typeof WorldGen !== 'undefined') {
+            const map = WorldGen.generateCityLayout(this.MAP_W, this.MAP_H);
+            this.state.currentMap = map;
+        }
+        this.state.zone = "Rusty Springs (Stadt)";
+        this.state.player.x = 20;
+        this.state.player.y = 38;
+        this.state.player.rot = 0; 
+        
+        this.renderStaticMap();
+        
+        // City is fully explored
+        if(!this.state.explored) this.state.explored = {};
+        const secKey = `${this.state.sector.x},${this.state.sector.y}`;
+        // Simple trick: in Draw(), we check if zone is City and ignore fog. 
+        // But for safety:
+        for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.state.explored[`${secKey}_${x},${y}`] = true;
+        
+        UI.log("Betrete Rusty Springs...", "text-yellow-400");
+        UI.update();
+    },
+
+    leaveCity: function() {
+        if(this.state.savedPosition) {
+            this.state.player.x = this.state.savedPosition.x;
+            this.state.player.y = this.state.savedPosition.y;
+            this.state.savedPosition = null;
+        }
+        this.state.dungeonLevel = 0; 
+        this.loadSector(this.state.sector.x, this.state.sector.y);
+        UI.log("Zurück im Ödland.", "text-green-400");
     },
 
     // --- GAMEPLAY MECHANICS ---
@@ -486,12 +493,6 @@ const Game = {
         this.saveGame();
         if(typeof UI !== 'undefined') UI.renderCrafting(); 
     },
-
-    // --- INTERACTIONS ---
-    rest: function() { this.state.hp = this.state.maxHp; UI.log("Ausgeruht. HP voll.", "text-blue-400"); UI.update(); this.saveGame(); },
-    heal: function() { if(this.state.caps >= 25) { this.state.caps -= 25; this.rest(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
-    buyAmmo: function() { if(this.state.caps >= 10) { this.state.caps -= 10; this.state.ammo += 10; UI.log("Munition gekauft.", "text-green-400"); UI.update(); } else UI.log("Zu wenig Kronkorken.", "text-red-500"); },
-    buyItem: function(key) { const item = this.items[key]; if(this.state.caps >= item.cost) { this.state.caps -= item.cost; this.addToInventory(key, 1); UI.log(`Gekauft: ${item.name}`, "text-green-400"); UI.renderCity(); UI.update(); this.saveGame(); } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); } },
 
     // --- HELPER FUNCTIONS ---
     calculateMaxHP: function(end) { return 100 + (end - 5) * 10; }, 
@@ -630,7 +631,7 @@ const Game = {
                         // Draw Black Mask
                         ctx.fillStyle = "#000";
                         ctx.fillRect(x * this.TILE, y * this.TILE, this.TILE, this.TILE);
-                        continue; // Don't draw objects under fog
+                        continue; 
                     }
 
                     // Draw Dynamic Tiles (POIs)
