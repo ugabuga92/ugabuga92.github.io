@@ -12,177 +12,89 @@
     <style>
         :root { --pip-green: #1aff1a; --pip-dim: #0d330d; --pip-bg: #051105; }
         html, body { width: 100%; height: 100%; overflow: hidden; position: fixed; background: #000; color: var(--pip-green); font-family: 'VT323', monospace; user-select: none; -webkit-user-select: none; }
-        .crt-effect-container::before { content: " "; display: block; position: absolute; inset: 0; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.15) 50%), linear-gradient(90deg, rgba(255,0,0,0.03), rgba(0,255,0,0.01), rgba(0,0,255,0.03)); z-index: 10; background-size: 100% 3px, 4px 100%; pointer-events: none; }
-        .action-button { background: #0f1f0f; color: var(--pip-green); border: 1px solid var(--pip-green); padding: 10px; margin: 5px 0; cursor: pointer; text-transform: uppercase; font-size: 1.25rem; display: flex; justify-content: center; align-items: center; width: 100%; }
-        .action-button:active { background: var(--pip-green); color: black; transform: scale(0.98); }
-        .header-btn { padding: 5px 15px; border: 2px solid var(--pip-green); background: rgba(0, 20, 0, 0.8); color: var(--pip-green); font-weight: bold; }
-        
-        #login-screen, #char-select-screen, #spawn-screen, #reset-overlay, #manual-overlay, #changelog-overlay, #delete-confirm-overlay, #game-over-screen { position: absolute; inset: 0; z-index: 999; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .login-box { border: 2px solid var(--pip-green); padding: 20px; text-align: center; box-shadow: 0 0 20px var(--pip-dim); width: 90%; max-width: 400px; background: #000; }
-        input.login-input { background: #000; border: 2px solid var(--pip-green); color: var(--pip-green); font-family: inherit; font-size: 20px; padding: 10px; text-align: center; width: 100%; outline: none; margin-bottom: 10px; }
-        
-        #pipboy-case { background: #111; padding: 10px; height: 100vh; display: flex; flex-direction: column; }
-        #main-content { flex-grow: 1; display: flex; overflow: hidden; position: relative; width: 100%; height: 100%; }
-        #main-panel { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; width: 100%; }
-        #layout-split { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; width: 100%; height: 100%; }
-        
-        /* Mobile Layout: Map oben (70%), Log unten (30%) */
-        #view-container { flex-grow: 0; flex-shrink: 0; height: 65%; border-bottom: 2px solid var(--pip-green); position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        #log-panel { flex-grow: 1; height: 35%; background: #020a02; display: flex; flex-direction: column; min-height: 0; }
-        
-        .char-slot { border: 1px solid var(--pip-dim); background: rgba(0,20,0,0.5); padding: 15px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .char-slot.active-slot { border-color: var(--pip-green); background: var(--pip-green); color: black; font-weight: bold; }
-        .char-slot.empty-slot { opacity: 0.5; font-style: italic; }
-        .blink-red { animation: blink-red 1s infinite; color: red; } @keyframes blink-red { 50% { opacity: 0.5; } }
-        
-        @media (min-width: 768px) { 
-            #layout-split { flex-direction: row; } 
-            #view-container { width: 75%; height: 100%; border-bottom: none; border-right: 2px solid var(--pip-green); } 
-            #log-panel { width: 25%; height: 100%; } 
-            #pipboy-case { padding: 20px; }
-        }
+        .crt::before { content: " "; display: block; position: absolute; inset: 0; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.15) 50%), linear-gradient(90deg, rgba(255,0,0,0.03), rgba(0,255,0,0.01), rgba(0,0,255,0.03)); z-index: 10; background-size: 100% 3px, 4px 100%; pointer-events: none; }
+        .btn { background: #0f1f0f; color: var(--pip-green); border: 1px solid var(--pip-green); padding: 8px; margin: 2px; cursor: pointer; text-transform: uppercase; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; width: 100%; }
+        .btn:active { background: var(--pip-green); color: black; }
+        #login-screen, #char-screen, #game-screen { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; }
+        .box { border: 2px solid var(--pip-green); padding: 20px; text-align: center; width: 90%; max-width: 400px; margin: auto; }
+        input { background: #000; border: 2px solid var(--pip-green); color: var(--pip-green); font-family: inherit; font-size: 20px; padding: 10px; width: 100%; margin-bottom: 10px; text-align: center; }
+        #view-container { flex-grow: 1; position: relative; border-bottom: 2px solid var(--pip-green); overflow: hidden; }
+        #log-panel { height: 30%; background: #020a02; display: flex; flex-direction: column; }
+        .char-slot { border: 1px solid #0d330d; padding: 10px; margin-bottom: 5px; cursor: pointer; }
+        .char-slot.active { background: var(--pip-green); color: black; }
+        /* Mobile Layout Fixes */
+        #game-layout { display: flex; flex-direction: column; height: 100%; width: 100%; }
+        @media (min-width: 768px) { #game-layout { flex-direction: row; } #view-container { width: 75%; height: 100%; border-bottom: none; border-right: 2px solid var(--pip-green); } #log-panel { width: 25%; height: 100%; } }
     </style>
 </head>
 <body>
-<div id="pipboy-case">
-    <div id="login-screen">
-        <div class="login-box crt-effect-container">
-            <h1 class="text-5xl font-bold mb-4" style="text-shadow: 0 0 10px #2bff2b;">PIP-BOY 3003</h1>
-            <div id="login-title" class="text-xl mb-4 opacity-80">AUTHENTICATION REQUIRED</div>
-            <form onsubmit="event.preventDefault();" class="flex flex-col gap-2 mb-4">
-                <input type="email" id="login-email" class="login-input" placeholder="E-MAIL" autocomplete="username">
-                <input type="password" id="login-pass" class="login-input" placeholder="PASSWORT" autocomplete="current-password">
-                <input type="text" id="login-name" class="login-input hidden" placeholder="ACCOUNT NAME" style="display:none;">
-            </form>
-            <button id="btn-login" class="action-button font-bold text-xl">LOGIN</button>
-            <button id="btn-toggle-register" class="text-sm text-yellow-400 hover:text-yellow-200 underline bg-transparent border-none mt-2">Noch kein Account? Hier registrieren</button>
-            <div class="flex gap-2 w-full mt-4">
-                <button onclick="UI.showManualOverlay()" class="action-button border-yellow-400 text-yellow-400" style="flex:1;">ANLEITUNG</button>
-                <button onclick="UI.showChangelogOverlay()" class="action-button border-blue-400 text-blue-400" style="flex:1;">LOGS</button>
-            </div>
-            <div id="login-status" class="mt-4 text-yellow-400 text-sm font-mono min-h-[20px]"></div>
-            <div class="mt-2 text-xs opacity-50">VERSION: <span id="login-version-display">RELOAD...</span></div>
+<div id="pipboy-case" class="w-full h-full">
+    <div id="login-screen" class="crt">
+        <div class="box">
+            <h1 class="text-5xl font-bold mb-4">PIP-BOY 3003</h1>
+            <input type="email" id="login-email" placeholder="E-MAIL">
+            <input type="password" id="login-pass" placeholder="PASSWORT">
+            <input type="text" id="login-name" placeholder="NAME" style="display:none">
+            <button id="btn-login" class="btn font-bold">LOGIN</button>
+            <button id="btn-reg-toggle" class="text-sm text-yellow-400 mt-2">Account erstellen</button>
+            <div id="login-status" class="mt-4 text-red-500 font-bold"></div>
         </div>
     </div>
 
-    <div id="char-select-screen" style="display: none;">
-        <div class="login-box crt-effect-container w-full max-w-lg">
-            <h1 class="text-4xl font-bold text-yellow-400 mb-4 border-b border-yellow-400 pb-2">CHARAKTER WAHL</h1>
-            <div class="text-xs mb-4 text-green-300">Wähle einen Slot aus der Liste:</div>
-            <div id="char-slots-list" class="flex flex-col gap-2 w-full mb-4 max-h-[40vh] overflow-y-auto"></div>
-            
-            <div class="flex flex-col gap-2 w-full mb-4">
-                <button id="btn-char-select-action" class="action-button font-bold border-yellow-400 text-yellow-400">CHARAKTER ERSTELLEN</button>
-                <button id="btn-char-delete-action" class="action-button font-bold border-red-500 text-red-500" style="display:none;">CHARAKTER LÖSCHEN</button>
-            </div>
-            <button class="action-button border-gray-500 text-gray-500" onclick="UI.logout('LOGOUT')">ABMELDEN</button>
+    <div id="char-screen" style="display:none;" class="crt">
+        <div class="box">
+            <h2 class="text-3xl text-yellow-400 mb-4">CHARAKTER WAHL</h2>
+            <div id="char-list" class="flex flex-col gap-2 mb-4"></div>
+            <button id="btn-char-action" class="btn border-yellow-400 text-yellow-400">LADE...</button>
+            <button id="btn-char-delete" class="btn border-red-500 text-red-500 hidden">LÖSCHEN</button>
+            <button onclick="location.reload()" class="btn border-gray-500 text-gray-500 mt-2">ABMELDEN</button>
         </div>
     </div>
 
-    <div id="new-char-overlay" class="hidden z-[1000] bg-black/95 flex flex-col justify-center items-center absolute inset-0">
-        <div class="login-box crt-effect-container border-yellow-400">
-            <h2 class="text-3xl font-bold text-yellow-400 mb-2">NEUE IDENTITÄT</h2>
-            <p class="text-green-300 mb-4">Name des Bewohners:</p>
-            <input type="text" id="new-char-name" class="login-input mb-4 text-yellow-400 border-yellow-400" placeholder="NAME" maxlength="15">
-            <div class="flex gap-2 w-full">
-                <button id="btn-create-char-confirm" class="action-button border-yellow-400 text-yellow-400 font-bold" style="flex:1;">ERSTELLEN</button>
-                <button onclick="document.getElementById('new-char-overlay').classList.add('hidden')" class="action-button" style="flex:1;">ABBRUCH</button>
-            </div>
+    <div id="new-char-overlay" style="display:none;" class="absolute inset-0 z-50 bg-black/90 flex justify-center items-center">
+        <div class="box border-yellow-400">
+            <h2 class="text-2xl text-yellow-400 mb-2">NEUE IDENTITÄT</h2>
+            <input type="text" id="new-char-input" class="border-yellow-400 text-yellow-400" placeholder="NAME">
+            <button id="btn-create-confirm" class="btn border-yellow-400 text-yellow-400">STARTEN</button>
+            <button onclick="document.getElementById('new-char-overlay').style.display='none'" class="btn">ABBRUCH</button>
         </div>
     </div>
 
-    <div id="game-screen" class="hidden opacity-0 transition-opacity duration-1000">
-        <header class="flex items-center justify-between p-2 border-b-2 border-[#39ff14] bg-[#001100] z-30 h-16 shrink-0 relative gap-2 w-full">
-            <div class="flex flex-col justify-center h-full flex-grow leading-tight">
-                <div class="flex items-baseline gap-2">
-                    <span id="val-name" class="text-xl font-bold text-cyan-400 uppercase truncate">PLAYER</span>
-                    <span class="text-yellow-400 text-sm font-bold">LVL <span id="val-lvl">1</span></span>
-                    <span class="text-yellow-400 text-sm font-bold ml-2"><span id="val-caps">0</span> KK</span>
-                </div>
-                <div class="flex items-center gap-2 w-full max-w-xs h-3 bg-gray-900 border border-[#39ff14] relative">
-                    <div id="bar-hp" class="absolute h-full bg-[#1aff1a] transition-all" style="width: 100%"></div>
-                    <div id="val-hp" class="absolute inset-0 text-[10px] flex items-center justify-center text-black font-bold">100/100</div>
-                </div>
+    <div id="game-screen" style="display:none;">
+        <header class="h-16 border-b-2 border-[#1aff1a] flex items-center justify-between px-2 bg-[#001100]">
+            <div>
+                <div class="text-xl font-bold text-cyan-400" id="val-name">PLAYER</div>
+                <div class="text-xs text-yellow-400">HP <span id="val-hp">100/100</span> | LVL <span id="val-lvl">1</span></div>
             </div>
-            <div class="flex items-center gap-2">
-                <button id="btn-save" class="header-btn hidden md:flex">SPEICHERN</button>
-                <button id="btn-menu-toggle" class="header-btn">MENÜ</button>
-            </div>
-            <div id="main-nav" class="hidden absolute top-16 right-0 z-[100] flex-col bg-black border-2 border-[#39ff14] p-2 gap-2 w-56 shadow-[0_5px_15px_#000]">
-                <button id="btn-inv" class="action-button w-full text-left">INVENTAR</button>
-                <button id="btn-char" class="action-button w-full text-left">CHARAKTER</button>
-                <button id="btn-map" class="action-button w-full text-left">WELT</button>
-                <button id="btn-quests" class="action-button w-full text-left">AUFGABEN</button>
-                <button id="btn-wiki" class="action-button w-full text-left">WIKI</button>
-                <button onclick="UI.showManualOverlay()" class="action-button w-full text-left text-yellow-400 border-yellow-400">HANDBUCH</button>
-                <div class="border-t border-green-900 my-1"></div>
-                <button id="btn-menu-save" class="action-button w-full text-left border-yellow-400 text-yellow-400">SPEICHERN</button>
-                <button id="btn-logout" class="action-button w-full text-left text-red-400 border-red-500">LOGOUT</button>
-            </div>
+            <button id="btn-menu" class="btn w-auto px-4">MENÜ</button>
         </header>
-
-        <div id="main-content">
-            <div id="main-panel">
-                <div id="layout-split">
-                    <div id="view-container" class="crt-effect-container">
-                        <div id="overlay-controls"></div>
-                        <div id="dialog-overlay"></div>
-                    </div>
-                    <div id="log-panel">
-                        <div class="bg-[#1aff1a] text-black font-bold px-2 flex justify-between items-center h-6 shrink-0"><h2>LOG</h2><span id="game-timer">00:00:00</span></div>
-                        <div id="log-area" class="flex-grow overflow-y-auto p-2 text-sm flex flex-col-reverse font-mono leading-relaxed text-green-400"></div>
-                    </div>
-                </div>
+        <div id="game-layout">
+            <div id="view-container" class="crt">
+                <div id="overlay-controls"></div>
+                <div id="dialog-overlay" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:50;"></div>
+            </div>
+            <div id="log-panel">
+                <div class="bg-[#1aff1a] text-black font-bold px-2">LOG</div>
+                <div id="log-area" class="flex-grow overflow-y-auto p-2 text-xs flex flex-col-reverse text-green-400 font-mono"></div>
             </div>
         </div>
+        <div id="main-menu" style="display:none;" class="absolute top-16 right-0 w-48 bg-black border-2 border-[#1aff1a] p-2 z-50">
+            <button onclick="UI.toggleView('inventory')" class="btn">INVENTAR</button>
+            <button onclick="UI.toggleView('char')" class="btn">STATUS</button>
+            <button onclick="UI.toggleView('worldmap')" class="btn">KARTE</button>
+            <button onclick="UI.toggleView('wiki')" class="btn">WIKI</button>
+            <button onclick="Game.saveGame(true)" class="btn border-yellow-400 text-yellow-400">SPEICHERN</button>
+            <button onclick="location.reload()" class="btn border-red-500 text-red-500">LOGOUT</button>
+        </div>
     </div>
-    
-    <div id="manual-overlay" class="hidden z-[1000] bg-black/95"><div class="border-2 border-yellow-400 w-full max-w-2xl h-[90vh] bg-[#111] flex flex-col p-4"><div class="flex justify-between items-center border-b border-yellow-400 pb-2"><h2 class="text-2xl text-yellow-400">HANDBUCH</h2><button class="text-red-500 font-bold px-2 border border-red-500" onclick="this.parentElement.parentElement.parentElement.style.display='none'">X</button></div><div id="manual-content" class="flex-grow overflow-y-auto text-green-300 p-2"></div></div></div>
-    <div id="changelog-overlay" class="hidden z-[1000] bg-black/95"><div class="border-2 border-blue-400 w-full max-w-2xl h-[90vh] bg-[#050510] flex flex-col p-4"><div class="flex justify-between items-center border-b border-blue-400 pb-2"><h2 class="text-2xl text-blue-400">CHANGELOG</h2><button class="text-red-500 font-bold px-2 border border-red-500" onclick="this.parentElement.parentElement.parentElement.style.display='none'">X</button></div><div id="changelog-content" class="flex-grow overflow-y-auto text-blue-200 p-2 whitespace-pre-wrap"></div></div></div>
-    <div id="delete-confirm-overlay" style="display: none;"><div class="login-box border-red-500"><h2 class="text-3xl text-red-600 mb-2">LÖSCHEN?</h2><p class="text-red-400 mb-4">Tippe Namen zur Bestätigung:</p><div id="delete-target-name" class="font-bold text-white mb-2 bg-red-900/50 p-2">???</div><input type="text" id="delete-input" class="login-input border-red-500 text-red-500" placeholder="NAME"><div class="flex gap-2 w-full mt-4"><button id="btn-delete-confirm" class="action-button border-red-500 text-red-500" disabled>WEG DAMIT</button><button id="btn-delete-cancel" class="action-button border-green-500 text-green-500">HALT STOP</button></div></div></div>
-    <div id="game-over-screen" class="absolute inset-0 z-50 bg-black/95 flex flex-col justify-center items-center hidden"><h1 class="text-6xl text-red-600 font-bold border-4 border-red-600 p-6 mb-6 blink-red">CRITICAL FAILURE</h1><button onclick="location.reload()" class="border-2 border-red-500 text-red-500 px-8 py-3 text-xl font-bold uppercase cursor-pointer">NEUSTART</button></div>
-    <div id="spawn-screen" style="display: none;"><div class="login-box"><div id="spawn-list" class="mb-4"></div><button id="btn-spawn-random" class="action-button">ZUFALL</button></div></div>
-    <div id="reset-overlay" style="display: none;"><div class="login-box border-red-500"><h1 class="text-red-500">RESET?</h1><button id="btn-confirm-reset" class="action-button border-red-500 text-red-500">JA</button><button id="btn-cancel-reset" class="action-button">NEIN</button></div></div>
-    <div id="player-list-overlay"></div>
 </div>
-
 <script>
-    // CACHE BUSTER LOADER v0.3.1
-    // Lädt Dateien immer neu durch Zeitstempel
-    function loadScript(src) { 
-        return new Promise((resolve, reject) => { 
-            const s = document.createElement('script'); 
-            s.src = src; 
-            s.onload = resolve; 
-            s.onerror = reject; 
-            document.body.appendChild(s); 
-        }); 
-    }
-    
-    window.onload = function() {
-        const bust = Date.now(); // Erzwingt Neuladen
-        console.log("System Boot... ID:", bust);
-        document.getElementById('login-version-display').textContent = "0.3.1-beta";
-
-        loadScript('data.js?v=' + bust)
-            .then(() => loadScript('world_gen.js?v=' + bust))
-            .then(() => loadScript('network.js?v=' + bust))
-            .then(() => loadScript('ui.js?v=' + bust)) // Wichtig: Nur noch ui.js!
-            .then(() => loadScript('combat.js?v=' + bust))
-            .then(() => loadScript('game.js?v=' + bust))
-            .then(() => { 
-                if(typeof UI !== 'undefined' && UI.init) {
-                    UI.init(); 
-                    console.log("System Ready.");
-                } else {
-                    console.error("UI Module Load Failed");
-                    document.getElementById('login-status').textContent = "FEHLER: UI LADEFEHLER";
-                }
-            })
-            .catch(e => {
-                console.error("CRITICAL LOAD ERROR:", e);
-                document.getElementById('login-status').textContent = "LADEFEHLER: " + e.message;
-            });
+    const ver = Date.now();
+    function load(s) { return new Promise((r,e) => { const el=document.createElement('script'); el.src=s+"?v="+ver; el.onload=r; el.onerror=e; document.body.appendChild(el); }); }
+    window.onload = () => {
+        load('data.js').then(()=>load('world_gen.js')).then(()=>load('network.js')).then(()=>load('ui.js')).then(()=>load('combat.js')).then(()=>load('game.js'))
+        .then(()=> { if(typeof UI!=='undefined') UI.init(); else console.error("UI missing"); })
+        .catch(e => { document.getElementById('login-status').textContent = "LADEFEHLER: " + e.message; });
     };
 </script>
 </body>
