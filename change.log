@@ -1,5 +1,14 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.22-beta] - 2025-12-20 (Map Persistence & Fog Fix)
+------------------------------------------------
+- CRITICAL FIX: Die Weltkarte merkt sich nun dauerhaft aufgedeckte Gebiete.
+  - Speicherlogik umgestellt auf "Sektor-basierte Keys" (SektorX,SektorY_TileX,TileY).
+  - Der "Fog of War" wird nun korrekt aus dem Savegame geladen und dargestellt.
+- FIX: Grafikfehler am linken Kartenrand behoben. Die Kamera-Positionierung wurde korrigiert.
+- UI: Touch-Steuerung im Menü optimiert.
+
+
 [v0.2.1-alpha] - 2025-12-20 (Security & Documentation)
 ------------------------------------------------
 - SECURITY: Datenbank-Regeln verschärft. Die Meldung "unsichere Regeln" ist behoben.
