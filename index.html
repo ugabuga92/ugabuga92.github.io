@@ -115,19 +115,23 @@
         </div>
     </div>
 
-    <div id="char-select-screen" style="display: none;">
+       <div id="char-select-screen" style="display: none;">
         <div class="login-box crt-effect-container w-full max-w-lg">
             <h1 class="text-4xl font-bold text-yellow-400 mb-4 border-b border-yellow-400 pb-2">CHARAKTER WAHL</h1>
-            <div class="text-xs mb-4 text-green-300">Wähle einen Slot. 'ENTF' zum Löschen.</div>
+            <div class="text-xs mb-4 text-green-300">Wähle einen Slot.</div>
             
             <div id="char-slots-list" class="flex flex-col gap-2 w-full mb-4">
                 </div>
             
-            <button id="btn-char-select-action" class="action-button w-full mb-4 font-bold border-yellow-400 text-yellow-400">CHARAKTER ERSTELLEN</button>
+            <div class="flex flex-col gap-2 w-full mb-4">
+                <button id="btn-char-select-action" class="action-button w-full font-bold border-yellow-400 text-yellow-400 py-3">CHARAKTER ERSTELLEN</button>
+                <button id="btn-char-delete-action" class="action-button w-full font-bold border-red-500 text-red-500 py-2 hidden">CHARAKTER LÖSCHEN</button>
+            </div>
 
-            <button class="action-button w-full border-red-500 text-red-500" onclick="UI.logout('LOGOUT')">ABMELDEN</button>
+            <button class="action-button w-full border-gray-500 text-gray-500" onclick="UI.logout('LOGOUT')">ABMELDEN</button>
         </div>
     </div>
+
 
     <div id="delete-confirm-overlay" style="display: none;">
         <div class="login-box crt-effect-container border-red-500" style="box-shadow: 0 0 30px red;">
