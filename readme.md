@@ -1,99 +1,82 @@
-# PIP-BOY 3003 - SURVIVAL HANDBUCH
+# ☢️ PIP-BOY 3003 HANDBUCH ☢️
 
-Willkommen im Ödland, Vault-Bewohner!
-Dieses Terminal-Interface (v0.1.18c) ist dein bester Freund im Kampf ums Überleben.
-
----
-
-## 1. STEUERUNG
-
-### PC (Tastatur)
-* **WASD / Pfeiltasten**: Bewegung auf der Karte & Menü-Navigation.
-* **LEERTASTE / ENTER**: Aktion ausführen / Bestätigen / Feuern (im Kampf).
-* **ESC**: Hauptmenü öffnen / Zurück / Fenster schließen.
-* **1, 2, 3**: Im V.A.T.S. Kampf Körperteile auswählen.
-
-### MOBILE (Touch)
-* **Joystick**: Tippe und HALTE irgendwo auf den Bildschirm, um den Joystick zu aktivieren. Ziehe zum Bewegen.
-* **Tippen**: Interaktion mit Buttons, Gegnern und Loot.
+WILLKOMMEN IM ÖDLAND, BEWOHNER!
+Dieses Terminal (v0.2.1) sichert dein Überleben.
 
 ---
 
-## 2. DAS INTERFACE (HUD)
+## 🎮 1. STEUERUNG
 
-* **HP (Lebenspunkte)**: Fallen sie auf 0, ist das Spiel vorbei.
-* **XP (Erfahrung)**: Füllt den gelben Balken. Ist er voll, steigst du ein Level auf.
-* **LVL (Level)**: Dein Charakter-Level. Erhöht sich durch XP.
-* **KK (Kronkorken)**: Die Währung im Ödland. Zum Handeln benötigt.
-* **GLOW-EFFEKTE**:
-    * **GELB blinkend**: Du hast unverteilte Skill-Punkte (Charakter-Menü öffnen!).
-    * **CYAN blinkend**: Neue Aufgaben verfügbar.
-    * **ROT pulsierend**: Warnung oder Menü-Hinweis.
+### ⌨️ TASTATUR (PC)
+| Taste | Funktion |
+| :--- | :--- |
+| **W, A, S, D** | Bewegung / Navigation |
+| **PFEILTASTEN** | Bewegung / Navigation |
+| **ENTER / SPACE** | Bestätigen / Interagieren |
+| **ESC** | Menü öffnen / Zurück |
+| **1, 2, 3** | V.A.T.S. Zielwahl (Kampf) |
 
----
-
-## 3. DIE WELTKARTE & SYMBOLE
-
-Die Welt ist in 64 Sektoren (8x8 Grid) unterteilt. Jede Bewegung verbraucht Zeit (nicht wirklich, aber RP-technisch).
-
-### Symbole auf der Karte:
-* **YOU**: Deine aktuelle Position (Grün markiert).
-* **V**: Vault 101 (Sicherer Startpunkt, kostenlose Heilung).
-* **C**: Stadt (Rusty Springs). Hier gibt es Händler und einen Arzt.
-* **S**: Supermarkt-Ruine (Dungeon, Level 1-3).
-* **H**: Höhle (Dungeon, Level 1-3).
-* **X**: Schatztruhe (In Dungeons).
-* **v**: Treppe nach unten (In Dungeons).
-* **#**: Feste Wände / Hindernisse.
-* **M, T, t**: Berge, Bäume (Hindernisse).
-* **. , _ "**: Offenes Gelände (Zufallskämpfe möglich).
+### 📱 TOUCH (MOBILE)
+* **JOYSTICK**: Tippe & HALTE irgendwo auf den Schirm. Ziehe zum Laufen.
+* **TIPPEN**: Interaktion mit Buttons und Menüs.
 
 ---
 
-## 4. KAMPFSYSTEM (V.A.T.S.)
+## 📟 2. DAS INTERFACE (HUD)
 
-Triffst du auf einen Gegner, startet das V.A.T.S. (Vault-Tec Assisted Targeting System).
+* **HP [HEALTH]**: Deine Lebenspunkte. Sinken sie auf 0, bist du tot.
+* **XP [LEVEL]**: Fülle den gelben Balken für Level-Ups.
+* **KK [CAPS]**: Kronkorken. Währung für Handel & Ärzte.
 
-* **WAHRNEHMUNG (PER)**: Bestimmt deine Trefferchance. Je höher, desto besser.
-* **TREFFERZONEN**:
-    * **KOPF**: Geringe Chance, aber **Kritischer Schaden** (2.5x).
-    * **TORSO**: Hohe Chance, normaler Schaden.
-    * **BEINE**: Mittlere Chance.
-
-* **Flucht**: Mit ESC oder dem Button möglich. Hängt von **Beweglichkeit (AGI)** ab.
-* **Munition**: Fernkampfwaffen brauchen Munition. Ist sie leer, kämpfst du mit Fäusten.
+### ⚠️ WARN-SIGNALE (GLOW)
+* <span style="color:yellow; border:1px solid yellow; padding:0 2px;">GELB</span> **CHARAKTER**: Du hast unverteilte Skill-Punkte!
+* <span style="color:cyan; border:1px solid cyan; padding:0 2px;">CYAN</span> **AUFGABEN**: Neue Quest-Informationen verfügbar.
+* <span style="color:red; border:1px solid red; padding:0 2px;">ROT</span> **MENÜ**: Kritische Warnung oder Statusmeldung.
 
 ---
 
-## 5. CHARAKTER & S.P.E.C.I.A.L.
+## 🗺️ 3. KARTEN-SYMBOLE
 
-Bei jedem Level-Up erhältst du einen Stat-Punkt.
+Die Welt besteht aus 64 Sektoren. Erkunde sie vorsichtig.
 
-* **STR (Stärke)**: Erhöht Nahkampfschaden.
-* **PER (Wahrnehmung)**: Erhöht V.A.T.S. Präzision.
-* **END (Ausdauer)**: Erhöht maximale Lebenspunkte (HP).
-* **INT (Intelligenz)**: (WIP) Einfluss auf Crafting/XP.
-* **AGI (Beweglichkeit)**: Erhöht Fluchtchance.
-* **LUC (Glück)**: (WIP) Einfluss auf kritische Treffer & Loot.
-
----
-
-## 6. DUNGEONS
-
-Dungeons (Ruinen, Höhlen) sind gefährliche Orte mit mehreren Ebenen.
-* Die Gegner werden mit jeder Ebene stärker (+20%).
-* Auf der letzten Ebene (3) wartet eine **Truhe (X)** mit Belohnungen (KK, legendäre Teile).
-* **Vorsicht**: Nach Abschluss wird ein Dungeon für 10 Minuten versiegelt!
+* <span style="color:#39ff14; font-weight:bold;">YOU</span> : Deine aktuelle Position.
+* **V** : **VAULT 101**. Dein Zuhause. Kostenlose Heilung.
+* **C** : **STADT** (Rusty Springs). Händler, Arzt, Werkbank.
+* **S** : **SUPERMARKT**. Dungeon (Gefahr: Mittel).
+* **H** : **HÖHLE**. Dungeon (Gefahr: Hoch).
+* **P** : **Andere Spieler**. (Echtzeit-Multiplayer).
+* **#** : Unpassierbares Gelände (Mauern, Wasser).
+* **X** : Zielort / Dungeon-Ausgang / Truhe.
 
 ---
 
-## 7. CRAFTING & ITEMS
+## ⚔️ 4. V.A.T.S. KAMPFSYSTEM
 
-In Städten findest du Werkbänke.
-* **Schrott & Komponenten**: Werden von Monstern fallen gelassen.
-* **Munition herstellen**: Benötigt Schrott.
-* **Stimpak**: Heilt sofort 25 HP.
+Vault-Tec Assisted Targeting System.
+
+* **ATTRIBUT: PER (Wahrnehmung)** bestimmt Trefferchance.
+* **KOPF**: Kritischer Schaden (2.5x), schwer zu treffen.
+* **TORSO**: Hohe Trefferchance, Standard-Schaden.
+* **BEINE**: Gegner verlangsamen (Taktisch).
+
+> **TIPP:** Ohne Munition kämpfst du mit bloßen Fäusten (wenig Schaden). Besuche die Stadt (C) für Nachschub!
 
 ---
 
-*Vault-Tec wünscht einen angenehmen Aufenthalt im Ödland!*
+## 🛠️ 5. CRAFTING & STATS
+
+### S.P.E.C.I.A.L.
+* **STR**: Nahkampf-Schaden & Tragekraft.
+* **PER**: V.A.T.S. Präzision.
+* **END**: Maximale HP.
+* **INT**: (WIP) Mehr XP & Crafting-Optionen.
+* **AGI**: Flucht-Chance & Aktionspunkte.
+* **LUC**: Kritische Treffer & Loot-Glück.
+
+### WERKBANK
+In Städten (**C**) kannst du Schrott zu Munition verarbeiten.
+Sammle **Komponenten** von Robotern und **Junk** in Ruinen.
+
+---
+
+*© 2077 VAULT-TEC CORPORATION. ALL RIGHTS RESERVED.*
