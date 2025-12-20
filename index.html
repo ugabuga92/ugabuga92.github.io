@@ -6,8 +6,8 @@
     <title>Pip-Boy 3003</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23000%22/><text x=%2250%25%22 y=%2250%25%22 font-size=%2280%22 font-family=%22monospace%22 font-weight=%22bold%22 fill=%22%231aff1a%22 dy=%22.35em%22 text-anchor=%22middle%22>P</text></svg>">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
@@ -18,15 +18,15 @@
         
         #view-container > * { max-width: 100%; overflow-x: hidden; }
 
-        /* --- STYLES --- */
-        .alert-glow-red { box-shadow: 0 0 15px red !important; border-color: red !important; color: red !important; animation: pulse-red 2s infinite; }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 5px red; } 50% { box-shadow: 0 0 20px red; } 100% { box-shadow: 0 0 5px red; } }
+        /* GLOWS */
+        .alert-glow-red { animation: pulse-red-intense 1.5s infinite !important; border-width: 2px !important; font-weight: bold !important; }
+        @keyframes pulse-red-intense { 0% { box-shadow: 0 0 5px red; border-color: #800000; color: #ffcccc; } 50% { box-shadow: 0 0 25px red, inset 0 0 10px red; border-color: red; color: white; background-color: rgba(255, 0, 0, 0.2); } 100% { box-shadow: 0 0 5px red; border-color: #800000; color: #ffcccc; } }
 
-        .alert-glow-yellow { box-shadow: 0 0 15px yellow !important; border-color: yellow !important; color: yellow !important; text-shadow: 0 0 5px yellow; animation: pulse-yellow 2s infinite; }
-        @keyframes pulse-yellow { 0% { box-shadow: 0 0 5px yellow; } 50% { box-shadow: 0 0 20px yellow; } 100% { box-shadow: 0 0 5px yellow; } }
+        .alert-glow-yellow { animation: pulse-yellow-intense 1.5s infinite !important; border-width: 2px !important; font-weight: bold !important; }
+        @keyframes pulse-yellow-intense { 0% { box-shadow: 0 0 5px #ffd700; border-color: #b8860b; color: #ffffcc; } 50% { box-shadow: 0 0 25px #ffd700, inset 0 0 10px #ffd700; border-color: #ffd700; color: white; background-color: rgba(255, 215, 0, 0.2); } 100% { box-shadow: 0 0 5px #ffd700; border-color: #b8860b; color: #ffffcc; } }
 
-        .alert-glow-cyan { box-shadow: 0 0 15px cyan !important; border-color: cyan !important; color: cyan !important; text-shadow: 0 0 5px cyan; animation: pulse-cyan 2s infinite; }
-        @keyframes pulse-cyan { 0% { box-shadow: 0 0 5px cyan; } 50% { box-shadow: 0 0 20px cyan; } 100% { box-shadow: 0 0 5px cyan; } }
+        .alert-glow-cyan { animation: pulse-cyan-intense 1.5s infinite !important; border-width: 2px !important; font-weight: bold !important; }
+        @keyframes pulse-cyan-intense { 0% { box-shadow: 0 0 5px cyan; border-color: #008b8b; color: #e0ffff; } 50% { box-shadow: 0 0 25px cyan, inset 0 0 10px cyan; border-color: cyan; color: white; background-color: rgba(0, 255, 255, 0.2); } 100% { box-shadow: 0 0 5px cyan; border-color: #008b8b; color: #e0ffff; } }
 
         .key-focus {
             outline: 2px solid var(--pip-green) !important;
@@ -38,11 +38,13 @@
         }
         @keyframes pulse-focus { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        #player-list-overlay { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            z-index: 90; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--pip-green); 
-            padding: 20px; min-width: 300px; display: none; flex-direction: column; box-shadow: 0 0 30px var(--pip-dim); 
-        }
+        /* CHAR SLOT STYLES */
+        .char-slot { border: 1px solid var(--pip-dim); background: rgba(0,20,0,0.5); padding: 10px; margin-bottom: 5px; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .char-slot:hover { border-color: var(--pip-green); background: rgba(0,40,0,0.8); }
+        .char-slot.active-slot { border-color: var(--pip-green); background: var(--pip-green); color: black; font-weight: bold; }
+        .char-slot.empty-slot { opacity: 0.5; font-style: italic; }
+
+        #player-list-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 90; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--pip-green); padding: 20px; min-width: 300px; display: none; flex-direction: column; box-shadow: 0 0 30px var(--pip-dim); }
 
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #001100; border-left: 1px solid var(--pip-dim); }
@@ -55,24 +57,8 @@
         @media (min-width: 768px) { #pipboy-case { height: 95vh; padding: 15px; border-radius: 30px; } }
         
         #game-screen { background-color: var(--pip-bg); border: 2px solid var(--pip-dim); border-radius: 10px; flex-grow: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; width: 100%; }
-        
         .crt-effect-container { position: relative; overflow: hidden; background-color: #000; width: 100%; height: 100%; }
         .crt-effect-container::before { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); z-index: 10; background-size: 100% 3px, 4px 100%; pointer-events: none; }
-        
-        .glow-text { text-shadow: 0 0 5px var(--pip-glow); }
-        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
-        .shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
-        
-        #main-content { flex-grow: 1; display: flex; overflow: hidden; min-height: 0; position: relative; width: 100%; }
-        #main-panel { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; width: 100%; }
-        #layout-split { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; min-height: 0; width: 100%; }
-        @media (min-width: 768px) { #layout-split { flex-direction: row; } }
-        
-        #view-container { position: relative; flex-grow: 1; display: flex; justify-content: center; align-items: center; height: 65%; border-right: 2px solid var(--pip-green); overflow: hidden; width: 100%; }
-        @media (min-width: 768px) { #view-container { width: 75%; height: 100%; border-bottom: none; } }
-        
-        #log-panel { display: flex; flex-direction: column; flex-shrink: 0; border-top: 2px solid var(--pip-green); height: 35%; min-height: 100px; background-color: #020a02; width: 100%; }
-        @media (min-width: 768px) { #log-panel { width: 25%; height: 100%; border-top: none; border-left: none; } }
         
         .action-button { background-color: #0f1f0f; color: var(--pip-green); border: 1px solid var(--pip-green); padding: 5px 10px; margin: 2px; cursor: pointer; text-transform: uppercase; font-size: 1.25rem; transition: all 0.1s; font-family: 'VT323', monospace; display: flex; align-items: center; justify-content: center; }
         .action-button:hover { background-color: var(--pip-green); color: black; }
@@ -83,11 +69,10 @@
         .blink-red { animation: blink-red-anim 1s infinite; }
         @keyframes blink-red-anim { 0%, 100% { opacity: 1; color: red; } 50% { opacity: 0.5; } }
         
-        #login-screen, #spawn-screen, #reset-overlay, #manual-overlay, #changelog-overlay { position: absolute; inset: 0; z-index: 999; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; }
+        #login-screen, #spawn-screen, #reset-overlay, #manual-overlay, #changelog-overlay, #char-select-screen, #delete-confirm-overlay { position: absolute; inset: 0; z-index: 999; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; }
         .login-box { border: 2px solid var(--pip-green); padding: 20px; text-align: center; box-shadow: 0 0 20px var(--pip-dim); width: 90%; max-width: 400px; display: flex; flex-direction: column; }
         #login-form { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
         
-        /* LOGIN INPUT STYLES */
         input.login-input { background: #000; border: 2px solid var(--pip-green); color: var(--pip-green); font-family: inherit; font-size: 20px; padding: 10px; text-align: center; outline: none; width: 100%; }
         input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
     </style>
@@ -99,49 +84,61 @@
         <div class="login-box crt-effect-container">
             <h1 class="text-5xl md:text-6xl font-bold glow-text mb-2">PIP-BOY 3003</h1>
             <div id="login-title" class="text-xl mb-4 opacity-80">AUTHENTICATION REQUIRED</div>
-            
             <form id="login-form" onsubmit="event.preventDefault();" autocomplete="off">
                 <input type="email" id="login-email" class="login-input" placeholder="E-MAIL" autofocus autocomplete="username">
-                
                 <input type="password" id="login-pass" class="login-input" placeholder="PASSWORT" autocomplete="current-password">
-                
-                <input type="text" id="login-name" class="login-input hidden" placeholder="SURVIVOR NAME" maxlength="15" autocomplete="off" style="display: none;">
+                <input type="text" id="login-name" class="login-input hidden" placeholder="ACCOUNT NAME" maxlength="15" autocomplete="off" style="display: none;">
             </form>
-
             <button id="btn-login" class="action-button w-full py-3 font-bold text-xl mb-2">LOGIN</button>
-            
-            <button id="btn-toggle-register" class="text-sm text-yellow-400 hover:text-yellow-200 cursor-pointer mb-4 underline bg-transparent border-none">
-                Noch kein Account? Hier registrieren
-            </button>
-
+            <button id="btn-toggle-register" class="text-sm text-yellow-400 hover:text-yellow-200 cursor-pointer mb-4 underline bg-transparent border-none">Noch kein Account? Hier registrieren</button>
             <div class="flex gap-2 w-full">
                 <button id="btn-manual-login" class="action-button flex-1 py-2 font-bold text-lg border-yellow-400 text-yellow-400" onclick="UI.showManualOverlay()">ANLEITUNG</button>
                 <button id="btn-changelog" class="action-button flex-1 py-2 font-bold text-lg border-blue-400 text-blue-400" onclick="UI.showChangelogOverlay()">CHANGELOG</button>
             </div>
-            
             <div id="login-status" class="mt-4 text-yellow-400 min-h-[1.5em] text-sm font-mono break-words"></div>
             <div class="mt-4 text-xs text-[#1aff1a] opacity-50 border-t border-[#1aff1a]/30 pt-2 w-full">VERSION <span id="login-version-display">LOADING...</span></div>
         </div>
     </div>
 
-    <div id="manual-overlay" class="hidden z-[1000] bg-black/95" style="display: none;">
-        <div class="border-2 border-yellow-400 w-full max-w-2xl h-[90vh] bg-[#111] flex flex-col p-4 shadow-[0_0_30px_#aa0]">
-            <div class="flex justify-between items-center border-b border-yellow-400 pb-2 mb-2">
-                <h2 class="text-2xl font-bold text-yellow-400">HANDBUCH v1.0</h2>
-                <button class="text-red-500 font-bold text-xl px-2 border border-red-500 hover:bg-red-900" onclick="document.getElementById('manual-overlay').classList.add('hidden'); document.getElementById('manual-overlay').style.display='none';">X</button>
-            </div>
-            <div id="manual-content" class="flex-grow overflow-y-auto text-green-300 font-mono space-y-4 pr-2"></div>
+    <div id="char-select-screen" style="display: none;">
+        <div class="login-box crt-effect-container w-full max-w-lg">
+            <h1 class="text-4xl font-bold text-yellow-400 mb-4 border-b border-yellow-400 pb-2">CHARAKTER WAHL</h1>
+            <div class="text-xs mb-4 text-green-300">Wähle einen Slot. 'ENTF' zum Löschen.</div>
+            
+            <div id="char-slots-list" class="flex flex-col gap-2 w-full mb-4">
+                </div>
+
+            <button class="action-button w-full border-red-500 text-red-500" onclick="UI.logout('LOGOUT')">ABMELDEN</button>
         </div>
     </div>
-    <div id="changelog-overlay" class="hidden z-[1000] bg-black/95" style="display: none;">
-        <div class="border-2 border-blue-400 w-full max-w-2xl h-[90vh] bg-[#050510] flex flex-col p-4 shadow-[0_0_30px_#00a]">
-            <div class="flex justify-between items-center border-b border-blue-400 pb-2 mb-2">
-                <h2 class="text-2xl font-bold text-blue-400">PATCH NOTES</h2>
-                <button class="text-red-500 font-bold text-xl px-2 border border-red-500 hover:bg-red-900" onclick="document.getElementById('changelog-overlay').classList.add('hidden'); document.getElementById('changelog-overlay').style.display='none';">X</button>
+
+    <div id="delete-confirm-overlay" style="display: none;">
+        <div class="login-box crt-effect-container border-red-500" style="box-shadow: 0 0 30px red;">
+            <h2 class="text-3xl font-bold text-red-600 mb-2">WARNUNG</h2>
+            <p class="text-red-400 mb-4">Charakter unwiderruflich löschen?<br>Tippe den Namen zur Bestätigung:</p>
+            <div id="delete-target-name" class="font-bold text-white mb-2 text-xl bg-red-900/50 p-2 border border-red-500">???</div>
+            <input type="text" id="delete-input" class="login-input border-red-500 text-red-500 mb-4" placeholder="NAME EINGEBEN" autocomplete="off">
+            <div class="flex gap-2 w-full">
+                <button id="btn-delete-confirm" class="action-button flex-1 border-red-500 text-red-500 font-bold" disabled>LÖSCHEN</button>
+                <button id="btn-delete-cancel" class="action-button flex-1 border-green-500 text-green-500">ABBRECHEN</button>
             </div>
-            <div id="changelog-content" class="flex-grow overflow-y-auto text-blue-200 font-mono text-sm leading-relaxed whitespace-pre-wrap pr-2"></div>
         </div>
     </div>
+    
+    <div id="new-char-overlay" class="absolute inset-0 z-[1000] bg-black/95 flex flex-col justify-center items-center hidden">
+        <div class="login-box crt-effect-container border-yellow-400">
+            <h2 class="text-3xl font-bold text-yellow-400 mb-2">NEUE IDERNTITÄT</h2>
+            <p class="text-green-300 mb-4">Wie soll dein neuer Charakter heißen?</p>
+            <input type="text" id="new-char-name" class="login-input mb-4 text-yellow-400 border-yellow-400" placeholder="NAME" maxlength="15">
+            <div class="flex gap-2 w-full">
+                <button id="btn-create-char" class="action-button flex-1 border-yellow-400 text-yellow-400 font-bold">ERSTELLEN</button>
+                <button onclick="document.getElementById('new-char-overlay').classList.add('hidden')" class="action-button flex-1">ABBRUCH</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="manual-overlay" class="hidden z-[1000] bg-black/95" style="display: none;"><div class="border-2 border-yellow-400 w-full max-w-2xl h-[90vh] bg-[#111] flex flex-col p-4 shadow-[0_0_30px_#aa0]"><div class="flex justify-between items-center border-b border-yellow-400 pb-2 mb-2"><h2 class="text-2xl font-bold text-yellow-400">HANDBUCH v1.0</h2><button class="text-red-500 font-bold text-xl px-2 border border-red-500 hover:bg-red-900" onclick="document.getElementById('manual-overlay').classList.add('hidden'); document.getElementById('manual-overlay').style.display='none';">X</button></div><div id="manual-content" class="flex-grow overflow-y-auto text-green-300 font-mono space-y-4 pr-2"></div></div></div>
+    <div id="changelog-overlay" class="hidden z-[1000] bg-black/95" style="display: none;"><div class="border-2 border-blue-400 w-full max-w-2xl h-[90vh] bg-[#050510] flex flex-col p-4 shadow-[0_0_30px_#00a]"><div class="flex justify-between items-center border-b border-blue-400 pb-2 mb-2"><h2 class="text-2xl font-bold text-blue-400">PATCH NOTES</h2><button class="text-red-500 font-bold text-xl px-2 border border-red-500 hover:bg-red-900" onclick="document.getElementById('changelog-overlay').classList.add('hidden'); document.getElementById('changelog-overlay').style.display='none';">X</button></div><div id="changelog-content" class="flex-grow overflow-y-auto text-blue-200 font-mono text-sm leading-relaxed whitespace-pre-wrap pr-2"></div></div></div>
     <div id="spawn-screen" style="display: none;"><div class="login-box crt-effect-container"><h1 class="text-3xl md:text-4xl font-bold glow-text mb-4">NEUER CHARAKTER</h1><div id="spawn-msg" class="text-sm mb-4 text-red-400 font-bold"></div><div id="spawn-list" class="flex flex-col gap-2 max-h-[250px] overflow-y-auto mb-4 border border-green-900 p-2 text-left"></div><button id="btn-spawn-random" class="action-button w-full mb-2">ZUFALLS-START</button><button class="action-button w-full border-red-500 text-red-500" onclick="location.reload()">ABBRUCH</button></div></div>
     <div id="reset-overlay" style="display: none;"><div class="login-box crt-effect-container border-red-500" style="box-shadow: 0 0 20px #500;"><h1 class="text-4xl font-bold text-red-500 mb-4 animate-pulse">ACHTUNG!</h1><div class="text-lg mb-8 text-red-400 font-bold">CHARAKTER LÖSCHEN?<br>ALLES GEHT VERLOREN!</div><div class="flex flex-col gap-2 w-full"><button id="btn-confirm-reset" class="action-button w-full border-red-500 text-red-500 font-bold hover:bg-red-900">JA, LÖSCHEN</button><button id="btn-cancel-reset" class="action-button w-full border-green-500 text-green-500">ABBRECHEN</button></div></div></div>
     <div id="game-over-screen" class="absolute inset-0 z-50 bg-black/95 flex flex-col justify-center items-center hidden"><h1 class="text-6xl text-red-600 font-bold border-4 border-red-600 p-6 mb-6 blink-red tracking-widest">CRITICAL FAILURE</h1><button id="btn-restart" onclick="location.reload()" class="border-2 border-red-500 text-red-500 px-8 py-3 hover:bg-red-900 text-xl font-bold uppercase cursor-pointer">NEUSTART</button></div>
