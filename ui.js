@@ -3,9 +3,14 @@ const UI = {
     timerInterval: null,
     lastInputTime: Date.now(), 
     biomeColors: (typeof window.GameData !== 'undefined') ? window.GameData.colors : {}, 
+    
+    // Login Lock
     loginBusy: false,
-    focusIndex: -1,
+    
+    // KEYBOARD FOCUS SYSTEM
+    focusIndex: -1, // -1 bedeutet: Kein Fokus aktiv
     focusableEls: [],
+    inputMethod: 'touch', // 'touch', 'mouse', 'key'
 
     touchState: {
         active: false, id: null, startX: 0, startY: 0, currentX: 0, currentY: 0, moveDir: { x: 0, y: 0 }, timer: null
@@ -91,8 +96,22 @@ const UI = {
             btnRight: document.getElementById('btn-right')
         };
 
-        ['mousemove', 'keydown', 'click', 'touchstart'].forEach(evt => {
-            document.body.addEventListener(evt, () => this.lastInputTime = Date.now());
+        // Input Detection Logic
+        ['mousemove', 'mousedown', 'touchstart'].forEach(evt => {
+            window.addEventListener(evt, () => {
+                this.lastInputTime = Date.now();
+                if (this.inputMethod !== 'touch') {
+                    // Reset Focus on Touch/Mouse interaction
+                    this.focusIndex = -1;
+                    this.updateFocusVisuals();
+                    this.inputMethod = 'touch';
+                }
+            }, { passive: true });
+        });
+
+        window.addEventListener('keydown', () => {
+            this.lastInputTime = Date.now();
+            this.inputMethod = 'key';
         });
 
         if(this.els.loginInput) {
@@ -127,7 +146,7 @@ const UI = {
                 if (!this.els.navMenu.contains(e.target) && e.target !== this.els.btnMenu) {
                     this.els.navMenu.classList.add('hidden');
                     this.els.navMenu.style.display = 'none';
-                    this.refreshFocusables();
+                    // Bei Maus-Klick kein Focus-Reset nötig, passiert eh durch mousedown listener
                 }
             }
             if (Game.state && Game.state.view !== 'map' && Game.state.view !== 'combat' && Game.state.view !== 'city' && Game.state.view !== 'shop' && Game.state.view !== 'crafting' && Game.state.view !== 'clinic' && Game.state.view !== 'vault') {
@@ -174,8 +193,9 @@ const UI = {
                 return;
             }
 
+            // ESCAPE LOGIC
             if(e.key === 'Escape') {
-                if (Game.state.inDialog) { /* Dialoge managen sich selbst oder Buttonklick */ }
+                if (Game.state.inDialog) { /* Dialog logic */ }
                 else if(this.els.playerList && this.els.playerList.style.display === 'flex') {
                     this.togglePlayerList();
                 }
@@ -186,22 +206,22 @@ const UI = {
                     this.switchView('map'); 
                 }
                 else {
-                    this.toggleMenu(); // Map -> ESC -> Menu
+                    this.toggleMenu(); 
                 }
                 return;
             }
 
-            // DIALOGS & OVERLAYS
-            if (Game.state.inDialog || (this.els.playerList && this.els.playerList.style.display === 'flex')) {
+            // DIALOG MODE
+            if (Game.state.inDialog) {
                 if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) {
-                    this.navigateFocus(e.key === 'ArrowUp' || e.key === 'w' || e.key === 'ArrowLeft' || e.key === 'a' ? -1 : 1);
+                    this.navigateFocus(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'ArrowDown' || e.key === 's' ? 1 : -1);
                 } else if (e.key === 'Enter' || e.key === ' ') {
                     this.triggerFocus();
                 }
                 return;
             }
 
-            // COMBAT
+            // COMBAT MODE
             if (Game.state.view === 'combat') {
                 if (typeof Combat !== 'undefined') {
                     if (e.key === 'ArrowUp' || e.key === 'w') Combat.moveSelection(-1);
@@ -211,10 +231,10 @@ const UI = {
                 return;
             }
 
-            // MENU / VIEWS / LISTS
+            // MENU / VIEWS
             const isMenuOpen = this.els.navMenu && !this.els.navMenu.classList.contains('hidden');
             if (Game.state.view !== 'map' || isMenuOpen) {
-                // FIX: Check if it's a grid view (inventory) or list view (menu, city, etc)
+                // Unterscheide Grid vs List für Navigation
                 let isGrid = (Game.state.view === 'inventory') && !isMenuOpen;
                 
                 if (['ArrowUp', 'w'].includes(e.key)) this.navigateFocus(isGrid ? -4 : -1); 
@@ -225,7 +245,7 @@ const UI = {
                 return;
             }
 
-            // MAP MOVEMENT
+            // MAP MODE
             if (Game.state.view === 'map') {
                 if(e.key === 'w' || e.key === 'ArrowUp') Game.move(0, -1);
                 if(e.key === 's' || e.key === 'ArrowDown') Game.move(0, 1);
@@ -241,6 +261,7 @@ const UI = {
         this.timerInterval = setInterval(() => this.updateTimer(), 1000);
     },
 
+    // --- FOCUS MANAGER (SMART) ---
     toggleMenu: function() {
         if(!this.els.navMenu) return;
         const isHidden = this.els.navMenu.classList.contains('hidden');
@@ -251,8 +272,9 @@ const UI = {
             this.els.navMenu.classList.add('hidden');
             this.els.navMenu.style.display = 'none';
         }
+        // Reset Focus
         this.focusIndex = -1;
-        this.refreshFocusables();
+        this.updateFocusVisuals();
     },
 
     refreshFocusables: function() {
@@ -267,19 +289,20 @@ const UI = {
 
         const buttons = Array.from(container.querySelectorAll('button:not([disabled])'));
         this.focusableEls = buttons.filter(b => b.offsetParent !== null && b.style.display !== 'none');
-        
-        if (this.focusIndex >= this.focusableEls.length) this.focusIndex = 0;
-        if (this.focusIndex < 0 && this.focusableEls.length > 0) this.focusIndex = 0;
-        
-        this.updateFocusVisuals();
     },
 
     navigateFocus: function(delta) {
-        if (this.focusableEls.length === 0) this.refreshFocusables();
+        this.refreshFocusables();
         if (this.focusableEls.length === 0) return;
 
-        this.focusIndex += delta;
+        // Wenn kein Fokus aktiv, starte bei 0 (oder Ende wenn rückwärts)
+        if (this.focusIndex === -1) {
+            this.focusIndex = delta > 0 ? 0 : this.focusableEls.length - 1;
+        } else {
+            this.focusIndex += delta;
+        }
         
+        // Wrap around
         if (this.focusIndex < 0) this.focusIndex = this.focusableEls.length - 1;
         if (this.focusIndex >= this.focusableEls.length) this.focusIndex = 0;
 
@@ -288,7 +311,9 @@ const UI = {
 
     updateFocusVisuals: function() {
         document.querySelectorAll('.key-focus').forEach(el => el.classList.remove('key-focus'));
-        if (this.focusableEls[this.focusIndex]) {
+        
+        // Nur anzeigen wenn Index valide UND nicht -1
+        if (this.focusIndex !== -1 && this.focusableEls[this.focusIndex]) {
             const el = this.focusableEls[this.focusIndex];
             el.classList.add('key-focus');
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -296,11 +321,12 @@ const UI = {
     },
 
     triggerFocus: function() {
-        if (this.focusableEls[this.focusIndex]) {
+        if (this.focusIndex !== -1 && this.focusableEls[this.focusIndex]) {
             this.focusableEls[this.focusIndex].click();
         }
     },
 
+    // --- SYSTEM ---
     isMobile: function() { return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0); },
 
     showManualOverlay: async function() {
@@ -321,13 +347,9 @@ const UI = {
                 text = text.replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold text-green-300 mt-2 mb-1">$1</h3>');
                 text = text.replace(/\*\*(.*)\*\*/gim, '<b>$1</b>');
                 text = text.replace(/\n/gim, '<br>');
-                // Button hinzufügen
-                text += '<br><button class="action-button w-full mt-4 border-red-500 text-red-500" onclick="document.getElementById(\'manual-overlay\').classList.add(\'hidden\'); document.getElementById(\'manual-overlay\').style.display=\'none\';">SCHLIESSEN (ESC)</button>';
+                // Footer mit Schließen Button
+                text += '<br><br><button class="action-button w-full border-red-500 text-red-500" onclick="document.getElementById(\'manual-overlay\').classList.add(\'hidden\'); document.getElementById(\'manual-overlay\').style.display=\'none\';">SCHLIESSEN</button>';
                 content.innerHTML = text; 
-                setTimeout(() => { // Hack to refresh focus after load
-                     this.refreshFocusables(); // Doesn't really work cause overlay is not tracked in main loop easily, but user can click ESC
-                }, 500);
-
             } catch(e) { content.innerHTML = `<div class="text-red-500">Fehler beim Laden: ${e.message}</div>`; }
         }
     },
@@ -508,54 +530,6 @@ const UI = {
         });
     },
 
-    attemptLogin: async function() {
-        if(!this.els.loginInput) return;
-        
-        if(this.loginBusy) return;
-        this.loginBusy = true;
-
-        const id = this.els.loginInput.value.trim().toUpperCase();
-        if(id.length < 3) {
-            this.els.loginStatus.textContent = "ID ZU KURZ (MIN 3 ZEICHEN)";
-            this.els.loginStatus.className = "mt-4 text-red-500 font-bold";
-            this.loginBusy = false;
-            return;
-        }
-        
-        this.els.loginStatus.textContent = "VERBINDE MIT VAULT-TEC NETZWERK...";
-        this.els.loginStatus.className = "mt-4 text-yellow-400 animate-pulse";
-        this.lastInputTime = Date.now(); 
-        
-        try {
-            if(typeof Network === 'undefined') throw new Error("Netzwerk Modul fehlt");
-            Network.init(); 
-            const saveData = await Network.login(id);
-            if (saveData) {
-                this.els.loginScreen.style.display = 'none';
-                this.els.gameScreen.classList.remove('hidden');
-                this.els.gameScreen.classList.remove('opacity-0');
-                Game.init(saveData);
-                if(this.isMobile()) {
-                    this.showMobileControlsHint();
-                }
-            } else {
-                this.els.loginScreen.style.display = 'none';
-                this.els.spawnScreen.style.display = 'flex'; 
-                this.els.spawnScreen.classList.remove('hidden');
-                if(this.els.spawnMsg) this.els.spawnMsg.textContent = `KEIN SPIELSTAND FÜR ID '${id}' GEFUNDEN.`;
-            }
-        } catch(e) {
-            if (e.message === "ALREADY_ONLINE") {
-                this.els.loginStatus.textContent = "FEHLER: BENUTZER BEREITS EINGELOGGT";
-                this.els.loginStatus.className = "mt-4 text-red-500 font-bold blink-red";
-            } else {
-                this.error("LOGIN FEHLGESCHLAGEN: " + e.message);
-            }
-        } finally {
-            this.loginBusy = false;
-        }
-    },
-
     renderSpawnList: function(players) {
         if(!this.els.spawnList) return;
         this.els.spawnList.innerHTML = '';
@@ -619,17 +593,13 @@ const UI = {
         }
     },
 
-    // FIX: Player List Update mit Sektor Anzeige
     updatePlayerList: function() {
         if(!this.els.playerListContent || typeof Network === 'undefined') return;
-        
         let myLoc = "[?,?]";
         if (Game.state && Game.state.sector) {
             myLoc = `[${Game.state.sector.x},${Game.state.sector.y}]`;
         }
-        
         let html = `<div class="text-green-400">> ${Network.myId} (DU) <span class="text-yellow-400">${myLoc}</span></div>`;
-        
         if(Network.otherPlayers) {
             for(let id in Network.otherPlayers) {
                 const p = Network.otherPlayers[id];
@@ -687,7 +657,7 @@ const UI = {
 
     switchView: async function(name) { 
         this.stopJoystick();
-        this.focusIndex = -1;
+        this.focusIndex = -1; // Reset Focus
 
         if(this.els.navMenu) {
             this.els.navMenu.classList.add('hidden');
@@ -744,7 +714,8 @@ const UI = {
             this.updateButtonStates(name); 
             this.update(); 
             
-            setTimeout(() => this.refreshFocusables(), 100);
+            // Remove auto-focus trigger for mobile
+            // setTimeout(() => this.refreshFocusables(), 100); 
 
         } catch (e) { this.error(`Ladefehler: ${e.message}`); } 
     },
@@ -785,6 +756,7 @@ const UI = {
         if(this.els.hp) this.els.hp.textContent = `${Math.round(Game.state.hp)}/${maxHp}`; 
         if(this.els.hpBar) this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`;
         
+        // --- ALERT SYSTEM ---
         let hasAlert = false;
 
         if(this.els.btnChar) {
@@ -881,7 +853,9 @@ const UI = {
         btnContainer.appendChild(btnNo);
         box.appendChild(btnContainer);
         this.els.dialog.appendChild(box);
-        this.refreshFocusables();
+        
+        // Auto-focus only if keyboard used recently
+        if(this.inputMethod === 'key') this.refreshFocusables();
     },
 
     renderInventory: function() {
@@ -1248,7 +1222,8 @@ const UI = {
         btnContainer.appendChild(btnNo);
         box.appendChild(btnContainer);
         this.els.dialog.appendChild(box);
-        this.refreshFocusables();
+        
+        if(this.inputMethod === 'key') this.refreshFocusables();
     },
 
     showDungeonLocked: function(minutesLeft) {
@@ -1271,7 +1246,7 @@ const UI = {
         
         box.appendChild(btn);
         this.els.dialog.appendChild(box);
-        this.refreshFocusables();
+        if(this.inputMethod === 'key') this.refreshFocusables();
     },
 
     showDungeonVictory: function(caps, lvl) {
