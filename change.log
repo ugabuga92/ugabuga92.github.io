@@ -1,5 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.21-beta] - 2025-12-20 (Login Feedback Fix)
+------------------------------------------------
+- UI: Fehler beim Login (z.B. Netzwerkprobleme) werden nun direkt auf dem Login-Screen rot angezeigt, statt in der unsichtbaren Konsole.
+- FIX: 'attemptLogin' fängt nun alle Fehler ab und gibt visuelles Feedback, wenn der Login hängt.
+- FIX: Touch-Steuerung (Joystick) prüft nun, ob das Spiel überhaupt läuft, um Fehler im Hintergrund zu vermeiden.
+
+
 [v0.1.20-beta] - 2025-12-20 (Smart Focus & Vault Fix)
 ------------------------------------------------
 - UI: "Smart Focus" implementiert. Die Vorselektierung (leuchtende Buttons) ist standardmäßig deaktiviert.
