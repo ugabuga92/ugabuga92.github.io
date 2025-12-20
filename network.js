@@ -1,10 +1,11 @@
 const Network = {
     db: null,
-    myId: null,
+    auth: null,
+    myId: null, // This is now the Firebase UID
+    myDisplayName: null, // "Survivor Name"
     otherPlayers: {},
     active: false,
-    initialJoinDone: false,
-    heartbeatInterval: null, // NEU: Variable für den Interval
+    heartbeatInterval: null,
 
     config: {
         apiKey: "AIzaSyCgSK4nJ3QOVMBd7m9RSmURflSRWN4ejBY",
@@ -22,6 +23,7 @@ const Network = {
             try {
                 if (!firebase.apps.length) firebase.initializeApp(this.config);
                 this.db = firebase.database();
+                this.auth = firebase.auth();
                 this.active = true;
             } catch (e) {
                 console.error("Firebase Init Error:", e);
@@ -30,38 +32,56 @@ const Network = {
         }
     },
 
-    login: async function(userId) {
-        if (!this.active) return null;
-        this.myId = userId;
+    register: async function(email, password, name) {
+        if(!this.active) throw new Error("Netzwerkfehler");
         try {
-            const playerRef = this.db.ref('players/' + this.myId);
-            const pSnap = await playerRef.once('value');
+            const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
+            const user = userCredential.user;
             
-            if (pSnap.exists()) {
-                const pData = pSnap.val();
-                // Check: Ist der Spieler wirklich online? (Heartbeat < 20 Sekunden)
-                // Wenn er älter als 20 Sekunden ist, werten wir es als Absturz und erlauben den Login.
-                if (pData.lastSeen && Date.now() - pData.lastSeen < 20000) {
-                    throw new Error("ALREADY_ONLINE");
-                }
-            }
+            // Profil updaten mit Namen
+            await user.updateProfile({ displayName: name });
+            
+            this.myId = user.uid;
+            this.myDisplayName = name;
+            
+            // Initiale Datenbankeinträge
+            await this.db.ref('players/' + this.myId).set({
+                name: name,
+                x: 20, y: 20, lvl: 1, sector: {x:0, y:0}, lastSeen: Date.now()
+            });
+            
+            return null; // Kein Savegame vorhanden, neues Spiel
+        } catch(e) {
+            throw e;
+        }
+    },
 
+    login: async function(email, password) {
+        if (!this.active) throw new Error("Netzwerkfehler");
+        try {
+            const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+            
+            this.myId = user.uid;
+            this.myDisplayName = user.displayName || "Unknown";
+
+            // Lade Savegame
             const snapshot = await this.db.ref('saves/' + this.myId).once('value');
             const saveData = snapshot.val();
-            console.log("DB LOAD:", this.myId, saveData ? "FOUND" : "NULL");
+            
             this.startPresence();
             return saveData; 
         } catch(e) {
-            console.error("Login Error:", e);
+            console.error("Auth Error:", e);
             throw e;
         }
     },
 
     startPresence: function() {
-        // Wenn ich disconnecte, lösche meinen Eintrag
+        // Disconnect Handler
         this.db.ref('players/' + this.myId).onDisconnect().remove();
         
-        // Listener für andere Spieler
+        // Listener für andere
         this.db.ref('players').on('value', (snapshot) => {
             const rawData = snapshot.val() || {};
             const now = Date.now();
@@ -70,22 +90,20 @@ const Network = {
             for (let pid in rawData) {
                 if (pid === this.myId) continue;
                 const p = rawData[pid];
-                // Ghost Filter: Wer sich 2 Minuten nicht gemeldet hat, fliegt aus der lokalen Liste
-                if (p.lastSeen && (now - p.lastSeen > 120000)) {
-                    continue; 
-                }
-                cleanData[pid] = p;
+                if (p.lastSeen && (now - p.lastSeen > 120000)) continue; 
+                cleanData[p.name || pid] = p; // Nutze Namen als Key für UI wenn möglich, oder UID
             }
 
             this.otherPlayers = cleanData;
 
             if(typeof UI !== 'undefined') {
                 const el = document.getElementById('val-players');
-                if(el) el.textContent = `${Object.keys(this.otherPlayers).length + 1} ONLINE`; 
+                if(el) el.textContent = `${Object.keys(this.otherPlayers).length + 1}`; 
                 
                 if(UI.els.spawnScreen && UI.els.spawnScreen.style.display !== 'none') {
                     UI.renderSpawnList(this.otherPlayers);
                 }
+                UI.updatePlayerList();
             }
 
             if(typeof Game !== 'undefined' && Game.draw) Game.draw();
@@ -93,21 +111,24 @@ const Network = {
         
         if(typeof UI !== 'undefined') {
             UI.setConnectionState('online');
-            UI.log(`TERMINAL LINK: ID ${this.myId}`, "text-green-400 font-bold");
+            UI.log(`TERMINAL LINK: ${this.myDisplayName}`, "text-green-400 font-bold");
         }
         
-        // Initialen Ping senden
-        this.sendMove(20, 20, 1, {x:0, y:0}); 
-
-        // NEU: Heartbeat Loop starten (alle 5 Sekunden)
+        // Heartbeat
         if(this.heartbeatInterval) clearInterval(this.heartbeatInterval);
         this.heartbeatInterval = setInterval(() => {
             this.sendHeartbeat();
         }, 5000);
+        
+        // Initial Ping
+        this.sendHeartbeat();
     },
 
     save: function(gameState) {
         if(!this.active || !this.myId) return;
+        // Speichere den Namen im Save, falls mal gebraucht
+        gameState.playerName = this.myDisplayName;
+        
         const saveObj = JSON.parse(JSON.stringify(gameState));
         this.db.ref('saves/' + this.myId).set(saveObj)
             .then(() => { if(typeof UI !== 'undefined') UI.log("SPIEL GESPEICHERT.", "text-cyan-400"); })
@@ -117,32 +138,33 @@ const Network = {
     deleteSave: function() {
         if(!this.active || !this.myId) return;
         this.db.ref('saves/' + this.myId).remove();
-        this.db.ref('players/' + this.myId).remove();
+        // Spielerdaten behalten wir evtl. kurz
     },
 
     disconnect: function() {
-        if (this.heartbeatInterval) clearInterval(this.heartbeatInterval); // Heartbeat stoppen
-        
-        if(this.myId && this.db) {
-            this.db.ref('players/' + this.myId).remove();
-            this.db.ref('players').off(); 
-        }
+        if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+        if (this.auth) this.auth.signOut();
         this.active = false;
         this.myId = null;
     },
 
-    // Aktualisiert nur den Timestamp, nicht die Position (spart Daten)
     sendHeartbeat: function() {
         if (!this.active || !this.myId) return;
-        this.db.ref('players/' + this.myId).update({
-            lastSeen: Date.now()
-        });
+        // Wir updaten lastSeen. Wenn Game läuft, auch Position.
+        let updateData = { lastSeen: Date.now(), name: this.myDisplayName };
+        
+        if(typeof Game !== 'undefined' && Game.state && Game.state.player) {
+            updateData.x = Game.state.player.x;
+            updateData.y = Game.state.player.y;
+            updateData.sector = Game.state.sector;
+            updateData.lvl = Game.state.lvl;
+        }
+        
+        this.db.ref('players/' + this.myId).update(updateData);
     },
-
+    
+    // Alias für alte Calls, leitet an Heartbeat weiter da Position jetzt dort ist
     sendMove: function(x, y, level, sector) {
-        if (!this.active || !this.myId) return;
-        this.db.ref('players/' + this.myId).set({
-            x: x, y: y, lvl: level, sector: sector, lastSeen: Date.now()
-        });
+        this.sendHeartbeat();
     }
 };
