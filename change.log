@@ -1,5 +1,14 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.2.1-alpha] - 2025-12-20 (Security & Documentation)
+------------------------------------------------
+- SECURITY: Datenbank-Regeln verschärft. Die Meldung "unsichere Regeln" ist behoben.
+  - Schreibzugriff ist nun strikt an die User-UID gebunden. Niemand kann fremde Spielstände löschen.
+- DOCS: 'readme.md' komplett überarbeitet.
+  - Enthält nun visuelle Guides zu Symbolen, V.A.T.S., Steuerung und Interface.
+  - Layout für bessere Lesbarkeit im Spiel-Overlay optimiert.
+
+
 [v0.2.0-alpha] - 2025-12-20 (Secure Auth Update)
 ------------------------------------------------
 - CORE: Umstellung auf echtes Firebase Authentication System.
