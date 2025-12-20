@@ -1,5 +1,16 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.1.23-beta] - 2025-12-20 (UI FINAL RESTORE)
+------------------------------------------------
+- SYSTEM: 'ui.js' Hard-Restore. Die Datei wurde auf volle Länge zurückgesetzt.
+- MODULE ENTHALTEN:
+  - Login & Registrierung (mit Fehler-Feedback).
+  - Charakter-Auswahl (5 Slots, Erstellen, Löschen mit Sicherheitsabfrage).
+  - Smart Focus (Tastatur-Steuerung vs. Touch/Maus).
+  - Wiki (Monstern, Items, Crafting, Orte - komplett ausgeschrieben).
+  - Alle Render-Funktionen (Inventar, Map, Stadt, Shop).
+
+
 [v0.2.2-beta] - 2025-12-20 (Character Slots Update)
 ------------------------------------------------
 - FEATURE: Charakter-Auswahl nach dem Login hinzugefügt.
