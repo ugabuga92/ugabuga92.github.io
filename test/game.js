@@ -1,12 +1,18 @@
 const Game = {
     state: null,
     saveSlot: 0,
+    items: {}, // FIX: Verhindert "undefined" Fehler beim UI-Start
     
     // --- INITIALISIERUNG & SAVEGUARD ---
 
     init: function(saveData, dbRef, slotIndex, newName) {
         this.saveSlot = slotIndex;
         console.log("Initializing Game Loop...");
+
+        // FIX: Item-Datenbank verknüpfen (verhindert UI Fehler)
+        if (typeof window.GameData !== 'undefined' && window.GameData.items) {
+            this.items = window.GameData.items;
+        }
 
         // 1. SaveGuard: Daten validieren oder neu erstellen
         if (saveData) {
