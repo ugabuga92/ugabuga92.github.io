@@ -1,5 +1,25 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.2.13-beta] - 2025-12-21 (Final UI Fixes)
+------------------------------------------------
+- CRITICAL FIX: 'UI.renderWorldMap' implementiert.
+  - Die Weltkarte zeigt nun das 8x8 Raster an.
+  - Besuchte Sektoren sind sichtbar, unbekannte bleiben schwarz (Fog of War).
+  - Zeigt die eigene Position ("YOU") und andere Spieler (Türkise Punkte).
+- CRITICAL FIX: 'UI.renderQuests' implementiert.
+  - Liest Aufgaben aus 'Game.state.quests' und markiert sie beim Öffnen als gelesen.
+- SYSTEM: 'ui.js' ist nun vollständig und enthält alle View-Methoden.
+
+
+[v0.2.12-beta] - 2025-12-21 (Crash Fixes & Missing Methods)
+------------------------------------------------
+- CRITICAL FIX: Fehlende Funktionen in 'ui.js' wiederhergestellt, die Abstürze verursachten.
+- ADDED: 'UI.toggleView' (Navigation Inventar/Wiki/Map).
+- ADDED: 'UI.logout' (Logout-Logik & Netzwerk-Disconnect).
+- ADDED: 'UI.updatePlayerList' & 'UI.togglePlayerList' (Behebt den Netzwerk-Loop-Crash).
+- ADDED: 'UI.selectSpawn' & 'UI.renderSpawnList' (Für neue Charaktere ohne Savegame).
+
+
 [v0.2.11-beta] - 2025-12-20 (UI REPAIR FINAL)
 ------------------------------------------------
 - CRITICAL FIX: Syntax-Struktur der 'ui.js' repariert.
