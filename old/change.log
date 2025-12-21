@@ -1,5 +1,14 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.2.11-betab] - 2025-12-21 (Crash Fixes & Missing Methods)
+------------------------------------------------
+- CRITICAL FIX: Fehlende Funktionen in 'ui.js' wiederhergestellt, die Abstürze verursachten.
+- ADDED: 'UI.toggleView' (Navigation Inventar/Wiki/Map).
+- ADDED: 'UI.logout' (Logout-Logik & Netzwerk-Disconnect).
+- ADDED: 'UI.updatePlayerList' & 'UI.togglePlayerList' (Behebt den Netzwerk-Loop-Crash).
+- ADDED: 'UI.selectSpawn' & 'UI.renderSpawnList' (Für neue Charaktere ohne Savegame).
+
+
 [v0.2.11-beta] - 2025-12-20 (UI REPAIR FINAL)
 ------------------------------------------------
 - CRITICAL FIX: Syntax-Struktur der 'ui.js' repariert.
