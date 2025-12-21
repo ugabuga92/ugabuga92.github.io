@@ -605,7 +605,7 @@ const UI = {
         const save = this.currentSaves[index];
         if (this.els.btnCharSelectAction) {
             if (save) {
-                this.els.btnCharSelectAction.textContent = "SPIEL LADEN (ENTER)";
+                this.els.btnCharSelectAction.textContent = "SPIEL LADEN";
                 this.els.btnCharSelectAction.className = "action-button w-full border-green-500 text-green-500 font-bold py-3 mb-2";
                 if(this.els.btnCharDeleteAction) {
                     this.els.btnCharDeleteAction.classList.remove('hidden');
