@@ -1,5 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.3.8-stability] - 2025-12-21 (Operation Anchor)
+------------------------------------------------
+- SYSTEM: 'SaveGuard' implementiert. Repariert automatisch beschädigte Speicherstände beim Laden (fehlende Items, falsche Stats).
+- CORE: Zentrale 'modify'-Funktionen für HP, XP und Caps eingeführt. Verhindert Logik-Fehler (z.B. negative Währung).
+- FIX: 'game.js' komplett refactored für bessere Wartbarkeit.
+- UX: Automatisches Speichern passiert nun intelligenter (nicht während Animationen oder Tod).
+
+
 [v0.3.7] - 2025-12-21 (Map Fixes & Polish)
 ------------------------------------------------
 - FIX: Weltkarten-Icons (Vault ⚙️ / Stadt 🏙️) werden nun zuverlässig angezeigt.
