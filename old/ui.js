@@ -1495,5 +1495,71 @@ const UI = {
             };
             this.els.spawnList.appendChild(btn);
         }
+    },
+
+    renderWorldMap: function() {
+        const grid = document.getElementById('world-grid');
+        if(!grid) return;
+        grid.innerHTML = '';
+        
+        // 8x8 Grid creation
+        for(let y=0; y<8; y++) {
+            for(let x=0; x<8; x++) {
+                const cell = document.createElement('div');
+                cell.className = "w-full h-full border border-green-900/30 flex items-center justify-center text-xs relative";
+                
+                const key = `${x},${y}`;
+                const isCurrent = (Game.state.sector.x === x && Game.state.sector.y === y);
+                const visited = Game.state.visitedSectors && Game.state.visitedSectors.includes(key);
+                
+                if(isCurrent) {
+                    cell.classList.add('bg-green-500', 'text-black', 'font-bold', 'animate-pulse');
+                    cell.textContent = "YOU";
+                } else if (visited) {
+                    cell.classList.add('bg-green-900/40');
+                    cell.textContent = `${x},${y}`;
+                } else {
+                    cell.classList.add('bg-black');
+                }
+                
+                if(typeof Network !== 'undefined' && Network.otherPlayers) {
+                    for(let pid in Network.otherPlayers) {
+                        const p = Network.otherPlayers[pid];
+                        if(p.sector && p.sector.x === x && p.sector.y === y) {
+                            const dot = document.createElement('div');
+                            dot.className = "absolute top-1 right-1 w-2 h-2 bg-cyan-400 rounded-full shadow-[0_0_5px_cyan]";
+                            cell.appendChild(dot);
+                        }
+                    }
+                }
+
+                grid.appendChild(cell);
+            }
+        }
+    },
+
+    renderQuests: function() {
+        const list = document.getElementById('quest-list');
+        if(!list) return;
+        list.innerHTML = '';
+        
+        if(!Game.state.quests || Game.state.quests.length === 0) {
+            list.innerHTML = '<div class="text-gray-500 italic text-center mt-10">Keine aktiven Aufgaben.</div>';
+            return;
+        }
+
+        Game.state.quests.forEach(q => {
+            const div = document.createElement('div');
+            div.className = "border border-green-900 bg-green-900/10 p-3 mb-2";
+            if(!q.read) {
+                div.classList.add('border-l-4', 'border-l-green-400');
+                q.read = true;
+            }
+            div.innerHTML = `
+                <div class="font-bold text-yellow-400 text-lg mb-1">${q.title}</div>
+                <div class="text-green-200 text-sm leading-relaxed">${q.text}</div>
+            `;
+            list.appendChild(div);
+        });
     }
 };
