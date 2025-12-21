@@ -19,10 +19,10 @@ window.GameData = {
     // --- TEXTE ---
     statLabels: { 'STR': 'STÄRKE', 'PER': 'WAHRNEHMUNG', 'END': 'AUSDAUER', 'INT': 'INTELLIGENZ', 'AGI': 'BEWEGLICHKEIT', 'LUC': 'GLÜCK' },
 
-    // --- BIOME (Weniger Hindernisse) ---
+    // --- BIOME ---
     biomes: {
         'wasteland': { 
-            ground: '.', water: 0.02, mountain: 0.03, // Reduziert
+            ground: '.', water: 0.02, mountain: 0.03,
             features: [ { char: 'o', prob: 0.02, solid: true }, { char: 'x', prob: 0.03, solid: false }, { char: 't', prob: 0.01, solid: true } ]
         },
         'jungle': { 
@@ -41,6 +41,13 @@ window.GameData = {
             ground: ';', water: 0.05, mountain: 0.0,
             features: [ { char: '~', prob: 0.10, solid: false }, { char: 'x', prob: 0.10, solid: false }, { char: 't', prob: 0.05, solid: true } ]
         }
+    },
+
+    // --- HACKING WORDS ---
+    hackWords: {
+        easy: ["PASS", "CODE", "HACK", "DATA", "BIOS", "BOOT", "DISK", "FILE", "LOAD", "SAVE", "EXIT", "USER", "LOCK", "KEYS", "WIFI", "NODE"],
+        medium: ["SERVER", "ACCESS", "SYSTEM", "ROUTER", "MEMORY", "CONFIG", "STATUS", "REBOOT", "UPDATE", "KERNEL", "SCRIPT", "SEARCH", "SIGNAL", "TARGET", "MATRIX", "BYPASS"],
+        hard: ["FIREWALL", "PROTOCOL", "PASSWORD", "DATABASE", "SECURITY", "DOWNLOAD", "TERMINAL", "MAINFRAME", "OVERRIDE", "HARDWARE", "SOFTWARE", "ENCRYPTION", "NETWORK", "BACKDOOR"]
     },
 
     // --- ITEMS ---
