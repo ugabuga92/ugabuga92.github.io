@@ -1,5 +1,5 @@
 window.GameData = {
-    // --- FARBPALETTE ---
+    // ... (Farben und Stats bleiben gleich) ...
     colors: { 
         '.':'#2d241b', '_':'#4a4036', ',':'#1a261a', ';':'#1e1e11', '=':'#333333', 
         '#':'#555', 
@@ -16,10 +16,8 @@ window.GameData = {
         'wasteland': '#5d5345', 'desert': '#eecfa1', 'jungle': '#1a3300', 'city': '#555555', 'swamp': '#1e1e11'
     },
 
-    // --- TEXTE ---
     statLabels: { 'STR': 'STÄRKE', 'PER': 'WAHRNEHMUNG', 'END': 'AUSDAUER', 'INT': 'INTELLIGENZ', 'AGI': 'BEWEGLICHKEIT', 'LUC': 'GLÜCK' },
 
-    // --- BIOME ---
     biomes: {
         'wasteland': { 
             ground: '.', water: 0.02, mountain: 0.03,
@@ -43,14 +41,12 @@ window.GameData = {
         }
     },
 
-    // --- HACKING WORDS ---
     hackWords: {
         easy: ["PASS", "CODE", "HACK", "DATA", "BIOS", "BOOT", "DISK", "FILE", "LOAD", "SAVE", "EXIT", "USER", "LOCK", "KEYS", "WIFI", "NODE"],
         medium: ["SERVER", "ACCESS", "SYSTEM", "ROUTER", "MEMORY", "CONFIG", "STATUS", "REBOOT", "UPDATE", "KERNEL", "SCRIPT", "SEARCH", "SIGNAL", "TARGET", "MATRIX", "BYPASS"],
         hard: ["FIREWALL", "PROTOCOL", "PASSWORD", "DATABASE", "SECURITY", "DOWNLOAD", "TERMINAL", "MAINFRAME", "OVERRIDE", "HARDWARE", "SOFTWARE", "ENCRYPTION", "NETWORK", "BACKDOOR"]
     },
 
-    // --- ITEMS ---
     items: { 
         stimpack: { name: "Stimpack", type: "consumable", effect: "heal", val: 50, cost: 25 },
         meat_roach: { name: "Kakerlakenfleisch", type: "junk", cost: 2 },
@@ -86,7 +82,6 @@ window.GameData = {
         plasma_rifle: { name: "Plasma-Gewehr", slot: 'weapon', type: 'weapon', baseDmg: 55, bonus: { PER: 2, INT: 2 }, cost: 600, requiredLevel: 10, isRanged: true }
     },
 
-    // --- MONSTER ---
     monsters: { 
         radRoach: { name: "Rad-Kakerlake", hp: 15, dmg: 3, xp: [10, 15], loot: 1, minLvl: 1, drops: [{id:'meat_roach', c:0.6}] }, 
         bloatfly: { name: "Blähfliege", hp: 10, dmg: 5, xp: [12, 18], loot: 2, minLvl: 1, drops: [{id:'meat_fly', c:0.7}, {id:'nuclear_mat', c:0.05}] },
@@ -103,7 +98,6 @@ window.GameData = {
         deathclaw: { name: "Todesklaue", hp: 400, dmg: 70, loot: 100, xp: [600, 800], minLvl: 10, drops: [{id:'hide_yao', c:1.0}, {id:'gears', c:0.5}] } 
     },
 
-    // --- REZEPTE ---
     recipes: [
         { id: "stimpack", out: "stimpack", count: 1, req: { "meat_fly": 1, "adhesive": 1 }, lvl: 1 },
         { id: "ammo_pack", out: "AMMO", count: 15, req: { "scrap_metal": 2 }, lvl: 1 },
