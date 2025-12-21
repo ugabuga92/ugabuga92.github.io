@@ -1,3 +1,5 @@
 - menü Felder, die während eines Kampfes, nicht geöffnet werden können sollen grafisch deaktiviert werden irgendwie, gern im fallout stil. 
 - vorselektierung von Buttons muss wegfallen. das sieht suf sem Mobilen geräten wir Handy scheise aus, hier leuchtet ständig was obwohl man touch hat.
 - Bei der Charakter auswahl steht "Spiel Laden (Enter), das Enter kann weg.
+- Charakter erstellung mit "Enter" nicht möglich. Im Screen zur erstellung wo ich den Namen eingebe kann ich mit Enter nicht weiter, 
+hier wird dann beim Enterdrücken nur der name "entfernt" aus dem Feld
