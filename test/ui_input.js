@@ -107,9 +107,9 @@ Object.assign(UI, {
                     this.refreshFocusables();
                 }
             }
-            if (Game.state && Game.state.view !== 'map' && Game.state.view !== 'combat' && Game.state.view !== 'city' && !Game.state.view.includes('shop') && !Game.state.view.includes('crafting') && !Game.state.view.includes('clinic') && !Game.state.view.includes('vault')) {
+            if (Game.state && Game.state.view !== 'map' && Game.state.view !== 'combat' && Game.state.view !== 'city' && !Game.state.view.includes('shop') && !Game.state.view.includes('crafting') && !Game.state.view.includes('clinic') && !Game.state.view.includes('vault') && Game.state.view !== 'hacking' && Game.state.view !== 'lockpicking') {
                  const viewContainer = document.getElementById('view-container');
-                 if (!viewContainer.contains(e.target)) {
+                 if (viewContainer && !viewContainer.contains(e.target)) {
                      this.switchView('map');
                  }
             }
@@ -117,7 +117,7 @@ Object.assign(UI, {
         
         if(this.els.log.parentElement) {
             this.els.log.parentElement.addEventListener('click', () => {
-                if (Game.state && Game.state.view !== 'map' && Game.state.view !== 'combat' && !Game.state.view.includes('city')) {
+                if (Game.state && Game.state.view !== 'map' && Game.state.view !== 'combat' && !Game.state.view.includes('city') && Game.state.view !== 'hacking' && Game.state.view !== 'lockpicking') {
                      if (Game.state.view !== 'combat') {
                          this.switchView('map');
                      }
@@ -142,13 +142,30 @@ Object.assign(UI, {
 
         // INPUT METHOD DETECTION
         ['mousemove', 'mousedown', 'touchstart'].forEach(evt => {
-            window.addEventListener(evt, () => {
+            window.addEventListener(evt, (e) => {
                 this.lastInputTime = Date.now();
                 if (this.inputMethod !== 'touch') {
-                    // Switch to touch mode -> Remove Focus
                     this.focusIndex = -1;
                     this.updateFocusVisuals();
                     this.inputMethod = 'touch';
+                }
+                
+                // NEW: Mouse Lockpicking
+                if(Game.state && Game.state.view === 'lockpicking' && evt === 'mousemove') {
+                    // Normalize mouse X to -90 to 90 based on screen width center
+                    const w = window.innerWidth;
+                    const center = w / 2;
+                    const mouseX = e.clientX;
+                    const delta = mouseX - center;
+                    // Scale it so half screen is 90 deg
+                    let angle = (delta / (w/3)) * 90;
+                    if(angle < -90) angle = -90; 
+                    if(angle > 90) angle = 90;
+                    
+                    if(MiniGames && MiniGames.lockpicking) {
+                        MiniGames.lockpicking.currentAngle = angle;
+                        UI.renderLockpicking();
+                    }
                 }
             }, { passive: true });
         });
@@ -157,6 +174,14 @@ Object.assign(UI, {
             this.lastInputTime = Date.now();
             this.inputMethod = 'key';
             this.handleKeyDown(e);
+        });
+        
+        window.addEventListener('keyup', (e) => {
+             if (Game.state && Game.state.view === 'lockpicking') {
+                if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'Enter') {
+                    MiniGames.lockpicking.releaseLock();
+                }
+            }
         });
     },
 
@@ -174,6 +199,21 @@ Object.assign(UI, {
         if (!Game.state || Game.state.isGameOver) {
             if(this.els.gameOver && !this.els.gameOver.classList.contains('hidden') && (e.key === 'Enter' || e.key === ' ')) location.reload();
             return;
+        }
+        
+        // NEW: Lockpicking Controls
+        if (Game.state.view === 'lockpicking') {
+            if (e.key === 'ArrowLeft' || e.key === 'a') MiniGames.lockpicking.rotatePin(-5);
+            if (e.key === 'ArrowRight' || e.key === 'd') MiniGames.lockpicking.rotatePin(5);
+            if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'Enter') MiniGames.lockpicking.rotateLock();
+            if (e.key === 'Escape') MiniGames.lockpicking.end();
+            return;
+        }
+        
+        // NEW: Hacking Controls (Esc to exit)
+        if (Game.state.view === 'hacking') {
+             if (e.key === 'Escape') MiniGames.hacking.end();
+             return;
         }
 
         if(e.key === 'Escape') {
