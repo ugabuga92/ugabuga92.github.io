@@ -1,5 +1,15 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.3.2-minigames] - 2025-12-21 (Gameplay Features)
+------------------------------------------------
+- NEW: 'minigames.js' hinzugefügt. Enthält Logik für Hacking & Lockpicking.
+- DATA: Wort-Listen für das Terminal-Hacking in 'data.js' ergänzt.
+- UI: Hacking-Interface (Retro-Terminal Look) implementiert.
+- UI: Lockpicking-Interface (Schloss & Haarklammer Mechanik) implementiert.
+- CITY: "Trainingsgelände" in Rusty Springs hinzugefügt zum Testen der Skills.
+- INPUT: Maus/Touch steuert den Dietrich, Leertaste/Button dreht das Schloss.
+
+
 [v0.3.1b-combat-fix] - 2025-12-21 (UI Hotfix)
 ------------------------------------------------
 - FIX: Monster-Namen werden im Kampf-Bildschirm nun korrekt angezeigt (in 'combat.js' Render-Logik ergänzt).
