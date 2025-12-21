@@ -46,7 +46,6 @@ Object.assign(UI, {
             else this.els.btnMenu.classList.remove('alert-glow-red');
         }
 
-        // DISABLE BUTTONS DURING COMBAT
         const inCombat = Game.state.view === 'combat';
         [this.els.btnWiki, this.els.btnMap, this.els.btnChar, this.els.btnQuests, this.els.btnSave, this.els.btnLogout, this.els.btnInv].forEach(btn => {
             if(btn) {
@@ -54,7 +53,6 @@ Object.assign(UI, {
             }
         });
         
-        // Buff Visuals
         if(this.els.lvl) {
             if(Date.now() < Game.state.buffEndTime) this.els.lvl.classList.add('blink-red');
             else this.els.lvl.classList.remove('blink-red');
@@ -108,17 +106,8 @@ Object.assign(UI, {
             return;
         }
 
-        // Minigame Views
-        if(name === 'hacking') {
-            this.renderHacking();
-            Game.state.view = name;
-            return;
-        }
-        if(name === 'lockpicking') {
-            this.renderLockpicking(true);
-            Game.state.view = name;
-            return;
-        }
+        if(name === 'hacking') { this.renderHacking(); Game.state.view = name; return; }
+        if(name === 'lockpicking') { this.renderLockpicking(true); Game.state.view = name; return; }
 
         const path = `views/${name}.html?v=${ver}`;
         try {
@@ -188,8 +177,7 @@ Object.assign(UI, {
                     <span class="animate-pulse">ATTEMPTS: ${'█ '.repeat(h.attempts)}</span>
                 </div>
                 <div class="flex-grow flex gap-4 overflow-hidden relative">
-                    <div id="hack-words" class="flex flex-col flex-wrap h-full content-start gap-x-8 text-sm">
-                        </div>
+                    <div id="hack-words" class="flex flex-col flex-wrap h-full content-start gap-x-8 text-sm"></div>
                     <div class="w-1/3 border-l border-green-900 pl-2 text-xs overflow-y-auto flex flex-col-reverse" id="hack-log">
                         ${h.logs.map(l => `<div>${l}</div>`).join('')}
                     </div>
@@ -197,14 +185,8 @@ Object.assign(UI, {
                 <button class="absolute bottom-2 right-2 border border-red-500 text-red-500 px-2 text-xs hover:bg-red-900" onclick="MiniGames.hacking.end()">ABORT</button>
             </div>
         `;
-        
-        if(this.els.view.innerHTML.indexOf('ROBCO') === -1) {
-            this.els.view.innerHTML = html;
-        } else {
-             document.getElementById('hack-log').innerHTML = h.logs.map(l => `<div>${l}</div>`).join('');
-             document.querySelector('.animate-pulse').textContent = `ATTEMPTS: ${'█ '.repeat(h.attempts)}`;
-        }
-
+        if(this.els.view.innerHTML.indexOf('ROBCO') === -1) { this.els.view.innerHTML = html; } 
+        else { document.getElementById('hack-log').innerHTML = h.logs.map(l => `<div>${l}</div>`).join(''); document.querySelector('.animate-pulse').textContent = `ATTEMPTS: ${'█ '.repeat(h.attempts)}`; }
         const wordContainer = document.getElementById('hack-words');
         if(wordContainer) {
             wordContainer.innerHTML = '';
@@ -246,10 +228,8 @@ Object.assign(UI, {
                 btn.addEventListener('mouseup', () => MiniGames.lockpicking.releaseLock());
             }
         }
-        
         const pin = document.getElementById('bobby-pin');
         const lock = document.getElementById('lock-rotator');
-        
         if(pin) pin.style.transform = `rotate(${MiniGames.lockpicking.currentAngle - 90}deg)`; 
         if(lock) lock.style.transform = `rotate(${MiniGames.lockpicking.lockAngle}deg)`;
     },
@@ -334,7 +314,6 @@ Object.assign(UI, {
             
             btn.onclick = () => {
                  if(item.type === 'junk' || item.type === 'component' || item.type === 'rare') {
-                     // Passive item
                  } else {
                      this.showItemConfirm(entry.id);
                  }
@@ -389,7 +368,7 @@ Object.assign(UI, {
         document.getElementById('equip-body-stats').textContent = armStats || "Kein Bonus";
     },
     
-    // NEU: Verbesserte WorldMap Logik
+    // --- UPDATED MAP RENDERER ---
     renderWorldMap: function() {
         const grid = document.getElementById('world-grid');
         const info = document.getElementById('sector-info');
@@ -427,13 +406,13 @@ Object.assign(UI, {
                     iconHtml = '<span class="text-3xl">🏙️</span>'; 
                     tooltipTxt = "Rusty Springs (Stadt)";
                 } else if (biome === 'vault') {
-                    iconHtml = '<span class="text-3xl">⚙️</span>'; 
+                    iconHtml = '<span class="text-3xl">⚙️</span>'; // GROSSES ICON
                     tooltipTxt = "Vault 1337";
                 }
 
                 if (isCurrent) {
-                    // Zeige Icon UND "YOU"
                     cell.className += " bg-[#1aff1a] text-black font-bold border-white z-10 shadow-[0_0_15px_#1aff1a] leading-none overflow-visible";
+                    // Zeigt ICON und YOU
                     cell.innerHTML = `${iconHtml}<span class="animate-pulse text-[8px] mt-0.5">YOU</span>`;
                 } 
                 else if (visited) {
@@ -447,7 +426,6 @@ Object.assign(UI, {
                     cell.style.backgroundSize = "4px 4px";
                 }
                 
-                // Other Players
                 if(typeof Network !== 'undefined' && Network.otherPlayers) {
                     for(let pid in Network.otherPlayers) {
                         const p = Network.otherPlayers[pid];
@@ -658,6 +636,7 @@ Object.assign(UI, {
     renderCombat: function() {
         const enemy = Game.state.enemy;
         if(!enemy) return;
+        // Fix from previous update
         const nameEl = document.getElementById('enemy-name');
         if(nameEl) nameEl.textContent = enemy.name;
         
