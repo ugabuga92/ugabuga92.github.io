@@ -438,10 +438,10 @@ Object.assign(UI, {
                     
                     // FIX: Icons für Städte & Vaults
                     if (biome === 'city') {
-                        cell.innerHTML = '<span class="text-xl">🏙️</span>'; // Stadt Icon
+                        cell.innerHTML = '<span class="text-2xl">🏙️</span>'; // Stadt Icon
                         cell.title = "Rusty Springs (Stadt)";
                     } else if (biome === 'vault') {
-                        cell.innerHTML = '<span class="text-xl">⚙️</span>'; // Vault Icon
+                        cell.innerHTML = '<span class="text-2xl">⚙️</span>'; // Vault Icon
                         cell.title = "Vault 101";
                     }
                 } 
