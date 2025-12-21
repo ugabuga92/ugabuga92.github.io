@@ -10,10 +10,27 @@ const WorldGen = {
         this._seed = (this._seed * 16807) % 2147483647;
         return (this._seed - 1) / 2147483646;
     },
+    
+    // NEU: Zentrale Definition der Welt-Regionen
+    getSectorBiome: function(x, y) {
+        // Fixe Orte
+        if (x === 3 && y === 3) return 'city';      // Rusty Springs
+        if (x === 4 && y === 4) return 'vault';     // Vault 101 Area (Start)
+        
+        // Regionen Logik (Hardcoded für Konsistenz)
+        if (x <= 2 && y <= 2) return 'forest';      // NW: Oasis Dschungel
+        if (x >= 5 && y >= 5) return 'desert';      // SO: The Pitt Wüste
+        if (x >= 6 && y <= 1) return 'swamp';       // NO: Sumpfgebiet
+        if (x <= 1 && y >= 6) return 'mountain';    // SW: Gebirge
+        
+        return 'wasteland'; // Standard: Ödland
+    },
 
     createSector: function(width, height, biomeType, poiList) {
         let map = Array(height).fill().map(() => Array(width).fill('.'));
         let conf = { ground: '.', water: 0, mountain: 0, features: [] };
+        
+        // Lade Konfig aus GameData falls vorhanden, sonst Fallback
         if (typeof window.GameData !== 'undefined' && window.GameData.biomes) {
             if (!window.GameData.biomes[biomeType]) biomeType = 'wasteland';
             conf = window.GameData.biomes[biomeType];
@@ -42,6 +59,7 @@ const WorldGen = {
             poiList.forEach(poi => {
                 if(poi.x >= 0 && poi.x < width && poi.y >= 0 && poi.y < height) {
                     map[poi.y][poi.x] = poi.type;
+                    // Freiraum um POI schaffen
                     for(let dy=-3; dy<=3; dy++) {
                         for(let dx=-3; dx<=3; dx++) {
                             const ny = poi.y+dy, nx = poi.x+dx;
@@ -67,9 +85,12 @@ const WorldGen = {
         let map = Array(height).fill().map(() => Array(width).fill('=')); 
         for(let y=0; y<height; y++) { map[y][0] = '|'; map[y][width-1] = '|'; }
         for(let x=0; x<width; x++) { map[0][x] = '|'; map[height-1][x] = '|'; }
+        // City Gates
         map[height-1][width/2] = 'E'; map[height-1][width/2-1] = 'E'; map[height-1][width/2+1] = 'E';
         const cx = Math.floor(width/2), cy = Math.floor(height/2);
+        // Central Plaza
         for(let dy=-1; dy<=1; dy++) for(let dx=-1; dx<=1; dx++) map[cy+dy][cx+dx] = 'F';
+        // Buildings (Hardcoded blocks for now)
         for(let y=5; y<12; y++) for(let x=5; x<15; x++) map[y][x] = '|'; for(let y=6; y<11; y++) for(let x=6; x<14; x++) map[y][x] = '.'; map[11][10] = '='; map[8][10] = '$'; 
         for(let y=5; y<12; y++) for(let x=25; x<35; x++) map[y][x] = '|'; for(let y=6; y<11; y++) for(let x=26; x<34; x++) map[y][x] = '.'; map[11][30] = '='; map[8][30] = 'P'; 
         for(let y=25; y<32; y++) for(let x=5; x<15; x++) map[y][x] = '|'; for(let y=26; y<31; y++) for(let x=6; x<14; x++) map[y][x] = '.'; map[25][10] = '='; map[28][10] = '&'; 
