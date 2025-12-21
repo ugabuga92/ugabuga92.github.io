@@ -301,7 +301,7 @@ Object.assign(UI, {
         Game.state.inventory.forEach((entry) => {
             if(entry.count <= 0) return;
             totalItems += entry.count;
-            const item = Game.items[entry.id];
+            const item = window.GameData.items[entry.id]; // FIX: window.GameData
             
             const btn = document.createElement('div');
             btn.className = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center cursor-pointer hover:bg-green-500 hover:text-black transition-colors group";
@@ -368,7 +368,6 @@ Object.assign(UI, {
         document.getElementById('equip-body-stats').textContent = armStats || "Kein Bonus";
     },
     
-    // --- UPDATED MAP RENDERER ---
     renderWorldMap: function() {
         const grid = document.getElementById('world-grid');
         const info = document.getElementById('sector-info');
@@ -406,18 +405,17 @@ Object.assign(UI, {
                     iconHtml = '<span class="text-3xl">🏙️</span>'; 
                     tooltipTxt = "Rusty Springs (Stadt)";
                 } else if (biome === 'vault') {
-                    iconHtml = '<span class="text-3xl">⚙️</span>'; // GROSSES ICON
+                    iconHtml = '<span class="text-3xl">⚙️</span>'; 
                     tooltipTxt = "Vault 1337";
                 }
 
                 if (isCurrent) {
-                    cell.className += " bg-[#1aff1a] text-black font-bold border-white z-10 shadow-[0_0_15px_#1aff1a] leading-none overflow-visible";
-                    // Zeigt ICON und YOU
-                    cell.innerHTML = `${iconHtml}<span class="animate-pulse text-[8px] mt-0.5">YOU</span>`;
+                    cell.className += " bg-[#1aff1a] text-black font-bold border-white z-20 shadow-[0_0_15px_#1aff1a] leading-none overflow-visible";
+                    cell.innerHTML = `${iconHtml}<span class="font-bold text-xs" style="margin-top:-5px">YOU</span>`;
                 } 
                 else if (visited) {
                     const colorClass = colors[biome] || colors['wasteland'];
-                    cell.className += ` ${colorClass} text-white/80`;
+                    cell.className += ` ${colorClass} text-white/90`;
                     cell.innerHTML = iconHtml;
                 } 
                 else {
@@ -431,7 +429,7 @@ Object.assign(UI, {
                         const p = Network.otherPlayers[pid];
                         if(p.sector && p.sector.x === x && p.sector.y === y) {
                             const dot = document.createElement('div');
-                            dot.className = "absolute top-1 right-1 w-2 h-2 bg-cyan-400 rounded-full border border-black z-20 shadow-[0_0_5px_cyan]";
+                            dot.className = "absolute top-1 right-1 w-2 h-2 bg-cyan-400 rounded-full border border-black z-30 shadow-[0_0_5px_cyan]";
                             cell.appendChild(dot);
                         }
                     }
@@ -462,13 +460,13 @@ Object.assign(UI, {
 
         let htmlBuffer = '';
         if(category === 'monsters') {
-            Object.keys(Game.monsters).forEach(k => {
-                const m = Game.monsters[k];
+            Object.keys(window.GameData.monsters).forEach(k => { // FIX: window.GameData
+                const m = window.GameData.monsters[k];
                 const xpText = Array.isArray(m.xp) ? `${m.xp[0]}-${m.xp[1]}` : m.xp;
                 let dropsText = "Nichts";
                 if(m.drops) {
                     dropsText = m.drops.map(d => {
-                        const item = Game.items[d.id];
+                        const item = window.GameData.items[d.id];
                         return `${item ? item.name : d.id} (${Math.round(d.c*100)}%)`;
                     }).join(', ');
                 }
@@ -491,9 +489,9 @@ Object.assign(UI, {
             });
         } else if (category === 'items') {
             const categories = {};
-            if (Game.items) {
-                Object.keys(Game.items).forEach(k => {
-                    const i = Game.items[k];
+            if (window.GameData.items) {
+                Object.keys(window.GameData.items).forEach(k => { // FIX: window.GameData
+                    const i = window.GameData.items[k];
                     if(!categories[i.type]) categories[i.type] = [];
                     categories[i.type].push(i);
                 });
@@ -512,11 +510,11 @@ Object.assign(UI, {
                 }
             }
         } else if (category === 'crafting') {
-            if (Game.recipes) {
-                Game.recipes.forEach(r => {
-                    const outName = r.out === "AMMO" ? "Munition x15" : (Game.items[r.out] ? Game.items[r.out].name : r.out);
+            if (window.GameData.recipes) {
+                window.GameData.recipes.forEach(r => { // FIX: window.GameData
+                    const outName = r.out === "AMMO" ? "Munition x15" : (window.GameData.items[r.out] ? window.GameData.items[r.out].name : r.out);
                     const reqs = Object.keys(r.req).map(rid => {
-                        const iName = Game.items[rid] ? Game.items[rid].name : rid;
+                        const iName = window.GameData.items[rid] ? window.GameData.items[rid].name : rid;
                         return `${r.req[rid]}x ${iName}`;
                     }).join(', ');
                     htmlBuffer += `
@@ -616,8 +614,8 @@ Object.assign(UI, {
         backBtn.textContent = "ZURÜCK ZUM PLATZ";
         backBtn.onclick = () => this.renderCity();
         container.appendChild(backBtn);
-        Object.keys(Game.items).forEach(key => {
-            const item = Game.items[key];
+        Object.keys(window.GameData.items).forEach(key => { // FIX: window.GameData
+            const item = window.GameData.items[key];
             if(item.cost > 0 && Game.state.lvl >= (item.requiredLevel || 0) - 2) {
                 const canAfford = Game.state.caps >= item.cost;
                 const isEquipped = (Game.state.equip[item.slot] && Game.state.equip[item.slot].name === item.name);
@@ -636,7 +634,6 @@ Object.assign(UI, {
     renderCombat: function() {
         const enemy = Game.state.enemy;
         if(!enemy) return;
-        // Fix from previous update
         const nameEl = document.getElementById('enemy-name');
         if(nameEl) nameEl.textContent = enemy.name;
         
@@ -673,38 +670,40 @@ Object.assign(UI, {
         if(!container) return;
         container.innerHTML = '';
         
-        Game.recipes.forEach(recipe => {
-            const outItem = recipe.out === 'AMMO' ? {name: "15x Munition"} : Game.items[recipe.out];
-            const div = document.createElement('div');
-            div.className = "border border-green-900 bg-green-900/10 p-3 mb-2";
-            let reqHtml = '';
-            let canCraft = true;
-            for(let reqId in recipe.req) {
-                const countNeeded = recipe.req[reqId];
-                const invItem = Game.state.inventory.find(i => i.id === reqId);
-                const countHave = invItem ? invItem.count : 0;
-                let color = "text-green-500";
-                if (countHave < countNeeded) { canCraft = false; color = "text-red-500"; }
-                reqHtml += `<div class="${color} text-xs">• ${Game.items[reqId].name}: ${countHave}/${countNeeded}</div>`;
-            }
-            if(Game.state.lvl < recipe.lvl) { canCraft = false; reqHtml += `<div class="text-red-500 text-xs mt-1">Benötigt Level ${recipe.lvl}</div>`; }
-            div.innerHTML = `
-                <div class="flex justify-between items-start mb-2">
-                    <div class="font-bold text-yellow-400 text-lg">${outItem.name}</div>
-                    <button class="action-button text-sm px-3" onclick="Game.craftItem('${recipe.id}')" ${canCraft ? '' : 'disabled'}>FERTIGEN</button>
-                </div>
-                <div class="pl-2 border-l-2 border-green-900">${reqHtml}</div>
-            `;
-            container.appendChild(div);
-        });
+        if (window.GameData.recipes) {
+            window.GameData.recipes.forEach(recipe => { // FIX: window.GameData
+                const outItem = recipe.out === 'AMMO' ? {name: "15x Munition"} : window.GameData.items[recipe.out];
+                const div = document.createElement('div');
+                div.className = "border border-green-900 bg-green-900/10 p-3 mb-2";
+                let reqHtml = '';
+                let canCraft = true;
+                for(let reqId in recipe.req) {
+                    const countNeeded = recipe.req[reqId];
+                    const invItem = Game.state.inventory.find(i => i.id === reqId);
+                    const countHave = invItem ? invItem.count : 0;
+                    let color = "text-green-500";
+                    if (countHave < countNeeded) { canCraft = false; color = "text-red-500"; }
+                    reqHtml += `<div class="${color} text-xs">• ${window.GameData.items[reqId].name}: ${countHave}/${countNeeded}</div>`;
+                }
+                if(Game.state.lvl < recipe.lvl) { canCraft = false; reqHtml += `<div class="text-red-500 text-xs mt-1">Benötigt Level ${recipe.lvl}</div>`; }
+                div.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-bold text-yellow-400 text-lg">${outItem.name}</div>
+                        <button class="action-button text-sm px-3" onclick="Game.craftItem('${recipe.id}')" ${canCraft ? '' : 'disabled'}>FERTIGEN</button>
+                    </div>
+                    <div class="pl-2 border-l-2 border-green-900">${reqHtml}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
     },
 
     // OVERLAYS
 
     showItemConfirm: function(itemId) {
         if(!this.els.dialog) this.restoreOverlay();
-        if(!Game.items[itemId]) return;
-        const item = Game.items[itemId];
+        if(!window.GameData.items[itemId]) return; // FIX: window.GameData
+        const item = window.GameData.items[itemId];
         Game.state.inDialog = true;
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
