@@ -1,5 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.3.3-map-icons] - 2025-12-21 (Map Visuals)
+------------------------------------------------
+- UI: Weltkarte zeigt nun Icons für Städte (🏙️) und Vaults (⚙️) an, sobald der Fog of War gelüftet ist.
+- FIX: 'ui_render.js' behält alle Minigame-Interfaces (Hacking/Lockpicking) bei.
+
+
 [v0.3.2-minigames] - 2025-12-21 (Gameplay Features)
 ------------------------------------------------
 - NEW: 'minigames.js' hinzugefügt. Enthält Logik für Hacking & Lockpicking.
