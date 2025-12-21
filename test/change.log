@@ -1,5 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.3.9b] - 2025-12-21 (Emergency Fix)
+------------------------------------------------
+- CRITICAL FIX: 'ui_render.js' greift nun korrekt auf 'window.GameData' zu statt auf 'Game.items/monsters'. Dies behebt den "Black Screen" Absturz.
+- FIX: 'ui_core.js' wurde gegen Initialisierungs-Fehler gehärtet (Safe Logging).
+- UI: Weltkarte zeigt nun garantiert das Vault 1337 Icon (Hardcoded Check).
+- LORE: Alle Referenzen auf "Vault 101" zu "Vault 1337" geändert.
+
 [v0.3.9] - 2025-12-21 (Critical Fix)
 ------------------------------------------------
 - FIX: Kritischer Fehler in 'ui_render.js' behoben, bei dem auf 'Game.items' statt 'window.GameData.items' zugegriffen wurde. Dies verursachte den schwarzen Bildschirm.
