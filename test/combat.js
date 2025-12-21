@@ -177,6 +177,11 @@ const Combat = {
         if (!this.active || !Game.state.enemy) return;
         
         const enemy = Game.state.enemy;
+        
+        // FIX: Namen setzen!
+        const nameEl = document.getElementById('enemy-name');
+        if(nameEl) nameEl.textContent = enemy.name;
+
         const hpPct = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
         
         const hpBar = document.getElementById('enemy-hp-bar');
