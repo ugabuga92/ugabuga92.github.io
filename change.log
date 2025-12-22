@@ -1,0 +1,1089 @@
+CHANGE LOG - PIP-BOY 3000 Mk-V
+
+[v0.3.4a-map-polish] - 2025-12-21 (World Map & Lore Fixes)
+------------------------------------------------
+- LORE: Start-Bunker von "Vault 101" in "Vault 1337" umbenannt (in 'data.js', 'world_gen.js', 'ui_render.js').
+- VISUAL: Weltkarten-Icons (Stadt/Vault) vergrößert (text-3xl).
+- FIX: Weltkarten-Icons werden nun auch angezeigt, wenn der Spieler sich auf dem Feld befindet (zusammen mit einem kleineren "YOU"-Text).
+
+
+[v0.3.4-boot] - 2025-12-21 (Visual Polish)
+------------------------------------------------
+- UI: 'index.html' enthält nun eine animierte Boot-Sequenz beim Start ("ROBCO INDUSTRIES...").
+- UI: Scanline-Effekt (wandernder Balken) für authentischeren Röhrenmonitor-Look hinzugefügt.
+- UI: Hintergrund des Login-Screens hat nun ein subtiles, animiertes Hex-Grid.
+
+
+[v0.3.3a-map-fix] - 2025-12-21 (Map & UI Polish)
+------------------------------------------------
+- UI: 'views/worldmap.html' aktualisiert für korrektes 8x8 Grid-Layout.
+- UI: "SCHLIESSEN (ESC)" Button-Text auf der Weltkarte zu "SCHLIESSEN" gekürzt.
+- FIX: 'ui_render.js' sorgt nun dafür, dass Icons (Stadt/Vault) zentriert und groß genug dargestellt werden.
+
+
+[v0.3.3-map-icons] - 2025-12-21 (Map Visuals)
+------------------------------------------------
+- UI: Weltkarte zeigt nun Icons für Städte (🏙️) und Vaults (⚙️) an, sobald der Fog of War gelüftet ist.
+- FIX: 'ui_render.js' behält alle Minigame-Interfaces (Hacking/Lockpicking) bei.
+
+
+[v0.3.2-minigames] - 2025-12-21 (Gameplay Features)
+------------------------------------------------
+- NEW: 'minigames.js' hinzugefügt. Enthält Logik für Hacking & Lockpicking.
+- DATA: Wort-Listen für das Terminal-Hacking in 'data.js' ergänzt.
+- UI: Hacking-Interface (Retro-Terminal Look) implementiert.
+- UI: Lockpicking-Interface (Schloss & Haarklammer Mechanik) implementiert.
+- CITY: "Trainingsgelände" in Rusty Springs hinzugefügt zum Testen der Skills.
+- INPUT: Maus/Touch steuert den Dietrich, Leertaste/Button dreht das Schloss.
+
+
+[v0.3.1b-combat-fix] - 2025-12-21 (UI Hotfix)
+------------------------------------------------
+- FIX: Monster-Namen werden im Kampf-Bildschirm nun korrekt angezeigt (in 'combat.js' Render-Logik ergänzt).
+
+
+[v0.3.1a-map] - 2025-12-21 (World Map Refinement)
+------------------------------------------------
+- GEN: 'world_gen.js' definiert nun die globalen Biome (Wald NW, Wüste SO, etc.).
+- UI: Weltkarte (Global Scan) komplett überarbeitet.
+- UI: Koordinaten-Achsen (0-7) zur besseren Orientierung hinzugefügt.
+- VISUAL: Klare Farbcodes für besuchte/unbekannte Sektoren.
+
+
+[v0.3.0-structure] - 2025-12-21 (Architecture Overhaul)
+------------------------------------------------
+- SYSTEM: 'ui.js' wurde in drei Module zerlegt:
+  1. ui_core.js (Status & Logik)
+  2. ui_render.js (HTML & Visuelles Feedback)
+  3. ui_input.js (Tastatur & Touch Events)
+- FIX: Enter-Taste funktioniert nun bei der Charakter-Erstellung.
+- UI: Menü-Buttons sind während des Kampfes nun sichtbar ausgegraut.
+- UX: "Smart Focus" (Auto-Selektierung) ist auf Touch-Geräten nun komplett deaktiviert.
+- CLEANUP: "Spiel Laden (Enter)" Text bereinigt.
+
+
+[v0.2.13-beta] - 2025-12-21 (Final UI Fixes)
+------------------------------------------------
+- CRITICAL FIX: 'UI.renderWorldMap' implementiert.
+  - Die Weltkarte zeigt nun das 8x8 Raster an.
+  - Besuchte Sektoren sind sichtbar, unbekannte bleiben schwarz (Fog of War).
+  - Zeigt die eigene Position ("YOU") und andere Spieler (Türkise Punkte).
+- CRITICAL FIX: 'UI.renderQuests' implementiert.
+  - Liest Aufgaben aus 'Game.state.quests' und markiert sie beim Öffnen als gelesen.
+- SYSTEM: 'ui.js' ist nun vollständig und enthält alle View-Methoden.
+
+
+[v0.2.12-beta] - 2025-12-21 (Crash Fixes & Missing Methods)
+------------------------------------------------
+- CRITICAL FIX: Fehlende Funktionen in 'ui.js' wiederhergestellt, die Abstürze verursachten.
+- ADDED: 'UI.toggleView' (Navigation Inventar/Wiki/Map).
+- ADDED: 'UI.logout' (Logout-Logik & Netzwerk-Disconnect).
+- ADDED: 'UI.updatePlayerList' & 'UI.togglePlayerList' (Behebt den Netzwerk-Loop-Crash).
+- ADDED: 'UI.selectSpawn' & 'UI.renderSpawnList' (Für neue Charaktere ohne Savegame).
+
+
+[v0.2.11-beta] - 2025-12-20 (UI REPAIR FINAL)
+------------------------------------------------
+- CRITICAL FIX: Syntax-Struktur der 'ui.js' repariert.
+  - Funktionen 'isMobile', 'handleTouchStart' etc. sind nun korrekt als Methoden des UI-Objekts definiert.
+- FIX: Touch-Events werden nun sauber registriert.
+- SYSTEM: Code-Aufteilung in 3 Parts, um Vollständigkeit zu garantieren.
+
+
+[v0.2.10-beta] - 2025-12-20 (UI Syntax Repair)
+------------------------------------------------
+- CRITICAL FIX: Syntaxfehler in 'ui.js' behoben, der dazu führte, dass Funktionen wie 'renderWorldMap' nicht gefunden wurden.
+- REFACTOR: Code-Formatierung bereinigt (keine Einzeiler mehr), um Stabilität zu garantieren.
+- FIX: 'Charakter Löschen' Button für Mobile ist nun korrekt integriert.
+
+
+[v0.2.9-beta] - 2025-12-20 (FINAL FULL INTEGRITY)
+------------------------------------------------
+- SYSTEM: 'ui.js' wurde aufgrund der Länge in zwei Teile gesplittet, um Vollständigkeit zu garantieren.
+- FIX: 'Game.rest' (Heilung) ist in game.js enthalten.
+- FIX: Action-Button für Charakter-Erstellung auf Touch ist in index.html enthalten.
+
+
+[v0.2.8-beta] - 2025-12-20 (FINAL FULL REPAIR)
+------------------------------------------------
+- SYSTEM: ui.js und game.js wurden vollständig ausgeschrieben.
+- FIX: 'UI.showPermadeathWarning' ist nun korrekt implementiert.
+- FIX: 'Game.rest' (Heilung) ist vorhanden und verknüpft.
+- FIX: Charakter-Erstellung auf Touch via Action-Button funktioniert.
+
+
+[v0.2.7-beta] - 2025-12-20 (Permadeath Warning & Vault Fix)
+------------------------------------------------
+- CRITICAL FIX: 'Game.rest' wurde wiederhergestellt. Heilung im Vault funktioniert nun wieder.
+- UI: Neues "PERMADEATH INTRO" beim ersten Spielstart eines Charakters.
+  - Großes Overlay mit Totenkopf-ASCII-Art.
+  - Warnung, dass der Tod endgültig ist.
+- FIX: Netzwerk-Initialisierung verbessert, um "Netzwerkfehler" beim Login auf einigen Geräten zu vermeiden.
+
+
+[v0.2.6-beta] - 2025-12-20 (Layout Fix & Intro)
+------------------------------------------------
+- FIX: UI Layout auf Mobile korrigiert. Das Log-Fenster ist nun deutlich kleiner (30%), das Spielfeld dominiert wieder den Bildschirm.
+- FEATURE: Intro-Warnung hinzugefügt.
+  - Beim Erstellen eines neuen Charakters erscheint nun ein Popup "VAULT-TEC WARNUNG", bevor das Spiel startet.
+- FIX: 'game.js' und 'ui.js' synchronisiert, um den Intro-Dialog korrekt aufzurufen.
+
+
+[v0.2.5-alpha] - 2025-12-20 (Logout & Crash Fixes)
+------------------------------------------------
+- CRITICAL FIX (Network): Fehler behoben, der das erneute Einloggen nach dem Ausloggen verhinderte ("Netzwerkfehler"). 
+  - Der 'active'-Status wird nun bei jedem Initialisierungsversuch korrekt zurückgesetzt.
+- CRITICAL FIX (Game): Aggressiver Schutz gegen Map-Abstürze.
+  - Die Funktion 'reveal' erstellt das 'explored'-Objekt nun zwingend, falls es fehlt, bevor irgendein Zugriff erfolgt.
+  - Zusätzliche Sicherheitschecks beim Laden von Sektoren.
+
+[v0.2.4-alpha] - 2025-12-20 (Action Button Fix)
+------------------------------------------------
+- FIX: Fehlender "Aktions-Button" im HTML ergänzt. 
+  - Im Charakter-Auswahl-Screen gibt es nun über "Abmelden" einen dynamischen Button.
+  - Dieser Button wechselt je nach Slot zwischen "CHARAKTER ERSTELLEN" (Gelb) und "SPIEL LADEN" (Grün).
+  - Damit ist die Erstellung auch auf Touch-Geräten ohne Doppeltipp-Probleme möglich.
+- UI: Vollständiger Code-Restore für index.html und ui.js.
+
+
+[v0.2.3b-alpha] - 2025-12-20 (UI FINAL FULL REPAIR)
+------------------------------------------------
+- CRITICAL: 'ui.js' wurde komplett entpackt und Zeile für Zeile ausgeschrieben.
+- Keine Platzhalter mehr, keine Minifizierung.
+- Alle Funktionen (Login, Charakterwahl, Inventar, Wiki, Map, Touch) sind voll lesbar und editierbar enthalten.
+
+[v0.2.3-alpha] - 2025-12-20 (Touch & Explored Fix)
+------------------------------------------------
+- CRITICAL FIX: Absturz beim Erkunden der Karte behoben (TypeError: undefined is not an object).
+  - Das 'explored'-Objekt wird nun sicher initialisiert, bevor darauf zugegriffen wird.
+- UI (Mobile): Neuer Button "CHARAKTER ERSTELLEN" im Auswahl-Screen hinzugefügt.
+  - Ermöglicht das Erstellen eines neuen Charakters per Touch/Klick, nachdem ein leerer Slot gewählt wurde.
+- UI: Slot-Design verbessert, um den aktiven Slot deutlicher hervorzuheben.
+
+
+[v0.1.23-beta] - 2025-12-20 (UI FINAL RESTORE)
+------------------------------------------------
+- SYSTEM: 'ui.js' Hard-Restore. Die Datei wurde auf volle Länge zurückgesetzt.
+- MODULE ENTHALTEN:
+  - Login & Registrierung (mit Fehler-Feedback).
+  - Charakter-Auswahl (5 Slots, Erstellen, Löschen mit Sicherheitsabfrage).
+  - Smart Focus (Tastatur-Steuerung vs. Touch/Maus).
+  - Wiki (Monstern, Items, Crafting, Orte - komplett ausgeschrieben).
+  - Alle Render-Funktionen (Inventar, Map, Stadt, Shop).
+
+
+[v0.2.2-beta] - 2025-12-20 (Character Slots Update)
+------------------------------------------------
+- FEATURE: Charakter-Auswahl nach dem Login hinzugefügt.
+  - 5 Speicher-Slots pro Account.
+  - Leere Slots können ausgewählt werden, um einen neuen Charakter zu erstellen.
+- FEATURE: Lösch-Funktion für Charaktere.
+  - Sicherheitsabfrage: Der Charaktername muss zur Bestätigung exakt eingetippt werden.
+- UI: Neuer Screen "Charakter-Wahl" mit vollständiger Tastatur-Steuerung (Pfeiltasten, Enter, Entf).
+- CORE: Savegame-Struktur angepasst. Spielstände werden nun pro Slot (0-4) gespeichert.
+
+
+[v0.1.23-beta] - 2025-12-20 (Game Logic Repair)
+------------------------------------------------
+- CRITICAL FIX: 'game.js' repariert.
+  - Die fehlende Funktion 'findSafeSpawn' wurde wieder hinzugefügt.
+  - Das behebt den Absturz beim Spielstart ("GAME INIT FAIL").
+- FIX: Map-Gedächtnis (Fog of War) und Rand-Fix sind weiterhin enthalten.
+
+ 
+[v0.1.22-beta] - 2025-12-20 (Map Persistence & Fog Fix)
+------------------------------------------------
+- CRITICAL FIX: Die Weltkarte merkt sich nun dauerhaft aufgedeckte Gebiete.
+  - Speicherlogik umgestellt auf "Sektor-basierte Keys" (SektorX,SektorY_TileX,TileY).
+  - Der "Fog of War" wird nun korrekt aus dem Savegame geladen und dargestellt.
+- FIX: Grafikfehler am linken Kartenrand behoben. Die Kamera-Positionierung wurde korrigiert.
+- UI: Touch-Steuerung im Menü optimiert.
+
+
+[v0.2.1-alpha] - 2025-12-20 (Security & Documentation)
+------------------------------------------------
+- SECURITY: Datenbank-Regeln verschärft. Die Meldung "unsichere Regeln" ist behoben.
+  - Schreibzugriff ist nun strikt an die User-UID gebunden. Niemand kann fremde Spielstände löschen.
+- DOCS: 'readme.md' komplett überarbeitet.
+  - Enthält nun visuelle Guides zu Symbolen, V.A.T.S., Steuerung und Interface.
+  - Layout für bessere Lesbarkeit im Spiel-Overlay optimiert.
+
+
+[v0.2.0-alpha] - 2025-12-20 (Secure Auth Update)
+------------------------------------------------
+- CORE: Umstellung auf echtes Firebase Authentication System.
+  - Login erfordert nun E-Mail und Passwort.
+  - Neue Registrierungs-Funktion für Accounts.
+  - Spielstände sind nun an die sichere User-UID gebunden, nicht mehr an den Namen.
+- UI: Login-Screen komplett überarbeitet.
+  - Modus-Wechsel zwischen "LOGIN" und "REGISTRIEREN".
+  - Passwort-Feld (verdeckte Eingabe) hinzugefügt.
+- SECURITY: Datenbank-Regeln auf 'auth.uid' Authentifizierung umgestellt.
+
+
+
+[v0.1.21-beta] - 2025-12-20 (Login Feedback Fix)
+------------------------------------------------
+- UI: Fehler beim Login (z.B. Netzwerkprobleme) werden nun direkt auf dem Login-Screen rot angezeigt, statt in der unsichtbaren Konsole.
+- FIX: 'attemptLogin' fängt nun alle Fehler ab und gibt visuelles Feedback, wenn der Login hängt.
+- FIX: Touch-Steuerung (Joystick) prüft nun, ob das Spiel überhaupt läuft, um Fehler im Hintergrund zu vermeiden.
+
+
+[v0.1.20-beta] - 2025-12-20 (Smart Focus & Vault Fix)
+------------------------------------------------
+- UI: "Smart Focus" implementiert. Die Vorselektierung (leuchtende Buttons) ist standardmäßig deaktiviert.
+  - Der Fokus-Rahmen erscheint NUR, wenn Tasten (WASD/Pfeile) benutzt werden.
+  - Bei Berührung (Touch) oder Mausbewegung verschwindet der Rahmen sofort -> Saubere Optik auf Mobile.
+- FIX: Vault-Heilung repariert. Der Button in views/vault.html löst nun korrekt die Heilung aus und aktualisiert die UI.
+- SYSTEM: game.js 'rest' Funktion gehärtet, um sicherzustellen, dass HP korrekt aufgefüllt und gespeichert werden.
+
+
+
+[v0.1.19-beta] - 2025-12-20 (Exploration Crash & Border Fix)
+------------------------------------------------
+- CRITICAL FIX: Absturz beim Erkunden behoben ("undefined is not an object").
+  - Das Spiel prüft nun aggressiv, ob 'this.state.explored' existiert, bevor es neue Gebiete aufdeckt.
+  - Falls es fehlt (z.B. durch Savegame-Fehler), wird es automatisch neu erstellt.
+- FIX (Grafik): Fehlender linker Kartenrand korrigiert.
+  - Die Zeichen-Schleifen in game.js wurden überprüft, um sicherzustellen, dass Spalte 0 (links außen) immer gezeichnet wird.
+  - Canvas-Positionierung im CSS leicht angepasst, um Clipping zu verhindern.
+
+
+[v0.1.18c-beta] - 2025-12-20 (Manual & Nav Fix)
+------------------------------------------------
+- FIX: Tastatur-Navigation im Hauptmenü (ESC) und Listen (Stadt, Wiki) repariert. Pfeiltasten Hoch/Runter springen nun korrekt zum nächsten Element (statt wie im Inventar 4 Felder zu springen).
+- UI: Spielerliste zeigt nun auch beim eigenen Namen den aktuellen Sektor an.
+- CONTENT: Handbuch (readme.md) massiv erweitert. Enthält nun alle Infos zu Steuerung, V.A.T.S., Map-Symbolen und Spielmechaniken.
+- UI: Handbuch-Overlay hat nun einen "SCHLIESSEN"-Button am Ende, der per Tastatur/Maus bedienbar ist.
+
+
+[v0.1.18-beta] - 2025-12-19 (UI Full Rewrite Fix)
+------------------------------------------------
+- CRITICAL FIX: Die Datei 'ui.js' wurde vollständig neu geschrieben und validiert.
+  - Alle Funktionen (attemptLogin, renderQuests, Dungeons) sind vorhanden.
+  - Das Problem, dass der Login-Button oder Enter nicht funktionierten, ist behoben.
+
+
+[v0.1.17-beta] - 2025-12-19 (Green Glow & Menu Controls)
+------------------------------------------------
+- UI: Fokus-Indikator (Tastatur-Auswahl) ist nun ein pulsierender grüner Glow (passend zum Theme), statt hartem Weiß.
+- UI: Spieler-Liste (Online User) ist nun zentriert und besser lesbar.
+- FEATURE: Erweitertes ESC-Menü.
+  - ESC im Spiel öffnet/schließt nun das Hauptmenü.
+  - Das Menü ist vollständig mit Tastatur navigierbar.
+- FIX: "Speichern"-Button bleibt nicht mehr auf "SAVED!" hängen, sondern setzt sich korrekt zurück.
+
+
+[v0.1.16-beta] - 2025-12-19 (UI Full Recovery)
+------------------------------------------------
+- CRITICAL FIX: Die Datei 'ui.js' war unvollständig. Alle fehlenden Funktionen (attemptLogin, renderQuests, Dungeons, etc.) wurden wiederhergestellt.
+- FIX: Login funktioniert nun wieder per Klick und Enter-Taste (ohne Seiten-Neuladen).
+- UI: Alle vorherigen Features (Glow, Zentrierung, Tastatur-Fokus) sind in diesem Build enthalten.
+
+
+[v0.1.15-beta] - 2025-12-19 (Full UI Restore & Aggressive Glow)
+------------------------------------------------
+- RESTORE: ui.js wurde komplett dekomprimiert. Alle Funktionen (Wiki, Map, Inventar) sind wieder voll lesbar und editierbar.
+- UI: Neue "Intense Pulse" Animationen für Benachrichtigungen.
+  - Buttons leuchten nun innen und außen pulsierend, um Aufmerksamkeit zu erregen ("Es ballert").
+  - Farben: Gelb (Charakter/Level Up), Cyan (Neue Aufgaben), Rot (Menü-Alarm).
+
+
+[v0.1.14-beta] - 2025-12-19 (Keyboard Control & Map Fix)
+------------------------------------------------
+- FIX: Weltkarten-Bug behoben. Bereits aufgedeckte Gebiete werden nach dem Neuladen nicht mehr "vergessen".
+- FEATURE: Vollständige Tastatur-Steuerung ("Keyboard First").
+  - Menüs, Shops, Inventar und Dialoge sind nun komplett mit WASD/Pfeiltasten bedienbar.
+  - ENTER/SPACE bestätigt Aktionen.
+  - ESC schließt Menüs.
+- UI: Neuer visueller Fokus-Indikator (weißer Rahmen) zeigt das aktuell gewählte Element an.
+
+
+[v0.1.13-beta] - 2025-12-19 (Glow & Footer Polish)
+------------------------------------------------
+- UI: Menü-Benachrichtigungen (Glow-Effekte) für Charakter (Gelb) und Aufgaben (Cyan) pulsieren nun animiert.
+- UI: Footer-Leiste im Menü bereinigt.
+  - "ONLINE" Text entfernt.
+  - Versionsnummer wird nun korrekt aus der Datei geladen und nicht mehr überschrieben.
+  - Format: "X USER | v0.1.13-beta".
+
+
+[v0.1.12-beta] - 2025-12-19 (Enter Key Hotfix)
+------------------------------------------------
+- FIX: Die Enter-Taste im Login-Screen funktioniert wieder.
+  - HTML-Formular verhindert nun das automatische Neuladen der Seite (onsubmit="event.preventDefault()").
+  - Der Event-Listener wurde auf 'keydown' umgestellt, um die Eingabe sofort zu erfassen.
+
+
+[v0.1.11c-beta] - 2025-12-19 (Code Restore Update)
+------------------------------------------------
+- FIX: `ui.js` wurde "entpackt". Alle Funktionen sind wieder vollständig lesbar und formatiert (Zeilenanzahl wieder normal).
+- UI: Alle vorherigen Fixes (Login-Sperre, Zentrierung, Glow-Effekte) sind enthalten.
+
+
+[v0.1.11-beta] - 2025-12-19 (Login Logic Fix)
+------------------------------------------------
+- CRITICAL FIX: Doppelter Login behoben.
+  - Eine "Busy"-Sperre in ui.js verhindert nun, dass Enter-Taste und Button-Klick gleichzeitig zwei Login-Vorgänge starten.
+  - Dies behebt auch das Problem, dass der "Sprung zu Spieler" beim Erstellen eines neuen Charakters fehlschlug (da der zweite, ungewollte Login den Spawn überschrieb).
+- CLEANUP: HTML-Formularstruktur bereinigt, um Konflikte mit Browser-Autofill und Enter-Taste zu vermeiden.
+
+
+[v0.1.10-beta] - 2025-12-19 (Network & Spawn Fixes)
+------------------------------------------------
+- FIX: Doppelter Login endgültig behoben. Ein neuer "Heartbeat" sendet alle 5 Sekunden ein Lebenszeichen.
+  - Spieler gelten nun solange als "Online", wie der Tab offen ist, auch wenn sie sich nicht bewegen.
+- FIX: "Spawn bei Freund" repariert. Die Koordinaten werden beim Charaktereinstieg nun korrekt übernommen und nicht mehr vom Map-Generator überschrieben.
+- CORE: Netzwerk-Stabilität verbessert. Ghost-Gamer werden aggressiver gefiltert.
+
+
+[v0.1.9-beta] - 2025-12-19 (UI Centering & Glow Fix)
+------------------------------------------------
+- FIX: Menü-Glow-Effekte (Charakter, Aufgaben, Menü) repariert. Sie nutzen nun feste CSS-Klassen statt dynamischer Tailwind-Werte.
+- UI (Dialoge): Alle Popups (Warnungen, Bestätigungen) sind nun exakt in der Bildschirmmitte zentriert, statt unten rechts.
+- UI (Layout): Wiki und Charakter-Menü sind nun auf breiten Bildschirmen zentriert (max-width limit), um die Lesbarkeit zu verbessern.
+
+
+[v0.1.8-beta] - 2025-12-19 (Global Layout Lock)
+------------------------------------------------
+- FIX: Globales CSS-Update in index.html verhindert nun strikt horizontales Scrollen in ALLEN Ansichten.
+- UI: Alle Menüs (Shop, Crafting, Wiki, Stadt, Klinik, Vault) überarbeitet:
+  - 'overflow-x-hidden' hinzugefügt.
+  - 'max-width: 100%' erzwungen.
+  - Textumbruch (break-words) aktiviert, damit lange Item-Namen das Layout nicht sprengen.
+
+
+[v0.1.7-beta] - 2025-12-19 (Layout Lock & Quest Fix)
+------------------------------------------------
+- CRITICAL FIX: 'UI.renderQuests' wiederhergestellt. Der Absturz beim Öffnen des Aufgaben-Menüs ist behoben.
+- UI (Layout): Globales "Horizontal Lock" implementiert. Menüs können auf Mobile nicht mehr zur Seite wackeln/scrollen.
+- UI (Styling): Padding und Breiten in allen Views (Quests, Char, Wiki) angepasst, um Clipping zu verhindern.
+
+
+[v0.1.6-beta] - 2025-12-19 (Mobile Layout & Glow Update)
+------------------------------------------------
+- UI (Mobile): "SPEICHERN"-Button im Header auf Smartphones ausgeblendet, um Platz zu sparen.
+- UI (Menü): "SPEICHERN"-Button zum Dropdown-Menü hinzugefügt (für Mobile-User).
+- UI (Alerts): Benachrichtigungen ("!") verändern nicht mehr den Text. Stattdessen erhalten die betroffenen Buttons (Charakter, Aufgaben, Menü) einen farbigen Leucht-Effekt (Glow).
+- UI (Map): Weltkarten-Button Positionierung gehärtet.
+
+
+[v0.1.5-beta] - 2025-12-19 (Stability & UI Order Update)
+------------------------------------------------
+- CRITICAL FIX: Strukturfehler in ui.js behoben (Doppelte Funktionsnamen entfernt), der 'restoreOverlay' und damit alle Dialoge (Inventar, Warnungen, V.A.T.S.) blockierte.
+- UI (Map): Weltkarten-Button (🌍) ist nun fester Bestandteil des Map-Overlays mit erhöhtem Z-Index, um immer klickbar zu sein.
+- UI (Char): Stats werden nun strikt in der Reihenfolge S.P.E.C.I.A.L. (Stärke, Wahrnehmung, Ausdauer, Intelligenz, Beweglichkeit, Glück) angezeigt.
+- UI (Inventar): Die fehlerhafte Hover-Anzeige wurde komplett entfernt. Ein Klick öffnet nun direkt das Bestätigungs-Fenster mit Item-Details.
+
+
+[v0.1.4-beta] - 2025-12-19 (UI Emergency Fixes)
+------------------------------------------------
+- FIX: Inventar-Benutzung repariert. Das Bestätigungs-Overlay fehlte in Menüs, weshalb Klicks auf Items nichts bewirkten.
+- FIX: Weltkarten-Button (🌍) ist nun korrekt auf der Spielkarte sichtbar.
+- UI: Charakter-Stats werden nun immer in der korrekten S.P.E.C.I.A.L. Reihenfolge angezeigt (STR, PER, END, INT, AGI, LUC).
+- UI: Dialog-System stabilisiert (wird nun in jeder Ansicht korrekt geladen).
+
+
+[v0.1.3-beta] - 2025-12-19 (Pathfinder Update)
+------------------------------------------------
+- UI: Neuer "Weltkarte"-Button (🌍) direkt auf dem Spielfeld (oben rechts) für schnellen Zugriff.
+- UI (Weltkarte): POIs (Interessante Orte) werden nun auf der Weltkarte angezeigt, wenn der Sektor generiert wurde.
+  - V = Vault, C = Stadt, S = Ruine, H = Höhle.
+- CONTENT: Start-Quests erweitert. Neue Charaktere erhalten nun Aufgaben für Jagd und Handel.
+
+
+[v0.1.2-beta] - 2025-12-19 (Inventory & Dungeon Fix)
+------------------------------------------------
+- FIX: Kritischer Fehler behoben, der das Betreten von Dungeons verhinderte (UI.showDungeonWarning restored).
+- UI (Inventar): Das fehlerhafte Hover-Tooltip (abgeschnitten am Rand) wurde entfernt.
+- UI (Inventar): Item-Details (Schaden, Heilung, Wert) werden nun im "Benutzen"-Dialog angezeigt. Dieser liegt garantiert über allen anderen Fenstern.
+
+
+[v0.1.1-beta] - 2025-12-19 (Control & Interaction Fix)
+------------------------------------------------
+- FIX: Fehlende Interaktions-Funktionen (rest, heal, buyAmmo, buyItem) in game.js wiederhergestellt. Vault und Händler funktionieren wieder.
+- FEATURE: Tastatur-Steuerung im V.A.T.S. Kampf.
+  - W/S oder Pfeiltasten zum Auswählen der Trefferzone.
+  - LEERTASTE zum Feuern.
+  - ESC zur Flucht.
+- UI: Handbuch lädt nun dynamisch den Inhalt der 'readme.md'.
+
+
+[v0.1.0-beta] - 2025-12-19 (V.A.T.S. Combat Update)
+------------------------------------------------
+- CORE: Großes Refactoring! Kampfsystem wurde in 'combat.js' ausgelagert.
+- FEATURE: V.A.T.S. Kampfsystem implementiert!
+  - Wähle Körperteile (Kopf, Torso, Beine) mit unterschiedlichen Chancen.
+  - KOPF: Geringe Chance, Kritischer Schaden (2.5x).
+  - TORSO: Hohe Chance, Normaler Schaden.
+  - BEINE: Mittlere Chance, reduziert gegnerischen Schaden ("Verkrüppeln").
+- STATS: 'Wahrnehmung' (PER) erhöht nun direkt die V.A.T.S. Trefferchance.
+- UI: Komplett neues Kampf-Interface im Pip-Boy Retro-Look.
+
+
+[v0.0.18k] - 2025-12-19 (Security & Usability Update)
+------------------------------------------------
+- FIX: Doppel-Login verhindert. Aktive Sessions blockieren neue Login-Versuche für die gleiche ID.
+- FIX: "Ghost Gamer" Fix. Inaktive Spieler (>5 Min ohne Ping) werden automatisch ausgeblendet.
+- UI: Sicherheitsabfrage für Items hinzugefügt. Klick auf Item öffnet nun Bestätigungs-Dialog statt sofortiger Nutzung.
+
+
+[v0.0.18j] - 2025-12-19 (Dungeon Master Update)
+------------------------------------------------
+- FEATURE: Multi-Level Dungeons! Dungeons haben nun 3 Ebenen. Treppen (v) führen tiefer hinab.
+- FEATURE: Dynamische Schwierigkeit. Gegner werden mit jeder Dungeon-Ebene stärker.
+- FEATURE: Cooldown-System. Nach Abschluss ist ein Dungeon für 10 Minuten gesperrt (mit goldener Sieg-Nachricht).
+- FIX: Wände (#) in Dungeons sind nun sichtbar (grau statt schwarz), keine "unsichtbaren Stolperfallen" mehr.
+- UI: Neuer "Victory Screen" und "Locked Screen" für Dungeons.
+
+
+[v0.0.18i] - 2025-12-18 (Dungeon Warning Hotfix)
+------------------------------------------------
+- FIX: Fehlende Funktion 'UI.showDungeonWarning' implementiert.
+  Das Betreten von Dungeons (Supermarkt/Höhle) öffnet nun wieder korrekt das rote Warn-Overlay ("DANGER"), anstatt einen Crash zu verursachen.
+- RESTORE: Warn-Logik aus v0.0.18a wiederhergestellt.
+
+
+[v0.0.18h] - 2025-12-18 (Emergency Fix)
+------------------------------------------------
+- FIX: Kritische Funktionen (expToNextLevel, getStat, gainExp, saveGame) wiederhergestellt, die zu Abstürzen führten.
+- FIX: 'findSafeSpawn' Logik gehärtet, um sicherzustellen, dass sie beim Sektor-Laden verfügbar ist.
+- FIX: Spielabsturz beim Timer-Update (UI Loop) behoben.
+
+
+[v0.0.18f] - 2025-12-18 19:30 (System Restoration Update)
+
+SYSTEM: Komplette Wiederherstellung von game.js, um den initCanvas-Absturz und alle fehlenden Methoden zu beheben.
+
+FIX: Die Spiel-Logik wurde in game.js neu geschrieben, sodass Game.initCanvas, Game.reveal und alle anderen Funktionen nun garantiert verfügbar sind.
+
+FIX: world_gen.js nutzt nun eine sicherere Methode, um auf window.GameData zuzugreifen, was Abstürze beim Start verhindert.
+
+UI: ui.js wurde synchronisiert, um Fehler beim Rendern zu vermeiden.
+
+
+[v0.0.18e] - 2025-12-18 19:15 (Stability & Browser Fix)
+
+CRITICAL FIX: Login-Feld in ein <form autocomplete="off"> gepackt, um einen Absturz in Firefox zu verhindern, der durch Passwort-Manager verursacht wurde (ControlLooksLikePasswordCredentialField).
+
+SYSTEM: game.js erneut validiert und initCanvas, reveal sowie fixMapBorders sichergestellt.
+
+INFO: Version auf 0.0.18e angehoben, um sauberes Caching zu erzwingen.
+
+
+[v0.0.18b] - 2025-12-18 18:30 (Fine Tuning Update)
+
+UI: Währung "Caps" in "Kronkorken (KK)" umbenannt und im gesamten Spiel konsistent ersetzt.
+
+UI: Sektor-Koordinaten (z.B. "[3,4]") werden nun im Header unter dem Spielernamen angezeigt.
+
+UX: world_gen.js optimiert, um breitere Wege zu generieren und Sackgassen zu vermeiden (Anti-Frust).
+
+LOGIK: move prüft nun beim Sektorwechsel, ob der Zielpunkt frei ist, und sucht einen sicheren Spawn, falls nicht.
+
+
+[v0.0.18a] - 2025-12-18 17:09 (Dungeon Crawler Update)
+
+DUNGEON: Generierung echter, geschlossener Dungeons mit Außenwänden (#), Räumen und Korridoren.
+
+WARNING: Ein rot blinkendes Warn-Overlay erscheint nun vor dem Betreten von Dungeons (Höhle/Ruine).
+
+LOOT: Am Ende jedes Dungeons wartet eine Truhe (X) mit Belohnungen (Caps, Legendary Parts).
+
+DATA: Neue Tile-Definitionen für Dungeon-Elemente in GameData.
+
+
+[v0.0.17h] - 2025-12-18 17:45 (Menu & Readability Update)
+
+FIX: Rücksprung-Buttons in Crafting und Shop führen nun korrekt zur Stadt-Ansicht zurück, statt in eine ungültige Ansicht.
+
+UI: Ein Klick auf das Log-Fenster oder den freien Hintergrund schließt nun aktive Menüs (Inventar, Char, Wiki) und kehrt zur Karte zurück.
+
+VISUAL: Lesbarkeit verbessert. HP/XP Texte auf Balken sind nun schwarz für besseren Kontrast. Online-Status im Menü ist weiß.
+
+
+[v0.0.17g] - 2025-12-18 16:30 (Clarity & Fixes Update)
+
+UI (Map): Hindernisse (Wände #, Steine o) haben nun mehr Kontrast und eine hellere Farbe/Schraffur, um die Sichtbarkeit auf dunklen Bildschirmen zu verbessern.
+
+UI (Header): Die Kronkorken-Anzeige ist nun Teil des Haupt-Statusblocks, gelb hervorgehoben und nutzt "C" als Währungssymbol.
+
+UI (Char): Stat-Abkürzungen (STR, PER etc.) wurden durch ausgeschriebene deutsche Bezeichnungen (STÄRKE, WAHRNEHMUNG etc.) ersetzt.
+
+
+[v0.0.17f] - 2025-12-18 16:30 (UX Fixes & Vault View)
+
+BUGFIX: changeSector in game.js korrigiert. Der Gebietswechsel funktionierte nicht mehr zuverlässig. Die Positionsberechnung beim Wechsel (z.B. von Ost nach West) ist nun präziser.
+
+FEATURE: Neue vault.html View. Das Betreten eines Vaults öffnet nun einen eigenen Screen mit animiertem Zahnrad-Hintergrund, statt eines einfachen Dialogs.
+
+UX: Level-Up Indikator im Header blinkt nun "LVL UP!", wenn Skillpunkte verfügbar sind. Im Charakter-Menü wird dies zusätzlich durch einen fetten roten Balken hervorgehoben.
+
+
+[v0.0.17xxx] - 2025-12-18 12:45 (Full System Restore)
+
+SYSTEM: Komplette Wiederherstellung aller Kerndateien (data.js, index.html, game.js, ui.js, world_gen.js).
+
+FIX: index.html lädt nun korrekt data.js vor allen anderen Skripten, um "GameData is not defined" Fehler zu beheben.
+
+FIX: world_gen.js nutzt nun zentralisierte Biome-Daten aus GameData.
+
+FIX: ui.js nutzt GameData.colors und enthält die notwendige shakeView Funktion.
+
+[v0.0.17d] - 2025-12-18 14:15 (Explorer & Knowledge Update)
+
+WIKI: Das Wiki ("Datenbank") wurde vollständig implementiert. Es liest nun dynamisch alle Items, Rezepte und Monster aus den Spieldaten aus. Tabs für Kategorien funktionieren.
+
+INVENTAR: Neues Grid-Layout für das Inventar. Items werden als Kacheln mit Symbolen dargestellt. Mouseover/Touch zeigt Details (Stats, Wert) in einem Tooltip an.
+
+WELT: Persistenter "Fog of War" auf der Weltkarte. Besuchte Sektoren bleiben nun farbig markiert, unbekannte bleiben dunkel.
+
+UI: Weltkarten-Legende aktualisiert und Sumpf-Biom hinzugefügt.
+
+[v0.0.17c] - 2025-12-18 13:30 (System Interface Update)
+
+UI: Retro-Fadenkreuz-Mauszeiger (cursor: crosshair) und dunkle Scrollbalken hinzugefügt.
+
+LOGIN: Neues Layout mit "ANLEITUNG" und "CHANGELOG" Buttons unter dem Login-Button.
+
+FEATURE: "CHANGELOG"-Button öffnet nun ein Overlay, das change.log direkt im Spiel anzeigt.
+
+[v0.0.17b] - 2025-12-18 12:45 (Full System Restore)
+
+SYSTEM: Komplette Wiederherstellung aller Kerndateien (data.js, index.html, game.js, ui.js, world_gen.js).
+
+FIX: index.html lädt nun korrekt data.js vor allen anderen Skripten, um "GameData is not defined" Fehler zu beheben.
+
+FIX: world_gen.js nutzt nun zentralisierte Biome-Daten aus GameData.
+
+FIX: ui.js nutzt GameData.colors und enthält die notwendige shakeView Funktion.
+
+[v0.0.17a] - 2025-12-18 12:45 (Walkable City Update)
+
+FEATURE: Städte sind nun begehbare Karten! Betrete "Rusty Springs" und laufe zu Händlern ($), Ärzten (+) und Werkbänken (&), um sie zu nutzen.
+
+MAP: Neue Symbole und Farben für Stadt-Interaktionen (Händler=Gold, Arzt=Rot, etc.).
+
+UI: Neue Views für Shop und Klinik ersetzen das alte Text-Menü.
+
+LOGIC: enterCity generiert nun eine prozedurale Stadt-Karte mit Mauern und Gebäuden.
+
+[v0.0.16g] - 2025-12-18 11:30 (Visual Polish Update)
+
+UI (Header): HP und XP haben nun visuelle Balken zurückerhalten. Die Buttons "SPEICHERN" und "MENÜ" wurden vergrößert und vereinheitlicht.
+
+UI (Log): Die Breite des Log-Panels auf Desktop wurde von 30% auf 25% reduziert, um mehr Platz für die Karte zu schaffen.
+
+UI (Char): Stats werden nun in einer sauberen Tabelle dargestellt. Horizontales Scrollen wurde deaktiviert.
+
+UX (Save): Die "SAVED!" Animation (grünes Aufleuchten) ist wieder aktiv.
+
+[v0.0.16e] - 2025-12-18 10:15 (Polish & Shake Update)
+
+UI (Header): Komplettes Redesign. Name, HP, Level stehen nun als kompakter Textblock links. Der "Save"-Button wurde visuell an den Menü-Button angepasst (Icons, quadratisch).
+
+UI (Main): Die untere Leiste (encounter-text) wurde entfernt, um mehr Platz für das Spielgeschehen zu schaffen.
+
+UX (Shake): Statt einer Textmeldung "Weg blockiert" rüttelt nun der gesamte Bildschirm (.shake), wenn der Spieler gegen ein Hindernis läuft.
+
+FIX: Menü-Dropdown wird nun sicher über dem Canvas gerendert (z-index: 100).
+
+[v0.0.16d] - 2025-12-18 09:30 (Black Screen Hotfix)
+
+HOTFIX: #manual-overlay hat nun style="display: none;" im HTML, um zu verhindern, dass es beim Laden kurzzeitig den Bildschirm blockiert (Race-Condition mit CSS).
+
+UI: Mobile Hint Overlay blendet sich nun sanft ein und aus.
+
+UI: Stat-Upgrade Buttons im Charakter-Menü auf 48px vergrößert.
+
+[v0.0.16c] - 2025-12-18 09:15 (Usability & Manual Update)
+
+MOBILE: Header Layout optimiert. Auf Smartphones werden weniger Infos angezeigt, um Überlappungen zu vermeiden.
+
+CONTROL: Die Touch-Zone für den Joystick wurde auf den gesamten unteren Bereich (inkl. Log) erweitert.
+
+UI: Stat-Upgrade Buttons im Charakter-Screen sind wieder groß (40x40px).
+
+UI: Horizontales Scrollen in Menüs unterbunden.
+
+MANUAL: Neues Handbuch integriert. Zugriff über "?" im Login-Screen oder "HANDBUCH" im In-Game Menü.
+
+[v0.0.16b] - 2025-12-18 07:45 (Wiki UI Fix)
+
+FIX: wiki.html wurde aktualisiert, um sicherzustellen, dass die Tabs für "Items", "Baupläne" und "Orte" vorhanden sind.
+
+OPTIMIERUNG: renderWiki in ui.js baut den HTML-Content nun effizienter in einem Puffer auf, bevor er in den DOM geschrieben wird. Dies verbessert die Performance und vermeidet Render-Fehler.
+
+[v0.0.16a] - 2025-12-18 07:00 (Data Architecture Update)
+
+SYSTEM: Neue Datei data.js eingeführt. Enthält alle statischen Definitionen (Items, Monster, Rezepte, Biome).
+
+REFACTOR: game.js, ui.js und world_gen.js referenzieren nun GameData anstatt interne Objekte. Dies reduziert die Dateigröße der Logik-Module und vereinfacht zukünftiges Balancing.
+
+SYSTEM: Lade-Reihenfolge in index.html angepasst, um data.js zuerst zu laden.
+
+[v0.0.15g] - 2025-12-17 19:40 (Mobile Awareness Update)
+
+FEATURE: Automatische Erkennung von mobilen Geräten (Touchscreen).
+
+UI: Ein Tutorial-Overlay ("Touch Controls") erscheint nach dem Login auf Smartphones, um die Joystick-Steuerung zu erklären.
+
+UX: Das Overlay kann durch einfaches Antippen ausgeblendet werden.
+
+[v0.0.15f] - 2025-12-17 19:40 (Joystick Fix)
+
+BUGFIX: Joystick-Bewegung wird nun zwangsweise gestoppt, sobald ein View-Wechsel stattfindet (z.B. Start eines Kampfes). Dies verhindert, dass der Charakter "unendlich" weiterläuft, weil das touchend Event durch den Overlay-Wechsel verloren ging.
+
+[v0.0.15e] - 2025-12-17 19:20 (Touch Controls Update)
+
+UI: D-Pad Buttons entfernt und durch einen virtuellen "Analog-Stick" ersetzt.
+
+FEATURE: Spieler können nun auf dem Bildschirm (in der Map-View) ziehen, um sich kontinuierlich in eine Richtung zu bewegen.
+
+VISUAL: Ein grüner Joystick-Indikator erscheint dynamisch an der Position der Berührung.
+
+[v0.0.15d] - 2025-12-17 15:30 (Bestiary Fix)
+
+BUGFIX: Fehlende Monster-Definitionen für radScorpion und mutantRose hinzugefügt. Dies verhinderte das korrekte Laden von Kämpfen oder Wiki-Einträgen in Dschungel- und Wüsten-Biomen.
+
+ITEMS: Neues Item meat_scorp (Skorpion-Drüse) als Drop hinzugefügt.
+
+WIKI: Das Wiki zeigt nun wieder alle Monster korrekt an.
+
+[v0.0.15c] - 2025-12-17 15:00 (Paper Doll Character UI)
+
+UI: Das Charakter-Menü (char.html) wurde komplett überarbeitet.
+
+VISUAL: Eine animierte SVG-Strichfigur ("Pip-Boy Style") visualisiert nun den Charakter im Zentrum.
+
+FEATURE: Angelegte Ausrüstung (Waffe & Rüstung) wird nun links und rechts neben dem Charakter mit Stats und Icons dargestellt.
+
+[v0.0.15b] - 2025-12-17 14:30 (Knowledge Base Update)
+
+FEATURE: Das Wiki wurde komplett überarbeitet und bietet nun 4 Kategorien:
+
+Bestiarium: Zeigt alle bekannten Gegner inkl. ihrer Drops und Stats.
+
+Items: Eine Liste aller Waffen, Rüstungen und Crafting-Materialien.
+
+Baupläne: Alle Crafting-Rezepte und deren Zutaten.
+
+Orte: Informationen zu wichtigen Locations wie Vault 101, Rusty Springs oder The Pitt.
+
+UI: views/wiki.html verfügt nun über Tabs zur Navigation.
+
+LOGIC: renderWiki in ui.js generiert Inhalte dynamisch aus den Spieldaten, sodass das Wiki immer aktuell ist.
+
+[v0.0.15a] - 2025-12-17 14:00 (Crafting System Update)
+
+FEATURE: Crafting-System (Werkbank) implementiert. Erreichbar über "Rusty Springs".
+
+ITEMS: Neue Waffen (Nagelschläger, Taktische Pistole) und Upgrades hinzugefügt.
+
+UI: Neue crafting.html View mit dynamischer Rezept-Liste und Material-Anzeige.
+
+LOGIC: craftItem Funktion erstellt Items aus Komponenten und entfernt diese aus dem Inventar. Level-Anforderungen für Rezepte hinzugefügt.
+
+[v0.0.14g] - 2025-12-17 13:40 (Loot & Legends Update)
+
+LOOT: Mobs haben nun spezifische Drops (z.B. Radroach -> Kakerlakenfleisch, Roboter -> Metallschrott).
+
+LEGENDARY: Das Würfelspiel wurde entfernt. Legendäre Gegner droppen nun garantiert "Legendäre Module" (für späteres Crafting) und haben eine hohe Chance auf seltene Items.
+
+MOBS: 5 Neue Gegnertypen hinzugefügt: Blähfliege, Wildhund, Mirelurk, Protectron, Yao Guai, Wachbot.
+
+ITEMS: Viele neue Crafting-Materialien (Kleber, Schrauben, etc.) und neue Waffen (Jagdgewehr, Plasma-Gewehr, Powerfaust) hinzugefügt.
+
+[v0.0.14f] - 2025-12-17 12:30 (Atmosphere & Detail Update)
+
+WORLDGEN: Detail-Ebenen für Biome hinzugefügt. Jedes Biom hat nun spezifische "Clutter"-Objekte:
+
+Wasteland: Steine (o) und Totholz (x).
+
+City: Mauern (#) und Schutthaufen (+).
+
+Oasis: Große Bäume (T) und hohes Gras (").
+
+BIOME: Neues Biom "Swamp" (Sumpf) im Sektor [6,0] bis [7,1] (Point Lookout Style). Enthält Schlamm, giftiges Wasser (~) und Schilf.
+
+RENDER: drawTile unterstützt nun Kreis-Rendering für Steine, Rechtecke für Schutt und Linien für Pflanzen.
+
+COLORS: Farbpalette überarbeitet (dunklere Erdtöne, modriges Grün für Sumpf), um den Fallout-Vibe zu stärken.
+
+[v0.0.14e] - 2025-12-17 08:30 (Open World Update)
+
+FEATURE: "Offene Welt" Logik implementiert. Sektoren haben keine Innenwände mehr und sind direkt miteinander verbunden.
+
+LOGIC: move prüft nun, ob der Spieler die Kartengrenze (x<0, x>=MAP_W, etc.) überschreitet, um einen Sektorwechsel auszulösen.
+
+WORLD: createSector erzeugt keine Tore ('G') mehr.
+
+WORLD: fixMapBorders erzeugt nun nur noch Wände am absoluten Rand der Weltkarte (Sektor 0,x bis 7,x), anstatt in jedem Sektor.
+
+FIX: Teleport-Logik korrigiert, damit Spieler beim Wechsel auf der gegenüberliegenden Seite spawnen.
+
+[v0.0.14d] - 2025-12-17 07:35 (Visuals & Anti-Softlock)
+
+FIX (Gate Graphics): Die "Tor"-Grafik (G) ist jetzt nicht mehr statisch. Sie prüft ihre Koordinaten und dreht den Pfeil automatisch nach Außen (Oben, Unten, Links, Rechts), passend zum Kartenrand.
+
+FIX (Movement Lock): Ein Bug, der Spieler im "Dialog-Modus" gefangen hielt und Bewegungen blockierte, wurde behoben. Beim Laden eines Spielstands wird der Status nun automatisch zurückgesetzt.
+
+FIX (Collision): Wände (#) wurden aus der Liste der gültigen Spawnpunkte entfernt, um "in-wall" Spawns zu verhindern.
+
+[v0.0.14c] - 2025-12-17 07:15 (Rotation & Rendering Fix)
+
+FIX (Rotation): Die Berechnung der Spieler-Rotation wurde korrigiert. Der grüne Pfeil zeigt nun in die korrekte Bewegungsrichtung (Rechts, Links, Oben, Unten) und ist nicht mehr um 90 Grad versetzt.
+
+FIX (Map Borders): Die Code-Logik für das Zeichnen der Kartenrand-Pfeile (v, <, >) wurde in drawTile explizit überprüft und korrigiert. Sie sollten nun korrekt in die jeweilige Himmelsrichtung zeigen.
+
+[v0.0.14b] - 2025-12-17 07:05 (Collision & World Gen Fix)
+
+BUGFIX (WorldGen): Straßen wurden fälschlicherweise als Wand (#) generiert. Sie werden nun korrekt als Weg (=) erzeugt und sind betretbar.
+
+BUGFIX (Collision): Bäume (t) fehlten in der Kollisionsabfrage, wodurch Spieler "Geisterlauf" durch Wälder betreiben konnten. t ist nun ein solides Hindernis.
+
+[v0.0.13j] - 2025-12-17 06:40 (Critical Fix: Movement Restoration)
+
+FIX: Kritischer Fehler Game.move is not a function behoben. Die Bewegungslogik wurde versehentlich gelöscht und nun vollständig wiederhergestellt.
+
+RESTORED: Kollisionserkennung, Sektor-Wechsel und Interaktions-Trigger (Städte, Vaults) funktionieren wieder.
+
+[v0.0.13i] - 2025-12-17 01:15 (Final Syntax & UI Fix)
+
+FIX: Game-Objekt in game.js vollständig validiert. Alle fehlenden Kommas und Klammern wurden korrigiert. this.drawTile is not a function sollte endgültig behoben sein.
+
+UI: Das "Reset Charakter" Bestätigungsfenster ist nun ein schickes, rot blinkendes In-Game Overlay im Pip-Boy-Stil, statt eines langweiligen Browser-Alerts.
+
+SYSTEM: Code vollständig und ohne Platzhalter bereitgestellt.
+
+[v0.0.13g] - 2025-12-17 00:45 (Combat & Syntax Fix)
+
+FIX: Kritischer Syntax-Fehler in game.js behoben (Game.move is not a function). Die Funktionen im Game-Objekt sind nun korrekt durch Kommata getrennt.
+
+BALANCE: Das legendäre Würfelspiel erscheint nun nur noch mit einer Wahrscheinlichkeit von 15% nach dem Sieg über einen legendären Gegner, statt immer.
+
+SYSTEM: game.js wurde vollständig überarbeitet und validiert.
+
+[v0.0.13f] - 2025-12-17 00:30 (Spawn Collision Logic Fix)
+
+FIX: findSafeSpawn in game.js überarbeitet. Statt bei blockiertem Spawn auf 20,20 zurückzufallen (was zu Fehlern führte), sucht die Funktion nun spiralförmig nach dem nächstgelegenen freien Feld.
+
+FIX: WorldGen.createSector räumt nun einen größeren Bereich (Radius 3) um Tore herum frei, um sicherzustellen, dass Spieler nicht in Bäumen oder Bergen spawnen.
+
+LOGIC: Die Kollisionsabfrage isValidSpawn schließt nun explizit Tore und Vaults als Spawn-Punkte aus, damit Interaktionen nicht versehentlich sofort getriggert werden.
+
+[v0.0.13d] - 2025-12-16 23:30 (Map Persistence Update)
+
+FEATURE: Deterministische Kartengenerierung ("Seeded RNG"). Ein Sektor sieht nun für alle Spieler und nach jedem Reload exakt gleich aus. Dies behebt das Problem, dass die Karte sich nach dem Speichern und Neuladen verändert.
+
+SYSTEM: WorldGen.js wurde um setSeed() und rand() erweitert.
+
+FIX: Die Generierung von POIs und Toren nutzt nun ebenfalls den Sektor-Seed, sodass wichtige Orte nicht mehr "wandern".
+
+UI: Konsistente Pfeil-Darstellung an den Rändern durch Zone-Marker ('G') ersetzt.
+
+INFO: Der Fehler "TypeError: can't access property 'control'" im Browser-Log stammt von einer Browser-Erweiterung und betrifft nicht das Spiel.
+
+[v0.0.13c] - 2025-12-16 23:45 (Final Restoration)
+
+FIX: this.draw is not a function behoben. Die Funktion war versehentlich entfernt worden und ist nun wieder integriert.
+
+FIX: UI.enterVault is not a function behoben. Die ui.js ist nun wieder vollständig und enthält alle Interaktions-Logik.
+
+SYSTEM: Der vollständige Code für alle Kerndateien (game.js, ui.js, network.js, index.html, world_gen.js) wurde bereitgestellt, um Konsistenz zu garantieren.
+
+[v0.0.13b] - 2025-12-16 23:00 (Full Code Repair)
+
+FIX: Kritischer Absturz im Game-Objekt behoben, indem renderStaticMap in der game.js physisch VOR init platziert wurde.
+
+FIX: Alle Dateien wurden vollständig ausgeschrieben, um Copy/Paste-Fehler durch unvollständige Code-Blöcke zu eliminieren.
+
+SYSTEM: Version auf 0.0.13b erhöht, um Konsistenz zu wahren.
+
+[v0.0.13] - 2025-12-16 19:30 (World Gen & Terrain Update)
+
+CORE: Neues Modul world_gen.js für prozedurale Landschaftsgenerierung.
+
+WORLD: Terrain-Typen hinzugefügt: Wasser (W), Berge (M), Wälder (t), Straßen (#).
+
+INFRASTRUKTUR: Automatische Brücken (=) über Wasser und Tunnel (U) durch Berge generiert.
+
+GAMEPLAY: Spieler kann Wasser und Berge nicht mehr ohne Pfad betreten.
+
+VISUAL: Erweiterte Farben und Symbole für das neue Terrain im Pip-Boy-Stil.
+
+SYSTEM: WorldGen Script in index.html eingebunden.
+
+[v0.0.12h] - 2025-12-16 17:45 (Gate Logic & Border Fix)
+
+LOGIK: fixMapBorders Funktion korrigiert. Sie überschreibt nun keine Tore ('G') oder Vaults ('V') mehr, sondern füllt nur fehlende Pfeile auf.
+
+SYSTEM: Neue Funktion getPseudoRandomGate. Tore zwischen Sektoren werden nun deterministisch berechnet, sodass sie immer exakt an derselben Position stehen, egal aus welcher Richtung man den Sektor betritt.
+
+UI: Konsistente Pfeil-Darstellung an den Rändern.
+
+[v0.0.12g] - 2025-12-16 17:15 (Visibility & Controls)
+
+GRAFIK: Die Richtungspfeile an den Kartenrändern leuchten nun im hellen Pip-Boy-Grün (#1aff1a), statt dunkelgrau, um auf dem schwarzen Hintergrund sichtbar zu sein.
+
+STEUERUNG: Kampf-Shortcuts vereinfacht:
+    - [LEERTASTE] = Angriff
+    - [ESC] = Flucht
+    - Keine Pfeiltasten-Auswahl mehr im Kampfmenü nötig.
+
+[v0.0.12f] - 2025-12-16 16:45 (Arrow Fix & Combat Controls)
+
+GRAFIK: Fehlerhafte Pfeildarstellung in alten Spielständen behoben. Die Funktion fixMapBorders korrigiert nun automatisch die Ränder jeder geladenen Karte.
+
+GAMEPLAY: Kampfsteuerung via Tastatur hinzugefügt.
+    - Pfeiltasten (Links/Rechts oder Oben/Unten) zum Wählen von Angriff/Flucht.
+    - [ENTER] / [LEERTASTE] zum Bestätigen.
+    - [ESC] / [BACKSPACE] für sofortige Flucht.
+
+UI: Visuelle Hervorhebung der ausgewählten Kampf-Aktion.
+
+[v0.0.12e] - 2025-12-16 15:30 (Name & Arrows)
+
+UI: Spielername wird nun im Header neben den TP angezeigt.
+
+GRAFIK: Pfeil-Rendering komplett neu geschrieben. Jede Himmelsrichtung hat nun einen eigenen Zeichenpfad, um Darstellungsfehler auszuschließen.
+
+FIX: loadSector setzt die Pfeil-Symbole an den Rändern nun garantiert korrekt.
+
+[v0.0.12d] - 2025-12-16 14:45 (Login Logic Restoration)
+
+FIX: Die Start-Logik wurde korrigiert. Das Spiel startet nun wieder korrekt mit dem "Login Screen" ("PIP-BOY 3000 AUTHENTICATION REQUIRED").
+
+LOGIK: Das "Neuer Charakter" Fenster erscheint jetzt erst NACHDEM eine ID eingegeben wurde, die noch keinen Spielstand besitzt.
+
+CSS: style="display: none;" direkt im HTML des Spawn-Screens eingefügt, um ein kurzes Aufblitzen oder falsches Anzeigen beim Laden der Seite zu verhindern.
+
+[v0.0.12d] - 2025-12-16 14:00 (Save Feedback Update)
+
+UI: Der "SAVE" Button leuchtet nun grün auf und zeigt "SAVED!", wenn das Speichern erfolgreich angestoßen wurde.
+
+FIX: HTML onclick Attribute entfernt und vollständig durch JS Event-Listener ersetzt, um Konflikte zu vermeiden.
+
+UI: Klartext-Feedback im Spawn-Screen ("Kein Spielstand für ID '...' gefunden"), um Verwirrung zu vermeiden.
+
+SYSTEM: Login-Logik ist weiterhin: Vorhandener Save = Login, Kein Save = Spawn Auswahl.
+
+[v0.0.12c] - 2025-12-16 14:00 (Save Feedback Update)
+
+UI: Der "SAVE" Button leuchtet nun grün auf und zeigt "SAVED!", wenn das Speichern erfolgreich angestoßen wurde.
+
+FIX: HTML onclick Attribute entfernt und vollständig durch JS Event-Listener ersetzt, um Konflikte zu vermeiden.
+
+UI: Klartext-Feedback im Spawn-Screen ("Kein Spielstand für ID '...' gefunden"), um Verwirrung zu vermeiden.
+
+SYSTEM: Login-Logik ist weiterhin: Vorhandener Save = Login, Kein Save = Spawn Auswahl.
+
+[v0.0.12b] - 2025-12-16 13:00 (Spawn Selection)
+
+FEATURE: Neuer Screen zur Charaktererstellung. Wenn kein Spielstand existiert, kann man nun wählen, ob man zufällig spawnt oder in der Nähe eines Online-Spielers.
+
+FIX: Auto-Teleport beim Login entfernt (nur noch auf Wunsch bei Neuerstellung).
+
+FIX: Speicher-Funktion repariert (Events waren doppelt gebunden, Inline-Handler entfernt).
+
+UI: "Spiele speichern" Button reagiert jetzt zuverlässig.
+
+[v0.0.12a] - 2025-12-16 11:30 (Inventory System)
+
+FEATURE: Inventar-System (Backpack) hinzugefügt. Gekaufte Items landen nun im Inventar und können dort angesehen, ausgerüstet oder benutzt werden.
+
+ITEMS: Neue Item-Typen "consumable" (Verbrauchsgüter) und "junk" (Schrott) eingeführt.
+
+ITEMS: "Stimpack" hinzugefügt (Heilt 50 HP).
+
+UI: Neue Ansicht "INVENTAR" im Menü.
+
+GAMEPLAY: Waffen/Rüstung werden beim Kauf nicht mehr automatisch angelegt, sondern müssen im Inventar ausgerüstet werden. Das alte Item wandert zurück in den Rucksack.
+
+[v0.0.11c] - 2025-12-16 10:15 (Savegame Restoration Fix)
+
+FIX: UI.enterVault is not a function behoben. Die Interaktions-Logik war im letzten UI-Refactoring verloren gegangen und ist nun wiederhergestellt.
+
+GRAFIK: Buttons im Header sind nun größer und besser lesbar.
+
+DEBUG: Konsolen-Log beim Laden von Spielständen erweitert, um den Ladezustand besser zu verfolgen.
+
+[v0.0.11b] - 2025-12-16 10:00 (Favicon & Detail Polish)
+
+UI: Website-Icon (Favicon) hinzugefügt. Es zeigt ein grünes "P" auf schwarzem Grund im Browser-Tab an.
+
+UI: Konsistente Schriftgrößen im Header und bei den Action-Buttons.
+
+[v0.0.11a] - 2025-12-16 09:30 (Restoration Update)
+
+FIX: Kritischer Fehler behoben, bei dem Interaktions-Funktionen (enterVault, toggleControls etc.) in ui.js fehlten, was zu Abstürzen und fehlerhaftem Speichern führte.
+
+UI: Schriftgröße der Buttons erhöht (von 1.1rem auf 1.25rem) für bessere Lesbarkeit.
+
+DEBUG: Zusätzliches Logging beim Laden von Spielständen hinzugefügt, um "New Character Loop" Fehler besser diagnostizieren zu können.
+
+[v0.0.10l] - 2025-12-16 08:35 (UI Alert System)
+
+UI: Notification Bubbling implementiert. Wenn es neue Aufgaben oder Stat-Punkte gibt, blinkt der Haupt-Menü-Button (☰) jetzt rot, um den Spieler darauf hinzuweisen, das Menü zu öffnen.
+
+UI: Konsistente Benennung der Buttons im Dropdown.
+
+[v0.0.10k] - 2025-12-16 08:00 (Menu & AFK System)
+
+UI: Navigations-Buttons sind nun in einem "MENÜ ☰" Dropdown zusammengefasst (Desktop & Mobile).
+
+UI: "LOGOUT" und "SAVE" Buttons sind nun permanent im Header sichtbar.
+
+SYSTEM: Automatischer Logout bei Inaktivität (>5 Minuten).
+
+LOGIK: Logout-Funktion kehrt zum Login-Screen zurück und entfernt den Spieler-Marker, ohne die Seite neu zu laden.
+
+[v0.0.10j] - 2025-12-16 07:45 (Permadeath & Visual Fix)
+
+GRAFIK: Richtungspfeile an Kartenrändern werden nun durch explizite Symbole (^, v, <, >) fehlerfrei dargestellt.
+
+GAMEPLAY: Permadeath implementiert. Beim Tod wird der Spielstand unwiderruflich aus der Datenbank gelöscht.
+
+NETWORK: Neue Funktion deleteSave zum Bereinigen der Datenbank bei Game Over.
+
+LOGIK: Kollisionsabfrage angepasst, um auch die neuen Randsymbole als Hindernis zu erkennen.
+
+[v0.0.10i] - 2025-12-16 07:35 (Gameplay & Visual Polish)
+
+GRAFIK: Richtungspfeile an den Kartenrändern zeigen nun korrekt in die Himmelsrichtung (nach außen).
+
+FIX: Doppeltes "Spiel gespeichert" im Log nach Kampfende entfernt.
+
+BALANCE: Spawnrate für Städte (Händler) erhöht (35%).
+
+BALANCE: Im Ödland, Dschungel und Wüste kann nun mit 5-10% Chance ein einsamer Händler/Oase (C) auftauchen.
+
+[v0.0.10h] - 2025-12-16 16:35 (Teleport Fix)
+
+FIX: Game.teleportTo is not a function Absturz behoben. Die Funktion war versehentlich entfernt worden und ist nun wieder integriert.
+
+FIX: Sicherheitsabfrage für equip bei alten Spielständen (AGI-Fehler) ist in dieser Version ebenfalls enthalten.
+
+[v0.0.10g] - 2025-12-16 (Savegame Crash Fix)
+
+FIX: "Cannot read properties of undefined (reading 'AGI')" beim Laden eines Spielstands behoben.
+
+CODE: getStat Methode robuster gemacht gegen unvollständige Savegames.
+
+CODE: Game.init stellt nun sicher, dass Ausrüstung (equip) existiert, auch wenn der Spielstand korrupt war.
+
+[v0.0.10e] - 2025-12-16 (Hopefully back to Orgiginal)
+
+recreated original code
+
+[v0.0.10f] - 2025-12-15 (Mobile UI & Nav Update)
+
+MOBILE: Responsive Navigation implementiert. Auf kleinen Bildschirmen sind die Navigations-Buttons nun in einem "Hamburger-Menü" (☰) versteckt, um Platz zu sparen.
+
+UI: "SPEICHERN" Button ist auch auf Mobile immer direkt sichtbar.
+
+UI: Menü schließt sich automatisch nach Auswahl eines Punkts.
+
+CODE: Button-Container im Header ist nun flexibel und bricht auf Mobile nicht mehr um.
+
+[v0.0.10b] - 2025-12-15 (Hotfix: Login Crash)
+
+FIX: Kritischer Fehler im Login-Prozess behoben ("UI.log is not a function").
+
+UI: Versionsnummer wird nun im Login-Feld angezeigt (unten mittig).
+
+INFO: Firebase-Warnung im Dashboard bezüglich "öffentliche Regeln" ist beabsichtigt und korrekt für den Testbetrieb.
+
+[v0.0.10a] - 2025-12-15 (Savegame System)
+
+SYSTEM: Login-Screen implementiert. Spieler müssen nun eine "Survivor-ID" wählen.
+
+NETWORK: Permanente Spielstände (Savegames) in der Cloud. Dein Fortschritt (XP, Items, Position) wird gespeichert und beim Login mit derselben ID wiederhergestellt.
+
+GAMEPLAY: Automatisches Speichern bei wichtigen Events (Level-Up, Sektorwechsel, Kampfende).
+
+UI: Manueller "SPEICHERN" Button hinzugefügt.
+
+[v0.0.9e] - 2025-12-15 (Global Visibility)
+
+UI: Die "Weltkarte" (Taste: WELT) zeigt nun türkise Punkte in Sektoren an, in denen sich andere Spieler befinden.
+
+LOGIK: Verbesserte Synchronisation bei Spielstart ("Global Scan").
+
+FIX: network.js sendet jetzt zuverlässiger Updates.
+
+[v0.0.9d] - 2025-12-15 (Critical Crash Fix)
+
+FIX: "Initializing..." Hänger (Race Condition) behoben. Das Spiel wartet nun zuverlässig, bis alle Skripte geladen sind.
+
+SYSTEM: Globaler Error-Watchdog implementiert. Abstürze werden nun rot im Log angezeigt, statt das Spiel kommentarlos einzufrieren.
+
+NETZWERK: Fallback-Mechanismus: Wenn Firebase geblockt wird, startet das Spiel trotzdem im Offline-Modus (Rescue Mode).
+
+[v0.0.9c] - 2025-12-15 (Boot Fix)
+
+FIX: Spielstart-Logik robuster gegen Netzwerkverzögerungen.
+
+[v0.0.9b] - 2025-12-15 (Visuals Update)
+
+GRAFIK: Spieler-Symbol (grüner Pfeil) dreht sich nun in Bewegungsrichtung.
+
+UI: Kartenränder zeigen nun Pfeile in die Himmelsrichtungen an, um Sektor-Übergänge zu verdeutlichen.
+
+[v0.0.9a] - 2025-12-15 (Online Features)
+
+NETZWERK: "Jump-to-Buddy" Feature. Beim Starten wird man nun automatisch zum ersten gefundenen Spieler teleportiert, statt zufällig zu spawnen.
+
+UI: "ONLINE" Anzeige oben rechts hinzugefügt (zählt aktive Spieler).
+
+NETZWERK: Positions-Update ist nun Event-basiert (Echtzeit).
+
+BUGFIX: Man sieht sich nicht mehr selbst als Ghost, sondern nur die anderen.
+
+[v0.0.8c] - 2025-12-15 (Network UI & Fixes)
+
+NETZWERK UI: Statusanzeige & Log-Feedback.
+
+BUGFIX: Charakter-Level Anzeige.
+
+[v0.0.8b] - 2025-12-15 (Firebase Integration)
+
+NETWORK: Echtzeit-Datenbank Anbindung (Firebase) erfolgreich implementiert.
+
+CONFIG: API-Keys und Projekt-IDs für "pipboy-rpg" eingepflegt.
+
+SYSTEM: Automatisches Verbinden beim Starten. Position wird in Echtzeit an die Datenbank gesendet.
+
+SYSTEM: Spieler sehen sich gegenseitig im selben Sektor.
+
+[v0.0.8a] - 2025-12-15 (Multiplayer Vorbereitung)
+
+CODE: Struktur für network.js geschaffen.
+
+[v0.0.7b] - 2025-12-15 (Readability Update)
+
+UI: CRT-Effekte auf Kartenfenster beschränkt.
+
+GRAFIK: Verbesserte Lesbarkeit von Log und Buttons.
+
+[v0.0.7a] - 2025-12-15 (Graphics Overhaul & CRT Effect)
+
+GRAFIK: Komplettes CSS-Update für einen realistischen "Pip-Boy" Look.
+
+CRT: Scanlines, Vignette, Flimmern und Wölbung via CSS hinzugefügt.
+
+VECTOR: game.js nutzt nun Canvas-Pfade statt simpler Rechtecke für Symbole.
+
+UI: Phosphor-Glow Effekt.
+
+[v0.0.6a] - 2025-12-15 (Content Update)
+
+NEU: Städte (Händler) und Höhlen (Dungeons).
+
+NEU: 3 Neue Monster.
+
+UPDATE: Todeskrallen selten.
+
+[v0.0.5f] - 2025-12-15 (Interactive Bugfix)
+
+FIX: Dialogfenster schließen nicht mehr sofort.
