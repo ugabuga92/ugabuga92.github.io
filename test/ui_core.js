@@ -1,8 +1,8 @@
 const UI = {
-    els: {}, 
+    els: {},
     timerInterval: null,
     lastInputTime: Date.now(),
-    biomeColors: {}, // Safe Init
+    biomeColors: (typeof window.GameData !== 'undefined') ? window.GameData.colors : {},
 
     // States
     loginBusy: false,
@@ -11,12 +11,15 @@ const UI = {
     deleteMode: false,
     currentSaves: {},
     selectedSlot: -1,
+    
+    // Focus System
     focusIndex: -1,
     focusableEls: [],
-    inputMethod: 'touch', 
+    inputMethod: 'touch', // 'touch' by default to avoid auto-focus on mobile
 
+    // Utils
     log: function(msg, color="text-green-500") {
-        if(!this.els || !this.els.log) { console.log("LOG:", msg); return; }
+        if(!this.els.log) return;
         const line = document.createElement('div');
         line.className = color;
         line.textContent = `> ${msg}`;
@@ -24,26 +27,36 @@ const UI = {
     },
 
     error: function(msg) {
-        console.error(msg);
-        if(this.els && this.els.log) {
+        const errText = `> ERROR: ${msg}`;
+        console.error(errText);
+        if(this.els.log) {
             const line = document.createElement('div');
             line.className = "text-red-500 font-bold blink-red";
-            line.textContent = `> ERROR: ${msg}`;
+            line.textContent = errText;
             this.els.log.prepend(line);
         }
     },
     
     setConnectionState: function(status) {
-        if(!this.els || !this.els.version) return;
         const v = this.els.version;
-        if(status === 'online') { v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14"; } 
-        else if (status === 'offline') { v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red"; } 
-        else { v.className = "text-yellow-400 font-bold tracking-widest animate-pulse"; }
+        if(!v) return;
+        if(status === 'online') {
+            v.className = "text-[#39ff14] font-bold tracking-widest";
+            v.style.textShadow = "0 0 5px #39ff14";
+        } else if (status === 'offline') {
+            v.className = "text-red-500 font-bold tracking-widest";
+            v.style.textShadow = "0 0 5px red";
+        } else {
+            v.className = "text-yellow-400 font-bold tracking-widest animate-pulse";
+        }
     },
 
     updateTimer: function() {
         if(Game.state && this.els.gameScreen && !this.els.gameScreen.classList.contains('hidden')) {
-            if(Date.now() - this.lastInputTime > 300000) { this.logout("AFK: ZEITÜBERSCHREITUNG"); return; }
+            if(Date.now() - this.lastInputTime > 300000) {
+                this.logout("AFK: ZEITÜBERSCHREITUNG");
+                return;
+            }
         }
         if(!Game.state || !Game.state.startTime) return;
         const diff = Math.floor((Date.now() - Game.state.startTime) / 1000);
@@ -51,12 +64,14 @@ const UI = {
         const m = Math.floor((diff % 3600) / 60).toString().padStart(2,'0');
         const s = (diff % 60).toString().padStart(2,'0');
         if(this.els.timer) this.els.timer.textContent = `${h}:${m}:${s}`;
+        
+        // Dynamic Updates (HP, XP, Combat State) from ui_render.js
         if(this.update) this.update();
     },
 
+    // Initialization
     init: function() {
-        this.biomeColors = (typeof window.GameData !== 'undefined') ? window.GameData.colors : {};
-        
+        // Map DOM Elements
         this.els = {
             touchArea: document.getElementById('main-content'),
             view: document.getElementById('view-container'),
@@ -126,30 +141,46 @@ const UI = {
         window.Game = Game;
         window.UI = this;
 
+        // Initialize Sub-Modules
         if(this.initInput) this.initInput();
+        
         if(this.timerInterval) clearInterval(this.timerInterval);
         this.timerInterval = setInterval(() => this.updateTimer(), 1000);
     },
 
-    isMobile: function() { return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0); },
+    // Logic Functions
+    isMobile: function() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+    },
 
     startGame: function(saveData, slotIndex, newName=null) {
         this.charSelectMode = false;
         this.els.charSelectScreen.style.display = 'none';
         this.els.gameScreen.classList.remove('hidden');
         this.els.gameScreen.classList.remove('opacity-0');
+        
         Game.init(saveData, null, slotIndex, newName);
-        if(this.isMobile()) this.showMobileControlsHint();
-        if(typeof Network !== 'undefined') Network.startPresence();
+        
+        if(this.isMobile()) {
+            this.showMobileControlsHint();
+        }
+        Network.startPresence();
     },
 
     logout: function(msg) {
         this.loginBusy = false;
         if(typeof Network !== 'undefined') Network.disconnect();
-        if(Game.state) { Game.saveGame(); Game.state = null; }
+        if(Game.state) {
+            Game.saveGame();
+            Game.state = null;
+        }
+        
         this.els.gameScreen.classList.add('hidden');
         this.els.loginScreen.style.display = 'flex';
         this.els.loginStatus.textContent = msg || "AUSGELOGGT";
+        this.els.loginStatus.className = "mt-4 text-yellow-400";
+        this.els.inputPass.value = "";
+        
         if(this.els.navMenu) this.els.navMenu.classList.add('hidden');
         if(this.els.playerList) this.els.playerList.style.display = 'none';
     },
@@ -161,7 +192,7 @@ const UI = {
         const pass = this.els.inputPass.value.trim();
         const name = this.els.inputName ? this.els.inputName.value.trim().toUpperCase() : "";
         
-        this.els.loginStatus.textContent = "VERBINDE...";
+        this.els.loginStatus.textContent = "VERBINDE MIT VAULT-TEC...";
         this.els.loginStatus.className = "mt-4 text-yellow-400 animate-pulse";
         
         try {
@@ -169,56 +200,106 @@ const UI = {
             Network.init();
             let saves = null;
             if (this.isRegistering) {
-                if (email.length < 5 || pass.length < 6 || name.length < 3) throw new Error("Daten unvollständig");
+                if (email.length < 5 || pass.length < 6 || name.length < 3) throw new Error("Daten unvollständig (PW min 6, Name min 3)");
                 saves = await Network.register(email, pass, name);
             } else {
-                if (email.length < 5 || pass.length < 1) throw new Error("Zugangsdaten fehlen");
+                if (email.length < 5 || pass.length < 1) throw new Error("Bitte E-Mail und Passwort eingeben");
                 saves = await Network.login(email, pass);
             }
             if(this.renderCharacterSelection) this.renderCharacterSelection(saves || {});
         } catch(e) {
-            this.els.loginStatus.textContent = "FEHLER: " + e.message;
+            let msg = e.message;
+            if (e.code === "auth/email-already-in-use") msg = "E-Mail wird bereits verwendet!";
+            if (e.code === "auth/invalid-email") msg = "Ungültige E-Mail-Adresse!";
+            if (e.code === "auth/wrong-password") msg = "Falsches Passwort!";
+            if (e.code === "auth/user-not-found") msg = "Benutzer nicht gefunden!";
+            this.els.loginStatus.textContent = "FEHLER: " + msg;
             this.els.loginStatus.className = "mt-4 text-red-500 font-bold blink-red";
         } finally {
             this.loginBusy = false;
         }
     },
 
+    // Actions
     handleSaveClick: function() {
         Game.saveGame(true);
-        const btn = this.els.btnSave;
-        if(btn) { btn.textContent = "SAVED!"; setTimeout(() => { btn.textContent = "SPEICHERN"; }, 1000); }
+        [this.els.btnSave, this.els.btnMenuSave].forEach(btn => {
+            if(!btn) return;
+            const originalText = btn.textContent;
+            const originalClass = btn.className;
+            btn.textContent = "SAVED!";
+            btn.className = "header-btn bg-[#39ff14] text-black border-[#39ff14] w-full text-left";
+            if(btn === this.els.btnSave) btn.className = "header-btn bg-[#39ff14] text-black border-[#39ff14] hidden md:flex";
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.className = originalClass;
+            }, 1000);
+        });
     },
 
-    handleReset: function() { if(this.els.resetOverlay) this.els.resetOverlay.style.display = 'flex'; },
+    handleReset: function() {
+        if(this.els.navMenu) {
+            this.els.navMenu.classList.add('hidden');
+            this.els.navMenu.style.display = 'none';
+        }
+        if(this.els.resetOverlay) this.els.resetOverlay.style.display = 'flex';
+    },
+    
     confirmReset: function() { if(typeof Game !== 'undefined') Game.hardReset(); },
     cancelReset: function() { if(this.els.resetOverlay) this.els.resetOverlay.style.display = 'none'; },
-    selectSpawn: function(mode) { this.els.spawnScreen.style.display = 'none'; if(mode === 'random') this.startGame(null, this.selectedSlot, null); },
+
+    selectSpawn: function(mode) {
+        this.els.spawnScreen.style.display = 'none';
+        if(mode === 'random') {
+            this.startGame(null, this.selectedSlot, null);
+        }
+    },
     
+    // Character Slot Logic
     selectSlot: function(index) {
         this.selectedSlot = index;
         const slots = this.els.charSlotsList.children;
         for(let s of slots) s.classList.remove('active-slot');
         if(slots[index]) slots[index].classList.add('active-slot');
+        
         const save = this.currentSaves[index];
         if (this.els.btnCharSelectAction) {
-            this.els.btnCharSelectAction.textContent = save ? "SPIEL LADEN" : "CHARAKTER ERSTELLEN";
-            this.els.btnCharSelectAction.className = save ? "action-button w-full border-green-500 text-green-500 font-bold py-3 mb-2" : "action-button w-full border-yellow-400 text-yellow-400 font-bold py-3 mb-2";
-            if(this.els.btnCharDeleteAction) this.els.btnCharDeleteAction.style.display = save ? 'flex' : 'none';
+            if (save) {
+                // CHANGED: " (Enter)" text removed
+                this.els.btnCharSelectAction.textContent = "SPIEL LADEN";
+                this.els.btnCharSelectAction.className = "action-button w-full border-green-500 text-green-500 font-bold py-3 mb-2";
+                if(this.els.btnCharDeleteAction) {
+                    this.els.btnCharDeleteAction.classList.remove('hidden');
+                    this.els.btnCharDeleteAction.style.display = 'flex';
+                }
+            } else {
+                this.els.btnCharSelectAction.textContent = "CHARAKTER ERSTELLEN";
+                this.els.btnCharSelectAction.className = "action-button w-full border-yellow-400 text-yellow-400 font-bold py-3 mb-2";
+                if(this.els.btnCharDeleteAction) {
+                    this.els.btnCharDeleteAction.classList.add('hidden');
+                    this.els.btnCharDeleteAction.style.display = 'none';
+                }
+            }
         }
     },
 
     navigateCharSlot: function(delta) {
         let newIndex = this.selectedSlot + delta;
-        if(newIndex < 0) newIndex = 4; if(newIndex > 4) newIndex = 0;
+        if(newIndex < 0) newIndex = 4;
+        if(newIndex > 4) newIndex = 0;
         this.selectSlot(newIndex);
     },
 
     triggerCharSlot: function() {
         if(this.selectedSlot === -1) return;
         const save = this.currentSaves[this.selectedSlot];
-        if(save) { this.startGame(save, this.selectedSlot); } 
-        else { this.els.newCharOverlay.classList.remove('hidden'); this.els.inputNewCharName.value = ""; this.els.inputNewCharName.focus(); }
+        if(save) {
+            this.startGame(save, this.selectedSlot);
+        } else {
+            this.els.newCharOverlay.classList.remove('hidden');
+            this.els.inputNewCharName.value = "";
+            this.els.inputNewCharName.focus();
+        }
     },
 
     triggerDeleteSlot: function() {
@@ -230,8 +311,14 @@ const UI = {
         this.els.deleteTargetName.textContent = save.playerName || "UNBEKANNT";
         this.els.deleteInput.value = "";
         this.els.btnDeleteConfirm.disabled = true;
+        this.els.btnDeleteConfirm.classList.add('border-red-500', 'text-red-500');
+        this.els.btnDeleteConfirm.classList.remove('border-green-500', 'text-green-500', 'animate-pulse');
         this.els.deleteInput.focus();
     },
 
-    closeDeleteOverlay: function() { this.deleteMode = false; this.els.deleteOverlay.style.display = 'none'; }
+    closeDeleteOverlay: function() {
+        this.deleteMode = false;
+        this.els.deleteOverlay.style.display = 'none';
+        this.els.charSelectScreen.focus();
+    }
 };
