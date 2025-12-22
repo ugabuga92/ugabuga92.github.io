@@ -1,18 +1,19 @@
 const Game = {
     state: null,
     saveSlot: 0,
-    items: {}, // FIX: Verhindert "undefined" Fehler beim UI-Start
     
+    // Canvas Vars
+    canvasMap: null,
+    ctx: null,
+    mapWidth: 32,
+    mapHeight: 24,
+    tileSize: 20, // Größe der Kacheln in Pixeln
+
     // --- INITIALISIERUNG & SAVEGUARD ---
 
     init: function(saveData, dbRef, slotIndex, newName) {
         this.saveSlot = slotIndex;
         console.log("Initializing Game Loop...");
-
-        // FIX: Item-Datenbank verknüpfen (verhindert UI Fehler)
-        if (typeof window.GameData !== 'undefined' && window.GameData.items) {
-            this.items = window.GameData.items;
-        }
 
         // 1. SaveGuard: Daten validieren oder neu erstellen
         if (saveData) {
@@ -21,35 +22,32 @@ const Game = {
         } else {
             this.state = this.createNewState(newName);
             UI.log("Neue ID registriert: " + newName, "text-yellow-400");
-            // Start-Equipment für neue Spieler
+            // Start-Equipment
             this.addToInventory('vault_suit', 1);
             this.equipItem('vault_suit');
-            this.addToInventory('pistol', 1); // Ein bisschen Hilfe für den Start
+            this.addToInventory('pistol', 1); 
             this.addToInventory('AMMO', 20);
         }
 
-        // 2. Startzeit setzen (für Timer)
+        // 2. Startzeit setzen
         if (!this.state.startTime) this.state.startTime = Date.now();
 
         // 3. UI initialisieren
         UI.update();
         
-        // 4. Ersten View laden (wenn im Kampf, zurück in Kampf, sonst Map)
+        // 4. View laden
         if (this.state.view === 'combat' && this.state.enemy && this.state.enemy.hp > 0) {
             if(typeof Combat !== 'undefined') Combat.start(this.state.enemy);
         } else {
             UI.switchView('map');
         }
 
-        // 5. Auto-Save Interval starten (alle 60s)
+        // 5. Auto-Save (60s)
         setInterval(() => this.autoSave(), 60000);
     },
 
-    // Repariert kaputte Saves und setzt Standardwerte
     validateState: function(data) {
         const def = this.createNewState("Unknown");
-        
-        // Prüfe alle wichtigen Felder, falls sie im Save fehlen (durch Updates)
         if (!data.player) data.player = def.player;
         if (!data.sector) data.sector = def.sector;
         if (typeof data.hp !== 'number' || isNaN(data.hp)) data.hp = def.hp;
@@ -62,11 +60,10 @@ const Game = {
         if (!data.equip) data.equip = {};
         if (!data.quests) data.quests = [];
         if (!data.visitedSectors) data.visitedSectors = ["4,4"];
+        if (!data.localMap) data.localMap = []; // Map Data
         
-        // Reset flags
         data.inDialog = false;
         data.isGameOver = false;
-        
         return data;
     },
 
@@ -78,49 +75,158 @@ const Game = {
             statPoints: 0,
             inventory: [],
             equip: { weapon: null, body: null },
-            sector: { x:4, y:4 }, // Start bei Vault 1337
-            player: { x:1, y:1 }, // In-Map Position
+            sector: { x:4, y:4 }, 
+            player: { x:16, y:12 }, // Mitte der Map
             visitedSectors: ["4,4"],
-            quests: [{id: "start", title: "Willkommen im Ödland", text: "Überlebe. Finde Wasser. Stirb nicht.", read: false}],
+            localMap: [],
+            quests: [{id: "start", title: "Willkommen", text: "Verlasse den Vault.", read: false}],
             buffEndTime: 0,
             view: 'map',
             ammo: 0
         };
     },
 
-    // --- CORE MECHANICS (Safe Modifiers) ---
+    // --- RENDER & MAP LOGIC (DER FIX) ---
 
-    // Zentrale Funktion für HP Änderungen (Heilung & Schaden)
+    initCanvas: function() {
+        const canvas = document.getElementById('game-canvas');
+        if (!canvas) return;
+        
+        this.canvasMap = canvas;
+        this.ctx = canvas.getContext('2d');
+        
+        // Canvas Größe setzen
+        canvas.width = this.mapWidth * this.tileSize;
+        canvas.height = this.mapHeight * this.tileSize;
+        
+        // Deaktiviere Antialiasing für Pixel-Look
+        this.ctx.imageSmoothingEnabled = false;
+
+        // Wenn keine Map im Speicher ist -> Generieren
+        if (!this.state.localMap || this.state.localMap.length === 0) {
+            this.generateLocalMap();
+        }
+        
+        this.drawMap();
+    },
+
+    generateLocalMap: function() {
+        if (typeof WorldGen === 'undefined') return;
+        
+        const biome = WorldGen.getSectorBiome(this.state.sector.x, this.state.sector.y);
+        let pois = [];
+        
+        // Spezielle Orte setzen
+        if(biome === 'city') pois.push({x: Math.floor(this.mapWidth/2), y: Math.floor(this.mapHeight/2), type: 'C'});
+        if(biome === 'vault') pois.push({x: Math.floor(this.mapWidth/2), y: Math.floor(this.mapHeight/2), type: 'V'});
+        
+        // Map generieren
+        this.state.localMap = WorldGen.createSector(this.mapWidth, this.mapHeight, biome, pois);
+    },
+
+    drawMap: function() {
+        if (!this.ctx || !this.state.localMap || this.state.localMap.length === 0) return;
+        
+        const map = this.state.localMap;
+        const colors = window.GameData.colors;
+        const ts = this.tileSize;
+        
+        // 1. Clear
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(0, 0, this.canvasMap.width, this.canvasMap.height);
+        
+        // 2. Draw Terrain
+        for (let y = 0; y < this.mapHeight; y++) {
+            for (let x = 0; x < this.mapWidth; x++) {
+                if(!map[y] || !map[y][x]) continue;
+                const char = map[y][x];
+                this.ctx.fillStyle = colors[char] || '#111';
+                this.ctx.fillRect(x * ts, y * ts, ts, ts);
+                
+                // Optional: Grid Lines (leicht)
+                // this.ctx.strokeStyle = '#051105';
+                // this.ctx.strokeRect(x * ts, y * ts, ts, ts);
+            }
+        }
+        
+        // 3. Draw Player
+        const p = this.state.player;
+        this.ctx.fillStyle = '#39ff14'; // Pip-Boy Green
+        this.ctx.shadowBlur = 15;
+        this.ctx.shadowColor = '#39ff14';
+        this.ctx.fillRect(p.x * ts, p.y * ts, ts, ts);
+        this.ctx.shadowBlur = 0; // Reset
+    },
+
+    // --- ACTIONS ---
+
+    move: function(dx, dy) {
+        if (this.state.isGameOver || this.state.inDialog || !this.state.localMap) return;
+        
+        let newX = this.state.player.x + dx;
+        let newY = this.state.player.y + dy;
+        
+        // Grenzen prüfen
+        if (newX < 0 || newX >= this.mapWidth || newY < 0 || newY >= this.mapHeight) {
+             UI.log("Ende des Sektors.", "text-gray-500");
+             // Hier könnte man den Sektorwechsel triggern
+             return;
+        }
+        
+        // Kollision prüfen
+        const tile = this.state.localMap[newY][newX];
+        const solidChars = ['M', 'W', '#', '|']; // Berg, Wasser, Wände
+        if (solidChars.includes(tile)) {
+             UI.log("Weg blockiert!", "text-red-500");
+             UI.shakeView();
+             return;
+        }
+        
+        // Bewegung ausführen
+        this.state.player.x = newX;
+        this.state.player.y = newY;
+        
+        // Interaktionen
+        this.checkInteraction(tile);
+
+        // Zufallskampf
+        const biome = WorldGen.getSectorBiome(this.state.sector.x, this.state.sector.y);
+        if (biome !== 'city' && biome !== 'vault' && Math.random() < 0.05) { 
+            this.triggerRandomEncounter();
+        }
+        
+        this.drawMap(); 
+    },
+
+    checkInteraction: function(tile) {
+        if(tile === 'C' || tile === 'E' || tile === 'F') { // City Trigger
+            UI.toggleView('city');
+            UI.log("Betrete Rusty Springs...", "text-cyan-400");
+        }
+        if(tile === 'V') { // Vault Trigger
+            UI.enterVault();
+        }
+    },
+
     modifyHP: function(amount) {
         if (!this.state || this.state.isGameOver) return;
-
         const oldHp = this.state.hp;
         this.state.hp += amount;
-
-        // Caps (Nicht über Max, nicht unter 0)
         if (this.state.hp > this.state.maxHp) this.state.hp = this.state.maxHp;
-        
-        // Death Logic
         if (this.state.hp <= 0) {
             this.state.hp = 0;
             this.handleDeath();
         }
-
-        // Visuelles Feedback via UI
-        if (amount < 0) {
-            UI.shakeView();
-            // Optional: Roter Screen Flash trigger via CSS class
-        }
-        
+        if (amount < 0) UI.shakeView();
         UI.update();
-        return this.state.hp - oldHp; // Gibt tatsächliche Änderung zurück
+        return this.state.hp - oldHp;
     },
 
     modifyCaps: function(amount) {
         if (!this.state) return false;
         if (this.state.caps + amount < 0) {
             UI.log("Nicht genug Kronkorken!", "text-red-500");
-            return false; // Transaktion fehlgeschlagen
+            return false;
         }
         this.state.caps += amount;
         UI.update();
@@ -131,88 +237,51 @@ const Game = {
         if (!this.state) return;
         this.state.xp += amount;
         UI.log(`+${amount} XP`, "text-yellow-400");
-        
         const next = this.expToNextLevel(this.state.lvl);
-        if (this.state.xp >= next) {
-            this.levelUp();
-        }
+        if (this.state.xp >= next) this.levelUp();
         UI.update();
     },
 
     levelUp: function() {
         this.state.lvl++;
         this.state.statPoints += 1;
-        this.state.xp = 0; // Reset XP für nächstes Level (oder Übertrag behalten, Geschmackssache. Hier Reset einfachheitshalber)
-        
-        // Auto-Heal & MaxHP Boost
+        this.state.xp = 0; 
         this.recalcMaxHp();
         this.state.hp = this.state.maxHp;
-        
-        UI.log(`LEVEL UP! Du bist jetzt Level ${this.state.lvl}.`, "text-yellow-400 font-bold alert-glow-yellow");
-        UI.log("Skillpunkt erhalten! Checke deinen Charakter.", "text-green-400");
-    },
-
-    // --- ACTIONS ---
-
-    move: function(dx, dy) {
-        if (this.state.isGameOver || this.state.inDialog) return;
-        
-        // Kollisions-Check (Muss WorldGen.js nutzen wenn möglich, hier vereinfacht wenn keine Map da)
-        // Wir nehmen an, dass 'Game.canvasMap' aktuell gerendert ist, wenn wir im Map-Mode sind
-        // Da wir das Canvas-System noch einfach halten:
-        
-        this.state.player.x += dx;
-        this.state.player.y += dy;
-        
-        // Sektor-Wechsel Logik (Einfach: Wenn ausserhalb 0-30 Koordinaten)
-        // Dies ist ein Platzhalter, bis wir echte Kollision haben
-        
-        // Zufallskampf (nur im Wasteland)
-        const biome = (typeof WorldGen !== 'undefined') ? WorldGen.getSectorBiome(this.state.sector.x, this.state.sector.y) : 'wasteland';
-        if (biome !== 'city' && biome !== 'vault' && Math.random() < 0.05) { // 5% Chance pro Schritt
-            this.triggerRandomEncounter();
-        }
-        
-        // Neu zeichnen (Canvas)
-        if (this.drawMap) this.drawMap(); 
+        UI.log(`LEVEL UP! Level ${this.state.lvl}.`, "text-yellow-400 font-bold alert-glow-yellow");
     },
 
     changeSector: function(sx, sy) {
-        if (sx < 0 || sx > 7 || sy < 0 || sy > 7) return; // World Bounds
+        if (sx < 0 || sx > 7 || sy < 0 || sy > 7) return; 
         this.state.sector = {x: sx, y: sy};
-        
         const key = `${sx},${sy}`;
         if (!this.state.visitedSectors.includes(key)) {
             this.state.visitedSectors.push(key);
-            this.gainExp(10); // Erkundungs-XP
+            this.gainExp(10);
             UI.log(`Sektor [${sx},${sy}] entdeckt.`, "text-cyan-400");
         }
+        // Neue Map generieren erzwingen
+        this.state.localMap = []; 
+        this.state.player.x = Math.floor(this.mapWidth/2);
+        this.state.player.y = Math.floor(this.mapHeight/2);
         
-        // Reset Player Pos im neuen Sektor (Mitte)
-        this.state.player.x = 15; 
-        this.state.player.y = 15;
-        
-        this.initCanvas(); // Map neu generieren
-        UI.renderWorldMap(); // Globale Karte updaten
+        this.initCanvas(); 
+        UI.renderWorldMap();
         this.saveGame();
     },
 
     triggerRandomEncounter: function() {
         const biome = WorldGen.getSectorBiome(this.state.sector.x, this.state.sector.y);
         const mobs = Object.values(window.GameData.monsters).filter(m => this.state.lvl >= m.minLvl);
-        
         if (mobs.length === 0) return;
         
         const mobTemplate = mobs[Math.floor(Math.random() * mobs.length)];
-        // Monster Instanz kopieren
         const enemy = JSON.parse(JSON.stringify(mobTemplate));
         
-        // Scaling
         enemy.maxHp = Math.floor(enemy.hp * (1 + (this.state.lvl * 0.1)));
         enemy.hp = enemy.maxHp;
         enemy.dmg = Math.floor(enemy.dmg * (1 + (this.state.lvl * 0.05)));
         
-        // Legendary Chance (Glück beeinflusst)
         if (Math.random() < 0.01 + (this.getStat('LUC') * 0.005)) {
             enemy.isLegendary = true;
             enemy.name = "Legendärer " + enemy.name;
@@ -220,7 +289,6 @@ const Game = {
             enemy.dmg *= 1.5;
             enemy.loot *= 3;
         }
-
         if (typeof Combat !== 'undefined') Combat.start(enemy);
     },
 
@@ -232,13 +300,10 @@ const Game = {
     },
 
     heal: function() {
-        if (this.state.hp >= this.state.maxHp) {
-            UI.log("Du bist bereits gesund.", "text-gray-500");
-            return;
-        }
+        if (this.state.hp >= this.state.maxHp) { UI.log("Du bist gesund.", "text-gray-500"); return; }
         if (this.modifyCaps(-25)) {
-            this.modifyHP(9999); // Vollheilen
-            UI.log("Arzt: 'Hier, nimm das. Mach keinen Ärger.'", "text-green-400");
+            this.modifyHP(9999); 
+            UI.log("Behandlung erfolgreich.", "text-green-400");
         }
     },
 
@@ -246,60 +311,42 @@ const Game = {
         if (this.modifyCaps(-10)) {
             this.state.ammo = (this.state.ammo || 0) + 10;
             UI.log("10 Patronen gekauft.", "text-green-400");
-            UI.update(); // Inventar/Stats updaten
+            UI.update(); 
         }
     },
-
-    // --- ITEM SYSTEM ---
 
     addToInventory: function(itemId, count=1) {
         if (!window.GameData.items[itemId]) return;
         let entry = this.state.inventory.find(i => i.id === itemId);
-        if (entry) {
-            entry.count += count;
-        } else {
-            this.state.inventory.push({ id: itemId, count: count });
-        }
+        if (entry) entry.count += count;
+        else this.state.inventory.push({ id: itemId, count: count });
         
-        // Special Case: Ammo wird direkt als Stat gespeichert, nicht nur im Inventar
         if (itemId === 'AMMO') {
-            this.state.ammo = (this.state.ammo || 0) + (15 * count); // Ammo Packs geben 15
-            // Entferne Ammo Item aus Inv, da wir es als Zahl tracken
+            this.state.ammo = (this.state.ammo || 0) + (15 * count); 
             const idx = this.state.inventory.findIndex(i => i.id === 'AMMO');
             if(idx > -1) this.state.inventory.splice(idx, 1);
         }
-        
         UI.log(`${count}x ${window.GameData.items[itemId].name} erhalten.`, "text-green-400");
-        // Wenn Inventory offen ist, neu rendern
         if (this.state.view === 'inventory') UI.renderInventory();
     },
 
     useItem: function(itemId) {
         const item = window.GameData.items[itemId];
         const entry = this.state.inventory.find(i => i.id === itemId);
-        
         if (!entry || entry.count <= 0) return;
 
         if (item.type === 'consumable') {
             if (item.effect === 'heal') {
-                if(this.state.hp >= this.state.maxHp) {
-                    UI.log("HP sind voll!", "text-gray-500");
-                    return;
-                }
+                if(this.state.hp >= this.state.maxHp) { UI.log("HP sind voll!", "text-gray-500"); return; }
                 this.modifyHP(item.val);
-                UI.log(`${item.name} benutzt. +${item.val} HP`, "text-green-400");
+                UI.log(`${item.name} benutzt.`, "text-green-400");
             }
             entry.count--;
-        } 
-        else if (item.type === 'weapon' || item.type === 'body') {
+        } else if (item.type === 'weapon' || item.type === 'body') {
             this.equipItem(itemId);
         }
 
-        // Cleanup empty items
-        if (entry.count <= 0) {
-            this.state.inventory = this.state.inventory.filter(i => i.count > 0);
-        }
-        
+        if (entry.count <= 0) this.state.inventory = this.state.inventory.filter(i => i.count > 0);
         UI.update();
         if (this.state.view === 'inventory') UI.renderInventory();
         if (this.state.view === 'char') UI.renderChar();
@@ -308,12 +355,7 @@ const Game = {
     equipItem: function(itemId) {
         const item = window.GameData.items[itemId];
         if (!item) return;
-        
-        if (this.state.lvl < (item.requiredLevel || 0)) {
-            UI.log(`Benötigt Level ${item.requiredLevel}!`, "text-red-500");
-            return;
-        }
-
+        if (this.state.lvl < (item.requiredLevel || 0)) { UI.log(`Level ${item.requiredLevel} benötigt!`, "text-red-500"); return; }
         this.state.equip[item.slot] = item;
         UI.log(`${item.name} ausgerüstet.`, "text-cyan-400");
         this.recalcMaxHp();
@@ -322,53 +364,30 @@ const Game = {
     buyItem: function(itemId) {
         const item = window.GameData.items[itemId];
         if (!item) return;
-        
-        if (this.modifyCaps(-item.cost)) {
-            this.addToInventory(itemId, 1);
-        }
+        if (this.modifyCaps(-item.cost)) this.addToInventory(itemId, 1);
     },
 
     craftItem: function(recipeId) {
         const r = window.GameData.recipes.find(x => x.id === recipeId);
         if(!r) return;
-
-        // Check Items
         for(let reqId in r.req) {
             const entry = this.state.inventory.find(i => i.id === reqId);
-            if(!entry || entry.count < r.req[reqId]) {
-                UI.log("Nicht genug Materialien!", "text-red-500");
-                return;
-            }
+            if(!entry || entry.count < r.req[reqId]) { UI.log("Zu wenig Material!", "text-red-500"); return; }
         }
-
-        // Remove Items
         for(let reqId in r.req) {
             const entry = this.state.inventory.find(i => i.id === reqId);
             entry.count -= r.req[reqId];
         }
         this.state.inventory = this.state.inventory.filter(i => i.count > 0);
-
-        // Add Result
         this.addToInventory(r.out, r.count);
-        UI.log("Gegenstand gefertigt!", "text-green-400");
         UI.renderCrafting();
     },
 
-    // --- STATS & UTILS ---
-
     getStat: function(key) {
         let val = this.state.stats[key] || 1;
-        // Add Equipment Bonus
-        if (this.state.equip.body && this.state.equip.body.bonus && this.state.equip.body.bonus[key]) {
-            val += this.state.equip.body.bonus[key];
-        }
-        if (this.state.equip.weapon && this.state.equip.weapon.bonus && this.state.equip.weapon.bonus[key]) {
-            val += this.state.equip.weapon.bonus[key];
-        }
-        
-        // Add Buffs
-        if (Date.now() < this.state.buffEndTime) val += 2; // Simpler globaler Buff
-        
+        if (this.state.equip.body && this.state.equip.body.bonus && this.state.equip.body.bonus[key]) val += this.state.equip.body.bonus[key];
+        if (this.state.equip.weapon && this.state.equip.weapon.bonus && this.state.equip.weapon.bonus[key]) val += this.state.equip.weapon.bonus[key];
+        if (Date.now() < this.state.buffEndTime) val += 2;
         return val;
     },
 
@@ -386,23 +405,16 @@ const Game = {
         const end = this.getStat('END');
         const oldMax = this.state.maxHp;
         this.state.maxHp = 30 + (end * 5) + (this.state.lvl * 5);
-        // Heile die Differenz wenn MaxHP steigt
-        if (this.state.maxHp > oldMax) {
-            this.state.hp += (this.state.maxHp - oldMax);
-        }
+        if (this.state.maxHp > oldMax) this.state.hp += (this.state.maxHp - oldMax);
     },
 
     expToNextLevel: function(lvl) {
         return Math.floor(100 * Math.pow(1.5, lvl - 1));
     },
 
-    // --- SYSTEM ---
-
     handleDeath: function() {
         this.state.isGameOver = true;
         UI.showGameOver();
-        // Hier KEIN automatisches Speichern des Todes, außer wir wollen Permadeath erzwingen.
-        // Falls Permadeath an ist:
         if (typeof Network !== 'undefined') Network.deleteSlot(this.saveSlot);
     },
 
@@ -413,26 +425,17 @@ const Game = {
 
     saveGame: function(manual = false) {
         if (!this.state || this.state.isGameOver) return;
-        
         this.state.lastSave = Date.now();
         if (typeof Network !== 'undefined') {
-            // FIX: 'Network.saveGame' existiert nicht, es muss 'Network.saveToSlot' sein
-            Network.saveToSlot(this.saveSlot, this.state);
+            Network.saveGame(this.saveSlot, this.state);
             if (manual) UI.log("Spiel gespeichert.", "text-green-500");
         }
     },
 
     autoSave: function() {
-        // Nicht speichern während Kampf-Animationen oder Dialogen um Glitches zu vermeiden
-        if (!this.state.inDialog && !this.state.isGameOver) {
-            this.saveGame(false);
-        }
+        if (!this.state.inDialog && !this.state.isGameOver) this.saveGame(false);
     },
 
-    // Placeholder für Canvas Map (wird durch ui_render/world_gen Logik ersetzt/erweitert)
-    initCanvas: function() {
-        // Logik kann hier rein, wenn wir die Map nicht mehr über HTML Grid rendern wollen,
-        // sondern über <canvas> für bessere Performance. Aktuell nutzt worldmap.html das Grid.
-        // Wir lassen es leer, damit keine Fehler kommen.
-    }
+    // Placeholder falls nicht genutzt, aber initCanvas ist oben definiert
+    initCanvasProxy: function() { this.initCanvas(); }
 };
