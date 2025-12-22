@@ -29,13 +29,17 @@ const WorldGen = {
             conf = window.GameData.biomes[biomeType];
         }
 
+        // Füllen mit Basis-Terrain
         for(let y = 0; y < height; y++) {
             for(let x = 0; x < width; x++) {
                 const r = this.rand();
-                map[y][x] = conf.ground;
-                if(r < conf.water) map[y][x] = 'W';
-                else if(r < conf.water + conf.mountain) map[y][x] = 'M';
+                map[y][x] = conf.ground; // Standard
+                
+                // Wasser / Berge
+                if(r < conf.water) map[y][x] = 'W'; // Wasser überall gleich 'W'
+                else if(r < conf.water + conf.mountain) map[y][x] = 'M'; // Berg 'M'
                 else {
+                    // Features (Bäume, Steine)
                     const d = this.rand();
                     let currentProb = 0;
                     if(conf.features) {
@@ -48,10 +52,12 @@ const WorldGen = {
             }
         }
 
+        // POIs setzen
         if(poiList) {
             poiList.forEach(poi => {
                 if(poi.x >= 0 && poi.x < width && poi.y >= 0 && poi.y < height) {
                     map[poi.y][poi.x] = poi.type;
+                    // Freiraum um POI
                     for(let dy=-3; dy<=3; dy++) {
                         for(let dx=-3; dx<=3; dx++) {
                             const ny = poi.y+dy, nx = poi.x+dx;
@@ -64,6 +70,7 @@ const WorldGen = {
             });
         }
 
+        // Straßen
         if(poiList && poiList.length > 1) {
             for(let i=0; i<poiList.length-1; i++) {
                 this.buildRoad(map, poiList[i], poiList[i+1], conf.ground);
