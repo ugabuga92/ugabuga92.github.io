@@ -1,72 +1,56 @@
 window.GameData = {
-    // --- FARBPALETTE (NEON / HELL für ASCII auf Schwarz) ---
+    // --- FARBPALETTE ---
     colors: { 
-        '.': '#8b7355',  // Boden (Braun-Hell)
-        '_': '#eecfa1',  // Wüste (Sand)
-        ',': '#228b22',  // Dschungelboden (Forest Green)
-        ';': '#556b2f',  // Sumpf (Olive)
-        '=': '#808080',  // Straße/Stadt (Grau)
-        '#': '#d3d3d3',  // Mauer (Hellgrau)
-        
-        'M': '#a0522d',  // Berge (Sienna)
-        'W': '#1e90ff',  // Wasser (Dodger Blue)
-        '~': '#00ced1',  // Sumpfwasser (Dark Turquoise)
-        
-        't': '#32cd32',  // Kleiner Baum (Lime Green)
-        'T': '#006400',  // Großer Baum (Dark Green)
-        'x': '#8b4513',  // Toter Baum / Hindernis
-        'o': '#696969',  // Stein
-        
-        'V': '#ffff00',  // Vault (Gelb)
-        'C': '#00ffff',  // City (Cyan)
-        
-        // UI Colors
-        'wasteland': '#8b7355', 
-        'desert': '#eecfa1', 
-        'jungle': '#228b22', 
-        'city': '#808080', 
-        'swamp': '#556b2f',
-        'forest': '#228b22',
-        'mountain': '#a0522d'
+        '.':'#2d241b', '_':'#4a4036', ',':'#1a261a', ';':'#1e1e11', '=':'#333333', 
+        '#':'#555', 
+        'line_default': '#2a5a2a', 'line_wall': '#39ff14', 
+        'V': '#39ff14', 'C': '#eab308', 'S': '#ff0000', 'G': '#00ffff', 'H': '#888888', 
+        '^': '#111', 'v':'#111', '<':'#111', '>':'#111',
+        'M': '#3e2723', 'W': '#0d47a1', '~': '#2f4f2f', 
+        't': '#1b5e20', 'T': '#0a3d0a', 'x': '#8b4513', 'o': '#808080',
+        '+': '#666666', '"': '#3cb371', 'Y': '#deb887', 'U': '#212121',
+        // City Tiles
+        '$': '#ffd700', '&': '#ff8c00', 'P': '#ff3333', 'E': '#39ff14', 'F': '#00bfff', '|': '#777',
+        'X': '#ff00ff', 
+        // Map Colors
+        'wasteland': '#5d5345', 'desert': '#eecfa1', 'jungle': '#1a3300', 'city': '#555555', 'swamp': '#1e1e11'
     },
 
+    // --- TEXTE ---
     statLabels: { 'STR': 'STÄRKE', 'PER': 'WAHRNEHMUNG', 'END': 'AUSDAUER', 'INT': 'INTELLIGENZ', 'AGI': 'BEWEGLICHKEIT', 'LUC': 'GLÜCK' },
 
-    // --- BIOME (Definiert die Zeichen) ---
+    // --- BIOME ---
     biomes: {
         'wasteland': { 
             ground: '.', water: 0.02, mountain: 0.03,
             features: [ { char: 'o', prob: 0.02, solid: true }, { char: 'x', prob: 0.03, solid: false }, { char: 't', prob: 0.01, solid: true } ]
         },
-        'forest': { 
-            ground: ',', water: 0.05, mountain: 0.05,
-            features: [ { char: 'T', prob: 0.15, solid: true }, { char: 't', prob: 0.20, solid: true }, { char: 'o', prob: 0.05, solid: true } ]
+        'jungle': { 
+            ground: ',', water: 0.08, mountain: 0.05,
+            features: [ { char: 'T', prob: 0.08, solid: true }, { char: 't', prob: 0.15, solid: true }, { char: '"', prob: 0.15, solid: false } ]
         },
         'desert': { 
             ground: '_', water: 0.01, mountain: 0.10,
-            features: [ { char: 'o', prob: 0.05, solid: true }, { char: 'x', prob: 0.02, solid: false } ]
+            features: [ { char: 'o', prob: 0.02, solid: true }, { char: 'Y', prob: 0.02, solid: true } ]
         },
         'city': { 
             ground: '=', water: 0.0, mountain: 0.0,
-            features: [ { char: '#', prob: 0.15, solid: true }, { char: 'o', prob: 0.05, solid: true } ]
+            features: [ { char: '#', prob: 0.10, solid: true }, { char: '+', prob: 0.08, solid: false }, { char: 'o', prob: 0.02, solid: true } ]
         },
         'swamp': { 
-            ground: ';', water: 0.20, mountain: 0.0,
-            features: [ { char: '~', prob: 0.15, solid: false }, { char: 'x', prob: 0.10, solid: false }, { char: 't', prob: 0.05, solid: true } ]
-        },
-        'mountain': {
-            ground: '.', water: 0.0, mountain: 0.40,
-            features: [ { char: 'M', prob: 0.20, solid: true }, { char: 'o', prob: 0.20, solid: true } ]
-        },
-        'vault': { ground: '.', water: 0, mountain: 0, features: [] } // Safe Zone
+            ground: ';', water: 0.05, mountain: 0.0,
+            features: [ { char: '~', prob: 0.10, solid: false }, { char: 'x', prob: 0.10, solid: false }, { char: 't', prob: 0.05, solid: true } ]
+        }
     },
 
+    // --- HACKING WORDS ---
     hackWords: {
         easy: ["PASS", "CODE", "HACK", "DATA", "BIOS", "BOOT", "DISK", "FILE", "LOAD", "SAVE", "EXIT", "USER", "LOCK", "KEYS", "WIFI", "NODE"],
         medium: ["SERVER", "ACCESS", "SYSTEM", "ROUTER", "MEMORY", "CONFIG", "STATUS", "REBOOT", "UPDATE", "KERNEL", "SCRIPT", "SEARCH", "SIGNAL", "TARGET", "MATRIX", "BYPASS"],
         hard: ["FIREWALL", "PROTOCOL", "PASSWORD", "DATABASE", "SECURITY", "DOWNLOAD", "TERMINAL", "MAINFRAME", "OVERRIDE", "HARDWARE", "SOFTWARE", "ENCRYPTION", "NETWORK", "BACKDOOR"]
     },
 
+    // --- ITEMS ---
     items: { 
         stimpack: { name: "Stimpack", type: "consumable", effect: "heal", val: 50, cost: 25 },
         meat_roach: { name: "Kakerlakenfleisch", type: "junk", cost: 2 },
@@ -102,6 +86,7 @@ window.GameData = {
         plasma_rifle: { name: "Plasma-Gewehr", slot: 'weapon', type: 'weapon', baseDmg: 55, bonus: { PER: 2, INT: 2 }, cost: 600, requiredLevel: 10, isRanged: true }
     },
 
+    // --- MONSTER ---
     monsters: { 
         radRoach: { name: "Rad-Kakerlake", hp: 15, dmg: 3, xp: [10, 15], loot: 1, minLvl: 1, drops: [{id:'meat_roach', c:0.6}] }, 
         bloatfly: { name: "Blähfliege", hp: 10, dmg: 5, xp: [12, 18], loot: 2, minLvl: 1, drops: [{id:'meat_fly', c:0.7}, {id:'nuclear_mat', c:0.05}] },
@@ -118,6 +103,7 @@ window.GameData = {
         deathclaw: { name: "Todesklaue", hp: 400, dmg: 70, loot: 100, xp: [600, 800], minLvl: 10, drops: [{id:'hide_yao', c:1.0}, {id:'gears', c:0.5}] } 
     },
 
+    // --- REZEPTE ---
     recipes: [
         { id: "stimpack", out: "stimpack", count: 1, req: { "meat_fly": 1, "adhesive": 1 }, lvl: 1 },
         { id: "ammo_pack", out: "AMMO", count: 15, req: { "scrap_metal": 2 }, lvl: 1 },
@@ -127,3 +113,4 @@ window.GameData = {
         { id: "laser_mod", out: "laser_rifle", count: 1, req: { "rifle_hunting": 1, "circuitry": 2, "nuclear_mat": 1 }, lvl: 6 }
     ]
 };
+console.log("GameData loaded.");
