@@ -5,7 +5,8 @@ das ganze schon in dem Rahmen des Loginfensters.
 - Abmelde button im Charakter-Auswahlmenü ändern zu "Zurück" und ihm auch diese Funktion zuweisen.
 Direkt links daneben, so das beide Buttons die Breite des "Spiel Laden" bzw "Charakter erstellen" Butoons zusammen haben, der Charakter Entfernen Button (dieser wird dann bei auswahl eines leeren Feldes ausgegraut und nicht entfernt)
 - Im Browser bewegt sich das ganze fenster (das Spielfenster samt Pipboy) beim drücken vom pfeiltasten im Kampf nach oben und unten
-
+- Bei neuen Ausrüstungsgegenständen im Inventar soll der Inventar Button auch blinken, identisch wie die anderen.
+Anleitungen für Mini Games
 
 Ideen für die Zukunft (Roadmap)
 Hier sind ein paar Vorschläge, was wir als nächstes angehen könnten, um das Pip-Boy Feeling zu verstärken:
