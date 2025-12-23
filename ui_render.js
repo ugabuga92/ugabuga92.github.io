@@ -402,7 +402,7 @@ Object.assign(UI, {
         const details = document.getElementById('sector-details');
         if(!cvs) return;
         const ctx = cvs.getContext('2d');
-        const W = 8, H = 8; // Weltgröße in Sektoren
+        const W = 10, H = 10; // NEU: 10x10 angepasst
         const TILE_W = cvs.width / W;
         const TILE_H = cvs.height / H;
 
@@ -412,14 +412,14 @@ Object.assign(UI, {
 
         // Biome Colors
         const biomeColors = {
-            'wasteland': '#4a4036', // Dunkles Braun
-            'forest': '#1a3300',    // Tiefes Dunkelgrün
-            'jungle': '#0f2405',    // Fast schwarzgrün
-            'desert': '#8b5a2b',    // Rostiges Orange
-            'swamp': '#1e1e11',     // Modriges Grau
-            'mountain': '#333333',  // Stein
-            'city': '#444455',      // Beton
-            'vault': '#002244'      // Vault-Tec Blau
+            'wasteland': '#4a4036',
+            'forest': '#1a3300',
+            'jungle': '#0f2405',
+            'desert': '#8b5a2b',
+            'swamp': '#1e1e11',
+            'mountain': '#333333',
+            'city': '#444455',
+            'vault': '#002244'
         };
 
         for(let y=0; y<H; y++) {
@@ -429,46 +429,40 @@ Object.assign(UI, {
                 const isCurrent = (x === Game.state.sector.x && y === Game.state.sector.y);
 
                 if(isVisited) {
-                    // Draw Biome Rect
                     const biome = WorldGen.getSectorBiome(x, y);
                     ctx.fillStyle = biomeColors[biome] || '#222';
-                    
-                    // Zeichne leicht überlappend, um "Raster"-Look zu vermeiden
                     ctx.fillRect(x * TILE_W - 0.5, y * TILE_H - 0.5, TILE_W + 1, TILE_H + 1);
 
-                    // POI Icons (Nur wenn visited!)
-                    if(biome === 'city') {
-                        ctx.fillStyle = "#00ffff"; 
-                        ctx.font = "bold 20px monospace";
-                        ctx.textAlign = "center";
-                        ctx.textBaseline = "middle";
-                        ctx.fillText("🏙️", x * TILE_W + TILE_W/2, y * TILE_H + TILE_H/2);
-                    } else if(biome === 'vault') {
-                         ctx.fillStyle = "#ffff00";
-                         ctx.font = "bold 20px monospace";
-                         ctx.textAlign = "center";
-                         ctx.textBaseline = "middle";
-                         ctx.fillText("⚙️", x * TILE_W + TILE_W/2, y * TILE_H + TILE_H/2);
+                    // POI Icons Checken (Vault/City aus state.worldPOIs)
+                    if(Game.state.worldPOIs) {
+                         Game.state.worldPOIs.forEach(poi => {
+                             if(poi.x === x && poi.y === y) {
+                                 ctx.font = "bold 20px monospace";
+                                 ctx.textAlign = "center";
+                                 ctx.textBaseline = "middle";
+                                 if(poi.type === 'C') {
+                                     ctx.fillStyle = "#00ffff"; 
+                                     ctx.fillText("🏙️", x * TILE_W + TILE_W/2, y * TILE_H + TILE_H/2);
+                                 } else if(poi.type === 'V') {
+                                     ctx.fillStyle = "#ffff00";
+                                     ctx.fillText("⚙️", x * TILE_W + TILE_W/2, y * TILE_H + TILE_H/2);
+                                 }
+                             }
+                         });
                     }
 
-                    // Optional: Spieler Info aktualisieren
                     if(isCurrent && details) {
                         details.innerHTML = `SEKTOR [${x},${y}]<br><span class="text-white">${biome.toUpperCase()}</span>`;
                     }
-                } else {
-                    // Unvisited: Bleibt dunkel (Fog of War)
-                    // Optional: Schraffur oder leichtes Gitter andeuten?
-                    // Nein, "aufgedeckt mit laufen" wirkt besser wenn es wirklich schwarz ist.
                 }
             }
         }
 
-        // Draw Player Marker on top of everything
+        // Draw Player Marker
         const px = Game.state.sector.x * TILE_W + TILE_W/2;
         const py = Game.state.sector.y * TILE_H + TILE_H/2;
         
-        // Pulsing Effect
-        const pulse = (Date.now() % 1000) / 1000; // 0 bis 1
+        const pulse = (Date.now() % 1000) / 1000;
         
         ctx.beginPath();
         ctx.arc(px, py, 4 + (pulse * 8), 0, Math.PI * 2);
@@ -483,11 +477,13 @@ Object.assign(UI, {
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // Loop für Animation
         if(Game.state.view === 'worldmap') {
             requestAnimationFrame(() => this.renderWorldMap());
         }
     },
+    // ... Rest of UI object
+    showItemConfirm: function(itemId) { if(!this.els.dialog) this.restoreOverlay(); if(!Game.items[itemId]) return; const item = Game.items[itemId]; Game.state.inDialog = true; this.els.dialog.innerHTML = ''; this.els.dialog.style.display = 'flex'; let statsText = ""; if(item.type === 'consumable') statsText = `Effekt: ${item.effect} (${item.val})`; if(item.type === 'weapon') statsText = `Schaden: ${item.baseDmg}`; if(item.type === 'body') statsText = `Rüstung: +${item.bonus.END || 0} END`; const box = document.createElement('div'); box.className = "bg-black border-2 border-green-500 p-4 shadow-[0_0_15px_green] max-w-sm text-center mb-4"; box.innerHTML = ` <h2 class="text-xl font-bold text-green-400 mb-2">${item.name}</h2> <div class="text-xs text-green-200 mb-4 border-t border-b border-green-900 py-2">Typ: ${item.type.toUpperCase()}<br>Wert: ${item.cost} KK<br><span class="text-yellow-400">${statsText}</span></div> <p class="text-green-200 mb-4 text-sm">Gegenstand benutzen / ausrüsten?</p> `; const btnContainer = document.createElement('div'); btnContainer.className = "flex gap-2 justify-center w-full"; const btnYes = document.createElement('button'); btnYes.className = "border border-green-500 text-green-500 hover:bg-green-900 px-4 py-2 font-bold w-full"; btnYes.textContent = "BESTÄTIGEN"; btnYes.onclick = () => { Game.useItem(itemId); this.leaveDialog(); }; const btnNo = document.createElement('button'); btnNo.className = "border border-red-500 text-red-500 hover:bg-red-900 px-4 py-2 font-bold w-full"; btnNo.textContent = "ABBRUCH"; btnNo.onclick = () => { this.leaveDialog(); }; btnContainer.appendChild(btnYes); btnContainer.appendChild(btnNo); box.appendChild(btnContainer); this.els.dialog.appendChild(box); this.refreshFocusables(); }, showDungeonWarning: function(callback) { if(!this.els.dialog) this.restoreOverlay(); Game.state.inDialog = true; this.els.dialog.innerHTML = ''; this.els.dialog.style.display = 'flex'; const box = document.createElement('div'); box.className = "bg-black border-2 border-red-600 p-4 shadow-[0_0_20px_red] max-w-sm text-center animate-pulse mb-4"; box.innerHTML = ` <h2 class="text-3xl font-bold text-red-600 mb-2 tracking-widest">⚠️ WARNING ⚠️</h2> <p class="text-red-400 mb-4 font-bold">HOHE GEFAHR!<br>Sicher, dass du eintreten willst?</p> `; const btnContainer = document.createElement('div'); btnContainer.className = "flex gap-2 justify-center w-full"; const btnYes = document.createElement('button'); btnYes.className = "border border-red-500 text-red-500 hover:bg-red-900 px-4 py-2 font-bold w-full"; btnYes.textContent = "BETRETEN"; btnYes.onclick = () => { this.leaveDialog(); if(callback) callback(); }; const btnNo = document.createElement('button'); btnNo.className = "border border-green-500 text-green-500 hover:bg-green-900 px-4 py-2 font-bold w-full"; btnNo.textContent = "FLUCHT"; btnNo.onclick = () => { this.leaveDialog(); }; btnContainer.appendChild(btnYes); btnContainer.appendChild(btnNo); box.appendChild(btnContainer); this.els.dialog.appendChild(box); this.refreshFocusables(); }, showDungeonLocked: function(minutesLeft) { if(!this.els.dialog) this.restoreOverlay(); Game.state.inDialog = true; this.els.dialog.innerHTML = ''; this.els.dialog.style.display = 'flex'; const box = document.createElement('div'); box.className = "bg-black border-2 border-gray-600 p-4 shadow-[0_0_20px_gray] max-w-sm text-center mb-4"; box.innerHTML = ` <h2 class="text-3xl font-bold text-gray-400 mb-2 tracking-widest">🔒 LOCKED</h2> <p class="text-gray-300 mb-4 font-bold">Dieses Gebiet ist versiegelt.<br>Versuche es in ${minutesLeft} Minuten wieder.</p> `; const btn = document.createElement('button'); btn.className = "border border-gray-500 text-gray-500 hover:bg-gray-900 px-4 py-2 font-bold w-full"; btn.textContent = "VERSTANDEN"; btn.onclick = () => this.leaveDialog(); box.appendChild(btn); this.els.dialog.appendChild(box); this.refreshFocusables(); }, showDungeonVictory: function(caps, lvl) { if(!this.els.dialog) this.restoreOverlay(); Game.state.inDialog = true; this.els.dialog.innerHTML = ''; this.els.dialog.style.display = 'flex'; const box = document.createElement('div'); box.className = "bg-black border-4 border-yellow-400 p-6 shadow-[0_0_30px_gold] max-w-md text-center mb-4 animate-bounce"; box.innerHTML = ` <div class="text-6xl mb-2">👑⚔️</div> <h2 class="text-4xl font-bold text-yellow-400 mb-2 tracking-widest text-shadow-gold">VICTORY!</h2> <p class="text-yellow-200 mb-4 font-bold text-lg">DUNGEON (LVL ${lvl}) GECLEARED!</p> <div class="text-2xl text-white font-bold border-t border-b border-yellow-500 py-2 mb-4 bg-yellow-900/30">+${caps} KRONKORKEN</div> <p class="text-xs text-yellow-600">Komme in 10 Minuten wieder!</p> `; this.els.dialog.appendChild(box); }, showPermadeathWarning: function() { if(!this.els.dialog) this.restoreOverlay(); Game.state.inDialog = true; this.els.dialog.innerHTML = ''; this.els.dialog.style.display = 'flex'; const box = document.createElement('div'); box.className = "bg-black border-4 border-red-600 p-6 shadow-[0_0_50px_red] max-w-lg text-center animate-pulse"; box.innerHTML = ` <div class="text-6xl text-red-600 mb-4 font-bold">☠️</div> <h1 class="text-4xl font-bold text-red-600 mb-4 tracking-widest border-b-2 border-red-600 pb-2">PERMADEATH AKTIV</h1> <p class="text-red-400 font-mono text-lg mb-6 leading-relaxed">WARNUNG, BEWOHNER!<br>Das Ödland kennt keine Gnade.<br>Wenn deine HP auf 0 fallen, wird dieser Charakter<br><span class="font-bold text-white bg-red-900 px-1">DAUERHAFT GELÖSCHT</span>.</p> <button class="action-button w-full border-red-600 text-red-500 font-bold py-4 text-xl hover:bg-red-900" onclick="UI.leaveDialog()">ICH HABE VERSTANDEN</button> `; this.els.dialog.appendChild(box); }, showGameOver: function() { if(this.els.gameOver) this.els.gameOver.classList.remove('hidden'); this.toggleControls(false); }, showManualOverlay: async function() { const overlay = document.getElementById('manual-overlay'); const content = document.getElementById('manual-content'); if(this.els.navMenu) { this.els.navMenu.classList.add('hidden'); this.els.navMenu.style.display = 'none'; } if(overlay && content) { content.innerHTML = '<div class="text-center animate-pulse">Lade Handbuch...</div>'; overlay.style.display = 'flex'; overlay.classList.remove('hidden'); const verDisplay = document.getElementById('version-display'); const ver = verDisplay ? verDisplay.textContent.trim() : Date.now(); try { const res = await fetch(`readme.md?v=${ver}`); if (!res.ok) throw new Error("Manual not found"); let text = await res.text(); text = text.replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold text-yellow-400 mb-2 border-b border-yellow-500">$1</h1>'); text = text.replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold text-green-400 mt-4 mb-2">$1</h2>'); text = text.replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold text-green-300 mt-2 mb-1">$1</h3>'); text = text.replace(/\*\*(.*)\*\*/gim, '<b>$1</b>'); text = text.replace(/\n/gim, '<br>'); text += '<br><button class="action-button w-full mt-4 border-red-500 text-red-500" onclick="document.getElementById(\'manual-overlay\').classList.add(\'hidden\'); document.getElementById(\'manual-overlay\').style.display=\'none\';">SCHLIESSEN (ESC)</button>'; content.innerHTML = text; } catch(e) { content.innerHTML = `<div class="text-red-500">Fehler beim Laden: ${e.message}</div>`; } } }, showChangelogOverlay: async function() { const overlay = document.getElementById('changelog-overlay'); const content = document.getElementById('changelog-content'); if(overlay && content) { content.textContent = 'Lade Daten...'; overlay.style.display = 'flex'; overlay.classList.remove('hidden'); const verDisplay = document.getElementById('version-display'); const ver = verDisplay ? verDisplay.textContent.trim() : Date.now(); try { const res = await fetch(`change.log?v=${ver}`); if (!res.ok) throw new Error("Logfile nicht gefunden"); const text = await res.text(); content.textContent = text; } catch(e) { content.textContent = `Fehler beim Laden: ${e.message}`; } } }, showMobileControlsHint: function() { if(document.getElementById('mobile-hint')) return; const hintHTML = ` <div id="mobile-hint" class="absolute inset-0 z-[100] flex flex-col justify-center items-center bg-black/80 pointer-events-auto backdrop-blur-sm opacity-0 transition-opacity duration-500" onclick="this.style.opacity='0'; setTimeout(() => this.remove(), 500)"> <div class="border-2 border-[#39ff14] bg-black p-6 text-center shadow-[0_0_20px_#39ff14] max-w-sm mx-4"> <div class="text-5xl mb-4 animate-bounce">👆</div> <h2 class="text-2xl font-bold text-[#39ff14] mb-2 tracking-widest border-b border-[#39ff14] pb-2">TOUCH STEUERUNG</h2> <p class="text-green-300 mb-6 font-mono leading-relaxed">Tippe und halte IRGENDWO auf dem Hauptschirm (auch im Log), um den Joystick zu aktivieren.</p> <div class="text-xs text-[#39ff14] animate-pulse font-bold bg-[#39ff14]/20 py-2 rounded">> TIPPEN ZUM STARTEN <</div> </div> </div>`; document.body.insertAdjacentHTML('beforeend', hintHTML); setTimeout(() => { const el = document.getElementById('mobile-hint'); if(el) el.classList.remove('opacity-0'); }, 10); }, enterVault: function() { Game.state.inDialog = true; this.els.dialog.innerHTML = ''; const restBtn = document.createElement('button'); restBtn.className = "action-button w-full mb-1 border-blue-500 text-blue-300"; restBtn.textContent = "Ausruhen (Gratis)"; restBtn.onclick = () => { Game.rest(); this.leaveDialog(); }; const leaveBtn = document.createElement('button'); leaveBtn.className = "action-button w-full"; leaveBtn.textContent = "Weiter geht's"; leaveBtn.onclick = () => this.leaveDialog(); this.els.dialog.appendChild(restBtn); this.els.dialog.appendChild(leaveBtn); this.els.dialog.style.display = 'flex'; }, leaveDialog: function() { Game.state.inDialog = false; this.els.dialog.style.display = 'none'; this.update(); }, updatePlayerList: function() { if(!this.els.playerListContent || typeof Network === 'undefined') return; this.els.playerListContent.innerHTML = ''; const myName = Network.myDisplayName || "ICH"; const mySec = (Game.state && Game.state.sector) ? `[${Game.state.sector.x},${Game.state.sector.y}]` : "[?,?]"; const myEntry = document.createElement('div'); myEntry.className = "text-green-400 font-bold border-b border-green-900 py-1"; myEntry.textContent = `> ${myName} ${mySec}`; this.els.playerListContent.appendChild(myEntry); for(let pid in Network.otherPlayers) { const p = Network.otherPlayers[pid]; const div = document.createElement('div'); div.className = "text-green-200 text-sm py-1"; const pSec = p.sector ? `[${p.sector.x},${p.sector.y}]` : "[?,?]"; div.textContent = `${p.name} ${pSec}`; this.els.playerListContent.appendChild(div); } }, togglePlayerList: function() { if(!this.els.playerList) return; if(this.els.playerList.style.display === 'flex') { this.els.playerList.style.display = 'none'; } else { this.els.playerList.style.display = 'flex'; this.updatePlayerList(); } }
+});
 
     renderWiki: function(category = 'monsters') {
         const content = document.getElementById('wiki-content');
