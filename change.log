@@ -1,6 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
-1. [v0.3.4a] - 2025-12-23 02:00am (Dynamic World & Fog Fix)
+[v0.3.4aa] - 2025-12-23 02:15am (Step 1: 10x10 World)
+- Welt: Vergrößert auf 10x10 Sektoren.
+- Rendering: Weltkarte und Biome an neue Größe angepasst.
+
+
+[v0.3.4a] - 2025-12-23 02:00am (Dynamic World & Fog Fix)
 - Welt: Vergrößert auf 10x10 Sektoren. 
 - Generierung: Vault 101 und Rusty Springs haben nun zufällige Positionen bei Spielstart.
 - Fix: Der "Nebel des Krieges" (aufgedeckte Karte) bleibt nun erhalten, wenn man Dungeons verlässt.
