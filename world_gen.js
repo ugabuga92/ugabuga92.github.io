@@ -11,26 +11,21 @@ const WorldGen = {
         return (this._seed - 1) / 2147483646;
     },
     
-    // NEU: Zentrale Definition der Welt-Regionen
+    // NEU: Dynamische 10x10 Biome (Ohne fixe POIs)
     getSectorBiome: function(x, y) {
-        // Fixe Orte
-        if (x === 3 && y === 3) return 'city';      // Rusty Springs
-        if (x === 4 && y === 4) return 'vault';     // Vault 1337 Area (Start)
+        // x und y sind jetzt 0-9
+        if (x <= 2 && y <= 2) return 'forest';      // NW: Oasis
+        if (x >= 7 && y >= 7) return 'desert';      // SO: The Pitt (erweitert)
+        if (x >= 7 && y <= 2) return 'swamp';       // NO: Sumpf
+        if (x <= 2 && y >= 7) return 'mountain';    // SW: Gebirge
         
-        // Regionen Logik (Hardcoded für Konsistenz)
-        if (x <= 2 && y <= 2) return 'forest';      // NW: Oasis Dschungel
-        if (x >= 5 && y >= 5) return 'desert';      // SO: The Pitt Wüste
-        if (x >= 6 && y <= 1) return 'swamp';       // NO: Sumpfgebiet
-        if (x <= 1 && y >= 6) return 'mountain';    // SW: Gebirge
-        
-        return 'wasteland'; // Standard: Ödland
+        return 'wasteland'; // Standard
     },
 
     createSector: function(width, height, biomeType, poiList) {
         let map = Array(height).fill().map(() => Array(width).fill('.'));
         let conf = { ground: '.', water: 0, mountain: 0, features: [] };
         
-        // Lade Konfig aus GameData falls vorhanden, sonst Fallback
         if (typeof window.GameData !== 'undefined' && window.GameData.biomes) {
             if (!window.GameData.biomes[biomeType]) biomeType = 'wasteland';
             conf = window.GameData.biomes[biomeType];
@@ -59,7 +54,6 @@ const WorldGen = {
             poiList.forEach(poi => {
                 if(poi.x >= 0 && poi.x < width && poi.y >= 0 && poi.y < height) {
                     map[poi.y][poi.x] = poi.type;
-                    // Freiraum um POI schaffen
                     for(let dy=-3; dy<=3; dy++) {
                         for(let dx=-3; dx<=3; dx++) {
                             const ny = poi.y+dy, nx = poi.x+dx;
