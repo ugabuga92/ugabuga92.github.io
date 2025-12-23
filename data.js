@@ -1,3 +1,4 @@
+// [v0.4.0]
 window.GameData = {
     // --- FARBPALETTE ---
     colors: { 
