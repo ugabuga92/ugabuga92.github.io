@@ -65,8 +65,8 @@ const Game = {
                 UI.log(">> Spielstand geladen.", "text-cyan-400");
             } else {
                 isNewGame = true;
-                let startSecX = Math.floor(Math.random() * 8);
-                let startSecY = Math.floor(Math.random() * 8);
+                let startSecX = 4; // Start bei 4,4 (Mitte)
+                let startSecY = 4;
                 let startX = 20;
                 let startY = 20;
 
@@ -252,7 +252,8 @@ const Game = {
         if(px < 0) { sx--; newPx = this.MAP_W - 1; newPy = this.state.player.y; }
         else if(px >= this.MAP_W) { sx++; newPx = 0; newPy = this.state.player.y; }
 
-        if(sx < 0 || sx > 7 || sy < 0 || sy > 7) { UI.log("Ende der Weltkarte.", "text-red-500"); return; } 
+        // UPDATE: Grenzen auf 10 erweitert (0-9)
+        if(sx < 0 || sx > 9 || sy < 0 || sy > 9) { UI.log("Ende der Weltkarte.", "text-red-500"); return; } 
         
         this.state.sector = {x: sx, y: sy}; 
         this.loadSector(sx, sy); 
@@ -274,26 +275,35 @@ const Game = {
         const rng = () => { return typeof WorldGen !== 'undefined' ? WorldGen.rand() : Math.random(); };
         
         if(!this.worldData[key]) { 
-            let biome = 'wasteland'; 
-            if (sx < 2 && sy < 2) biome = 'jungle'; 
-            else if (sx > 5 && sy > 5) biome = 'desert'; 
-            else if (sx > 5 && sy < 2) biome = 'swamp'; 
-            else if (rng() < 0.30) biome = 'city'; 
+            // UPDATE: Biome Logik in WorldGen auf 10x10 angepasst
+            let biome = 'wasteland';
+            if(typeof WorldGen !== 'undefined') {
+                biome = WorldGen.getSectorBiome(sx, sy);
+            }
             
             let poiList = [];
             let sectorPoiType = null;
 
-            if(sx === this.state.startSector.x && sy === this.state.startSector.y) {
+            // FIX: Beibehaltung der alten fixen POIs für Step 1
+            if(sx === 4 && sy === 4) { // Vault auf 4,4 (Mitte)
                 poiList.push({x:20, y:20, type:'V'}); 
                 sectorPoiType = 'V';
             }
-            if(rng() < 0.35) { 
-                let type = 'C'; 
+            if(sx === 3 && sy === 3) { // Stadt auf 3,3
+                poiList.push({x:20, y:20, type:'C'});
+                sectorPoiType = 'C';
+            }
+
+            if(rng() < 0.35 && !sectorPoiType) { 
+                let type = null;
                 const r = rng(); 
                 if(r < 0.3) type = 'S'; 
                 else if(r < 0.6) type = 'H';
-                poiList.push({x: Math.floor(rng()*(this.MAP_W-6))+3, y: Math.floor(rng()*(this.MAP_H-6))+3, type: type});
-                sectorPoiType = type;
+                
+                if(type) {
+                    poiList.push({x: Math.floor(rng()*(this.MAP_W-6))+3, y: Math.floor(rng()*(this.MAP_H-6))+3, type: type});
+                    sectorPoiType = type;
+                }
             }
 
             let map;
@@ -330,10 +340,11 @@ const Game = {
     },
 
     fixMapBorders: function(map, sx, sy) {
+        // UPDATE: Grenzen auf 10 angepasst
         if(sy === 0) { for(let i=0; i<this.MAP_W; i++) map[0][i] = '#'; }
-        if(sy === 7) { for(let i=0; i<this.MAP_W; i++) map[this.MAP_H-1][i] = '#'; }
+        if(sy === 9) { for(let i=0; i<this.MAP_W; i++) map[this.MAP_H-1][i] = '#'; }
         if(sx === 0) { for(let i=0; i<this.MAP_H; i++) map[i][0] = '#'; }
-        if(sx === 7) { for(let i=0; i<this.MAP_H; i++) map[i][this.MAP_W-1] = '#'; }
+        if(sx === 9) { for(let i=0; i<this.MAP_H; i++) map[i][this.MAP_W-1] = '#'; }
     },
     
     findSafeSpawn: function() {
