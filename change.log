@@ -1,5 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.3.4b] - 2025-12-23 03:05am (Step 2: Dynamic POIs & Fog Fix)
+- Dynamische POIs: Vault 101 und Rusty Springs werden bei neuem Spiel zufällig platziert.
+- Fog-Fix: Aufgedeckte Weltkarte bleibt gespeichert, wenn man Dungeons betritt/verlässt.
+- Savegame: POI-Positionen werden im Spielstand gespeichert.
+
+
 [v0.3.4aa] - 2025-12-23 02:15am (Step 1: 10x10 World)
 - Welt: Vergrößert auf 10x10 Sektoren.
 - Rendering: Weltkarte und Biome an neue Größe angepasst.
