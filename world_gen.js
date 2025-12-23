@@ -1,4 +1,5 @@
 // [v0.4.0]
+
 const WorldGen = {
     _seed: 12345,
 
