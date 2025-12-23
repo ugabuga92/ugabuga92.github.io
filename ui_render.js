@@ -402,7 +402,7 @@ Object.assign(UI, {
         const details = document.getElementById('sector-details');
         if(!cvs) return;
         const ctx = cvs.getContext('2d');
-        const W = 8, H = 8; // Weltgröße in Sektoren
+        const W = 10, H = 10; // NEU: An 10x10 Welt angepasst
         const TILE_W = cvs.width / W;
         const TILE_H = cvs.height / H;
 
@@ -455,10 +455,6 @@ Object.assign(UI, {
                     if(isCurrent && details) {
                         details.innerHTML = `SEKTOR [${x},${y}]<br><span class="text-white">${biome.toUpperCase()}</span>`;
                     }
-                } else {
-                    // Unvisited: Bleibt dunkel (Fog of War)
-                    // Optional: Schraffur oder leichtes Gitter andeuten?
-                    // Nein, "aufgedeckt mit laufen" wirkt besser wenn es wirklich schwarz ist.
                 }
             }
         }
