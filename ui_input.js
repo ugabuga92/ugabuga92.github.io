@@ -1,4 +1,4 @@
-//[v0.4.0]
+// [v0.4.0]
 // Extending UI object with Input methods
 Object.assign(UI, {
     
