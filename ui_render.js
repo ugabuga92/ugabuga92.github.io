@@ -1,4 +1,4 @@
-// [v0.4.2]
+// [v0.4.3]
 // Extending UI object with Render methods
 Object.assign(UI, {
     
@@ -10,9 +10,11 @@ Object.assign(UI, {
         if(!this.els.ammo) this.els.ammo = document.getElementById('val-ammo');
         
         // Header Info
-        if(this.els.name && typeof Network !== 'undefined') {
+        if(this.els.name) {
             const sectorStr = Game.state.sector ? ` [${Game.state.sector.x},${Game.state.sector.y}]` : "";
-            this.els.name.textContent = (Network.myDisplayName || "SURVIVOR") + sectorStr;
+            // FIX: Nutze Charakternamen statt Account-Namen, Fallback auf Network-Name oder SURVIVOR
+            const displayName = Game.state.playerName || (typeof Network !== 'undefined' ? Network.myDisplayName : "SURVIVOR");
+            this.els.name.textContent = displayName + sectorStr;
         }
 
         if(this.els.lvl) {
