@@ -1,4 +1,4 @@
-// [v0.4.5]
+// [v0.4.7]
 // Extending UI object with Input methods
 Object.assign(UI, {
     
@@ -50,6 +50,8 @@ Object.assign(UI, {
 
         if (this.els.btnCharSelectAction) this.els.btnCharSelectAction.onclick = () => this.triggerCharSlot();
         if (this.els.btnCharDeleteAction) this.els.btnCharDeleteAction.onclick = () => this.triggerDeleteSlot();
+        // UPDATE: Back Button Handler
+        if (this.els.btnCharBack) this.els.btnCharBack.onclick = () => this.logout("ZURÜCK ZUM LOGIN");
 
         if(this.els.btnCreateCharConfirm) {
             this.els.btnCreateCharConfirm.onclick = () => {
