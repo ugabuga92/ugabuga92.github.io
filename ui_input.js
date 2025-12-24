@@ -1,4 +1,4 @@
-// [v0.4.0]
+// [v0.4.5]
 // Extending UI object with Input methods
 Object.assign(UI, {
     
@@ -174,6 +174,12 @@ Object.assign(UI, {
         window.addEventListener('keydown', (e) => {
             this.lastInputTime = Date.now();
             this.inputMethod = 'key';
+            
+            // FIX: Prevent browser scrolling with Arrow Keys and Space
+            if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].indexOf(e.key) > -1) {
+                e.preventDefault();
+            }
+
             this.handleKeyDown(e);
         });
         
