@@ -1,4 +1,4 @@
-<!-- [v0.4.6] -->
+<!-- [v0.4.7] -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -198,10 +198,11 @@
             
             <div class="flex flex-col gap-2 w-full mb-4">
                 <button id="btn-char-select-action" class="action-button w-full font-bold border-yellow-400 text-yellow-400 py-3">CHARAKTER ERSTELLEN</button>
-                <button id="btn-char-delete-action" class="action-button w-full font-bold border-red-500 text-red-500 py-2 hidden">CHARAKTER LÖSCHEN</button>
+                <div class="flex gap-2 w-full">
+                    <button id="btn-char-delete-action" class="action-button flex-1 font-bold border-red-500 text-red-500 py-2" disabled>LÖSCHEN</button>
+                    <button id="btn-char-back" class="action-button flex-1 border-gray-500 text-gray-500 py-2">ZURÜCK</button>
+                </div>
             </div>
-
-            <button class="action-button w-full border-gray-500 text-gray-500" onclick="UI.logout('LOGOUT')">ABMELDEN</button>
         </div>
     </div>
 
