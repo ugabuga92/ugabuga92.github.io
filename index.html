@@ -1,4 +1,4 @@
-<!-- [v0.4.2] -->
+<!-- [v0.4.6] -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -107,6 +107,9 @@
         .char-slot { border: 1px solid var(--pip-dim); background: rgba(0,20,0,0.5); padding: 10px; margin-bottom: 5px; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
         .char-slot:hover { border-color: var(--pip-green); background: rgba(0,40,0,0.8); }
         .char-slot.active-slot { border-color: var(--pip-green); background: var(--pip-green); color: black; font-weight: bold; }
+        /* FIX: Kontrast für aktiven Slot erhöhen (Alles Schwarz) */
+        .char-slot.active-slot * { color: #000 !important; text-shadow: none !important; }
+        
         .char-slot.empty-slot { opacity: 0.5; font-style: italic; }
 
         /* SCREENS & OVERLAYS */
