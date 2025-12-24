@@ -1,6 +1,4 @@
 🐛 Aktuelle Bugs & Anpassungen
-5. Button "Zurück": "Abmelden"-Button im Charakter-Menü zu "Zurück" ändern (Funktion & Label).
-6. Button "Charakter löschen": Neben den "Zurück"-Button einen Löschen-Button hinzufügen (ausgegraut bei leerem Slot).
 7. Inventar-Blinken: Der Inventar-Button soll bei neuen Ausrüstungsgegenständen (Rüstung/Waffen) blinken, wie bei anderen Kategorien.
 8. Minigame-Anleitungen: Hilfe hinzufügen (im Handbuch, Ingame "?"-Button, und beim ersten Start).
 9. Wiki Drop-Infos: Im Wiki anzeigen, welcher Gegner welches Item droppt.
