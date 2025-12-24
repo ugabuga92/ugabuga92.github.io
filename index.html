@@ -1,4 +1,4 @@
-// [v0.4.0]
+// [v0.4.1]
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -40,6 +40,13 @@
 
         .crt-flicker { animation: flicker 0.15s infinite; }
         @keyframes flicker { 0% { opacity: 0.97; } 50% { opacity: 1; } 100% { opacity: 0.98; } }
+
+        /* BOOT ANIMATIONS */
+        .gear-spin { animation: spin 4s linear infinite; transform-origin: center; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .vault-wink { animation: wink 2s infinite steps(1); }
+        @keyframes wink { 0%, 45%, 55%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
         /* GLOWS */
         .alert-glow-red { animation: pulse-red-intense 1.5s infinite !important; border-width: 2px !important; font-weight: bold !important; }
@@ -103,16 +110,17 @@
         .char-slot.empty-slot { opacity: 0.5; font-style: italic; }
 
         /* SCREENS & OVERLAYS */
-        #login-screen, #spawn-screen, #reset-overlay, #manual-overlay, #changelog-overlay, #char-select-screen, #delete-confirm-overlay, #boot-screen { position: absolute; inset: 0; z-index: 999; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; }
-        .login-box { border: 2px solid var(--pip-green); padding: 20px; text-align: center; box-shadow: 0 0 20px var(--pip-dim); width: 90%; max-width: 400px; display: flex; flex-direction: column; background: rgba(0, 10, 0, 0.9); z-index: 20; position: relative; }
+        #login-screen, #spawn-screen, #reset-overlay, #manual-overlay, #changelog-overlay, #char-select-screen, #delete-confirm-overlay { position: absolute; inset: 0; z-index: 999; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; }
+        .login-box { border: 2px solid var(--pip-green); padding: 20px; text-align: center; box-shadow: 0 0 20px var(--pip-dim); width: 90%; max-width: 400px; display: flex; flex-direction: column; background: rgba(0, 10, 0, 0.9); z-index: 20; position: relative; min-height: 400px; justify-content: center; }
         #login-form { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
         
         input.login-input { background: #000; border: 2px solid var(--pip-green); color: var(--pip-green); font-family: inherit; font-size: 20px; padding: 10px; text-align: center; outline: none; width: 100%; }
         input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
         
-        /* BOOT SCREEN */
-        #boot-screen { align-items: flex-start; padding: 20px; font-family: 'VT323', monospace; color: var(--pip-green); font-size: 1.2rem; line-height: 1.4; overflow: hidden; z-index: 1000; display: flex; }
-        .boot-line { margin-bottom: 5px; white-space: nowrap; overflow: hidden; opacity: 0; animation: type-line 0.1s forwards; }
+        /* BOOT SEQUENCE IN LOGIN */
+        #boot-sequence { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .boot-icon { width: 80px; height: 80px; margin-bottom: 20px; }
+        .boot-line { margin-bottom: 2px; white-space: nowrap; overflow: hidden; opacity: 0; animation: type-line 0.1s forwards; text-align: left; width: 100%; padding-left: 20px; font-size: 0.9rem; }
         @keyframes type-line { to { opacity: 1; } }
 
         /* LAYOUTS */
@@ -137,27 +145,43 @@
     <div class="scanline"></div>
     <div class="absolute inset-0 pointer-events-none crt-flicker z-[1001]" style="background: rgba(0,255,0,0.02);"></div>
 
-    <div id="boot-screen">
-        <div id="boot-log"></div>
-    </div>
-
-    <div id="login-screen" class="hex-bg" style="display: none;">
+    <div id="login-screen" class="hex-bg">
         <div class="login-box crt-effect-container">
-            <h1 class="text-5xl md:text-6xl font-bold glow-text mb-2">PIP-BOY 3003</h1>
-            <div id="login-title" class="text-xl mb-4 opacity-80 animate-pulse">AUTHENTICATION REQUIRED</div>
-            <form id="login-form" onsubmit="event.preventDefault();" autocomplete="off">
-                <input type="email" id="login-email" class="login-input" placeholder="E-MAIL" autofocus autocomplete="username">
-                <input type="password" id="login-pass" class="login-input" placeholder="PASSWORT" autocomplete="current-password">
-                <input type="text" id="login-name" class="login-input hidden" placeholder="ACCOUNT NAME" maxlength="15" autocomplete="off" style="display: none;">
-            </form>
-            <button id="btn-login" class="action-button w-full py-3 font-bold text-xl mb-2">LOGIN</button>
-            <button id="btn-toggle-register" class="text-sm text-yellow-400 hover:text-yellow-200 cursor-pointer mb-4 underline bg-transparent border-none">Noch kein Account? Hier registrieren</button>
-            <div class="flex gap-2 w-full">
-                <button id="btn-manual-login" class="action-button flex-1 py-2 font-bold text-lg border-yellow-400 text-yellow-400" onclick="UI.showManualOverlay()">ANLEITUNG</button>
-                <button id="btn-changelog" class="action-button flex-1 py-2 font-bold text-lg border-blue-400 text-blue-400" onclick="UI.showChangelogOverlay()">CHANGELOG</button>
+            
+            <div id="boot-sequence">
+                <div class="relative w-24 h-24 mb-4">
+                    <svg class="w-full h-full text-green-500 gear-spin absolute inset-0 opacity-50" viewBox="0 0 100 100" fill="currentColor">
+                        <path d="M50 0 L60 10 L70 5 L80 15 L75 25 L85 30 L95 25 L100 35 L90 45 L95 55 L100 60 L90 70 L80 65 L75 75 L85 85 L75 95 L65 90 L60 100 L50 100 L40 90 L30 95 L20 85 L25 75 L15 70 L5 75 L0 65 L10 55 L5 45 L15 35 L5 25 L15 15 L25 20 L30 10 L40 0 Z" />
+                        <circle cx="50" cy="50" r="20" fill="black" />
+                    </svg>
+                    <svg class="w-16 h-16 text-yellow-400 absolute inset-0 m-auto vault-wink" viewBox="0 0 100 100" fill="currentColor">
+                        <path d="M20 30 Q50 10 80 30 Q90 50 80 80 Q50 100 20 80 Q10 50 20 30 Z" />
+                        <path d="M20 30 Q50 0 80 30" fill="#ccaa00" /> <circle cx="35" cy="50" r="5" fill="black" />
+                        <circle cx="65" cy="50" r="5" fill="black" />
+                        <path d="M40 70 Q50 80 60 70" stroke="black" stroke-width="3" fill="none" /> </svg>
+                </div>
+                <div class="text-xl font-bold text-yellow-400 mb-2 animate-pulse">PLEASE STAND BY</div>
+                <div id="boot-log" class="w-full text-left pl-4 border-l border-green-900 mt-2 h-32 overflow-hidden flex flex-col justify-end"></div>
             </div>
-            <div id="login-status" class="mt-4 text-yellow-400 min-h-[1.5em] text-sm font-mono break-words"></div>
-            <div class="mt-4 text-xs text-[#1aff1a] opacity-50 border-t border-[#1aff1a]/30 pt-2 w-full">VERSION <span id="login-version-display">LOADING...</span></div>
+
+            <div id="login-content" class="hidden w-full flex-col items-center">
+                <h1 class="text-5xl md:text-6xl font-bold glow-text mb-2">PIP-BOY 3003</h1>
+                <div id="login-title" class="text-xl mb-4 opacity-80 animate-pulse">AUTHENTICATION REQUIRED</div>
+                <form id="login-form" onsubmit="event.preventDefault();" autocomplete="off" class="w-full">
+                    <input type="email" id="login-email" class="login-input" placeholder="E-MAIL" autofocus autocomplete="username">
+                    <input type="password" id="login-pass" class="login-input mt-2" placeholder="PASSWORT" autocomplete="current-password">
+                    <input type="text" id="login-name" class="login-input hidden mt-2" placeholder="ACCOUNT NAME" maxlength="15" autocomplete="off" style="display: none;">
+                </form>
+                <button id="btn-login" class="action-button w-full py-3 font-bold text-xl mb-2 mt-4">LOGIN</button>
+                <button id="btn-toggle-register" class="text-sm text-yellow-400 hover:text-yellow-200 cursor-pointer mb-4 underline bg-transparent border-none">Noch kein Account? Hier registrieren</button>
+                <div class="flex gap-2 w-full">
+                    <button id="btn-manual-login" class="action-button flex-1 py-2 font-bold text-lg border-yellow-400 text-yellow-400" onclick="UI.showManualOverlay()">ANLEITUNG</button>
+                    <button id="btn-changelog" class="action-button flex-1 py-2 font-bold text-lg border-blue-400 text-blue-400" onclick="UI.showChangelogOverlay()">CHANGELOG</button>
+                </div>
+                <div id="login-status" class="mt-4 text-yellow-400 min-h-[1.5em] text-sm font-mono break-words"></div>
+                <div class="mt-4 text-xs text-[#1aff1a] opacity-50 border-t border-[#1aff1a]/30 pt-2 w-full">VERSION <span id="login-version-display">LOADING...</span></div>
+            </div>
+
         </div>
     </div>
 
@@ -282,7 +306,9 @@
             "INITIALIZING PIP-BOY 3003 INTERFACE..."
         ];
         const log = document.getElementById('boot-log');
-        let delay = 0;
+        const bootSeq = document.getElementById('boot-sequence');
+        const loginContent = document.getElementById('login-content');
+        let delay = 1500; // Start nach kurzer Wartezeit für Animation
         
         bootLines.forEach((line, i) => {
             setTimeout(() => {
@@ -296,8 +322,9 @@
 
         // Nach Boot Sequence zum Login wechseln
         setTimeout(() => {
-            document.getElementById('boot-screen').style.display = 'none';
-            document.getElementById('login-screen').style.display = 'flex';
+            bootSeq.style.display = 'none';
+            loginContent.classList.remove('hidden');
+            loginContent.classList.add('flex');
         }, delay + 1000);
     }
 
