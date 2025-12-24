@@ -1,5 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.4.1] - 2025-12-24 15:15pm(Login UI Update)
+------------------------------------------------
+- Boot Animation (Vault Boy & Zahnrad) direkt im Login-Fenster integriert.
+- Neue Startup-Sequenz vor dem Login-Formular.
+- Version logisch auf v0.4.1 erhöht.
+
+
 [v0.4] The fresh start.
 - We will keep it simple.
 
