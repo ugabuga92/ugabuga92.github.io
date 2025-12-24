@@ -1,3 +1,34 @@
+🐛 Aktuelle Bugs & Anpassungen
+1. Namensanzeige fixen: Ingame wird "Bobokopf" statt des korrekten Charakternamens angezeigt.
+2. Munitions-Crafting: Gecraftete Munition wird nicht korrekt zum Inventar oder der Munitionsanzeige hinzugefügt.
+3. Browser-Scrolling verhindern: Das gesamte Fenster bewegt sich bei Pfeiltastennutzung im Kampf (muss im Event-Listener abgefangen werden).
+4. Kontrast Charakter-Auswahl: Infos zum ausgewählten Charakter sind schwer lesbar, Kontrast erhöhen.
+5. Button "Zurück": "Abmelden"-Button im Charakter-Menü zu "Zurück" ändern (Funktion & Label).
+6. Button "Charakter löschen": Neben den "Zurück"-Button einen Löschen-Button hinzufügen (ausgegraut bei leerem Slot).
+7. Inventar-Blinken: Der Inventar-Button soll bei neuen Ausrüstungsgegenständen (Rüstung/Waffen) blinken, wie bei anderen Kategorien.
+8. Minigame-Anleitungen: Hilfe hinzufügen (im Handbuch, Ingame "?"-Button, und beim ersten Start).
+9. Wiki Drop-Infos: Im Wiki anzeigen, welcher Gegner welches Item droppt.
+10. Speichern optimieren (Händler/Crafting): Nicht mehr nach jeder Aktion speichern, sondern erst beim Verlassen des Händlers/Crafters.
+11. Navigation Arzt: Nach dem Arztbesuch Fenster schließen, statt ins Stadtmenü zurückzukehren.
+12. Navigation Crafter: Nach dem Crafting Fenster schließen, statt ins Stadtmenü zurückzukehren.
+13. Händler-Menü: Menü soll sich (nur/neu?) öffnen, wenn die Konversation startet.
+
+🚀 Ideen für die Zukunft (Roadmap)
+Perk-System: Alle 3-5 Level einen Skill wählen (z.B. "Mysteriöser Fremder", "Hacker").
+Radio-Stationen: Tab für Musik/Ödland-Geräusche.
+Item-Präfixe: Dynamische Waffen-Varianten (Rostig, Gehärtet, Bestrahlt).
+Camp-System: Zelt aufschlagen zum Heilen im Ödland (upgradebar).
+
+
+
+
+
+
+
+
+
+
+
 Aktuelle Bugs & Ideen
 - Namensanzeige verbugged? Ingame steht aktuell "Bobokopf" anstatt des Charakternamens.
 - gecraftete Munition wird nicht zur Munition hinzugefügt bzw ins Inventar / Munitionsanzeige
