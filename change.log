@@ -1,5 +1,9 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.4.25] - 2025-12-26 12:50am (City Visual Overhaul)
+    - views/city.html: Komplettes Redesign. Neues 2-Spalten-Layout (Desktop) mit ASCII-Art Header und einer Status-Infobox ("Bevölkerung", "Strahlung").
+    - ui_render_views.js: renderCity Funktion erweitert. Buttons haben nun Icons, Titel und Untertitel für besseres UX & Look-and-Feel.
+
 [v0.4.24] - 2025-12-26 12:40am (Worldmap Precision)
     - renderWorldMap angepasst: Berechnet nun die Pixel-Position (px, py) des Spielermarkers basierend auf den exakten Game.state.player.x/y Koordinaten relativ zur Sektorgröße (MAP_W/H), anstatt pauschal TILE_W/2 zu nutzen.
     - Der grüne Punkt wandert nun auf der Weltkarte mit, wenn man sich im Level bewegt.
