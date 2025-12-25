@@ -1,5 +1,10 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.4.18] - 2025-12-26 12:10am (Bugfix: Login Log Name)
+  - startPresence angepasst: Liest nun Game.state.playerName aus, falls vorhanden, anstatt nur this.myDisplayName zu nutzen.
+  - "Terminal Link" zeigt jetzt korrekt den Namen des geladenen Charakters an.
+
+
 [v0.4.17] - 2025-12-25 11:20pm(Highscore System Update)  
 - 'kills' Statistik zum Speicherstand hinzugefügt (game_core.js)
 - Globales Leaderboard-System im Netzwerk integriert (network.js)
