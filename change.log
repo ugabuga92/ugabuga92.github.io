@@ -1,5 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.4.23] - 2025-12-26 12:30am (Spawn & Map Persistence Fix)
+
+    Game.init in game_core.js angepasst:
+    - Wenn ein Spielstand geladen wird (saveData vorhanden), wird loadSector nun übersprungen.
+    - Stattdessen wird die gespeicherte Karte (currentMap) direkt mit renderStaticMap gezeichnet.
+    - Das behebt das Problem, dass man aus der Stadt fliegt, und sorgt zudem dafür, dass geöffnete Truhen etc. nach dem Laden offen bleiben.
+
+
 [v0.4.22] - 2025-12-26 12:20am (Input Scroll Fix)
   
   - keydown Listener erweitert: Blockiert nun ArrowKeys, Space, Home, End, PageUp/Down global (außer in Inputs), um Scrollen zu verhindern.
