@@ -1,4 +1,4 @@
-// [v0.4.10]
+// [v0.4.12]
 const Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     WORLD_W: 10, WORLD_H: 10, // Definiert die Weltgröße
@@ -64,7 +64,6 @@ const Game = {
                 if(!this.state.inDialog) this.state.inDialog = false; 
                 if(!this.state.view) this.state.view = 'map';
                 if(!this.state.visitedSectors) this.state.visitedSectors = [];
-                // [v0.4.10] Tutorials Init
                 if(!this.state.tutorialsShown) this.state.tutorialsShown = { hacking: false, lockpicking: false };
 
                 if(!this.state.worldPOIs) {
@@ -118,7 +117,7 @@ const Game = {
                     explored: {}, 
                     sectorExploredCache: null,
                     visitedSectors: [`${startSecX},${startSecY}`],
-                    tutorialsShown: { hacking: false, lockpicking: false }, // [v0.4.10]
+                    tutorialsShown: { hacking: false, lockpicking: false },
                     tempStatIncrease: {}, buffEndTime: 0,
                     cooldowns: {}, 
                     quests: [ 
@@ -162,13 +161,14 @@ const Game = {
         this.state.hp = this.state.maxHp; 
         UI.log("Ausgeruht. HP voll.", "text-blue-400"); 
         UI.update(); 
-        this.saveGame(); 
+        // Save removed for bulk action
     },
 
     heal: function() { 
         if(this.state.caps >= 25) { 
             this.state.caps -= 25; 
             this.rest(); 
+            // Save removed
         } else {
             UI.log("Zu wenig Kronkorken.", "text-red-500"); 
         }
@@ -180,7 +180,7 @@ const Game = {
             this.state.ammo += 10; 
             UI.log("Munition gekauft.", "text-green-400"); 
             UI.update(); 
-            this.saveGame();
+            // Save removed
         } else {
             UI.log("Zu wenig Kronkorken.", "text-red-500"); 
         }
@@ -192,12 +192,13 @@ const Game = {
             this.state.caps -= item.cost; 
             this.addToInventory(key, 1); 
             UI.log(`Gekauft: ${item.name}`, "text-green-400"); 
-            if(typeof UI.renderShop === 'function') {
-                 const con = document.getElementById('city-options');
-                 if(con) UI.renderShop(con);
-            }
+            
+            // UI Update Logic for Shop
+            const con = document.getElementById('shop-list');
+            if(con) UI.renderShop(con);
+            
             UI.update(); 
-            this.saveGame(); 
+            // Save removed to prevent lag on every buy
         } else { 
             UI.log("Zu wenig Kronkorken.", "text-red-500"); 
         } 
@@ -583,7 +584,7 @@ const Game = {
         }
         if(recipe.out === "AMMO") { this.state.ammo += recipe.count; UI.log(`Hergestellt: ${recipe.count} Munition`, "text-green-400 font-bold"); } 
         else { this.addToInventory(recipe.out, recipe.count); UI.log(`Hergestellt: ${this.items[recipe.out].name}`, "text-green-400 font-bold"); }
-        this.saveGame();
+        // Save removed for bulk
         if(typeof UI !== 'undefined') UI.renderCrafting(); 
     },
 
@@ -652,7 +653,8 @@ const Game = {
         enemy.dmg = Math.floor(enemy.dmg * difficultyMult);
         enemy.loot = Math.floor(enemy.loot * difficultyMult);
 
-        const isLegendary = Math.random() < 0.15; 
+        // [v0.4.12] Spawn Rate fix: 5% statt 15%
+        const isLegendary = Math.random() < 0.05; 
         if(isLegendary) { 
             enemy.isLegendary = true; 
             enemy.name = "Legendäre " + enemy.name; 
@@ -672,6 +674,41 @@ const Game = {
         }
     },
     
+    // [v0.4.12] Gamble Logic for Legendary Loot
+    gambleLegendaryLoot: function(sum) {
+        UI.log(`🎲 Wasteland Gamble: ${sum}`, "text-yellow-400 font-bold");
+        
+        // 3-9: Low Tier
+        if(sum <= 9) {
+            if(Math.random() < 0.5) {
+                this.state.caps += 50;
+                UI.log("Gewinn: 50 Kronkorken", "text-green-400");
+            } else {
+                this.state.ammo += 10;
+                UI.log("Gewinn: 10x Munition", "text-green-400");
+            }
+        }
+        // 10-15: Mid Tier
+        else if(sum <= 15) {
+            this.state.caps += 150;
+            this.addToInventory('stimpack', 1);
+            // Fallback for scrap
+            const comp = this.items['screws'] ? 'screws' : 'junk_metal';
+            this.addToInventory(comp, 5);
+            UI.log("Gewinn: 150 KK + Stimpack + Schrott", "text-blue-400");
+        }
+        // 16-18: High Tier
+        else {
+            this.addToInventory('legendary_part', 1);
+            this.state.caps += 300;
+            // Rare Item (Simple random high tier weapon check)
+            const rare = this.items['plasma_rifle'] ? 'plasma_rifle' : 'hunting_rifle';
+            this.addToInventory(rare, 1);
+            UI.log("JACKPOT! Modul + 300 KK + Waffe!", "text-yellow-400 font-bold animate-pulse");
+        }
+        this.saveGame();
+    },
+
     hardReset: function() { if(typeof Network !== 'undefined') Network.deleteSave(); this.state = null; location.reload(); },
     upgradeStat: function(key) { if(this.state.statPoints > 0) { this.state.stats[key]++; this.state.statPoints--; if(key === 'END') this.state.maxHp = this.calculateMaxHP(this.getStat('END')); UI.renderChar(); UI.update(); this.saveGame(); } },
     
