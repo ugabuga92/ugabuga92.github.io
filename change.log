@@ -1,5 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.4.8] - 2025-12-25 01:30am(Boot & Version Update)
+------------------------------------------------
+- Boot: Start-Sequenz zeigt nun die geladene Version an (z.B. "LOADING SYSTEM VERSION 0.4.8...").
+- Logic: Version wird nun VOR der Boot-Animation geladen, um Konsistenz zu sichern.
+
+
 [v0.4.7] - 2025-12-25 12:50am(Character UI Update)
 ------------------------------------------------
 - UI: Charakter-Auswahl-Screen Layout überarbeitet.
