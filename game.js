@@ -1,4 +1,4 @@
-// [v0.4.9]
+// [v0.4.10]
 const Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     WORLD_W: 10, WORLD_H: 10, // Definiert die Weltgröße
@@ -59,12 +59,14 @@ const Game = {
             let isNewGame = false;
             if (saveData) {
                 this.state = saveData;
-                // Kompatibilitäts-Checks für alte Saves
+                // Kompatibilitäts-Checks
                 if(!this.state.explored || typeof this.state.explored !== 'object') this.state.explored = {};
                 if(!this.state.inDialog) this.state.inDialog = false; 
                 if(!this.state.view) this.state.view = 'map';
                 if(!this.state.visitedSectors) this.state.visitedSectors = [];
-                // Fallback für alte Saves ohne POIs (auf Standard setzen)
+                // [v0.4.10] Tutorials Init
+                if(!this.state.tutorialsShown) this.state.tutorialsShown = { hacking: false, lockpicking: false };
+
                 if(!this.state.worldPOIs) {
                     this.state.worldPOIs = [
                         {type: 'V', x: 4, y: 4}, 
@@ -76,22 +78,19 @@ const Game = {
             } else {
                 isNewGame = true;
                 
-                // STEP 2: Zufällige POIs generieren
                 const vX = Math.floor(Math.random() * this.WORLD_W);
                 const vY = Math.floor(Math.random() * this.WORLD_H);
-                
                 let cX, cY;
                 do {
                     cX = Math.floor(Math.random() * this.WORLD_W);
                     cY = Math.floor(Math.random() * this.WORLD_H);
-                } while(cX === vX && cY === vY); // Sicherstellen, dass Stadt nicht auf Vault liegt
+                } while(cX === vX && cY === vY);
 
                 const worldPOIs = [
                     {type: 'V', x: vX, y: vY},
                     {type: 'C', x: cX, y: cY}
                 ];
 
-                // Start immer an der Vault
                 let startSecX = vX;
                 let startSecY = vY;
                 let startX = 20;
@@ -109,7 +108,7 @@ const Game = {
                     saveSlot: slotIndex,
                     playerName: newName || "SURVIVOR",
                     sector: {x: startSecX, y: startSecY}, startSector: {x: vX, y: vY},
-                    worldPOIs: worldPOIs, // POIs speichern
+                    worldPOIs: worldPOIs,
                     player: {x: startX, y: startY, rot: 0},
                     stats: { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 }, 
                     equip: { weapon: this.items.fists, body: this.items.vault_suit },
@@ -117,8 +116,9 @@ const Game = {
                     hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0, 
                     view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, 
                     explored: {}, 
-                    sectorExploredCache: null, // Für Fog of War Fix
+                    sectorExploredCache: null,
                     visitedSectors: [`${startSecX},${startSecY}`],
+                    tutorialsShown: { hacking: false, lockpicking: false }, // [v0.4.10]
                     tempStatIncrease: {}, buffEndTime: 0,
                     cooldowns: {}, 
                     quests: [ 
@@ -311,7 +311,6 @@ const Game = {
             let poiList = [];
             let sectorPoiType = null;
 
-            // STEP 2: Dynamische POIs verwenden
             if(this.state.worldPOIs) {
                 this.state.worldPOIs.forEach(poi => {
                     if(poi.x === sx && poi.y === sy) {
@@ -321,7 +320,6 @@ const Game = {
                 });
             }
 
-            // Zufällige kleinere Orte (Höhlen/Supermärkte) nur wenn kein Haupt-POI da ist
             if(rng() < 0.35 && !sectorPoiType) { 
                 let type = null;
                 const r = rng(); 
@@ -400,7 +398,6 @@ const Game = {
         this.state.player.y = 20;
     },
 
-    // --- SUB-ZONES ---
     tryEnterDungeon: function(type) {
         const key = `${this.state.sector.x},${this.state.sector.y}_${type}`;
         const cd = this.state.cooldowns ? this.state.cooldowns[key] : 0;
@@ -415,7 +412,6 @@ const Game = {
     enterDungeon: function(type, level=1) {
         if(level === 1) {
             this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
-            // STEP 2 FOG FIX: Weltkarte speichern, bevor wir in den Dungeon gehen
             this.state.sectorExploredCache = JSON.parse(JSON.stringify(this.state.explored));
         }
         
@@ -442,7 +438,7 @@ const Game = {
         
         const typeName = type === "cave" ? "Dunkle Höhle" : "Supermarkt Ruine";
         this.state.zone = `${typeName} (Ebene ${level})`;
-        this.state.explored = {}; // Dungeon ist dunkel
+        this.state.explored = {}; 
         this.reveal(this.state.player.x, this.state.player.y);
         
         this.renderStaticMap();
@@ -479,7 +475,6 @@ const Game = {
 
     enterCity: function() {
         this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
-        // STEP 2 FOG FIX: Weltkarte speichern
         this.state.sectorExploredCache = JSON.parse(JSON.stringify(this.state.explored));
 
         if(typeof WorldGen !== 'undefined') {
@@ -511,18 +506,15 @@ const Game = {
         
         this.loadSector(this.state.sector.x, this.state.sector.y);
         
-        // STEP 2 FOG FIX: Weltkarte wiederherstellen
         if(this.state.sectorExploredCache) {
             this.state.explored = this.state.sectorExploredCache;
             this.state.sectorExploredCache = null;
-            // Aktuelle Position sofort wieder aufdecken, falls man sich bewegt hat
             this.reveal(this.state.player.x, this.state.player.y);
         }
 
         UI.log("Zurück im Ödland.", "text-green-400");
     },
 
-    // --- GAMEPLAY MECHANICS ---
     addToInventory: function(id, count=1) { 
         if(!this.state.inventory) this.state.inventory = []; 
         const existing = this.state.inventory.find(i => i.id === id); 
@@ -533,7 +525,6 @@ const Game = {
         const itemName = itemDef ? itemDef.name : id;
         UI.log(`+ ${itemName} (${count})`, "text-green-400"); 
 
-        // [v0.4.9] Alert für neue Ausrüstung (Waffe/Rüstung)
         if(itemDef && (itemDef.type === 'weapon' || itemDef.type === 'body')) {
             if(typeof UI !== 'undefined' && UI.triggerInventoryAlert) UI.triggerInventoryAlert();
         }
@@ -596,7 +587,6 @@ const Game = {
         if(typeof UI !== 'undefined') UI.renderCrafting(); 
     },
 
-    // --- HELPER FUNCTIONS ---
     calculateMaxHP: function(end) { return 100 + (end - 5) * 10; }, 
     
     getStat: function(key) {
@@ -631,7 +621,6 @@ const Game = {
         try { localStorage.setItem('pipboy_save', JSON.stringify(this.state)); } catch(e){}
     },
 
-    // --- COMBAT INIT (DELEGATION TO COMBAT.JS) ---
     startCombat: function() { 
         let pool = []; 
         let lvl = this.state.lvl; 
@@ -686,12 +675,10 @@ const Game = {
     hardReset: function() { if(typeof Network !== 'undefined') Network.deleteSave(); this.state = null; location.reload(); },
     upgradeStat: function(key) { if(this.state.statPoints > 0) { this.state.stats[key]++; this.state.statPoints--; if(key === 'END') this.state.maxHp = this.calculateMaxHP(this.getStat('END')); UI.renderChar(); UI.update(); this.saveGame(); } },
     
-    // RENDER
     draw: function() { 
         if(!this.ctx || !this.cacheCanvas) return; 
         const ctx = this.ctx; const cvs = ctx.canvas; 
         
-        // Camera Logic
         let targetCamX = (this.state.player.x * this.TILE) - (cvs.width / 2); 
         let targetCamY = (this.state.player.y * this.TILE) - (cvs.height / 2); 
         const maxCamX = (this.MAP_W * this.TILE) - cvs.width; 
@@ -700,11 +687,9 @@ const Game = {
         this.camera.x = Math.max(0, Math.min(targetCamX, maxCamX)); 
         this.camera.y = Math.max(0, Math.min(targetCamY, maxCamY)); 
         
-        // Clear
         ctx.fillStyle = "#000"; 
         ctx.fillRect(0, 0, cvs.width, cvs.height); 
         
-        // Draw Terrain (from Cache)
         ctx.drawImage(this.cacheCanvas, this.camera.x, this.camera.y, cvs.width, cvs.height, 0, 0, cvs.width, cvs.height); 
         
         ctx.save(); 
@@ -718,23 +703,19 @@ const Game = {
         const secKey = `${this.state.sector.x},${this.state.sector.y}`;
         const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7; 
 
-        // Draw Dynamic Objects & FOG OF WAR
         for(let y=startY; y<endY; y++) { 
             for(let x=startX; x<endX; x++) { 
                 if(y>=0 && y<this.MAP_H && x>=0 && x<this.MAP_W) { 
                     
-                    // FOG OF WAR CHECK
                     const tileKey = `${secKey}_${x},${y}`;
                     const isCity = (this.state.zone && this.state.zone.includes("Stadt")); 
                     
                     if(!isCity && !this.state.explored[tileKey]) {
-                        // Draw Black Mask
                         ctx.fillStyle = "#000";
                         ctx.fillRect(x * this.TILE, y * this.TILE, this.TILE, this.TILE);
                         continue; 
                     }
 
-                    // Draw Dynamic Tiles (POIs)
                     const t = this.state.currentMap[y][x]; 
                     if(['V', 'S', 'C', 'G', 'H', '^', 'v', '<', '>', '$', '&', 'P', 'E', 'F', 'X'].includes(t)) { 
                         this.drawTile(ctx, x, y, t, pulse); 
@@ -743,7 +724,6 @@ const Game = {
             } 
         } 
         
-        // Other Players
         if(typeof Network !== 'undefined' && Network.otherPlayers) { 
             for(let pid in Network.otherPlayers) { 
                 const p = Network.otherPlayers[pid]; 
@@ -764,7 +744,6 @@ const Game = {
             } 
         } 
         
-        // Draw Player
         const px = this.state.player.x * this.TILE + this.TILE/2; 
         const py = this.state.player.y * this.TILE + this.TILE/2; 
         
