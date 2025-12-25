@@ -1,4 +1,4 @@
-// [v0.4.17]
+// [v0.4.18]
 const Network = {
     db: null,
     auth: null,
@@ -170,7 +170,9 @@ const Network = {
         
         if(typeof UI !== 'undefined') {
             UI.setConnectionState('online');
-            UI.log(`TERMINAL LINK: ${this.myDisplayName}`, "text-green-400 font-bold");
+            // FIX: Use Game.state.playerName if available, else account name
+            const charName = (typeof Game !== 'undefined' && Game.state && Game.state.playerName) ? Game.state.playerName : this.myDisplayName;
+            UI.log(`TERMINAL LINK: ${charName}`, "text-green-400 font-bold");
         }
         
         if(this.heartbeatInterval) clearInterval(this.heartbeatInterval);
