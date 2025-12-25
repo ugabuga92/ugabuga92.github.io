@@ -1,4 +1,4 @@
-<!-- [v0.4.12] -->
+<!-- [v0.4.14] -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -11,136 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-    <style>
-        :root { --pip-green: #1aff1a; --pip-glow: #2bff2b; --pip-dim: #0d330d; --pip-bg: #051105; }
-        
-        html, body { width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; position: fixed; }
-        body { background-color: #000; color: var(--pip-green); font-family: 'VT323', monospace; display: flex; justify-content: center; align-items: center; user-select: none; -webkit-user-select: none; cursor: crosshair; }
-        
-        #view-container > * { max-width: 100%; overflow-x: hidden; }
-
-        /* ANIMATIONS & EFFECTS */
-        .scanline {
-            width: 100%; height: 100px; z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(26, 255, 26, 0.04) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1; position: absolute; bottom: 100%;
-            animation: scanline 10s linear infinite; pointer-events: none;
-        }
-        @keyframes scanline { 0% { bottom: 100%; } 100% { bottom: -100%; } }
-
-        .hex-bg {
-            background-color: #000;
-            background-image: 
-                linear-gradient(rgba(26, 255, 26, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(26, 255, 26, 0.03) 1px, transparent 1px);
-            background-size: 20px 20px;
-            animation: pan-grid 60s linear infinite;
-        }
-        @keyframes pan-grid { 0% { background-position: 0 0; } 100% { background-position: 100px 100px; } }
-
-        .crt-flicker { animation: flicker 0.15s infinite; }
-        @keyframes flicker { 0% { opacity: 0.97; } 50% { opacity: 1; } 100% { opacity: 0.98; } }
-
-        /* BOOT ANIMATIONS */
-        .gear-spin { animation: spin 4s linear infinite; transform-origin: center; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        
-        .vault-wink { animation: wink 2s infinite steps(1); }
-        @keyframes wink { 0%, 45%, 55%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-        /* GLOWS */
-        .alert-glow-red { animation: pulse-red-intense 1.5s infinite !important; border-width: 2px !important; font-weight: bold !important; }
-        @keyframes pulse-red-intense { 0% { box-shadow: 0 0 5px red; border-color: #800000; color: #ffcccc; } 50% { box-shadow: 0 0 25px red, inset 0 0 10px red; border-color: red; color: white; background-color: rgba(255, 0, 0, 0.2); } 100% { box-shadow: 0 0 5px red; border-color: #800000; color: #ffcccc; } }
-        .alert-glow-yellow { animation: pulse-yellow-intense 1.5s infinite !important; border-width: 2px !important; font-weight: bold !important; }
-        @keyframes pulse-yellow-intense { 0% { box-shadow: 0 0 5px #ffd700; border-color: #b8860b; color: #ffffcc; } 50% { box-shadow: 0 0 25px #ffd700, inset 0 0 10px #ffd700; border-color: #ffd700; color: white; background-color: rgba(255, 215, 0, 0.2); } 100% { box-shadow: 0 0 5px #ffd700; border-color: #b8860b; color: #ffffcc; } }
-        .alert-glow-cyan { animation: pulse-cyan-intense 1.5s infinite !important; border-width: 2px !important; font-weight: bold !important; }
-        @keyframes pulse-cyan-intense { 0% { box-shadow: 0 0 5px cyan; border-color: #008b8b; color: #e0ffff; } 50% { box-shadow: 0 0 25px cyan, inset 0 0 10px cyan; border-color: cyan; color: white; background-color: rgba(0, 255, 255, 0.2); } 100% { box-shadow: 0 0 5px cyan; border-color: #008b8b; color: #e0ffff; } }
-
-        .key-focus {
-            outline: 2px solid var(--pip-green) !important;
-            box-shadow: 0 0 15px var(--pip-green), inset 0 0 5px var(--pip-green) !important;
-            background-color: rgba(57, 255, 20, 0.15) !important;
-            z-index: 60;
-            position: relative;
-            animation: pulse-focus 1.5s infinite;
-        }
-        @keyframes pulse-focus { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
-        /* MINIGAME STYLES */
-        .lock-container { position: relative; width: 250px; height: 250px; border-radius: 50%; border: 4px solid #333; background: radial-gradient(circle, #222, #000); box-shadow: inset 0 0 30px #000; margin: 0 auto; }
-        .lock-inner { position: absolute; top: 10%; left: 10%; width: 80%; height: 80%; border-radius: 50%; border: 2px dashed #444; transition: transform 0.1s; }
-        .lock-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; background: #111; border-radius: 50%; border: 1px solid #555; }
-        .bobby-pin { position: absolute; top: 50%; left: 50%; width: 120px; height: 4px; background: silver; transform-origin: 0% 50%; transform: rotate(-90deg); transition: transform 0.05s; z-index: 20; border-radius: 2px; box-shadow: 0 0 5px black; }
-        .screwdriver { position: absolute; bottom: 0; left: 50%; width: 20px; height: 100px; background: orange; transform: translateX(-50%); z-index: 10; opacity: 0.5; }
-        
-        .hack-row { font-family: 'VT323', monospace; letter-spacing: 2px; cursor: pointer; padding: 2px 5px; }
-        .hack-row:hover, .hack-row.selected { background-color: var(--pip-green); color: black; font-weight: bold; }
-        .hack-hex { color: #0d47a1; margin-right: 10px; }
-
-        /* SCROLLBAR & BASE */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #001100; border-left: 1px solid var(--pip-dim); }
-        ::-webkit-scrollbar-thumb { background: var(--pip-dim); border: 1px solid var(--pip-green); }
-        ::-webkit-scrollbar-thumb:hover { background: var(--pip-green); }
-        ::-webkit-scrollbar-corner { background: #000; }
-        * { scrollbar-width: thin; scrollbar-color: var(--pip-dim) #001100; box-sizing: border-box; }
-        
-        #pipboy-case { background: linear-gradient(145deg, #1a1a1a, #0d0d0d); padding: 10px; border-radius: 20px; box-shadow: inset 0 0 20px #000, 0 0 0 5px #2a2a2a, 0 0 30px rgba(0,0,0,0.8); width: 100%; max-width: 1200px; height: 100vh; display: flex; flex-direction: column; position: relative; }
-        @media (min-width: 768px) { #pipboy-case { height: 95vh; padding: 15px; border-radius: 30px; } }
-        
-        #game-screen { background-color: var(--pip-bg); border: 2px solid var(--pip-dim); border-radius: 10px; flex-grow: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; width: 100%; }
-        .crt-effect-container { position: relative; overflow: hidden; background-color: #000; width: 100%; height: 100%; }
-        .crt-effect-container::before { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); z-index: 10; background-size: 100% 3px, 4px 100%; pointer-events: none; }
-        
-        /* UI ELEMENTS */
-        .action-button { background-color: #0f1f0f; color: var(--pip-green); border: 1px solid var(--pip-green); padding: 5px 10px; margin: 2px; cursor: pointer; text-transform: uppercase; font-size: 1.25rem; transition: all 0.1s; font-family: 'VT323', monospace; display: flex; align-items: center; justify-content: center; }
-        .action-button:hover { background-color: var(--pip-green); color: black; }
-        .action-button:active { transform: scale(0.95); }
-        .action-button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(100%); pointer-events: none; border-color: #333; color: #555; }
-        
-        .header-btn { padding: 5px 15px; font-size: 1.25rem; display: flex; align-items: center; justify-content: center; border: 2px solid var(--pip-green); background: rgba(0, 20, 0, 0.8); color: var(--pip-green); text-transform: uppercase; font-weight: bold; min-width: 100px; transition: all 0.2s; }
-        .header-btn:hover { background-color: var(--pip-green); color: black; }
-        .header-btn:active { transform: scale(0.95); }
-        .blink-red { animation: blink-red-anim 1s infinite; }
-        @keyframes blink-red-anim { 0%, 100% { opacity: 1; color: red; } 50% { opacity: 0.5; } }
-        
-        .char-slot { border: 1px solid var(--pip-dim); background: rgba(0,20,0,0.5); padding: 10px; margin-bottom: 5px; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
-        .char-slot:hover { border-color: var(--pip-green); background: rgba(0,40,0,0.8); }
-        .char-slot.active-slot { border-color: var(--pip-green); background: var(--pip-green); color: black; font-weight: bold; }
-        /* FIX: Kontrast für aktiven Slot erhöhen (Alles Schwarz) */
-        .char-slot.active-slot * { color: #000 !important; text-shadow: none !important; }
-        
-        .char-slot.empty-slot { opacity: 0.5; font-style: italic; }
-
-        /* SCREENS & OVERLAYS */
-        #login-screen, #spawn-screen, #reset-overlay, #manual-overlay, #changelog-overlay, #char-select-screen, #delete-confirm-overlay { position: absolute; inset: 0; z-index: 999; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; }
-        .login-box { border: 2px solid var(--pip-green); padding: 20px; text-align: center; box-shadow: 0 0 20px var(--pip-dim); width: 90%; max-width: 400px; display: flex; flex-direction: column; background: rgba(0, 10, 0, 0.9); z-index: 20; position: relative; min-height: 400px; justify-content: center; }
-        #login-form { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
-        
-        input.login-input { background: #000; border: 2px solid var(--pip-green); color: var(--pip-green); font-family: inherit; font-size: 20px; padding: 10px; text-align: center; outline: none; width: 100%; }
-        input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
-        
-        /* BOOT SEQUENCE IN LOGIN */
-        #boot-sequence { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
-        .boot-icon { width: 80px; height: 80px; margin-bottom: 20px; }
-        .boot-line { margin-bottom: 2px; white-space: nowrap; overflow: hidden; opacity: 0; animation: type-line 0.1s forwards; text-align: left; width: 100%; padding-left: 20px; font-size: 0.9rem; }
-        @keyframes type-line { to { opacity: 1; } }
-
-        /* LAYOUTS */
-        #main-content { flex-grow: 1; display: flex; overflow: hidden; min-height: 0; position: relative; width: 100%; }
-        #main-panel { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; width: 100%; }
-        #layout-split { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; min-height: 0; width: 100%; }
-        #view-container { position: relative; flex-grow: 0; flex-shrink: 0; display: flex; justify-content: center; align-items: center; height: 70%; border-bottom: 2px solid var(--pip-green); overflow: hidden; width: 100%; }
-        #log-panel { display: flex; flex-direction: column; flex-shrink: 0; flex-grow: 1; height: 30%; min-height: 0; background-color: #020a02; width: 100%; }
-        
-        @media (min-width: 768px) { 
-            #layout-split { flex-direction: row; }
-            #view-container { width: 75%; height: 100%; border-bottom: none; border-right: 2px solid var(--pip-green); flex-grow: 1; }
-            #log-panel { width: 25%; height: 100%; border-left: none; }
-        }
-        
-        #player-list-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 90; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--pip-green); padding: 20px; min-width: 300px; display: none; flex-direction: column; box-shadow: 0 0 30px var(--pip-dim); }
-    </style>
+    <link rel="stylesheet" href="style.css?v=0.4.14">
     <script>window.onerror=function(m,u,l){console.error("ERR:",m);if(typeof UI!=='undefined'&&UI.error)UI.error(m);return false;};</script>
 </head>
 <body>
@@ -359,7 +230,11 @@
                 .then(() => loadScript('ui_core.js?v=' + ver))
                 .then(() => loadScript('ui_render.js?v=' + ver))
                 .then(() => loadScript('ui_input.js?v=' + ver))
-                .then(() => { if(typeof UI !== 'undefined') UI.init(); console.log("System Ready."); });
+                .then(() => { if(typeof UI !== 'undefined') UI.init(); console.log("System Ready."); })
+                .catch(err => {
+                    console.error("Critical Load Error:", err);
+                    if(document.getElementById('login-status')) document.getElementById('login-status').innerHTML = '<span style="color:red">CRITICAL ERROR: FILE MISSING OR CORRUPT.<br>CHECK CONSOLE.</span>';
+                });
         });
     };
 </script>
