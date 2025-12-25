@@ -1,22 +1,26 @@
-// [v0.4.17]
+// [v0.4.20]
+// [v0.4.20] - 2025-12-25 11:55pm(Error Handling Update) ------------------------------------------------ 
+// - Verbesserte Fehleranzeige im Highscore-Menü bei fehlenden Berechtigungen
 Object.assign(UI, {
     
     showHighscoreBoard: async function() {
         if(!this.els.dialog) this.restoreOverlay();
-        Game.state.inDialog = true;
+        if(Game.state) Game.state.inDialog = true;
+        
         this.els.dialog.innerHTML = '<div class="text-green-500 animate-pulse text-2xl">EMPFANGE DATEN VOM HUB...</div>';
         this.els.dialog.style.display = 'flex';
 
         try {
             const scores = await Network.getHighscores();
             
-            // Standard Sortierung: Level (desc), dann XP
+            // Falls scores leer oder null ist (kann bei Permission-Fehler passieren bevor Catch greift)
+            if(!scores) throw new Error("Keine Daten empfangen.");
+
             scores.sort((a,b) => b.lvl - a.lvl || b.xp - a.xp);
 
             const box = document.createElement('div');
             box.className = "bg-black border-4 border-green-600 p-6 shadow-[0_0_30px_green] w-full max-w-2xl h-3/4 flex flex-col relative";
             
-            // Close Button
             const closeBtn = document.createElement('button');
             closeBtn.className = "absolute top-2 right-2 text-green-500 text-xl border border-green-500 px-2 hover:bg-green-900";
             closeBtn.textContent = "X";
@@ -38,11 +42,9 @@ Object.assign(UI, {
             this.els.dialog.innerHTML = '';
             this.els.dialog.appendChild(box);
             
-            // Store data for sorting
             const listContainer = document.getElementById('highscore-list');
             listContainer.dataset.rawScores = JSON.stringify(scores);
             
-            // Helper function attached to UI for onclick access
             this.renderHighscoreList = (sortBy) => {
                 const container = document.getElementById('highscore-list');
                 let data = JSON.parse(container.dataset.rawScores);
@@ -78,11 +80,20 @@ Object.assign(UI, {
                 });
             };
 
-            // Initial Render
             this.renderHighscoreList('lvl');
 
         } catch(e) {
-            this.els.dialog.innerHTML = `<div class="text-red-500">FEHLER BEIM LADEN: ${e.message}</div><button class="action-button mt-4" onclick="UI.leaveDialog()">ZURÜCK</button>`;
+            let msg = e.message;
+            if(msg && msg.toLowerCase().includes("permission_denied")) {
+                msg = "ZUGRIFF VERWEIGERT: FIREBASE REGELN BLOCKIEREN 'leaderboard'.<br><span class='text-xs text-yellow-500'>Bitte in Firebase Console freischalten!</span>";
+            }
+            this.els.dialog.innerHTML = `
+                <div class="border-2 border-red-500 bg-black p-6 text-center shadow-[0_0_20px_red]">
+                    <div class="text-red-500 font-bold text-2xl mb-4 tracking-widest">NETZWERK FEHLER</div>
+                    <div class="text-green-400 font-mono mb-6">${msg}</div>
+                    <button class="action-button w-full border-red-500 text-red-500" onclick="UI.leaveDialog()">SCHLIESSEN</button>
+                </div>
+            `;
         }
     },
 
@@ -90,7 +101,7 @@ Object.assign(UI, {
         if(!this.els.dialog) this.restoreOverlay();
         if(!Game.items[itemId]) return;
         const item = Game.items[itemId];
-        Game.state.inDialog = true;
+        if(Game.state) Game.state.inDialog = true;
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         let statsText = "";
@@ -121,7 +132,7 @@ Object.assign(UI, {
 
     showDungeonWarning: function(callback) {
         if(!this.els.dialog) this.restoreOverlay();
-        Game.state.inDialog = true;
+        if(Game.state) Game.state.inDialog = true;
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         const box = document.createElement('div');
@@ -147,14 +158,13 @@ Object.assign(UI, {
 
     showWastelandGamble: function(callback) {
         if(!this.els.dialog) this.restoreOverlay();
-        Game.state.inDialog = true;
+        if(Game.state) Game.state.inDialog = true;
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         
         const box = document.createElement('div');
         box.className = "bg-black border-4 border-yellow-500 p-6 shadow-[0_0_40px_gold] max-w-sm text-center relative overflow-hidden";
         
-        // Background Effect
         const bg = document.createElement('div');
         bg.className = "absolute inset-0 bg-yellow-900/20 z-0 pointer-events-none";
         box.appendChild(bg);
@@ -209,7 +219,7 @@ Object.assign(UI, {
 
     showDungeonLocked: function(minutesLeft) {
         if(!this.els.dialog) this.restoreOverlay();
-        Game.state.inDialog = true;
+        if(Game.state) Game.state.inDialog = true;
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         const box = document.createElement('div');
@@ -228,7 +238,7 @@ Object.assign(UI, {
 
     showDungeonVictory: function(caps, lvl) {
         if(!this.els.dialog) this.restoreOverlay();
-        Game.state.inDialog = true;
+        if(Game.state) Game.state.inDialog = true;
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         const box = document.createElement('div');
@@ -245,7 +255,7 @@ Object.assign(UI, {
     
     showPermadeathWarning: function() {
         if(!this.els.dialog) this.restoreOverlay();
-        Game.state.inDialog = true;
+        if(Game.state) Game.state.inDialog = true;
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         const box = document.createElement('div');
@@ -261,8 +271,7 @@ Object.assign(UI, {
 
     showGameOver: function() {
         if(this.els.gameOver) this.els.gameOver.classList.remove('hidden');
-        // Highscore: Tod registrieren
-        if(typeof Network !== 'undefined') Network.registerDeath(Game.state);
+        if(typeof Network !== 'undefined' && Game.state) Network.registerDeath(Game.state);
         this.toggleControls(false);
     },
     
@@ -303,7 +312,7 @@ Object.assign(UI, {
     },
 
     enterVault: function() { 
-        Game.state.inDialog = true; 
+        if(Game.state) Game.state.inDialog = true; 
         this.els.dialog.innerHTML = ''; 
         const restBtn = document.createElement('button'); 
         restBtn.className = "action-button w-full mb-1 border-blue-500 text-blue-300"; 
@@ -319,7 +328,7 @@ Object.assign(UI, {
     },
     
     leaveDialog: function() { 
-        Game.state.inDialog = false; 
+        if(Game.state) Game.state.inDialog = false; 
         this.els.dialog.style.display = 'none'; 
         this.update(); 
     }
