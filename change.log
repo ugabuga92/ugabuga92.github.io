@@ -1,5 +1,14 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.4.15] - 2025-12-25 11:00am (Highscore Logic & Styling)
+------------------------------------------------
+- Highscore-Liste wird nun dynamisch mit Daten befüllt
+- Sortierfunktion (Name, Level, Kills, XP) implementiert
+- Top 3 Ränge erhalten spezielle Farben (Gold, Silber, Bronze)
+- 'Tote' Charaktere werden mit einem Totenkopf ☠️ markiert
+- Tabellen-Layout finalisiert
+
+
 [v0.4.14] - 2025-12-25 10:45am (Highscore View Base)
 ------------------------------------------------
 - UI.renderHighscore() Grundgerüst implementiert
