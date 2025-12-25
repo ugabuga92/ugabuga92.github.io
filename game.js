@@ -1,4 +1,4 @@
-// [v0.4.13]
+// [v0.4.12]
 const Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     WORLD_W: 10, WORLD_H: 10, // Definiert die Weltgröße
@@ -65,10 +65,6 @@ const Game = {
                 if(!this.state.view) this.state.view = 'map';
                 if(!this.state.visitedSectors) this.state.visitedSectors = [];
                 if(!this.state.tutorialsShown) this.state.tutorialsShown = { hacking: false, lockpicking: false };
-                
-                // [v0.4.13] Data Init
-                if(typeof this.state.kills === 'undefined') this.state.kills = 0;
-                if(typeof this.state.isDead === 'undefined') this.state.isDead = false;
 
                 if(!this.state.worldPOIs) {
                     this.state.worldPOIs = [
@@ -78,13 +74,6 @@ const Game = {
                 }
                 this.state.saveSlot = slotIndex;
                 UI.log(">> Spielstand geladen.", "text-cyan-400");
-                
-                // Check if dead on load
-                if(this.state.isDead) {
-                    UI.showGameOver();
-                    return; 
-                }
-
             } else {
                 isNewGame = true;
                 
@@ -125,8 +114,6 @@ const Game = {
                     inventory: [], 
                     hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0, 
                     view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, 
-                    // [v0.4.13] New Stats
-                    kills: 0, isDead: false,
                     explored: {}, 
                     sectorExploredCache: null,
                     visitedSectors: [`${startSecX},${startSecY}`],
@@ -720,23 +707,6 @@ const Game = {
             UI.log("JACKPOT! Modul + 300 KK + Waffe!", "text-yellow-400 font-bold animate-pulse");
         }
         this.saveGame();
-    },
-
-    // [v0.4.13] Highscore & Death Logic
-    addKill: function() {
-        if(!this.state.kills) this.state.kills = 0;
-        this.state.kills++;
-        // Nur bei Kills speichern ist vielleicht zu viel Traffic, daher optional:
-        // this.saveGame(); 
-    },
-
-    triggerDeath: function() {
-        this.state.isDead = true;
-        this.state.hp = 0;
-        // Speichern, DAMIT der Server den Tot-Status mitbekommt
-        this.saveGame();
-        // UI Trigger
-        UI.showGameOver();
     },
 
     hardReset: function() { if(typeof Network !== 'undefined') Network.deleteSave(); this.state = null; location.reload(); },
