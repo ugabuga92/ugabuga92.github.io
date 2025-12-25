@@ -1,4 +1,4 @@
-// [v0.4.24]
+// [v0.4.25]
 // Main View Renderers (Inventory, Map, Screens)
 Object.assign(UI, {
     
@@ -210,8 +210,7 @@ Object.assign(UI, {
             }
         }
 
-        // Draw Player Marker (Präzise Position)
-        // Berechnung relativ zur Map-Größe (Standard 40x40)
+        // Draw Player Marker
         const relX = Game.state.player.x / Game.MAP_W; 
         const relY = Game.state.player.y / Game.MAP_H; 
         
@@ -380,41 +379,63 @@ Object.assign(UI, {
         const con = document.getElementById('city-options');
         if(!con) return;
         con.innerHTML = '';
-        const addBtn = (txt, cb, disabled=false) => {
+        
+        // HELPER: Fancy Button Creator
+        const addBtn = (icon, title, subtitle, cb, disabled=false) => {
             const b = document.createElement('button');
-            b.className = "action-button w-full mb-2 text-left p-3 flex justify-between";
-            b.innerHTML = txt;
+            b.className = "action-button w-full mb-3 p-3 flex items-center justify-between group bg-black/40 hover:bg-green-900/50 border-l-4 border-transparent hover:border-green-500 transition-all";
+            
+            b.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <span class="text-3xl filter grayscale group-hover:grayscale-0 transition-all">${icon}</span>
+                    <div class="flex flex-col items-start text-left">
+                        <span class="text-lg sm:text-xl font-bold text-green-400 group-hover:text-yellow-400 tracking-wider">${title}</span>
+                        <span class="text-[10px] sm:text-xs text-green-600 group-hover:text-green-200 font-mono">${subtitle}</span>
+                    </div>
+                </div>
+                <div class="text-xl text-green-800 group-hover:text-green-400 transition-transform group-hover:translate-x-1">▶</div>
+            `;
+            
             b.onclick = cb;
-            if(disabled) { b.disabled = true; b.style.opacity = 0.5; }
+            
+            if(disabled) { 
+                b.disabled = true; 
+                b.classList.add('opacity-40', 'cursor-not-allowed', 'filter', 'grayscale');
+                b.classList.remove('hover:bg-green-900/50', 'hover:border-green-500');
+                // Remove hover interaction for disabled
+                b.innerHTML = b.innerHTML.replace('group-hover:text-yellow-400', '').replace('group-hover:translate-x-1', '');
+            }
             con.appendChild(b);
         };
-        addBtn("Heilen (25 Kronkorken)", () => { UI.switchView('clinic'); }, Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp);
-        addBtn("Munition & Ausrüstung", () => { UI.switchView('shop'); });
-        addBtn("🛠️ Werkbank / Crafting", () => this.toggleView('crafting'));
         
-        // Trainingsgelände
-        addBtn("🔒 Trainingsgelände (Hacking/Lockpick)", () => {
+        // Buttons
+        const healCost = 25;
+        const canHeal = Game.state.caps >= healCost && Game.state.hp < Game.state.maxHp;
+        let healSub = `HP wiederherstellen (${healCost} KK)`;
+        if(Game.state.hp >= Game.state.maxHp) healSub = "Gesundheit ist voll";
+        else if(Game.state.caps < healCost) healSub = "Zu wenig Kronkorken";
+        
+        addBtn("🏥", "KLINIK", healSub, () => UI.switchView('clinic'), !canHeal);
+        
+        addBtn("🛒", "MARKTPLATZ", "Waffen, Rüstung & Munition", () => UI.switchView('shop'));
+        
+        addBtn("🛠️", "WERKBANK", "Gegenstände herstellen", () => this.toggleView('crafting'));
+        
+        addBtn("🎯", "TRAININGSGELÄNDE", "Hacking & Schlossknacken üben", () => {
              con.innerHTML = '';
-             const back = document.createElement('button');
-             back.className = "action-button w-full mb-4 border-yellow-400 text-yellow-400";
-             back.textContent = "ZURÜCK";
-             back.onclick = () => this.renderCity();
-             con.appendChild(back);
              
-             const hack = document.createElement('button');
-             hack.className = "action-button w-full mb-2";
-             hack.textContent = "TERMINAL HACKEN (EASY)";
-             hack.onclick = () => MiniGames.hacking.start('easy');
-             con.appendChild(hack);
-
-             const pick = document.createElement('button');
-             pick.className = "action-button w-full mb-2";
-             pick.textContent = "SCHLOSS KNACKEN (EASY)";
-             pick.onclick = () => MiniGames.lockpicking.start('easy');
-             con.appendChild(pick);
+             // Back Button styled simply
+             const backBtn = document.createElement('button');
+             backBtn.className = "w-full py-2 mb-4 border border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black font-bold tracking-widest";
+             backBtn.textContent = "<< ZURÜCK ZUR STADT";
+             backBtn.onclick = () => this.renderCity();
+             con.appendChild(backBtn);
+             
+             addBtn("💻", "HACKING SIM", "Schwierigkeit: Einfach", () => MiniGames.hacking.start('easy'));
+             addBtn("🔐", "SCHLOSSKNACKEN", "Schwierigkeit: Einfach", () => MiniGames.lockpicking.start('easy'));
         });
         
-        addBtn("Stadt verlassen", () => this.switchView('map'));
+        addBtn("🚪", "STADT VERLASSEN", "Zurück in das Ödland", () => this.switchView('map'));
     },
     
     renderShop: function(container) {
