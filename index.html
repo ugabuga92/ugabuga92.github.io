@@ -1,4 +1,4 @@
-<!-- [v0.4.7] -->
+<!-- [v0.4.8] -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -301,11 +301,12 @@
     function loadScript(src) { return new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject; document.body.appendChild(s); }); }
     
     // BOOT SEQUENCE LOGIC
-    function runBootSequence() {
+    function runBootSequence(ver) {
         const bootLines = [
             "ROBCO INDUSTRIES UNIFIED OPERATING SYSTEM",
             "COPYRIGHT 2075-2077 ROBCO INDUSTRIES",
             "- SERVER: ONLINE",
+            `LOADING SYSTEM VERSION ${ver || 'DETECTING...'}...`,
             "- MEMORY: 64KB OK",
             "- BIO-METRICS: NOT FOUND",
             "INITIALIZING PIP-BOY 3003 INTERFACE..."
@@ -334,13 +335,16 @@
     }
 
     window.onload = function() {
-        // Start Boot Sequence IMMEDIATELY
-        runBootSequence();
-
         const verDisplay = document.getElementById('version-display');
         const loginVerDisplay = document.getElementById('login-version-display'); 
+        
+        // Erst Version holen, DANN Boot-Sequence starten, damit die Version im Log steht
         fetch('Version?t=' + Date.now()).then(res => res.text()).then(v => {
             const ver = v.trim();
+            
+            // Start Boot Sequence WITH version
+            runBootSequence(ver);
+
             if(verDisplay) { verDisplay.textContent = ver; verDisplay.classList.remove('animate-pulse'); }
             if(loginVerDisplay) { loginVerDisplay.textContent = ver; }
             console.log("Loading V:", ver);
