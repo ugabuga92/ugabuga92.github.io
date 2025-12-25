@@ -1,5 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.4.22] - 2025-12-26 12:20am (Input Scroll Fix)
+  
+  - keydown Listener erweitert: Blockiert nun ArrowKeys, Space, Home, End, PageUp/Down global (außer in Inputs), um Scrollen zu verhindern.
+  - updateFocusVisuals: scrollIntoView von center auf nearest geändert. Verhindert das "Wandern" des Bildschirms beim Navigieren im Kampfmenü.
+
+
 [v0.4.18] - 2025-12-26 12:10am (Bugfix: Login Log Name)
   - startPresence angepasst: Liest nun Game.state.playerName aus, falls vorhanden, anstatt nur this.myDisplayName zu nutzen.
   - "Terminal Link" zeigt jetzt korrekt den Namen des geladenen Charakters an.
