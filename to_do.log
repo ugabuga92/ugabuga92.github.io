@@ -1,7 +1,7 @@
 🐛 Aktuelle Bugs & Anpassungen:
 - Highscore menü.Name vorne, dann nach Level, kills und EXP sortierbar
  Top 3 farblich hervorgehoben. Nach Tod sollen sie in der Liste verbleiben (inkl Totenschädel daneben) bis ein neuer Charakter mit dem selben Namen erstellt wird. Dann verschwindet er aus der Liste.
-- Scrollt immer noch beim laufen
+- Scrollt immer noch im Kampf menp. Drücken der Pfeiltasten nach recht links und hoch runter lässt den bildschirm wandern.
 - Punkt auf der Weltkarte genauer (je nach Position im aktuellen Sektor auch so darstellen, nicht immer Mittig9
 - Würfelspiel soll auch nur bei 10% der Legendären Mobs kommen. 
 - Wenn in der Stadt gespeichert /ausgeloggt wird soll man auch wieder in der Stadt sich einloggen
