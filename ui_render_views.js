@@ -1,4 +1,4 @@
-// [v0.4.15]
+// [v0.4.24]
 // Main View Renderers (Inventory, Map, Screens)
 Object.assign(UI, {
     
@@ -210,9 +210,13 @@ Object.assign(UI, {
             }
         }
 
-        // Draw Player Marker
-        const px = Game.state.sector.x * TILE_W + TILE_W/2;
-        const py = Game.state.sector.y * TILE_H + TILE_H/2;
+        // Draw Player Marker (Präzise Position)
+        // Berechnung relativ zur Map-Größe (Standard 40x40)
+        const relX = Game.state.player.x / Game.MAP_W; 
+        const relY = Game.state.player.y / Game.MAP_H; 
+        
+        const px = Game.state.sector.x * TILE_W + (relX * TILE_W);
+        const py = Game.state.sector.y * TILE_H + (relY * TILE_H);
         
         const pulse = (Date.now() % 1000) / 1000;
         
