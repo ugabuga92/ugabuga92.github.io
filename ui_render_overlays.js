@@ -1,7 +1,91 @@
-// [v0.4.15]
-// Overlays, Dialogs & Popups
+// [v0.4.17]
 Object.assign(UI, {
     
+    showHighscoreBoard: async function() {
+        if(!this.els.dialog) this.restoreOverlay();
+        Game.state.inDialog = true;
+        this.els.dialog.innerHTML = '<div class="text-green-500 animate-pulse text-2xl">EMPFANGE DATEN VOM HUB...</div>';
+        this.els.dialog.style.display = 'flex';
+
+        try {
+            const scores = await Network.getHighscores();
+            
+            // Standard Sortierung: Level (desc), dann XP
+            scores.sort((a,b) => b.lvl - a.lvl || b.xp - a.xp);
+
+            const box = document.createElement('div');
+            box.className = "bg-black border-4 border-green-600 p-6 shadow-[0_0_30px_green] w-full max-w-2xl h-3/4 flex flex-col relative";
+            
+            // Close Button
+            const closeBtn = document.createElement('button');
+            closeBtn.className = "absolute top-2 right-2 text-green-500 text-xl border border-green-500 px-2 hover:bg-green-900";
+            closeBtn.textContent = "X";
+            closeBtn.onclick = () => this.leaveDialog();
+            box.appendChild(closeBtn);
+
+            box.innerHTML += `
+                <h2 class="text-4xl font-bold text-green-400 mb-4 text-center border-b-2 border-green-600 pb-2 tracking-widest">VAULT LEGENDS</h2>
+                <div class="flex justify-between mb-2 text-xs text-green-300 uppercase font-bold px-2">
+                    <span class="w-8">#</span>
+                    <span class="w-1/3 cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'name')">NAME</span>
+                    <span class="w-16 text-right cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'lvl')">LVL</span>
+                    <span class="w-16 text-right cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'kills')">KILLS</span>
+                    <span class="w-24 text-right cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'xp')">EXP</span>
+                </div>
+                <div id="highscore-list" class="flex-grow overflow-y-auto pr-2 custom-scrollbar"></div>
+            `;
+            
+            this.els.dialog.innerHTML = '';
+            this.els.dialog.appendChild(box);
+            
+            // Store data for sorting
+            const listContainer = document.getElementById('highscore-list');
+            listContainer.dataset.rawScores = JSON.stringify(scores);
+            
+            // Helper function attached to UI for onclick access
+            this.renderHighscoreList = (sortBy) => {
+                const container = document.getElementById('highscore-list');
+                let data = JSON.parse(container.dataset.rawScores);
+                
+                if(sortBy === 'name') data.sort((a,b) => a.name.localeCompare(b.name));
+                else if(sortBy === 'lvl') data.sort((a,b) => b.lvl - a.lvl || b.xp - a.xp);
+                else if(sortBy === 'kills') data.sort((a,b) => b.kills - a.kills || b.lvl - a.lvl);
+                else if(sortBy === 'xp') data.sort((a,b) => b.xp - a.xp);
+
+                container.innerHTML = '';
+                data.forEach((entry, idx) => {
+                    const isDead = entry.status === 'dead';
+                    const isTop3 = idx < 3;
+                    
+                    let rowClass = "flex justify-between items-center py-2 border-b border-green-900/30 text-lg ";
+                    if(isTop3) rowClass += "text-yellow-400 font-bold bg-yellow-900/10 ";
+                    else if(isDead) rowClass += "text-gray-500 italic ";
+                    else rowClass += "text-green-400 ";
+
+                    const icon = isDead ? '☠️' : (isTop3 ? '🏆' : '');
+                    const nameDisplay = `${icon} ${entry.name}`;
+
+                    const row = document.createElement('div');
+                    row.className = rowClass;
+                    row.innerHTML = `
+                        <span class="w-8 opacity-50">${idx+1}</span>
+                        <span class="w-1/3 truncate">${nameDisplay}</span>
+                        <span class="w-16 text-right">${entry.lvl}</span>
+                        <span class="w-16 text-right">${entry.kills}</span>
+                        <span class="w-24 text-right font-mono text-sm opacity-80">${entry.xp}</span>
+                    `;
+                    container.appendChild(row);
+                });
+            };
+
+            // Initial Render
+            this.renderHighscoreList('lvl');
+
+        } catch(e) {
+            this.els.dialog.innerHTML = `<div class="text-red-500">FEHLER BEIM LADEN: ${e.message}</div><button class="action-button mt-4" onclick="UI.leaveDialog()">ZURÜCK</button>`;
+        }
+    },
+
     showItemConfirm: function(itemId) {
         if(!this.els.dialog) this.restoreOverlay();
         if(!Game.items[itemId]) return;
@@ -177,6 +261,8 @@ Object.assign(UI, {
 
     showGameOver: function() {
         if(this.els.gameOver) this.els.gameOver.classList.remove('hidden');
+        // Highscore: Tod registrieren
+        if(typeof Network !== 'undefined') Network.registerDeath(Game.state);
         this.toggleControls(false);
     },
     
