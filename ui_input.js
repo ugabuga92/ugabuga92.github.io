@@ -1,4 +1,4 @@
-// [v0.4.7]
+// [v0.4.22]
 // Extending UI object with Input methods
 Object.assign(UI, {
     
@@ -178,12 +178,18 @@ Object.assign(UI, {
             this.inputMethod = 'key';
             
             // FIX: Prevent browser scrolling with Arrow Keys and Space
-            if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].indexOf(e.key) > -1) {
-                e.preventDefault();
+            // Added more keys and target check to ensure it works everywhere except inputs
+            const preventKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "Space", "PageUp", "PageDown", "Home", "End"];
+            const targetTag = e.target.tagName.toLowerCase();
+            
+            if (targetTag !== 'input' && targetTag !== 'textarea') {
+                if(preventKeys.indexOf(e.key) > -1) {
+                    e.preventDefault();
+                }
             }
 
             this.handleKeyDown(e);
-        });
+        }, { passive: false });
         
         window.addEventListener('keyup', (e) => {
              if (Game.state && Game.state.view === 'lockpicking') {
@@ -450,7 +456,8 @@ Object.assign(UI, {
         if (this.inputMethod === 'key' && this.focusIndex !== -1 && this.focusableEls[this.focusIndex]) {
             const el = this.focusableEls[this.focusIndex];
             el.classList.add('key-focus');
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // FIX: Use 'nearest' to prevent screen wandering/jumping
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
         }
     },
 
