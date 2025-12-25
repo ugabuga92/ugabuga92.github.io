@@ -1,4 +1,4 @@
-// [v0.4.4]
+// [v0.4.10]
 // Extending UI object with Render methods
 Object.assign(UI, {
     
@@ -190,11 +190,15 @@ Object.assign(UI, {
     
     renderHacking: function() {
         const h = MiniGames.hacking;
+        // [v0.4.10] Added Help Button '?'
         let html = `
             <div class="w-full h-full flex flex-col p-2 font-mono text-green-500 bg-black overflow-hidden relative">
                 <div class="flex justify-between border-b border-green-500 mb-2 pb-1">
                     <span class="font-bold">ROBCO INDUSTRIES (TM) TERM-LINK</span>
-                    <span class="animate-pulse">ATTEMPTS: ${'█ '.repeat(h.attempts)}</span>
+                    <div class="flex gap-2">
+                        <button class="border border-green-500 px-2 text-xs hover:bg-green-900" onclick="UI.showMiniGameHelp('hacking')">?</button>
+                        <span class="animate-pulse">ATTEMPTS: ${'█ '.repeat(h.attempts)}</span>
+                    </div>
                 </div>
                 <div class="flex-grow flex gap-4 overflow-hidden relative">
                     <div id="hack-words" class="flex flex-col flex-wrap h-full content-start gap-x-8 text-sm">
@@ -231,9 +235,12 @@ Object.assign(UI, {
 
     renderLockpicking: function(init=false) {
         if(init) {
+            // [v0.4.10] Added Help Button '?'
             this.els.view.innerHTML = `
                 <div class="w-full h-full flex flex-col items-center justify-center bg-black relative select-none">
                     <div class="absolute top-2 left-2 text-xs text-gray-500">LEVEL: ${MiniGames.lockpicking.difficulty.toUpperCase()}</div>
+                    <button class="absolute top-2 right-2 border border-green-500 text-green-500 px-2 font-bold hover:bg-green-900 z-50" onclick="UI.showMiniGameHelp('lockpicking')">?</button>
+                    
                     <div class="lock-container">
                         <div class="lock-inner" id="lock-rotator"></div>
                         <div class="lock-center"></div>
@@ -262,6 +269,48 @@ Object.assign(UI, {
         
         if(pin) pin.style.transform = `rotate(${MiniGames.lockpicking.currentAngle - 90}deg)`; 
         if(lock) lock.style.transform = `rotate(${MiniGames.lockpicking.lockAngle}deg)`;
+    },
+
+    // [v0.4.10] New Help Overlay
+    showMiniGameHelp: function(type) {
+        if(!this.els.dialog) this.restoreOverlay();
+        Game.state.inDialog = true;
+        this.els.dialog.innerHTML = '';
+        this.els.dialog.style.display = 'flex';
+        
+        let title = "", text = "";
+        
+        if(type === 'hacking') {
+            title = "TERMINAL HACKING";
+            text = `
+                <ul class="text-left text-sm space-y-2 list-disc pl-4">
+                    <li>Finde das korrekte Passwort im Speicher.</li>
+                    <li>Wähle ein Wort. Das System zeigt die <b>LIKENESS</b> (Treffer) an.</li>
+                    <li><b>Likeness</b> = Anzahl korrekter Buchstaben an der <b>korrekten Position</b>.</li>
+                    <li>Beispiel: PW ist 'LOVE'. Du tippst 'LIVE'.<br>Ergebnis: 3/4 (L, V, E korrekt).</li>
+                    <li>4 Versuche. Fehler = Sperrung!</li>
+                </ul>
+            `;
+        } else {
+            title = "SCHLOSS KNACKEN";
+            text = `
+                <ul class="text-left text-sm space-y-2 list-disc pl-4">
+                    <li><b>Dietrich bewegen</b>: Maus bewegen oder auf Touchscreen ziehen.</li>
+                    <li><b>Schloss drehen</b>: Leertaste oder Button drücken.</li>
+                    <li>Wenn es wackelt: <b>SOFORT STOPPEN!</b> Der Dietrich bricht sonst.</li>
+                    <li>Finde den 'Sweet Spot', wo sich das Schloss ganz drehen lässt.</li>
+                </ul>
+            `;
+        }
+
+        const box = document.createElement('div');
+        box.className = "bg-black border-2 border-yellow-400 p-4 shadow-[0_0_20px_#aa0] max-w-md w-full text-center relative";
+        box.innerHTML = `
+            <h2 class="text-2xl font-bold text-yellow-400 mb-4 border-b border-yellow-500 pb-2">${title}</h2>
+            <div class="text-green-300 mb-6 font-mono">${text}</div>
+            <button class="action-button w-full border-green-500 text-green-500 font-bold" onclick="UI.leaveDialog()">VERSTANDEN</button>
+        `;
+        this.els.dialog.appendChild(box);
     },
 
     renderCharacterSelection: function(saves) {
