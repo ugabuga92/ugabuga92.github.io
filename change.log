@@ -1,5 +1,10 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.4.15] - 2025-12-25 10:25pm(UI Refactoring) 
+- ui_render.js aufgeteilt in ui_render_core.js, ui_render_views.js, ui_render_minigames.js und ui_render_overlays.js 
+- index.html Lade-Reihenfolge angepasst
+
+
 [v0.4.14] - 2025-12-25 10:15pm(CSS Refactoring)
 - Styles aus index.html in style.css ausgelagert - index.html bereinigt und Link zu style.css hinzugefügt
 
@@ -9,33 +14,28 @@ CHANGE LOG - PIP-BOY 3000 Mk-V
 - Lade-Reihenfolge in index.html angepasst
 
 [v0.4.11] - 2025-12-25 02:15am(Wiki Drop Info)
-------------------------------------------------
 - Wiki: Bei Items wird nun angezeigt, von welchen Monstern sie gedroppt werden können (z.B. "Gedroppt von: Raider").
 - Logic: Rückwärtssuche in der Monster-Datenbank für Item-Drops implementiert.
 
 
 [v0.4.10] - 2025-12-25 02:00am(Mini-Game Tutorials)
-------------------------------------------------
 - Tutorials: Automatische Hilfe beim ersten Starten von Hacking & Lockpicking.
 - UI: '?' Button in Minigames hinzugefügt, um die Hilfe jederzeit aufzurufen.
 - Manual: Kapitel 6 'MINI-GAMES' im Handbuch hinzugefügt.
 
 
 [v0.4.9] - 2025-12-25 01:45am(Inventory Alert)
-------------------------------------------------
 - UI: Der Inventar-Button blinkt nun gelb, wenn neue Ausrüstung (Waffen/Rüstung) gefunden oder gekauft wurde.
 - UI: Der Menü-Button (Hamburger) blinkt ebenfalls, um auf Mobile-Geräten zu signalisieren, dass im Menü etwas neu ist.
 - Logic: 'addToInventory' in game.js prüft nun auf Item-Typen und triggert den Alarm.
 
 
 [v0.4.8] - 2025-12-25 01:30am(Boot & Version Update)
-------------------------------------------------
 - Boot: Start-Sequenz zeigt nun die geladene Version an (z.B. "LOADING SYSTEM VERSION 0.4.8...").
 - Logic: Version wird nun VOR der Boot-Animation geladen, um Konsistenz zu sichern.
 
 
 [v0.4.7] - 2025-12-25 12:50am(Character UI Update)
-------------------------------------------------
 - UI: Charakter-Auswahl-Screen Layout überarbeitet.
 - Feature: "Abmelden"-Button durch "ZURÜCK" ersetzt.
 - Feature: Löschen-Button wird nun neben "Zurück" angezeigt und ist bei leeren Slots deaktiviert (statt ausgeblendet).
