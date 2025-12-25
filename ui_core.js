@@ -1,4 +1,4 @@
-// [v0.4.7] 
+// [v0.4.9] 
 const UI = {
     els: {},
     timerInterval: null,
@@ -140,6 +140,11 @@ const UI = {
             gameOver: document.getElementById('game-over-screen')
         };
         
+        // [v0.4.9] Inventory Alert Reset Listener
+        if(this.els.btnInv) {
+             this.els.btnInv.addEventListener('click', () => this.resetInventoryAlert());
+        }
+
         window.Game = Game;
         window.UI = this;
 
@@ -148,6 +153,17 @@ const UI = {
         
         if(this.timerInterval) clearInterval(this.timerInterval);
         this.timerInterval = setInterval(() => this.updateTimer(), 1000);
+    },
+    
+    // [v0.4.9] Alert Methods
+    triggerInventoryAlert: function() {
+        if(this.els.btnInv) this.els.btnInv.classList.add('alert-glow-yellow');
+        if(this.els.btnMenu) this.els.btnMenu.classList.add('alert-glow-yellow');
+    },
+
+    resetInventoryAlert: function() {
+        if(this.els.btnInv) this.els.btnInv.classList.remove('alert-glow-yellow');
+        if(this.els.btnMenu) this.els.btnMenu.classList.remove('alert-glow-yellow');
     },
 
     // Logic Functions
