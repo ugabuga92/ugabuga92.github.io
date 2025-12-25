@@ -1,5 +1,14 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.4.17] - 2025-12-25 11:20pm(Highscore System Update)  
+- 'kills' Statistik zum Speicherstand hinzugefügt (game_core.js)
+- Globales Leaderboard-System im Netzwerk integriert (network.js)
+- UI für Highscore-Tafel 'Vault Legends' erstellt (ui_render_overlays.js)
+- Kill-Counter im Kampfsystem aktiviert (combat.js)
+- 'SCORES' Button im Hauptmenü hinzugefügt (index.html)
+- Logik für permanenten Tod in der Bestenliste angepasst
+
+
 [v0.4.16] - 2025-12-25 10:35pm(Game Logic Refactoring) 
 - game.js aufgeteilt in game_core.js, game_map.js, game_actions.js und game_render.js 
 - Modularisierung der Spiellogik abgeschlossen
