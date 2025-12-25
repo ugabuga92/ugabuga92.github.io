@@ -1,4 +1,11 @@
 🐛 Aktuelle Bugs & Anpassungen:
+- Highscore menü.Name vorne, dann nach Level, kills und EXP sortierbar
+ Top 3 farblich hervorgehoben. Nach Tod sollen sie in der Liste verbleiben (inkl Totenschädel daneben) bis ein neuer Charakter mit dem selben Namen erstellt wird. Dann verschwindet er aus der Liste.
+- Scrollt immer noch beim laufen
+- Punkt auf der Weltkarte genauer (je nach Position im aktuellen Sektor auch so darstellen, nicht immer Mittig9
+
+
+needs testing: 
 - solange man im hädnler oder crafting menü ist wird nicht mehr gespeichert bei jeder aktion. Erst beim verlassen des händlers bitte
 - nach arzt besuch nicht ins Stadt menü, sondern einfach fenster schließen
 - selbiges gilt für crafter
