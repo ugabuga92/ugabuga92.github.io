@@ -1,7 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
-[v0.4.23] - 2025-12-26 12:30am (Spawn & Map Persistence Fix)
+[v0.4.24] - 2025-12-26 12:40am (Worldmap Precision)
+    - renderWorldMap angepasst: Berechnet nun die Pixel-Position (px, py) des Spielermarkers basierend auf den exakten Game.state.player.x/y Koordinaten relativ zur Sektorgröße (MAP_W/H), anstatt pauschal TILE_W/2 zu nutzen.
+    - Der grüne Punkt wandert nun auf der Weltkarte mit, wenn man sich im Level bewegt.
 
+
+[v0.4.23] - 2025-12-26 12:30am (Spawn & Map Persistence Fix)
     Game.init in game_core.js angepasst:
     - Wenn ein Spielstand geladen wird (saveData vorhanden), wird loadSector nun übersprungen.
     - Stattdessen wird die gespeicherte Karte (currentMap) direkt mit renderStaticMap gezeichnet.
@@ -9,7 +13,6 @@ CHANGE LOG - PIP-BOY 3000 Mk-V
 
 
 [v0.4.22] - 2025-12-26 12:20am (Input Scroll Fix)
-  
   - keydown Listener erweitert: Blockiert nun ArrowKeys, Space, Home, End, PageUp/Down global (außer in Inputs), um Scrollen zu verhindern.
   - updateFocusVisuals: scrollIntoView von center auf nearest geändert. Verhindert das "Wandern" des Bildschirms beim Navigieren im Kampfmenü.
 
