@@ -1,4 +1,4 @@
-// [v0.4.4]
+// [v0.4.8]
 // Extending UI object with Render methods
 Object.assign(UI, {
     
@@ -35,7 +35,7 @@ Object.assign(UI, {
         if(this.els.hpBar) this.els.hpBar.style.width = `${Math.max(0, (Game.state.hp / maxHp) * 100)}%`;
         if(this.els.caps) this.els.caps.textContent = `${Game.state.caps}`;
         
-        // Ammo Update - FIX: Lese direkt aus state.ammo statt inventory
+        // Ammo Update
         if(this.els.ammo) {
             this.els.ammo.textContent = Game.state.ammo || 0;
         }
@@ -46,6 +46,17 @@ Object.assign(UI, {
             if(Game.state.statPoints > 0) { this.els.btnChar.classList.add('alert-glow-yellow'); hasAlert = true; } 
             else { this.els.btnChar.classList.remove('alert-glow-yellow'); }
         } 
+        
+        // FIX: Inventory Glow on New Items
+        if(this.els.btnInv) {
+            if(Game.state.hasNewItems) { 
+                this.els.btnInv.classList.add('alert-glow-yellow'); 
+                hasAlert = true; 
+            } else { 
+                this.els.btnInv.classList.remove('alert-glow-yellow'); 
+            }
+        }
+
         const unreadQuests = Game.state.quests.some(q => !q.read);
         if(this.els.btnQuests) {
             if(unreadQuests) { this.els.btnQuests.classList.add('alert-glow-cyan'); hasAlert = true; } 
@@ -101,6 +112,11 @@ Object.assign(UI, {
         const verDisplay = document.getElementById('version-display');
         const ver = verDisplay ? verDisplay.textContent.trim() : Date.now();
         
+        // FIX: Reset New Items Flag when entering Inventory
+        if(name === 'inventory' && Game.state) {
+            Game.state.hasNewItems = false;
+        }
+
         if (name === 'map') {
             this.els.view.innerHTML = `
                 <div id="map-view" class="w-full h-full flex justify-center items-center bg-black relative">
