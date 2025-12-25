@@ -1,5 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.4.13] - 2025-12-25 10:25am (Highscore Data Prep)
+------------------------------------------------
+- Game.state um 'kills' und 'isDead' erweitert
+- Game.addKill() Funktion hinzugefügt
+- Game.triggerDeath() implementiert (ersetzt sofortiges Löschen)
+- 'kills' werden beim Laden initialisiert
+
+
 [v0.4.11] - 2025-12-25 02:15am(Wiki Drop Info)
 ------------------------------------------------
 - Wiki: Bei Items wird nun angezeigt, von welchen Monstern sie gedroppt werden können (z.B. "Gedroppt von: Raider").
