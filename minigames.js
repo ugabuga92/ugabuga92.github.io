@@ -1,4 +1,4 @@
-// [v0.4.10]
+// [v0.4.27]
 const MiniGames = {
     // --- HACKING ---
     hacking: {
@@ -26,9 +26,9 @@ const MiniGames = {
             UI.log("TERMINAL VERBINDUNG HERGESTELLT...", "text-green-500");
             UI.switchView('hacking');
             
-            // [v0.4.10] First Time Tutorial
-            if(!Game.state.tutorialsShown) Game.state.tutorialsShown = {};
-            if(!Game.state.tutorialsShown.hacking) {
+            // First Time Tutorial
+            if(Game.state && !Game.state.tutorialsShown) Game.state.tutorialsShown = {};
+            if(Game.state && !Game.state.tutorialsShown.hacking) {
                 setTimeout(() => UI.showMiniGameHelp('hacking'), 500);
                 Game.state.tutorialsShown.hacking = true;
                 Game.saveGame();
@@ -73,7 +73,8 @@ const MiniGames = {
         
         end: function() {
             this.active = false;
-            UI.switchView('city'); // Zurück zur Stadt (oder vorherige View)
+            // FIX: Ensure clean return to city
+            UI.switchView('city');
         }
     },
 
@@ -99,9 +100,9 @@ const MiniGames = {
             UI.log("Schloss knacken gestartet...", "text-yellow-400");
             UI.switchView('lockpicking');
             
-            // [v0.4.10] First Time Tutorial
-            if(!Game.state.tutorialsShown) Game.state.tutorialsShown = {};
-            if(!Game.state.tutorialsShown.lockpicking) {
+            // First Time Tutorial
+            if(Game.state && !Game.state.tutorialsShown) Game.state.tutorialsShown = {};
+            if(Game.state && !Game.state.tutorialsShown.lockpicking) {
                 setTimeout(() => UI.showMiniGameHelp('lockpicking'), 500);
                 Game.state.tutorialsShown.lockpicking = true;
                 Game.saveGame();
@@ -168,6 +169,7 @@ const MiniGames = {
         
         end: function() {
             this.active = false;
+            // FIX: Ensure clean return to city
             UI.switchView('city');
         }
     }
