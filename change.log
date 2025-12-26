@@ -1,5 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.6.0] - 2025-12-26 01:20pm (World Map POI Expansion)
+	• NEW POIs: Militärbasis (Sektor 8,1), Raider Festung (1,8), Funkturm (9,9).
+	• game_core.js: init-Funktion erweitert, um diese festen POIs in die Welt zu setzen.
+	• game_map.js: move-Funktion erkennt nun 'M', 'R', 'T' und startet entsprechende Dungeons/Events.
+	• ui_render_views.js: Weltkarte zeichnet nun Icons für die neuen Orte (🏰, 📡, ⚓).
+
 [v0.5.0] - 2025-12-26 09:00am (Major Update: Economy & Combat)
 	• NEW data_items.js: "Rostige" Waffen hinzugefügt (Pistole, Gewehr, Messer). Preise und Werte angepasst.
 	• UPDATE combat.js:
