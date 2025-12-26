@@ -1,4 +1,4 @@
-// [v0.4.16]
+// [v0.6.0]
 // Map Logic, Movement & Transitions
 Object.assign(Game, {
     reveal: function(px, py) { 
@@ -31,6 +31,7 @@ Object.assign(Game, {
 
         const tile = this.state.currentMap[ny][nx];
         
+        // --- INTERAKTIONEN ---
         if (tile === '$') { UI.switchView('shop'); return; }
         if (tile === '&') { UI.switchView('crafting'); return; }
         if (tile === 'P') { UI.switchView('clinic'); return; }
@@ -38,11 +39,17 @@ Object.assign(Game, {
         if (tile === 'X') { this.openChest(nx, ny); return; } 
         if (tile === 'v') { this.descendDungeon(); return; }
 
-        if(['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F'].includes(tile)) { 
-            UI.shakeView();
-            return; 
+        // --- KOLLISION ---
+        if(['M', 'W', '#', 'U', 't', 'o', 'Y', '|', 'F', 'T', 'R'].includes(tile) && tile !== 'M' && tile !== 'R' && tile !== 'T') { 
+            // Hinweis: M, R, T sind in dieser Liste enthalten, werden aber unten separat behandelt
+            // Falls es sich um reine Hindernisse handelt:
+            if(['W', '#', 'U', 't', 'o', 'Y', '|', 'F'].includes(tile)) {
+                UI.shakeView();
+                return; 
+            }
         }
         
+        // --- BEWEGUNG ---
         this.state.player.x = nx;
         this.state.player.y = ny;
         
@@ -54,11 +61,20 @@ Object.assign(Game, {
         this.reveal(nx, ny);
         if(typeof Network !== 'undefined') Network.sendHeartbeat();
 
+        // --- POI EVENTS & DUNGEONS ---
         if(tile === 'V') { UI.switchView('vault'); return; }
-        if(tile === 'S') { this.tryEnterDungeon("market"); return; }
-        if(tile === 'H') { this.tryEnterDungeon("cave"); return; }
         if(tile === 'C') { this.enterCity(); return; } 
         
+        // Zufalls-Dungeons
+        if(tile === 'S') { this.tryEnterDungeon("market"); return; }
+        if(tile === 'H') { this.tryEnterDungeon("cave"); return; }
+        
+        // Feste POIs (NEU)
+        if(tile === 'M') { this.tryEnterDungeon("military"); return; } // Militärbasis
+        if(tile === 'R') { this.tryEnterDungeon("raider"); return; }   // Raider Festung
+        if(tile === 'T') { this.tryEnterDungeon("tower"); return; }    // Funkturm
+        
+        // Zufalls-Kampf
         if(['.', ',', '_', ';', '"', '+', 'x', 'B'].includes(tile)) {
             if(Math.random() < 0.04) { 
                 this.startCombat();
@@ -117,6 +133,7 @@ Object.assign(Game, {
                 });
             }
 
+            // Zufalls-POIs nur generieren, wenn kein fester POI da ist
             if(rng() < 0.35 && !sectorPoiType) { 
                 let type = null;
                 const r = rng(); 
@@ -174,7 +191,7 @@ Object.assign(Game, {
         const isSafe = (x, y) => {
             if(x < 0 || x >= this.MAP_W || y < 0 || y >= this.MAP_H) return false;
             const t = this.state.currentMap[y][x];
-            return !['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F'].includes(t);
+            return !['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F', 'R'].includes(t);
         };
         if(isSafe(this.state.player.x, this.state.player.y)) return;
         const rMax = 6;
@@ -223,6 +240,7 @@ Object.assign(Game, {
             this.state.player.y = data.startY;
 
             if(level < 3) {
+                // Ensure there is an exit (stairs)
                 for(let y=0; y<this.MAP_H; y++) {
                     for(let x=0; x<this.MAP_W; x++) {
                         if(this.state.currentMap[y][x] === 'X') {
@@ -233,13 +251,19 @@ Object.assign(Game, {
             }
         }
         
-        const typeName = type === "cave" ? "Dunkle Höhle" : "Supermarkt Ruine";
+        let typeName = "Dungeon";
+        if(type === "cave") typeName = "Dunkle Höhle";
+        if(type === "market") typeName = "Supermarkt Ruine";
+        if(type === "military") typeName = "Alte Militärbasis";
+        if(type === "raider") typeName = "Raider Festung";
+        if(type === "tower") typeName = "Funkturm-Station";
+
         this.state.zone = `${typeName} (Ebene ${level})`;
         this.state.explored = {}; 
         this.reveal(this.state.player.x, this.state.player.y);
         
         this.renderStaticMap();
-        UI.log(`${typeName} - Ebene ${level} betreten!`, "text-red-500");
+        UI.log(`${typeName} - Ebene ${level} betreten!`, "text-red-500 font-bold");
         UI.update();
     },
 
