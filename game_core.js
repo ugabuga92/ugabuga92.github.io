@@ -1,4 +1,4 @@
-// [v0.4.23]
+// [v0.6.0]
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     WORLD_W: 10, WORLD_H: 10, 
@@ -42,6 +42,17 @@ window.Game = {
         this.initCache();
         try {
             let isNewGame = false;
+            
+            // Standard POIs definieren (werden für New Game und Legacy Fix genutzt)
+            // Vault (V), City (C), Military (M), Raider (R), Tower (T)
+            const defaultPOIs = [ 
+                {type: 'V', x: 4, y: 4}, 
+                {type: 'C', x: 3, y: 3},
+                {type: 'M', x: 8, y: 1}, // Militärbasis (Schwer)
+                {type: 'R', x: 1, y: 8}, // Raider Festung (Mittel)
+                {type: 'T', x: 9, y: 9}  // Funkturm (Spezial)
+            ];
+
             if (saveData) {
                 this.state = saveData;
                 // Checks
@@ -53,20 +64,20 @@ window.Game = {
                 // Highscore Support: Kills initialisieren falls nicht vorhanden
                 if(typeof this.state.kills === 'undefined') this.state.kills = 0;
 
-                if(!this.state.worldPOIs) {
-                    this.state.worldPOIs = [ {type: 'V', x: 4, y: 4}, {type: 'C', x: 3, y: 3} ];
+                // Legacy Fix: Falls alte Saves keine oder nur alte POIs haben
+                if(!this.state.worldPOIs || this.state.worldPOIs.length <= 2) {
+                    this.state.worldPOIs = defaultPOIs;
                 }
+                
                 this.state.saveSlot = slotIndex;
                 UI.log(">> Spielstand geladen.", "text-cyan-400");
             } else {
                 isNewGame = true;
-                const vX = Math.floor(Math.random() * this.WORLD_W);
-                const vY = Math.floor(Math.random() * this.WORLD_H);
-                let cX, cY;
-                do { cX = Math.floor(Math.random() * this.WORLD_W); cY = Math.floor(Math.random() * this.WORLD_H); } while(cX === vX && cY === vY);
-
-                const worldPOIs = [ {type: 'V', x: vX, y: vY}, {type: 'C', x: cX, y: cY} ];
-                let startSecX = vX, startSecY = vY, startX = 20, startY = 20;
+                const vX = 4; // Vault Position Fixed to 4,4 based on defaultPOIs logic or random if desired
+                const vY = 4;
+                
+                // Wir nutzen jetzt feste Startsektoren für Konsistenz mit den POIs
+                let startSecX = 4, startSecY = 4, startX = 20, startY = 20;
 
                 if (spawnTarget && spawnTarget.sector) {
                     startSecX = spawnTarget.sector.x; startSecY = spawnTarget.sector.y;
@@ -82,14 +93,14 @@ window.Game = {
                 this.state = {
                     saveSlot: slotIndex,
                     playerName: newName || "SURVIVOR",
-                    sector: {x: startSecX, y: startSecY}, startSector: {x: vX, y: vY},
-                    worldPOIs: worldPOIs,
+                    sector: {x: startSecX, y: startSecY}, startSector: {x: 4, y: 4},
+                    worldPOIs: defaultPOIs,
                     player: {x: startX, y: startY, rot: 0},
                     stats: { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 }, 
                     equip: { weapon: this.items.fists, body: this.items.vault_suit },
                     inventory: [], 
                     hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0, 
-                    kills: 0, // NEW: Kill Counter
+                    kills: 0, 
                     view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, 
                     explored: {}, sectorExploredCache: null, visitedSectors: [`${startSecX},${startSecY}`],
                     tutorialsShown: { hacking: false, lockpicking: false },
