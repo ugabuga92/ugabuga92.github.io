@@ -1,4 +1,4 @@
-// [v0.4.15]
+// [v0.4.27]
 // Core Rendering & Logic (HUD, View Switching)
 Object.assign(UI, {
     
@@ -110,6 +110,12 @@ Object.assign(UI, {
                     </button>
                 </div>`;
             Game.state.view = name;
+            
+            // FIX: Ensure Dialog state is cleared and focus is reset to Body
+            // This prevents "stuck" controls after leaving menus
+            if(Game.state) Game.state.inDialog = false;
+            if(document.activeElement) document.activeElement.blur();
+            
             Game.initCanvas();
             this.restoreOverlay();
             this.toggleControls(true);
