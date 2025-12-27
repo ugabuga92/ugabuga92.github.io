@@ -1,5 +1,15 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.7.0] - 2025-12-26 03:00pm (Blueprints & Secret Loot Update)
+------------------------------------------------
+- Feature: Crafting-System komplett überarbeitet. Rezepte sind nicht mehr von Anfang an verfügbar, sondern müssen durch das Finden von "Bauplänen" (Blueprints) in der Welt gelernt werden.
+- Feature: "Hidden Loot" System eingeführt. Auf der Weltkarte können nun versteckte Items in Bäumen, Ruinen oder Steinen gefunden werden. Diese werden durch einen visuellen "Schimmer"-Effekt markiert.
+- Feature: Map-Legende hinzugefügt. Ein neuer '?' Button auf der Weltkarte erklärt alle Symbole (POIs, Gegner, etc.).
+- Fix: Kampfsystem (Combat.js) repariert. Das V.A.T.S. Zielsystem (Kopf/Torso/Beine) und die Flucht-Option funktionieren nun wieder korrekt und synchron zum UI.
+- Fix: Stabilitätsverbesserungen im Inventar und Crafting-Menü. Das Spiel stürzt nicht mehr ab, wenn Items oder Rezepte in alten Spielständen fehlen (Crash Prevention).
+- UI: Wiki/Handbuch Layout für mobile Geräte optimiert (Buttons brechen nun um, statt horizontal zu scrollen).
+- Content: Neue Items (Baupläne für Waffen, Rüstungen, Munition) und neue Crafting-Rezepte hinzugefügt.
+
 [v0.6.0] - 2025-12-26 01:20pm (World Map POI Expansion)
 	• NEW POIs: Militärbasis (Sektor 8,1), Raider Festung (1,8), Funkturm (9,9).
 	• game_core.js: init-Funktion erweitert, um diese festen POIs in die Welt zu setzen.
