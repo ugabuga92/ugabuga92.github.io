@@ -1,4 +1,4 @@
-// [v0.6.1]
+// [v0.6.2]
 // Main View Renderers (Inventory, Map, Screens)
 Object.assign(UI, {
     
@@ -81,13 +81,9 @@ Object.assign(UI, {
         Game.state.inventory.forEach((entry) => {
             if(entry.count <= 0) return;
             
-            // FIX: Check if item exists in database to prevent crash
+            // FIX: Crash Prevention falls Item nicht in DB
             const item = Game.items[entry.id];
-            if(!item) {
-                console.warn("Item not found in DB:", entry.id);
-                // Optional: Remove broken item or show fallback
-                return; 
-            }
+            if(!item) return;
 
             totalItems += entry.count;
             
@@ -206,9 +202,9 @@ Object.assign(UI, {
                             
                             if(poi.type === 'C') { icon = "🏙️"; color = "#00ffff"; }
                             else if(poi.type === 'V') { icon = "⚙️"; color = "#ffff00"; }
-                            else if(poi.type === 'M') { icon = "🏰"; color = "#ff5555"; } // Militär
-                            else if(poi.type === 'R') { icon = "☠️"; color = "#ffaa00"; } // Raider
-                            else if(poi.type === 'T') { icon = "📡"; color = "#55ff55"; } // Turm
+                            else if(poi.type === 'M') { icon = "🏰"; color = "#ff5555"; }
+                            else if(poi.type === 'R') { icon = "☠️"; color = "#ffaa00"; }
+                            else if(poi.type === 'T') { icon = "📡"; color = "#55ff55"; }
 
                             ctx.fillStyle = color;
                             ctx.fillText(icon, x * TILE_W + TILE_W/2, y * TILE_H + TILE_H/2);
@@ -332,6 +328,7 @@ Object.assign(UI, {
                 }
             }
         } else if (category === 'crafting') {
+            // FIX: Safety check for recipes
             if (Game.recipes) {
                 Game.recipes.forEach(r => {
                     const outName = r.out === "AMMO" ? "Munition x15" : (Game.items[r.out] ? Game.items[r.out].name : r.out);
@@ -345,6 +342,8 @@ Object.assign(UI, {
                             <div class="text-xs text-green-300 italic">Benötigt: ${reqs}</div>
                         </div>`;
                 });
+            } else {
+                htmlBuffer = '<div class="text-red-500">Keine Baupläne geladen.</div>';
             }
         } else if (category === 'locs') {
              const locs = [
@@ -619,7 +618,10 @@ Object.assign(UI, {
         backBtn.onclick = () => { Game.saveGame(); this.switchView('map'); };
         container.appendChild(backBtn);
         
-        Game.recipes.forEach(recipe => {
+        // FIX: Safety check for recipes array
+        const recipes = Game.recipes || [];
+        
+        recipes.forEach(recipe => {
             const outItem = recipe.out === 'AMMO' ? {name: "15x Munition"} : Game.items[recipe.out];
             const div = document.createElement('div');
             div.className = "border border-green-900 bg-green-900/10 p-3 mb-2";
@@ -643,5 +645,9 @@ Object.assign(UI, {
             `;
             container.appendChild(div);
         });
+        
+        if(recipes.length === 0) {
+            container.innerHTML += '<div class="text-gray-500 italic mt-4 text-center">Keine Baupläne verfügbar.</div>';
+        }
     }
 });
