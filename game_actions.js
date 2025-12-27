@@ -1,5 +1,4 @@
-// [v0.4.26]
-// Interactions, Combat, Crafting & Inventory
+// [v0.7.0]
 Object.assign(Game, {
     rest: function() { 
         if(!this.state) return;
@@ -62,7 +61,19 @@ Object.assign(Game, {
         const invItem = this.state.inventory.find(i => i.id === id); 
         if(!invItem || invItem.count <= 0) return; 
         
-        if(itemDef.type === 'consumable') { 
+        // --- BLUEPRINT LOGIC (NEU) ---
+        if(itemDef.type === 'blueprint') {
+            if(!this.state.knownRecipes.includes(itemDef.recipeId)) {
+                this.state.knownRecipes.push(itemDef.recipeId);
+                UI.log(`Rezept gelernt: ${itemDef.name.replace('Bauplan: ', '')}`, "text-cyan-400 font-bold");
+                invItem.count--;
+            } else {
+                UI.log("Du kennst diesen Bauplan bereits.", "text-gray-500");
+                // Nicht verbrauchen
+                return;
+            }
+        }
+        else if(itemDef.type === 'consumable') { 
             if(itemDef.effect === 'heal') { 
                 const healAmt = itemDef.val; 
                 if(this.state.hp >= this.state.maxHp) { UI.log("Gesundheit voll.", "text-gray-500"); return; } 
@@ -195,7 +206,7 @@ Object.assign(Game, {
     },
 
     upgradeStat: function(key, e) { 
-        if(e) e.stopPropagation(); // FIX: Prevent menu closing because button is removed from DOM
+        if(e) e.stopPropagation(); 
         if(this.state.statPoints > 0) { 
             this.state.stats[key]++; 
             this.state.statPoints--; 
