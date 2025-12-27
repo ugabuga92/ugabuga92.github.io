@@ -1,4 +1,4 @@
-<!-- [v0.4.2] -->
+<!-- [v0.6.3] -->
 <div class="w-full h-full flex flex-col items-center justify-center bg-black relative select-none">
     <h2 class="text-xl text-[#39ff14] font-bold mb-2 border-b-2 border-[#39ff14] w-full max-w-md text-center tracking-widest bg-[#001100]">WELTKARTE</h2>
     
@@ -13,8 +13,13 @@
         <div class="absolute top-1 right-1 text-[10px] text-[#39ff14] font-mono bg-black/50 px-1">O</div>
     </div>
 
-    <div id="sector-details" class="mt-4 text-[#39ff14] font-mono text-sm min-h-[1.5em] text-center bg-[#001100] px-4 py-1 border border-[#39ff14] shadow-[0_0_10px_#39ff14]">
-        SYSTEM: STANDORT UNBEKANNT
+    <div class="mt-4 flex gap-2 items-stretch justify-center w-full max-w-md px-2">
+        <button onclick="UI.showMapLegend()" class="bg-[#001100] text-[#39ff14] border border-[#39ff14] px-4 font-bold hover:bg-[#39ff14] hover:text-black transition-colors shadow-[0_0_10px_#39ff14] flex items-center justify-center text-xl" title="Legende anzeigen">
+            ?
+        </button>
+        <div id="sector-details" class="flex-grow text-[#39ff14] font-mono text-sm min-h-[1.5em] flex items-center justify-center text-center bg-[#001100] px-4 py-2 border border-[#39ff14] shadow-[0_0_10px_#39ff14]">
+            SYSTEM: STANDORT UNBEKANNT
+        </div>
     </div>
 
     <button onclick="UI.switchView('map')" class="absolute top-4 right-4 text-red-500 border border-red-500 w-8 h-8 flex items-center justify-center hover:bg-red-900 font-bold shadow-[0_0_10px_red]">X</button>
