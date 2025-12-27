@@ -1,5 +1,4 @@
-// [v0.6.0]
-// Map Logic, Movement & Transitions
+// [v0.7.0]
 Object.assign(Game, {
     reveal: function(px, py) { 
         if(!this.state) return;
@@ -30,7 +29,18 @@ Object.assign(Game, {
         }
 
         const tile = this.state.currentMap[ny][nx];
-        
+        const posKey = `${nx},${ny}`;
+
+        // --- HIDDEN ITEM CHECK (NEU) ---
+        if(this.state.hiddenItems && this.state.hiddenItems[posKey]) {
+            const itemId = this.state.hiddenItems[posKey];
+            this.addToInventory(itemId, 1);
+            const iName = this.items[itemId] ? this.items[itemId].name : itemId;
+            UI.log(`Gefunden: ${iName}!`, "text-yellow-400 font-bold animate-pulse");
+            UI.shakeView(); 
+            delete this.state.hiddenItems[posKey]; 
+        }
+
         // --- INTERAKTIONEN ---
         if (tile === '$') { UI.switchView('shop'); return; }
         if (tile === '&') { UI.switchView('crafting'); return; }
@@ -41,12 +51,17 @@ Object.assign(Game, {
 
         // --- KOLLISION ---
         if(['M', 'W', '#', 'U', 't', 'o', 'Y', '|', 'F', 'T', 'R'].includes(tile) && tile !== 'M' && tile !== 'R' && tile !== 'T') { 
-            // Hinweis: M, R, T sind in dieser Liste enthalten, werden aber unten separat behandelt
-            // Falls es sich um reine Hindernisse handelt:
-            if(['W', '#', 'U', 't', 'o', 'Y', '|', 'F'].includes(tile)) {
-                UI.shakeView();
-                return; 
+            // Sonderfall: Suche im Objekt, auch wenn man nicht drauf gehen kann
+            if(this.state.hiddenItems && this.state.hiddenItems[posKey]) {
+                 const itemId = this.state.hiddenItems[posKey];
+                 this.addToInventory(itemId, 1);
+                 const iName = this.items[itemId] ? this.items[itemId].name : itemId;
+                 UI.log(`Im Objekt gefunden: ${iName}!`, "text-yellow-400 font-bold");
+                 delete this.state.hiddenItems[posKey];
+                 return; 
             }
+            UI.shakeView();
+            return; 
         }
         
         // --- BEWEGUNG ---
@@ -61,20 +76,15 @@ Object.assign(Game, {
         this.reveal(nx, ny);
         if(typeof Network !== 'undefined') Network.sendHeartbeat();
 
-        // --- POI EVENTS & DUNGEONS ---
+        // --- POI EVENTS ---
         if(tile === 'V') { UI.switchView('vault'); return; }
         if(tile === 'C') { this.enterCity(); return; } 
-        
-        // Zufalls-Dungeons
         if(tile === 'S') { this.tryEnterDungeon("market"); return; }
         if(tile === 'H') { this.tryEnterDungeon("cave"); return; }
+        if(tile === 'M') { this.tryEnterDungeon("military"); return; }
+        if(tile === 'R') { this.tryEnterDungeon("raider"); return; }
+        if(tile === 'T') { this.tryEnterDungeon("tower"); return; }
         
-        // Feste POIs (NEU)
-        if(tile === 'M') { this.tryEnterDungeon("military"); return; } // Militärbasis
-        if(tile === 'R') { this.tryEnterDungeon("raider"); return; }   // Raider Festung
-        if(tile === 'T') { this.tryEnterDungeon("tower"); return; }    // Funkturm
-        
-        // Zufalls-Kampf
         if(['.', ',', '_', ';', '"', '+', 'x', 'B'].includes(tile)) {
             if(Math.random() < 0.04) { 
                 this.startCombat();
@@ -117,9 +127,7 @@ Object.assign(Game, {
         
         if(!this.worldData[key]) { 
             let biome = 'wasteland';
-            if(typeof WorldGen !== 'undefined') {
-                biome = WorldGen.getSectorBiome(sx, sy);
-            }
+            if(typeof WorldGen !== 'undefined') biome = WorldGen.getSectorBiome(sx, sy);
             
             let poiList = [];
             let sectorPoiType = null;
@@ -133,13 +141,11 @@ Object.assign(Game, {
                 });
             }
 
-            // Zufalls-POIs nur generieren, wenn kein fester POI da ist
             if(rng() < 0.35 && !sectorPoiType) { 
                 let type = null;
                 const r = rng(); 
                 if(r < 0.3) type = 'S'; 
                 else if(r < 0.6) type = 'H';
-                
                 if(type) {
                     poiList.push({x: Math.floor(rng()*(this.MAP_W-6))+3, y: Math.floor(rng()*(this.MAP_H-6))+3, type: type});
                     sectorPoiType = type;
@@ -147,11 +153,9 @@ Object.assign(Game, {
             }
 
             let map;
-            if(typeof WorldGen !== 'undefined') {
-                map = WorldGen.createSector(this.MAP_W, this.MAP_H, biome, poiList);
-            } else {
-                map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('.'));
-            }
+            if(typeof WorldGen !== 'undefined') map = WorldGen.createSector(this.MAP_W, this.MAP_H, biome, poiList);
+            else map = Array(this.MAP_H).fill().map(() => Array(this.MAP_W).fill('.'));
+            
             this.worldData[key] = { layout: map, biome: biome, poi: sectorPoiType };
         } 
         
@@ -162,6 +166,32 @@ Object.assign(Game, {
             this.state.visitedSectors.push(key);
         }
         
+        // --- SPAWN HIDDEN BLUEPRINTS (NEU) ---
+        this.state.hiddenItems = {}; 
+        
+        if(Math.random() < 0.3) { // 30% Chance pro Sektor
+            let hiddenX, hiddenY;
+            let attempts = 0;
+            do {
+                hiddenX = Math.floor(Math.random() * this.MAP_W);
+                hiddenY = Math.floor(Math.random() * this.MAP_H);
+                attempts++;
+            } while(attempts < 100 && !this.isValidHiddenSpot(hiddenX, hiddenY));
+            
+            if(attempts < 100) {
+                const bps = ['bp_ammo', 'bp_rusty_pistol', 'bp_machete', 'bp_leather_armor'];
+                const bp = bps[Math.floor(Math.random() * bps.length)];
+                
+                // Prüfen ob wir das Rezept schon kennen
+                if(this.items && this.items[bp]) {
+                    const recipeId = this.items[bp].recipeId;
+                    if(!this.state.knownRecipes.includes(recipeId)) {
+                        this.state.hiddenItems[`${hiddenX},${hiddenY}`] = bp;
+                    }
+                }
+            }
+        }
+
         this.fixMapBorders(this.state.currentMap, sx, sy);
         
         if(!this.state.explored) this.state.explored = {};
@@ -177,6 +207,11 @@ Object.assign(Game, {
         this.renderStaticMap(); 
         
         this.reveal(this.state.player.x, this.state.player.y);
+    },
+
+    isValidHiddenSpot: function(x, y) {
+        const t = this.state.currentMap[y][x];
+        return ['t', 'T', 'o', 'Y', '#', '"'].includes(t);
     },
 
     fixMapBorders: function(map, sx, sy) {
@@ -240,7 +275,6 @@ Object.assign(Game, {
             this.state.player.y = data.startY;
 
             if(level < 3) {
-                // Ensure there is an exit (stairs)
                 for(let y=0; y<this.MAP_H; y++) {
                     for(let x=0; x<this.MAP_W; x++) {
                         if(this.state.currentMap[y][x] === 'X') {
@@ -282,6 +316,19 @@ Object.assign(Game, {
         this.state.caps += caps;
         this.addToInventory('legendary_part', 1 * multiplier);
         
+        // --- BLUEPRINT DROP CHANCE (NEU) ---
+        if(Math.random() < 0.4) { // 40% Chance in Truhen
+            const bps = ['bp_stimpack', 'bp_metal_armor', 'bp_ammo'];
+            const bp = bps[Math.floor(Math.random() * bps.length)];
+            const rid = this.items[bp].recipeId;
+            if(!this.state.knownRecipes.includes(rid)) {
+                this.addToInventory(bp, 1);
+                UI.log("BAUPLAN GEFUNDEN!", "text-cyan-400 font-bold");
+            } else {
+                this.addToInventory('screws', 5);
+            }
+        }
+
         if(!this.state.cooldowns) this.state.cooldowns = {};
         const key = `${this.state.sector.x},${this.state.sector.y}_${this.state.dungeonType}`;
         this.state.cooldowns[key] = Date.now() + (10 * 60 * 1000); 
