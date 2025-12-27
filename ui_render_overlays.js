@@ -1,14 +1,44 @@
-// [v0.4.21]
-// [v0.4.21] - 2025-12-25 11:58pm(Highscore UI Fix) ------------------------------------------------ 
-// - Close-Button Funktionalität im Highscore-Screen verbessert
-// - Loading-Screen hat nun einen Abbrechen-Button
+// [v0.6.3]
+// [v0.6.3] - Map Legend & Fixes
 Object.assign(UI, {
     
+    showMapLegend: function() {
+        if(!this.els.dialog) this.restoreOverlay();
+        if(Game.state) Game.state.inDialog = true;
+        
+        this.els.dialog.innerHTML = '';
+        this.els.dialog.style.display = 'flex';
+        
+        const box = document.createElement('div');
+        box.className = "bg-black border-4 border-green-500 p-6 shadow-[0_0_30px_green] max-w-sm w-full relative";
+        
+        // Helper für Einträge
+        const item = (icon, text, color) => `
+            <div class="flex items-center gap-4 mb-3 border-b border-green-900/30 pb-1 last:border-0">
+                <span class="text-2xl w-10 text-center filter drop-shadow-[0_0_5px_rgba(255,255,255,0.3)]" style="color: ${color}">${icon}</span>
+                <span class="text-green-300 font-mono text-sm tracking-wide uppercase">${text}</span>
+            </div>`;
+
+        box.innerHTML = `
+            <h2 class="text-2xl font-bold text-green-500 mb-6 border-b-2 border-green-500 pb-2 tracking-widest text-center">KARTEN LEGENDE</h2>
+            <div class="flex flex-col space-y-1">
+                ${item('🟢', 'DEINE POSITION', '#39ff14')}
+                ${item('⚙️', 'VAULT 101 (SICHER)', '#ffff00')}
+                ${item('🏙️', 'RUSTY SPRINGS (STADT)', '#00ffff')}
+                ${item('🏰', 'MILITÄRBASIS (LVL 10+)', '#ff5555')}
+                ${item('☠️', 'RAIDER FESTUNG (LVL 5+)', '#ffaa00')}
+                ${item('📡', 'FUNKTURM (THE PITT)', '#55ff55')}
+            </div>
+            <button class="action-button w-full mt-6 border-green-500 text-green-500 font-bold hover:bg-green-900" onclick="UI.leaveDialog()">SCHLIESSEN</button>
+        `;
+        
+        this.els.dialog.appendChild(box);
+    },
+
     showHighscoreBoard: async function() {
         if(!this.els.dialog) this.restoreOverlay();
         if(Game.state) Game.state.inDialog = true;
         
-        // Loading Screen mit Abbrechen Button
         this.els.dialog.innerHTML = `
             <div class="flex flex-col items-center justify-center p-6 border-2 border-green-500 bg-black shadow-[0_0_20px_green]">
                 <div class="text-green-500 animate-pulse text-2xl mb-6">EMPFANGE DATEN VOM HUB...</div>
@@ -18,7 +48,6 @@ Object.assign(UI, {
 
         try {
             const scores = await Network.getHighscores();
-            
             if(!scores) throw new Error("Keine Daten empfangen.");
 
             scores.sort((a,b) => b.lvl - a.lvl || b.xp - a.xp);
@@ -26,36 +55,11 @@ Object.assign(UI, {
             const box = document.createElement('div');
             box.className = "bg-black border-4 border-green-600 p-6 shadow-[0_0_30px_green] w-full max-w-2xl h-3/4 flex flex-col relative";
             
-            // Close Button
             const closeBtn = document.createElement('button');
             closeBtn.className = "absolute top-2 right-2 text-green-500 text-xl border border-green-500 px-3 hover:bg-green-900 font-bold z-50";
             closeBtn.textContent = "X";
-            // WICHTIG: Direktes Zuweisen an UI.leaveDialog um Scope-Probleme zu vermeiden
             closeBtn.onclick = function() { UI.leaveDialog(); }; 
-            box.appendChild(closeBtn);
-
-            box.innerHTML += `
-                <h2 class="text-4xl font-bold text-green-400 mb-4 text-center border-b-2 border-green-600 pb-2 tracking-widest">VAULT LEGENDS</h2>
-                <div class="flex justify-between mb-2 text-xs text-green-300 uppercase font-bold px-2">
-                    <span class="w-8">#</span>
-                    <span class="w-1/3 cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'name')">NAME</span>
-                    <span class="w-16 text-right cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'lvl')">LVL</span>
-                    <span class="w-16 text-right cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'kills')">KILLS</span>
-                    <span class="w-24 text-right cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'xp')">EXP</span>
-                </div>
-                <div id="highscore-list" class="flex-grow overflow-y-auto pr-2 custom-scrollbar"></div>
-            `;
             
-            this.els.dialog.innerHTML = '';
-            this.els.dialog.appendChild(box);
-            
-            // Close Button muss nach innerHTML+= neu gebunden werden, da er sonst verloren geht, 
-            // aber wir haben ihn mit appendChild hinzugefügt, das ist sicher. 
-            // Sicherheitshalber fügen wir ihn HINTERHER nochmal ein, falls innerHTML+= ihn überschrieben hat (was es tut).
-            // KORREKTUR: box.innerHTML += ... löscht vorherige EventListener auf children!
-            // Lösung: Erst HTML bauen, dann Button appenden.
-            
-            // Reset Content für sauberen Aufbau
             box.innerHTML = `
                 <h2 class="text-4xl font-bold text-green-400 mb-4 text-center border-b-2 border-green-600 pb-2 tracking-widest">VAULT LEGENDS</h2>
                 <div class="flex justify-between mb-2 text-xs text-green-300 uppercase font-bold px-2">
@@ -67,9 +71,9 @@ Object.assign(UI, {
                 </div>
                 <div id="highscore-list" class="flex-grow overflow-y-auto pr-2 custom-scrollbar"></div>
             `;
-            box.appendChild(closeBtn); // Button jetzt sicher hinzufügen
+            box.appendChild(closeBtn);
 
-            const listContainer = document.getElementById('highscore-list');
+            const listContainer = box.querySelector('#highscore-list');
             if(listContainer) listContainer.dataset.rawScores = JSON.stringify(scores);
             
             this.renderHighscoreList = (sortBy) => {
@@ -108,6 +112,8 @@ Object.assign(UI, {
                 });
             };
 
+            this.els.dialog.innerHTML = '';
+            this.els.dialog.appendChild(box);
             this.renderHighscoreList('lvl');
 
         } catch(e) {
