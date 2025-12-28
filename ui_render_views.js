@@ -1,4 +1,4 @@
-// [v0.7.4]
+// [v0.8.0]
 // Main View Renderers (Inventory, Map, Screens)
 Object.assign(UI, {
     
@@ -75,6 +75,7 @@ Object.assign(UI, {
                 case 'component': return '🔩';
                 case 'rare': return '⭐';
                 case 'blueprint': return '📜'; 
+                case 'tool': return '⛺'; // [v0.8.0]
                 default: return '📦';
             }
         };
@@ -242,6 +243,45 @@ Object.assign(UI, {
         }
     },
     
+    // [v0.8.0] NEU: Camp View Render
+    renderCamp: function() {
+        const camp = Game.state.camp;
+        if(!camp) { this.switchView('map'); return; }
+
+        const lvlEl = document.getElementById('camp-lvl');
+        const statusEl = document.getElementById('camp-status');
+        const upgradeBtn = document.getElementById('btn-camp-upgrade');
+        const restBtn = document.getElementById('btn-camp-rest');
+
+        if(lvlEl) lvlEl.textContent = camp.level;
+        
+        let statusText = "Basis-Schutz. Heilung 50%.";
+        let upgradeCost = "10x Schrott";
+        let canUpgrade = true;
+
+        if(camp.level === 2) {
+            statusText = "Komfortables Zelt. Heilung 100%.";
+            upgradeCost = "25x Schrott (MAX)";
+            canUpgrade = false; 
+        }
+
+        if(statusEl) statusEl.textContent = statusText;
+        
+        if(upgradeBtn) {
+            if(canUpgrade) {
+                upgradeBtn.innerHTML = `Lager verbessern <span class="text-xs block text-gray-400">Kosten: ${upgradeCost}</span>`;
+                upgradeBtn.disabled = false;
+                upgradeBtn.onclick = () => Game.upgradeCamp();
+            } else {
+                upgradeBtn.innerHTML = `Lager maximiert`;
+                upgradeBtn.disabled = true;
+                upgradeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        if(restBtn) restBtn.onclick = () => Game.restInCamp();
+    },
+
     renderWorldMap: function() {
         const cvs = document.getElementById('world-map-canvas');
         const details = document.getElementById('sector-details');
@@ -294,6 +334,15 @@ Object.assign(UI, {
                         }
                     }
 
+                    // --- [v0.8.0] DRAW CAMP ICON ---
+                    if(Game.state.camp && Game.state.camp.sector.x === x && Game.state.camp.sector.y === y) {
+                        ctx.font = "bold 20px monospace";
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillStyle = "#ffffff";
+                        ctx.fillText("⛺", x * TILE_W + TILE_W/4, y * TILE_H + TILE_H/4);
+                    }
+
                     if(isCurrent && details) {
                         details.innerHTML = `SEKTOR [${x},${y}]<br><span class="text-white">${biome.toUpperCase()}</span>`;
                     }
@@ -323,8 +372,34 @@ Object.assign(UI, {
         ctx.lineWidth = 1;
         ctx.stroke();
 
+        // --- [v0.8.0] SHOW ENTER BUTTON ON MAP IF AT CAMP ---
+        const camp = Game.state.camp;
+        const btnCamp = document.getElementById('btn-map-enter-camp');
+        
+        if(camp && camp.sector.x === Game.state.sector.x && camp.sector.y === Game.state.sector.y) {
+            const dist = Math.abs(camp.x - Game.state.player.x) + Math.abs(camp.y - Game.state.player.y);
+            if(dist <= 2) {
+                if(!btnCamp) {
+                    const b = document.createElement('button');
+                    b.id = 'btn-map-enter-camp';
+                    b.className = "absolute bottom-24 left-1/2 transform -translate-x-1/2 bg-black border-2 border-green-500 text-green-500 px-6 py-2 font-bold hover:bg-green-900 animate-bounce z-50";
+                    b.innerHTML = "⛺ LAGER BETRETEN";
+                    b.onclick = () => Game.enterCamp();
+                    document.getElementById('view-container').appendChild(b);
+                } else {
+                    btnCamp.style.display = 'block';
+                }
+            } else {
+                if(btnCamp) btnCamp.style.display = 'none';
+            }
+        } else {
+            if(btnCamp) btnCamp.style.display = 'none';
+        }
+
         if(Game.state.view === 'worldmap') {
             requestAnimationFrame(() => this.renderWorldMap());
+        } else {
+            if(btnCamp) btnCamp.style.display = 'none';
         }
     },
 
