@@ -1,4 +1,4 @@
-// [v0.7.3]
+// [v0.7.4]
 // Main View Renderers (Inventory, Map, Screens)
 Object.assign(UI, {
     
@@ -113,62 +113,98 @@ Object.assign(UI, {
     renderChar: function(mode = 'stats') {
         const grid = document.getElementById('stat-grid');
         const perksContainer = document.getElementById('perk-container');
-        if(!grid) return;
         
-        // Toggle Views
-        if(mode === 'stats') {
-             grid.style.display = 'block';
-             if(perksContainer) perksContainer.style.display = 'none';
-        } else {
-             grid.style.display = 'none';
-             if(perksContainer) perksContainer.style.display = 'block';
-             this.renderPerksList(perksContainer);
-             return; // Stop here for perks view
-        }
+        if(!grid) return; // Basic Safety
 
+        // --- 1. UPDATE STATIC INFO (HEADER) ---
+        // Dies geschieht jetzt UNABHÄNGIG vom Modus, da die Elemente in 'views/char.html' sicher getrennt wurden.
+        
         const lvlDisplay = document.getElementById('char-lvl');
         if(lvlDisplay) lvlDisplay.textContent = Game.state.lvl;
-        
-        const statOrder = ['STR', 'PER', 'END', 'INT', 'AGI', 'LUC'];
-        
-        grid.innerHTML = statOrder.map(k => {
-            const val = Game.getStat(k);
-            const btn = Game.state.statPoints > 0 ? `<button class="w-12 h-12 border-2 border-green-500 bg-green-900/50 text-green-400 font-bold ml-2 flex items-center justify-center hover:bg-green-500 hover:text-black transition-colors" onclick="Game.upgradeStat('${k}', event)" style="font-size: 1.5rem;">+</button>` : '';
-            const label = (typeof window.GameData !== 'undefined' && window.GameData.statLabels && window.GameData.statLabels[k]) ? window.GameData.statLabels[k] : k;
-            return `<div class="flex justify-between items-center border-b border-green-900/30 py-1 h-14"><span>${label}</span> <div class="flex items-center"><span class="text-yellow-400 font-bold mr-4 text-xl">${val}</span>${btn}</div></div>`;
-        }).join('');
-        
+
         const nextXp = Game.expToNextLevel(Game.state.lvl);
         const expPct = Math.min(100, (Game.state.xp / nextXp) * 100);
-        document.getElementById('char-exp').textContent = Game.state.xp;
-        document.getElementById('char-next').textContent = nextXp;
-        document.getElementById('char-exp-bar').style.width = `${expPct}%`;
         
-        const pts = Game.state.statPoints;
-        const ptsEl = document.getElementById('char-points');
-        if (pts > 0) {
-            ptsEl.innerHTML = `<span class="text-red-500 animate-pulse text-2xl font-bold bg-red-900/20 px-2 border border-red-500">${pts} VERFÜGBAR!</span>`;
-        } else {
-            ptsEl.textContent = pts;
-        }
+        const elExp = document.getElementById('char-exp');
+        const elNext = document.getElementById('char-next');
+        const elBar = document.getElementById('char-exp-bar');
+        
+        if(elExp) elExp.textContent = Game.state.xp;
+        if(elNext) elNext.textContent = nextXp;
+        if(elBar) elBar.style.width = `${expPct}%`;
 
-        // Perks Button im Stats Screen
+        // Update Points Display
+        const pts = Game.state.statPoints || 0;
+        const ptsEl = document.getElementById('char-points');
+        if(ptsEl) {
+            if (pts > 0) {
+                ptsEl.innerHTML = `<span class="text-red-500 animate-pulse text-2xl font-bold bg-red-900/20 px-2 border border-red-500">${pts} VERFÜGBAR!</span>`;
+            } else {
+                ptsEl.textContent = pts;
+            }
+        }
+        
+        // Update Equipment Display
+        const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2};
+        const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}};
+        const elWpnName = document.getElementById('equip-weapon-name');
+        const elWpnStats = document.getElementById('equip-weapon-stats');
+        const elArmName = document.getElementById('equip-body-name');
+        const elArmStats = document.getElementById('equip-body-stats');
+
+        if(elWpnName) elWpnName.textContent = wpn.name;
+        if(elWpnStats) {
+            let wpnStats = `DMG: ${wpn.baseDmg}`;
+            if(wpn.bonus) { for(let s in wpn.bonus) wpnStats += ` ${s}:${wpn.bonus[s]}`; }
+            elWpnStats.textContent = wpnStats;
+        }
+        if(elArmName) elArmName.textContent = arm.name;
+        if(elArmStats) {
+            let armStats = "";
+            if(arm.bonus) { for(let s in arm.bonus) armStats += `${s}:${arm.bonus[s]} `; }
+            elArmStats.textContent = armStats || "Kein Bonus";
+        }
+        
+        // Update Perks Button Label
         const perkPoints = Game.state.perkPoints || 0;
         const perkBtn = document.getElementById('btn-show-perks');
         if(perkBtn) {
              perkBtn.innerHTML = `PERKS ${perkPoints > 0 ? `<span class="bg-yellow-400 text-black px-1 ml-1 text-xs animate-pulse">${perkPoints}</span>` : ''}`;
         }
+        
+        // --- 2. RENDER DYNAMIC CONTENT BASED ON MODE ---
 
-        const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2};
-        const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}};
-        document.getElementById('equip-weapon-name').textContent = wpn.name;
-        let wpnStats = `DMG: ${wpn.baseDmg}`;
-        if(wpn.bonus) { for(let s in wpn.bonus) wpnStats += ` ${s}:${wpn.bonus[s]}`; }
-        document.getElementById('equip-weapon-stats').textContent = wpnStats;
-        document.getElementById('equip-body-name').textContent = arm.name;
-        let armStats = "";
-        if(arm.bonus) { for(let s in arm.bonus) armStats += `${s}:${arm.bonus[s]} `; }
-        document.getElementById('equip-body-stats').textContent = armStats || "Kein Bonus";
+        // Update Buttons Styling (Active Tab)
+        const btnStats = document.getElementById('btn-show-stats');
+        if(btnStats && perkBtn) {
+             if(mode === 'stats') {
+                 btnStats.className = "flex-1 py-2 font-bold bg-green-900/40 text-green-400 border border-green-500 transition-colors";
+                 perkBtn.className = "flex-1 py-2 font-bold bg-black text-gray-500 border border-gray-700 hover:text-green-400 transition-colors ml-[-1px]";
+             } else {
+                 btnStats.className = "flex-1 py-2 font-bold bg-black text-gray-500 border border-gray-700 hover:text-green-400 transition-colors";
+                 perkBtn.className = "flex-1 py-2 font-bold bg-green-900/40 text-green-400 border border-green-500 transition-colors ml-[-1px]";
+             }
+        }
+
+        if(mode === 'stats') {
+             grid.style.display = 'block';
+             if(perksContainer) perksContainer.style.display = 'none';
+             
+             const statOrder = ['STR', 'PER', 'END', 'INT', 'AGI', 'LUC'];
+             grid.innerHTML = statOrder.map(k => {
+                const val = Game.getStat(k);
+                const btn = Game.state.statPoints > 0 ? `<button class="w-12 h-12 border-2 border-green-500 bg-green-900/50 text-green-400 font-bold ml-2 flex items-center justify-center hover:bg-green-500 hover:text-black transition-colors" onclick="Game.upgradeStat('${k}', event)" style="font-size: 1.5rem;">+</button>` : '';
+                const label = (typeof window.GameData !== 'undefined' && window.GameData.statLabels && window.GameData.statLabels[k]) ? window.GameData.statLabels[k] : k;
+                return `<div class="flex justify-between items-center border-b border-green-900/30 py-1 h-14"><span>${label}</span> <div class="flex items-center"><span class="text-yellow-400 font-bold mr-4 text-xl">${val}</span>${btn}</div></div>`;
+            }).join('');
+
+        } else {
+             grid.style.display = 'none';
+             if(perksContainer) {
+                 perksContainer.style.display = 'block';
+                 this.renderPerksList(perksContainer);
+             }
+        }
     },
 
     renderPerksList: function(container) {
