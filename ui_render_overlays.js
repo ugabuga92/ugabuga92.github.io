@@ -1,7 +1,7 @@
-// [v0.7.2]
-// [v0.7.2] - 2025-12-28 10:30am (UI & Combat Fixes)
+// [v0.7.7]
+// [v0.7.7] - 2025-12-28 02:30pm (Victory Banner Fix)
 // ------------------------------------------------
-// - Fixed Dungeon Completion Overlay (Added Close Button)
+// - Victory Overlay Z-Index Fix (z-[200])
 
 Object.assign(UI, {
     
@@ -273,22 +273,38 @@ Object.assign(UI, {
         this.refreshFocusables();
     },
 
+    // --- REPLACED: showDungeonVictory (Z-Index Fix) ---
     showDungeonVictory: function(caps, lvl) {
-        if(!this.els.dialog) this.restoreOverlay();
-        if(Game.state) Game.state.inDialog = true;
-        this.els.dialog.innerHTML = '';
-        this.els.dialog.style.display = 'flex';
-        const box = document.createElement('div');
-        box.className = "bg-black border-4 border-yellow-400 p-6 shadow-[0_0_30px_gold] max-w-md text-center mb-4 animate-bounce";
-        box.innerHTML = `
-            <div class="text-6xl mb-2">👑⚔️</div>
-            <h2 class="text-4xl font-bold text-yellow-400 mb-2 tracking-widest text-shadow-gold">VICTORY!</h2>
-            <p class="text-yellow-200 mb-4 font-bold text-lg">DUNGEON (LVL ${lvl}) GECLEARED!</p>
-            <div class="text-2xl text-white font-bold border-t border-b border-yellow-500 py-2 mb-4 bg-yellow-900/30">+${caps} KRONKORKEN</div>
-            <p class="text-xs text-yellow-600 mb-4">Komme in 10 Minuten wieder!</p>
-            <button class="action-button w-full border-yellow-500 text-yellow-500 font-bold hover:bg-yellow-900" onclick="UI.leaveDialog()">ZURÜCK ZUR KARTE</button>
+        // Overlay wird nun direkt in den Body gehängt mit z-index 200
+        const overlay = document.createElement('div');
+        overlay.id = "victory-overlay";
+        overlay.className = "fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 animate-fadeIn";
+        
+        overlay.innerHTML = `
+            <div class="bg-black border-4 border-yellow-400 p-6 shadow-[0_0_30px_gold] max-w-md text-center mb-4 animate-bounce relative">
+                <div class="text-6xl mb-2">👑⚔️</div>
+                <h2 class="text-4xl font-bold text-yellow-400 mb-2 tracking-widest text-shadow-gold">VICTORY!</h2>
+                <p class="text-yellow-200 mb-4 font-bold text-lg">DUNGEON (LVL ${lvl}) GECLEARED!</p>
+                <div class="text-2xl text-white font-bold border-t border-b border-yellow-500 py-2 mb-4 bg-yellow-900/30">+${caps} KRONKORKEN</div>
+                <p class="text-xs text-yellow-600 mb-4">Komme in 10 Minuten wieder!</p>
+                <button id="btn-victory-close" class="action-button w-full border-yellow-500 text-yellow-500 font-bold hover:bg-yellow-900">ZURÜCK ZUR KARTE</button>
+            </div>
         `;
-        this.els.dialog.appendChild(box);
+        
+        document.body.appendChild(overlay);
+        
+        if(Game.state) Game.state.inDialog = true;
+        
+        const btn = document.getElementById('btn-victory-close');
+        if(btn) {
+            btn.onclick = () => {
+                const el = document.getElementById('victory-overlay');
+                if(el) el.remove();
+                if(Game.state) Game.state.inDialog = false;
+                UI.leaveDialog(); // Cleanup für alle Fälle
+            };
+            btn.focus();
+        }
     },
     
     showPermadeathWarning: function() {
