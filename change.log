@@ -1,5 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.7.5] - 2025-12-28 02:00pm (Combat Ammo Fix)
+------------------------------------------------
+- Logic: Fernkampfwaffen verbrauchen nun 1x Munition pro Schuss.
+- Logic: Angriff wird blockiert ("CLICK!"), wenn keine Munition mehr vorhanden ist.
+- Logic: Nahkampfwaffen (Fäuste, Messer, Schläger, etc.) benötigen keine Munition.
+- Feature: 'Mysteriöser Fremder' Perk erhöht nun korrekt die Kritische Trefferchance im Kampf.
+
 [v0.7.4] - 2025-12-28 11:20am (UI Crash Fix)
 ------------------------------------------------
 - CRITICAL FIX: Absturz im Charakter-Menü ("null is not an object") behoben.
