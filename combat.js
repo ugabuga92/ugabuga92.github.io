@@ -1,4 +1,8 @@
-// [v0.6.1]
+// [v0.7.2]
+// [v0.7.2] - 2025-12-28 10:30am (UI & Combat Fixes)
+// ------------------------------------------------
+// - Updated Combat Victory (Auto-close without click)
+
 const Combat = {
     enemy: null,
     log: [],
@@ -162,18 +166,11 @@ const Combat = {
         // Save & Return
         Game.saveGame();
         
-        // Change VATS buttons to "Leave" button or just leave
+        // Auto-close after 1 second
         setTimeout(() => {
-             UI.log("Kampf beendet. Klicke um weiterzugehen...", "text-green-500");
-             // Add a fullscreen click handler or modify a button to leave
-             const zone = document.getElementById('btn-vats-1');
-             if(zone) {
-                 zone.innerHTML = "<div class='text-center text-white'>KAMPF GEWONNEN<br>KLICKEN ZUM WEITERGEHEN</div>";
-                 zone.onclick = () => UI.switchView('map');
-                 zone.classList.remove('border-green-500');
-                 zone.classList.add('border-yellow-400', 'animate-pulse');
-             }
-        }, 500);
+             UI.log("Kampf gewonnen. Kehre zur Karte zurück...", "text-green-500");
+             UI.switchView('map');
+        }, 1000);
     },
 
     defeat: function() {
