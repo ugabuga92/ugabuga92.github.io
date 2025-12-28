@@ -1,4 +1,4 @@
-// [v0.7.0]
+// [v0.7.3]
 // Main View Renderers (Inventory, Map, Screens)
 Object.assign(UI, {
     
@@ -74,7 +74,7 @@ Object.assign(UI, {
                 case 'junk': return '⚙️';
                 case 'component': return '🔩';
                 case 'rare': return '⭐';
-                case 'blueprint': return '📜'; // Neues Icon für Blueprints
+                case 'blueprint': return '📜'; 
                 default: return '📦';
             }
         };
@@ -82,7 +82,6 @@ Object.assign(UI, {
         Game.state.inventory.forEach((entry) => {
             if(entry.count <= 0) return;
             
-            // FIX: Check if item exists
             const item = Game.items[entry.id];
             if(!item) return;
 
@@ -99,7 +98,6 @@ Object.assign(UI, {
             
             btn.onclick = () => {
                  if(item.type === 'junk' || item.type === 'component' || item.type === 'rare') {
-                     // Passive
                  } else {
                      this.showItemConfirm(entry.id);
                  }
@@ -112,10 +110,22 @@ Object.assign(UI, {
         if(totalItems === 0) list.innerHTML = '<div class="col-span-4 text-center text-gray-500 italic mt-10">Leerer Rucksack...</div>';
     },
 
-    renderChar: function() {
+    renderChar: function(mode = 'stats') {
         const grid = document.getElementById('stat-grid');
+        const perksContainer = document.getElementById('perk-container');
         if(!grid) return;
         
+        // Toggle Views
+        if(mode === 'stats') {
+             grid.style.display = 'block';
+             if(perksContainer) perksContainer.style.display = 'none';
+        } else {
+             grid.style.display = 'none';
+             if(perksContainer) perksContainer.style.display = 'block';
+             this.renderPerksList(perksContainer);
+             return; // Stop here for perks view
+        }
+
         const lvlDisplay = document.getElementById('char-lvl');
         if(lvlDisplay) lvlDisplay.textContent = Game.state.lvl;
         
@@ -142,6 +152,13 @@ Object.assign(UI, {
             ptsEl.textContent = pts;
         }
 
+        // Perks Button im Stats Screen
+        const perkPoints = Game.state.perkPoints || 0;
+        const perkBtn = document.getElementById('btn-show-perks');
+        if(perkBtn) {
+             perkBtn.innerHTML = `PERKS ${perkPoints > 0 ? `<span class="bg-yellow-400 text-black px-1 ml-1 text-xs animate-pulse">${perkPoints}</span>` : ''}`;
+        }
+
         const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2};
         const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}};
         document.getElementById('equip-weapon-name').textContent = wpn.name;
@@ -152,6 +169,41 @@ Object.assign(UI, {
         let armStats = "";
         if(arm.bonus) { for(let s in arm.bonus) armStats += `${s}:${arm.bonus[s]} `; }
         document.getElementById('equip-body-stats').textContent = armStats || "Kein Bonus";
+    },
+
+    renderPerksList: function(container) {
+        if(!container) return;
+        container.innerHTML = '';
+        
+        const points = Game.state.perkPoints || 0;
+        
+        container.innerHTML += `<div class="text-center mb-4">VERFÜGBARE PUNKTE: <span class="text-yellow-400 font-bold text-xl">${points}</span></div>`;
+
+        if(Game.perkDefs) {
+            Game.perkDefs.forEach(p => {
+                const hasPerk = Game.state.perks && Game.state.perks.includes(p.id);
+                const canAfford = points > 0 && !hasPerk;
+                
+                let btnHtml = '';
+                if(hasPerk) btnHtml = '<span class="text-green-500 font-bold border border-green-500 px-2 py-1 text-xs">GELERNT</span>';
+                else if(canAfford) btnHtml = `<button class="action-button text-xs px-2 py-1" onclick="Game.choosePerk('${p.id}')">LERNEN</button>`;
+                else btnHtml = '<span class="text-gray-600 text-xs">---</span>';
+
+                const div = document.createElement('div');
+                div.className = `border border-green-900 bg-green-900/10 p-2 mb-2 flex justify-between items-center ${hasPerk ? 'opacity-70' : ''}`;
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">${p.icon}</span>
+                        <div class="flex flex-col">
+                            <span class="font-bold ${hasPerk ? 'text-green-300' : 'text-white'}">${p.name}</span>
+                            <span class="text-xs text-green-500">${p.desc}</span>
+                        </div>
+                    </div>
+                    <div>${btnHtml}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
     },
     
     renderWorldMap: function() {
