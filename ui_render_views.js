@@ -1,4 +1,4 @@
-// [v0.8.1]
+// [v0.8.2]
 // Main View Renderers (Inventory, Map, Screens)
 Object.assign(UI, {
     
@@ -75,7 +75,7 @@ Object.assign(UI, {
                 case 'component': return '🔩';
                 case 'rare': return '⭐';
                 case 'blueprint': return '📜'; 
-                case 'tool': return '⛺'; 
+                case 'tool': return '⛺';
                 default: return '📦';
             }
         };
@@ -239,6 +239,7 @@ Object.assign(UI, {
         }
     },
     
+    // [v0.8.0] Camp Renderer
     renderCamp: function() {
         const camp = Game.state.camp;
         if(!camp) { this.switchView('map'); return; }
@@ -688,6 +689,83 @@ Object.assign(UI, {
         });
     },
 
+    renderClinic: function() {
+        let container = document.getElementById('clinic-list');
+        if(!container) {
+             this.els.view.innerHTML = `<div class="p-4 flex flex-col items-center"><h2 class="text-2xl text-green-500 mb-4">DR. ZIMMERMANN</h2><div id="clinic-list" class="w-full max-w-md"></div></div>`;
+             container = document.getElementById('clinic-list');
+        }
+        
+        container.innerHTML = '';
+        const backBtn = document.createElement('button');
+        backBtn.className = "action-button w-full mb-4 text-center border-yellow-400 text-yellow-400";
+        backBtn.textContent = "SPEICHERN & ZURÜCK";
+        backBtn.onclick = () => { Game.saveGame(); this.switchView('map'); };
+        container.appendChild(backBtn);
+
+        const healBtn = document.createElement('button');
+        healBtn.className = "action-button w-full mb-4 py-4 flex flex-col items-center border-red-500 text-red-500";
+        healBtn.innerHTML = `<span class="text-2xl mb-2">💊</span><span class="font-bold">VOLLSTÄNDIGE HEILUNG</span><span class="text-sm">25 Kronkorken</span>`;
+        if(Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp) { 
+            healBtn.disabled = true; healBtn.style.opacity = 0.5; 
+            if(Game.state.hp >= Game.state.maxHp) healBtn.innerHTML += `<br><span class="text-xs text-green-500">(HP VOLL)</span>`;
+        }
+        else { healBtn.onclick = () => Game.heal(); }
+        container.appendChild(healBtn);
+    },
+
+    // [v0.8.2] WIEDERHERGESTELLT
+    renderCombat: function() {
+        const enemy = Game.state.enemy;
+        if(!enemy) return;
+        
+        const nameEl = document.getElementById('enemy-name');
+        if(nameEl) nameEl.textContent = enemy.name;
+        
+        document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`;
+        document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`;
+        
+        // UPDATE VATS CHANCES
+        if(typeof Combat !== 'undefined' && typeof Combat.calculateHitChance === 'function') {
+             const cHead = Combat.calculateHitChance(0);
+             const cTorso = Combat.calculateHitChance(1);
+             const cLegs = Combat.calculateHitChance(2);
+             
+             const elHead = document.getElementById('chance-vats-0');
+             const elTorso = document.getElementById('chance-vats-1');
+             const elLegs = document.getElementById('chance-vats-2');
+             
+             if(elHead) elHead.textContent = cHead + "%";
+             if(elTorso) elTorso.textContent = cTorso + "%";
+             if(elLegs) elLegs.textContent = cLegs + "%";
+        }
+    },
+    
+    // [v0.8.2] WIEDERHERGESTELLT
+    renderSpawnList: function(players) {
+        if(!this.els.spawnList) return;
+        this.els.spawnList.innerHTML = '';
+        if(Object.keys(players).length === 0) {
+            this.els.spawnList.innerHTML = '<div class="text-gray-500 italic">Keine Signale gefunden...</div>';
+            return;
+        }
+        for(let pid in players) {
+            const p = players[pid];
+            const btn = document.createElement('button');
+            btn.className = "action-button w-full mb-2 text-left text-xs";
+            btn.innerHTML = `SIGNAL: ${p.name} <span class="float-right">[${p.sector.x},${p.sector.y}]</span>`;
+            btn.onclick = () => {
+                this.els.spawnScreen.style.display = 'none';
+                this.startGame(null, this.selectedSlot, null);
+                Game.state.player.x = p.x;
+                Game.state.player.y = p.y;
+                Game.state.sector = p.sector;
+                Game.changeSector(p.sector.x, p.sector.y);
+            };
+            this.els.spawnList.appendChild(btn);
+        }
+    },
+
     renderCrafting: function() {
         const container = document.getElementById('crafting-list');
         if(!container) return;
@@ -699,14 +777,12 @@ Object.assign(UI, {
         backBtn.onclick = () => { Game.saveGame(); this.switchView('map'); };
         container.appendChild(backBtn);
         
-        // FIX: Safety check for recipes array
         const recipes = Game.recipes || [];
-        let knownCount = 0; // Zähler für bekannte Rezepte
+        let knownCount = 0; 
 
         recipes.forEach(recipe => {
-            // FILTER: Zeige nur bekannte Rezepte (oder alle im Debug Mode)
             if(Game.state.knownRecipes && !Game.state.knownRecipes.includes(recipe.id)) {
-                return; // Überspringen
+                return; 
             }
             knownCount++;
 
