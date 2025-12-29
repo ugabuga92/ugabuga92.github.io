@@ -1,4 +1,4 @@
-// [v0.7.1]
+// [v0.9.1]
 // Map Logic, Movement & Transitions
 Object.assign(Game, {
     reveal: function(px, py) { 
@@ -51,8 +51,9 @@ Object.assign(Game, {
         if (tile === 'X') { this.openChest(nx, ny); return; } 
         if (tile === 'v') { this.descendDungeon(); return; }
 
-        // --- KOLLISION ---
-        if(['M', 'W', '#', 'U', 't', 'o', 'Y', '|', 'F', 'T', 'R'].includes(tile) && tile !== 'M' && tile !== 'R' && tile !== 'T') { 
+        // --- KOLLISION [v0.9.1] ---
+        // 'M' (Berg) und 'T' (Baum) sind jetzt echte Hindernisse ohne Ausnahme. 'R' bleibt Ausnahme (Raider Base).
+        if(['M', 'W', '#', 'U', 't', 'o', 'Y', '|', 'F', 'T', 'R'].includes(tile) && tile !== 'R') { 
             // Sonderfall: Suche im Objekt
             if(this.state.hiddenItems && this.state.hiddenItems[posKey]) {
                  const itemId = this.state.hiddenItems[posKey];
@@ -78,14 +79,15 @@ Object.assign(Game, {
         this.reveal(nx, ny);
         if(typeof Network !== 'undefined') Network.sendHeartbeat();
 
-        // --- POI EVENTS ---
+        // --- POI EVENTS [v0.9.1] ---
         if(tile === 'V') { UI.switchView('vault'); return; }
         if(tile === 'C') { this.enterCity(); return; } 
         if(tile === 'S') { this.tryEnterDungeon("market"); return; }
         if(tile === 'H') { this.tryEnterDungeon("cave"); return; }
-        if(tile === 'M') { this.tryEnterDungeon("military"); return; }
+        // NEW IDS: A = Army, K = Kommunikation/Tower
+        if(tile === 'A') { this.tryEnterDungeon("military"); return; }
         if(tile === 'R') { this.tryEnterDungeon("raider"); return; }
-        if(tile === 'T') { this.tryEnterDungeon("tower"); return; }
+        if(tile === 'K') { this.tryEnterDungeon("tower"); return; }
         
         if(['.', ',', '_', ';', '"', '+', 'x', 'B'].includes(tile)) {
             if(Math.random() < 0.04) { 
@@ -228,7 +230,8 @@ Object.assign(Game, {
         const isSafe = (x, y) => {
             if(x < 0 || x >= this.MAP_W || y < 0 || y >= this.MAP_H) return false;
             const t = this.state.currentMap[y][x];
-            return !['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F', 'R'].includes(t);
+            // [v0.9.1] A and K are POIs, not unsafe obstacles per se, but better spawn near not on
+            return !['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F', 'R', 'A', 'K'].includes(t);
         };
         if(isSafe(this.state.player.x, this.state.player.y)) return;
         const rMax = 6;
