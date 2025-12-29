@@ -1,4 +1,4 @@
-// [v0.4.9] 
+// [v0.9.1] 
 const UI = {
     els: {},
     timerInterval: null,
@@ -95,6 +95,9 @@ const UI = {
             btnMap: document.getElementById('btn-map'),
             btnChar: document.getElementById('btn-char'),
             btnQuests: document.getElementById('btn-quests'),
+            // [v0.9.1] NEU
+            btnRadio: document.getElementById('btn-radio'),
+            
             btnSave: document.getElementById('btn-save'),
             btnMenuSave: document.getElementById('btn-menu-save'),
             btnLogout: document.getElementById('btn-logout'),
@@ -140,7 +143,6 @@ const UI = {
             gameOver: document.getElementById('game-over-screen')
         };
         
-        // [v0.4.9] Inventory Alert Reset Listener
         if(this.els.btnInv) {
              this.els.btnInv.addEventListener('click', () => this.resetInventoryAlert());
         }
@@ -148,14 +150,12 @@ const UI = {
         window.Game = Game;
         window.UI = this;
 
-        // Initialize Sub-Modules
         if(this.initInput) this.initInput();
         
         if(this.timerInterval) clearInterval(this.timerInterval);
         this.timerInterval = setInterval(() => this.updateTimer(), 1000);
     },
     
-    // [v0.4.9] Alert Methods
     triggerInventoryAlert: function() {
         if(this.els.btnInv) this.els.btnInv.classList.add('alert-glow-yellow');
         if(this.els.btnMenu) this.els.btnMenu.classList.add('alert-glow-yellow');
@@ -166,7 +166,6 @@ const UI = {
         if(this.els.btnMenu) this.els.btnMenu.classList.remove('alert-glow-yellow');
     },
 
-    // Logic Functions
     isMobile: function() {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
     },
@@ -238,7 +237,6 @@ const UI = {
         }
     },
 
-    // Actions
     handleSaveClick: function() {
         Game.saveGame(true);
         [this.els.btnSave, this.els.btnMenuSave].forEach(btn => {
@@ -273,7 +271,6 @@ const UI = {
         }
     },
     
-    // Character Slot Logic
     selectSlot: function(index) {
         this.selectedSlot = index;
         const slots = this.els.charSlotsList.children;
@@ -283,7 +280,6 @@ const UI = {
         const save = this.currentSaves[index];
         if (this.els.btnCharSelectAction) {
             if (save) {
-                // UPDATE: Action Buttons Logic
                 this.els.btnCharSelectAction.textContent = "SPIEL LADEN";
                 this.els.btnCharSelectAction.className = "action-button w-full border-green-500 text-green-500 font-bold py-3 mb-2";
                 if(this.els.btnCharDeleteAction) {
