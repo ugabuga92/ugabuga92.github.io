@@ -1,5 +1,12 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.9.1] - 2025-12-29 06:00pm (Bugfix: Map Collision & POI IDs) ------------------------
+- Fix: Berge (M) und Dschungel-Bäume (T) lösen nicht mehr fälschlicherweise Dungeons aus.
+- Neu: POI ID für Militärbasis von 'M' zu 'A' (Army Base) geändert.
+- Neu: POI ID für Funkturm von 'T' zu 'K' (Kommunikation) geändert.
+- Map: Kollisionsabfrage aktualisiert, um Gelände von begehbaren POIs zu trennen.
+- Data: Farben für die neuen POIs (A, K) hinzugefügt.
+
 [v0.9.0] - 2025-12-28 10:30pm (Radio & Loot Update)
 ------------------------------------------------
 - Feature: 'Radio' Tab hinzugefügt (To-Do #2).
