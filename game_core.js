@@ -1,7 +1,6 @@
-// [v0.9.0]
+// [v0.9.3]
 window.Game = {
-    TILE: 30, MAP_W: 40, MAP_H: 40,
-    WORLD_W: 10, WORLD_H: 10, 
+    TILE: 30, MAP_W: 40, MAP_H: 40, WORLD_W: 10, WORLD_H: 10, 
     
     colors: (typeof window.GameData !== 'undefined') ? window.GameData.colors : {},
     items: (typeof window.GameData !== 'undefined') ? window.GameData.items : {},
@@ -9,39 +8,11 @@ window.Game = {
     recipes: (typeof window.GameData !== 'undefined') ? window.GameData.recipes : [],
     perkDefs: (typeof window.GameData !== 'undefined') ? window.GameData.perks : [],
 
-    // [v0.9.0] Radio Data
+    // [v0.9.0] Radio Data (Local)
     radioStations: [
-        {
-            name: "GALAXY NEWS",
-            freq: "101.5",
-            tracks: [
-                "Nachrichten: Supermutanten in Sektor 7 gesichtet...",
-                "Song: 'I Don't Want to Set the World on Fire'",
-                "Three Dog: 'Kämpft den guten Kampf!'",
-                "Song: 'Maybe'",
-                "Werbung: Nuka Cola - Trink das Strahlen!"
-            ]
-        },
-        {
-            name: "ENCLAVE RADIO",
-            freq: "98.2",
-            tracks: [
-                "Präsident Eden: 'Die Wiederherstellung Amerikas...'",
-                "Marschmusik: 'Stars and Stripes Forever'",
-                "Präsident Eden: 'Vertraut eurem Präsidenten.'",
-                "Hymne: 'America the Beautiful'"
-            ]
-        },
-        {
-            name: "KLASSIK FM",
-            freq: "88.0",
-            tracks: [
-                "Agatha: 'Eine Melodie für das Ödland...'",
-                "Violin Solo No. 4",
-                "Bach: Cello Suite",
-                "Stille (Rauschen)"
-            ]
-        }
+        { name: "GALAXY NEWS", freq: "101.5", tracks: ["Nachrichten: Supermutanten...", "Song: 'Way Back Home'", "Three Dog: 'Awooo!'"] },
+        { name: "ENCLAVE RADIO", freq: "98.2", tracks: ["Präsident Eden: 'Einheit.'", "Hymne: 'Battle Hymn'", "Marschmusik"] },
+        { name: "KLASSIK FM", freq: "88.0", tracks: ["Agatha: 'Violin Solo'", "Bach: Air", "Statisches Rauschen"] }
     ],
 
     // [v0.9.0] Loot Prefixes
@@ -86,30 +57,43 @@ window.Game = {
         this.initCache();
         try {
             let isNewGame = false;
+            // Standard POIs
             const defaultPOIs = [ {type: 'V', x: 4, y: 4}, {type: 'C', x: 3, y: 3}, {type: 'M', x: 8, y: 1}, {type: 'R', x: 1, y: 8}, {type: 'T', x: 9, y: 9} ];
 
             if (saveData) {
                 this.state = saveData;
-                // Checks
+                // Init missing states
                 if(!this.state.explored) this.state.explored = {};
-                if(!this.state.view) this.state.view = 'map';
-                
-                // [v0.9.0] Init Radio State
                 if(!this.state.radio) this.state.radio = { on: false, station: 0, trackIndex: 0 };
-
                 if(!this.state.camp) this.state.camp = null;
                 if(!this.state.knownRecipes) this.state.knownRecipes = ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp']; 
                 if(!this.state.perks) this.state.perks = [];
-                
+                // [v0.9.3] Dungeons check
+                if(!this.state.dungeons) this.state.dungeons = []; 
+
                 this.state.saveSlot = slotIndex;
                 UI.log(">> Spielstand geladen.", "text-cyan-400");
             } else {
                 isNewGame = true;
+                
+                // [v0.9.3] GENERATE RANDOM DUNGEONS
+                // Wir erzeugen 5 zufällige Dungeons, die nicht auf POIs liegen
+                let dungeons = [];
+                for(let i=0; i<5; i++) {
+                    let dx = Math.floor(Math.random() * 10);
+                    let dy = Math.floor(Math.random() * 10);
+                    // Einfacher Check gegen POIs
+                    if(!defaultPOIs.some(p => p.x === dx && p.y === dy)) {
+                        dungeons.push({ x: dx, y: dy, cleared: false });
+                    }
+                }
+
                 this.state = {
                     saveSlot: slotIndex,
                     playerName: newName || "SURVIVOR",
                     sector: {x: 4, y: 4}, startSector: {x: 4, y: 4},
                     worldPOIs: defaultPOIs,
+                    dungeons: dungeons, // [v0.9.3] NEU
                     player: {x: 20, y: 20, rot: 0},
                     stats: { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 }, 
                     equip: { weapon: this.items.fists, body: this.items.vault_suit },
@@ -117,7 +101,6 @@ window.Game = {
                     hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0, 
                     perkPoints: 0, perks: [], 
                     camp: null, 
-                    // [v0.9.0] Radio Init
                     radio: { on: false, station: 0, trackIndex: 0 },
                     kills: 0, 
                     view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, 
@@ -164,19 +147,12 @@ window.Game = {
     getStat: function(key) {
         if(!this.state) return 5;
         let val = this.state.stats[key] || 5;
-        
-        // Check Armor Bonus
-        if(this.state.equip.body && this.state.equip.body.bonus && this.state.equip.body.bonus[key]) 
-            val += this.state.equip.body.bonus[key];
-        
-        // Check Weapon Bonus (NEU: Präfixe können auch Bonus geben)
+        if(this.state.equip.body && this.state.equip.body.bonus && this.state.equip.body.bonus[key]) val += this.state.equip.body.bonus[key];
         const wpn = this.state.equip.weapon;
         if(wpn) {
             if(wpn.bonus && wpn.bonus[key]) val += wpn.bonus[key];
-            // Präzise Waffe?
             if(wpn.props && wpn.props.bonus && wpn.props.bonus[key]) val += wpn.props.bonus[key];
         }
-
         return val;
     },
 
@@ -205,25 +181,17 @@ window.Game = {
     generateLoot: function(baseId) {
         const itemDef = this.items[baseId];
         if(!itemDef || itemDef.type !== 'weapon') return { id: baseId, count: 1 };
-
         const roll = Math.random();
         let prefixKey = null;
-
-        // Chances
-        if(roll < 0.3) prefixKey = 'rusty';      // 30% Rostig
-        else if(roll < 0.45) prefixKey = 'precise'; // 15% Präzise
-        else if(roll < 0.55) prefixKey = 'hardened';// 10% Gehärtet
-        else if(roll < 0.58) prefixKey = 'radiated';// 3% Verstrahlt
-        else if(roll < 0.60) prefixKey = 'legendary';// 2% Legendär (sehr selten)
-        
-        if(!prefixKey) return { id: baseId, count: 1 }; // Normal
-
+        if(roll < 0.3) prefixKey = 'rusty';      
+        else if(roll < 0.45) prefixKey = 'precise'; 
+        else if(roll < 0.55) prefixKey = 'hardened';
+        else if(roll < 0.58) prefixKey = 'radiated';
+        else if(roll < 0.60) prefixKey = 'legendary';
+        if(!prefixKey) return { id: baseId, count: 1 }; 
         const prefixDef = this.lootPrefixes[prefixKey];
-        
-        // Neues Item Objekt bauen
-        const newItem = {
-            id: baseId,
-            count: 1,
+        return {
+            id: baseId, count: 1,
             props: {
                 prefix: prefixKey,
                 name: `${prefixDef.name} ${itemDef.name}`,
@@ -233,7 +201,5 @@ window.Game = {
                 color: prefixDef.color
             }
         };
-        
-        return newItem;
     }
 };
