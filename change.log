@@ -1,5 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.8.1] - 2025-12-28 08:00pm (Fixes & Manual Update)
+------------------------------------------------
+- Fix: Marktplatz-Button in der Stadt öffnet nun korrekt den Händler (Render-Call hinzugefügt).
+- Fix: Standard-Rezepte (Munition, Stimpack Simple) sind nun bei Spielstart bekannt.
+- UI: Shop-Layout optimiert (Texte horizontal fixiert, Preise ausgerichtet).
+- Content: Neue, ausführliche Anleitung (readme.md) erstellt.
+- Fix: 'views/camp.html' erneut bereitgestellt, um Ladefehler zu beheben.
+
 [v0.8.0] - 2025-12-28 06:45pm (Camp System Beta)
 ------------------------------------------------
 - Feature: Camp-System implementiert (To-Do #4).
