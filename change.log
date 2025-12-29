@@ -1,5 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.8.2] - 2025-12-28 09:00pm (Hotfix - Missing Functions)
+------------------------------------------------
+- CRITICAL FIX: 'renderCombat', 'renderClinic' und 'renderSpawnList' wiederhergestellt.
+- Fix: Kampf-Bildschirm lädt nun wieder korrekt ohne Absturz.
+- Fix: Alle vorherigen UI-Verbesserungen (Camp, Shop-Layout) sind weiterhin enthalten.
+
 [v0.8.1] - 2025-12-28 08:00pm (Fixes & Manual Update)
 ------------------------------------------------
 - Fix: Marktplatz-Button in der Stadt öffnet nun korrekt den Händler (Render-Call hinzugefügt).
