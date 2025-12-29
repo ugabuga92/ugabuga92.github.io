@@ -1,5 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+v0.9.2] - 2025-12-29 07:10pm (Camp Overhaul & Animation) --------------------------
+- Neu: ASCII-Animation für das Lager (Zelt + flackerndes Feuer).
+- Neu: Interaktionen 'Ausruhen' (Heilung + Zeit) und 'Lager abbauen'.
+- UI: 'Zelt betreten'-Button auf dem Hauptbildschirm (links neben der Map) hinzugefügt.
+- Fix: Lager-View zeigt jetzt korrekten Inhalt statt nur 'sh'.
+
 [v0.9.1] - 2025-12-29 06:00pm (Bugfix: Map Collision & POI IDs) ------------------------
 - Fix: Berge (M) und Dschungel-Bäume (T) lösen nicht mehr fälschlicherweise Dungeons aus.
 - Neu: POI ID für Militärbasis von 'M' zu 'A' (Army Base) geändert.
