@@ -1,5 +1,5 @@
-// [v0.8.2]
-// Main View Renderers (Inventory, Map, Screens)
+// [v0.9.0]
+// Main View Renderers (Inventory, Map, Screens, Radio)
 Object.assign(UI, {
     
     renderCharacterSelection: function(saves) {
@@ -42,6 +42,7 @@ Object.assign(UI, {
         this.selectSlot(0);
     },
 
+    // [v0.9.0] Updated Inventory: Displays Prefixes & Colors
     renderInventory: function() {
         const list = document.getElementById('inventory-list');
         const countDisplay = document.getElementById('inv-count');
@@ -54,6 +55,7 @@ Object.assign(UI, {
         
         let totalItems = 0;
         
+        // Ammo Display
         if(Game.state.ammo > 0) {
             totalItems += Game.state.ammo;
             const ammoBtn = document.createElement('div');
@@ -80,7 +82,7 @@ Object.assign(UI, {
             }
         };
 
-        Game.state.inventory.forEach((entry) => {
+        Game.state.inventory.forEach((entry, index) => {
             if(entry.count <= 0) return;
             
             const item = Game.items[entry.id];
@@ -91,16 +93,29 @@ Object.assign(UI, {
             const btn = document.createElement('div');
             btn.className = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center cursor-pointer hover:bg-green-500 hover:text-black transition-colors group";
             
+            // Name & Color Handling (Dynamic Loot)
+            let displayName = item.name;
+            let extraClass = "";
+
+            if(entry.props) {
+                displayName = entry.props.name;
+                if(entry.props.color) {
+                    extraClass = entry.props.color; // z.B. "text-yellow-400"
+                }
+            }
+
             btn.innerHTML = `
                 <div class="text-2xl">${getIcon(item.type)}</div>
-                <div class="text-[10px] truncate max-w-full px-1 font-bold">${item.name}</div>
+                <div class="text-[10px] truncate max-w-full px-1 font-bold ${extraClass}">${displayName}</div>
                 <div class="absolute top-0 right-0 bg-green-900 text-white text-[10px] px-1 font-mono">${entry.count}</div>
             `;
             
+            // Nutze den Index für useItem, um das korrekte Item (auch Uniques) zu erwischen
             btn.onclick = () => {
                  if(item.type === 'junk' || item.type === 'component' || item.type === 'rare') {
+                     // Passiv Items
                  } else {
-                     this.showItemConfirm(entry.id);
+                     Game.useItem(index);
                  }
             };
 
@@ -143,7 +158,7 @@ Object.assign(UI, {
             }
         }
         
-        // Equipment Info
+        // Equipment Info (Updated for Dynamic Names)
         const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2};
         const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}};
         const elWpnName = document.getElementById('equip-weapon-name');
@@ -151,13 +166,15 @@ Object.assign(UI, {
         const elArmName = document.getElementById('equip-body-name');
         const elArmStats = document.getElementById('equip-body-stats');
 
-        if(elWpnName) elWpnName.textContent = wpn.name;
+        if(elWpnName) elWpnName.textContent = wpn.props ? wpn.props.name : wpn.name;
         if(elWpnStats) {
-            let wpnStats = `DMG: ${wpn.baseDmg}`;
+            let dmg = wpn.baseDmg;
+            if(wpn.props && wpn.props.dmgMult) dmg = Math.floor(dmg * wpn.props.dmgMult);
+            let wpnStats = `DMG: ${dmg}`;
             if(wpn.bonus) { for(let s in wpn.bonus) wpnStats += ` ${s}:${wpn.bonus[s]}`; }
             elWpnStats.textContent = wpnStats;
         }
-        if(elArmName) elArmName.textContent = arm.name;
+        if(elArmName) elArmName.textContent = arm.props ? arm.props.name : arm.name;
         if(elArmStats) {
             let armStats = "";
             if(arm.bonus) { for(let s in arm.bonus) armStats += `${s}:${arm.bonus[s]} `; }
@@ -239,7 +256,65 @@ Object.assign(UI, {
         }
     },
     
-    // [v0.8.0] Camp Renderer
+    // [v0.9.0] Radio Renderer (NEU)
+    renderRadio: function() {
+        const btnToggle = document.getElementById('btn-radio-toggle');
+        const stationName = document.getElementById('radio-station-name');
+        const status = document.getElementById('radio-status');
+        const hz = document.getElementById('radio-hz');
+        const track = document.getElementById('radio-track');
+        const waves = document.getElementById('radio-waves');
+
+        if(!btnToggle) return; // Nicht auf Radio View
+
+        const isOn = Game.state.radio.on;
+        
+        if(isOn) {
+            btnToggle.textContent = "AUSSCHALTEN";
+            btnToggle.classList.replace('text-green-500', 'text-red-500');
+            btnToggle.classList.replace('border-green-500', 'border-red-500');
+            
+            const currentStation = Game.radioStations[Game.state.radio.station];
+            if(stationName) stationName.textContent = currentStation.name;
+            if(status) status.textContent = "SIGNAL STABLE - STEREO";
+            if(hz) hz.textContent = currentStation.freq;
+            
+            // Track Simulation
+            const trackList = currentStation.tracks;
+            const now = Math.floor(Date.now() / 10000); // Demo: Track change alle 10s
+            const tIndex = now % trackList.length;
+            if(track) track.textContent = "♪ " + trackList[tIndex] + " ♪";
+            
+            // Visualizer Animation
+            if(waves) {
+                waves.innerHTML = '';
+                for(let i=0; i<20; i++) {
+                    const h = Math.floor(Math.random() * 80) + 10;
+                    const bar = document.createElement('div');
+                    bar.className = "w-1 bg-green-500 transition-all duration-100";
+                    bar.style.height = `${h}%`;
+                    waves.appendChild(bar);
+                }
+            }
+
+        } else {
+            btnToggle.textContent = "EINSCHALTEN";
+            btnToggle.classList.replace('text-red-500', 'text-green-500');
+            btnToggle.classList.replace('border-red-500', 'border-green-500');
+            
+            if(stationName) stationName.textContent = "OFFLINE";
+            if(status) status.textContent = "NO SIGNAL";
+            if(hz) hz.textContent = "00.0";
+            if(track) track.textContent = "...";
+            if(waves) waves.innerHTML = '';
+        }
+        
+        // Loop render if on
+        if(isOn && Game.state.view === 'radio') {
+            setTimeout(() => this.renderRadio(), 200); 
+        }
+    },
+
     renderCamp: function() {
         const camp = Game.state.camp;
         if(!camp) { this.switchView('map'); return; }
@@ -582,7 +657,7 @@ Object.assign(UI, {
         
         addBtn("🏥", "KLINIK", healSub, () => UI.switchView('clinic'), !canHeal);
         
-        // [v0.8.1] Fix: Call renderShop after switching view
+        // Fix: Call renderShop after switching view
         addBtn("🛒", "MARKTPLATZ", "Waffen, Rüstung & Munition", () => UI.switchView('shop').then(() => UI.renderShop()));
         
         addBtn("🛠️", "WERKBANK", "Gegenstände herstellen", () => this.toggleView('crafting'));
@@ -618,7 +693,7 @@ Object.assign(UI, {
         };
         container.appendChild(backBtn);
 
-        // [v0.8.1] Helper for Shop Items (Fixed Layout)
+        // Helper for Shop Items (Fixed Layout)
         const addShopItem = (itemKey, item) => {
             const canAfford = Game.state.caps >= item.cost;
             const isEquipped = (Game.state.equip[item.slot] && Game.state.equip[item.slot].name === item.name);
@@ -714,7 +789,6 @@ Object.assign(UI, {
         container.appendChild(healBtn);
     },
 
-    // [v0.8.2] WIEDERHERGESTELLT
     renderCombat: function() {
         const enemy = Game.state.enemy;
         if(!enemy) return;
@@ -741,7 +815,6 @@ Object.assign(UI, {
         }
     },
     
-    // [v0.8.2] WIEDERHERGESTELLT
     renderSpawnList: function(players) {
         if(!this.els.spawnList) return;
         this.els.spawnList.innerHTML = '';
