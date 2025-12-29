@@ -1,15 +1,14 @@
 🐛 Aktuelle Bugs & Anpassungen:
 
-- Mauer sind dungeon  eingänge?!
-auf der Weltkarte soll die kachel leuchten wenn es ein zufalls dungeon gibt
+- auf der Weltkarte soll die kachel leuchten wenn es ein zufalls dungeon gibt
 - Lager zeigt nur sh an und nichts anderes, sie screenshot
-
-
 - Nuka Cola gibt Tp und ein Kronkornen pro benutzen
-- Rad Away muss funktionsfähig werden. overlay über TP. 
-strahlung ins spiel einfpgen. bei Strahlung wird ser TP Balken von rechts kleiner und rot als strahlung angezeigt. 
 - zelt betreten icon auf hauptbildschirm links von der weltkarte
 - Charakter auswahl über nochmals draufdrücken, also auch ohne button drücken.
+
+
+- Rad Away muss funktionsfähig werden. overlay über TP. 
+strahlung ins spiel einfpgen. bei Strahlung wird ser TP Balken von rechts kleiner und rot als strahlung angezeigt. 
 
 - Stimpk benutzen soll fragen ob nur 1 oder so viele (anzahl x, bis TP voll)  bis man komplett geheilt ist 
 
