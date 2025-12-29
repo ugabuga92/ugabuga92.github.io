@@ -1,4 +1,4 @@
-// [v0.9.0]
+// [v0.9.3]
 Object.assign(Game, {
     
     // --- BASIC ACTIONS ---
@@ -297,6 +297,8 @@ Object.assign(Game, {
 
     choosePerk: function(perkId) {
         if(this.state.perkPoints > 0 && !this.state.perks.includes(perkId)) {
+
+
             const perk = this.perkDefs.find(p => p.id === perkId);
             if(!perk) return;
 
@@ -343,17 +345,15 @@ Object.assign(Game, {
         }
 
         UI.log("⛺ Lager errichtet!", "text-green-400 font-bold");
-        UI.update();
-        UI.renderWorldMap(); 
+        UI.switchView('camp'); // Direkt betreten
         this.saveGame();
     },
 
     enterCamp: function() {
         if(!this.state.camp) return;
         const c = this.state.camp;
-        if(c.sector.x !== this.state.sector.x || c.sector.y !== this.state.sector.y || 
-           Math.abs(c.x - this.state.player.x) > 1 || Math.abs(c.y - this.state.player.y) > 1) {
-            UI.log("Du bist zu weit weg.", "text-red-500");
+        if(c.sector.x !== this.state.sector.x || c.sector.y !== this.state.sector.y) {
+            UI.log("Dein Lager ist in einem anderen Sektor.", "text-red-500");
             return;
         }
         UI.switchView('camp');
@@ -374,11 +374,10 @@ Object.assign(Game, {
         }
 
         this.state.hp = Math.min(this.state.maxHp, this.state.hp + amount);
-        UI.log(`Ausgeruht. +${amount} HP regeneriert.`, "text-green-400");
+        UI.log(`Ausgeruht am Feuer... +${amount} HP.`, "text-green-400 animate-pulse");
         
         this.saveGame();
         UI.update();
-        UI.renderCamp();
     },
 
     upgradeCamp: function() {
@@ -402,21 +401,19 @@ Object.assign(Game, {
         this.state.camp.level++;
         UI.log(`Lager auf Level ${this.state.camp.level} verbessert!`, "text-yellow-400 font-bold");
         this.saveGame();
-        UI.renderCamp();
+        UI.renderCamp(); // Falls renderCamp genutzt wird
     },
 
-    breakCamp: function() {
-        if(confirm("Lager abbauen? (Ressourcen gehen verloren)")) {
-            this.state.camp = null;
-            if(Math.random() < 0.5) {
-                this.addToInventory('camp_kit', 1);
-                UI.log("Zelt-Bausatz geborgen.", "text-green-400");
-            } else {
-                UI.log("Zelt beim Abbau zerstört.", "text-red-400");
-                this.addToInventory('cloth', 2); 
-            }
-            UI.switchView('map');
-        }
+    // [v0.9.3] Replaces breakCamp with packCamp (Guaranteed return)
+    packCamp: function() {
+        if(!this.state.camp) return;
+        
+        this.state.camp = null;
+        this.addToInventory('camp_kit', 1);
+        
+        UI.log("Zelt zusammengepackt und verstaut.", "text-yellow-400");
+        UI.switchView('map');
+        this.saveGame();
     },
 
     // --- RADIO ACTIONS (NEU) ---
