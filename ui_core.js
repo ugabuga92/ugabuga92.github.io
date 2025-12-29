@@ -1,4 +1,4 @@
-// [v0.9.6] - Fix: Loading Screen Hang
+// [v0.9.1] 
 const UI = {
     els: {},
     timerInterval: null,
@@ -16,7 +16,7 @@ const UI = {
     // Focus System
     focusIndex: -1,
     focusableEls: [],
-    inputMethod: 'touch', 
+    inputMethod: 'touch', // 'touch' by default to avoid auto-focus on mobile
 
     // Utils
     log: function(msg, color="text-green-500") {
@@ -95,6 +95,7 @@ const UI = {
             btnMap: document.getElementById('btn-map'),
             btnChar: document.getElementById('btn-char'),
             btnQuests: document.getElementById('btn-quests'),
+            // [v0.9.1] NEU
             btnRadio: document.getElementById('btn-radio'),
             
             btnSave: document.getElementById('btn-save'),
@@ -180,7 +181,7 @@ const UI = {
         if(this.isMobile()) {
             this.showMobileControlsHint();
         }
-        if(typeof Network !== 'undefined') Network.startPresence();
+        Network.startPresence();
     },
 
     logout: function(msg) {
@@ -270,39 +271,24 @@ const UI = {
         }
     },
     
-    // [v0.9.5] Tap-to-Load Logic
     selectSlot: function(index) {
-        // If clicking the ALREADY selected slot -> Load Game immediately
-        if(this.selectedSlot === index) {
-            this.triggerCharSlot();
-            return;
-        }
-
         this.selectedSlot = index;
-        if(this.els.charSlotsList && this.els.charSlotsList.children) {
-            const slots = this.els.charSlotsList.children;
-            for(let s of slots) s.classList.remove('active-slot');
-            if(slots[index]) slots[index].classList.add('active-slot');
-        }
+        const slots = this.els.charSlotsList.children;
+        for(let s of slots) s.classList.remove('active-slot');
+        if(slots[index]) slots[index].classList.add('active-slot');
         
-        const save = this.currentSaves ? this.currentSaves[index] : null;
+        const save = this.currentSaves[index];
         if (this.els.btnCharSelectAction) {
             if (save) {
-                // HIDE the load button (user wants to tap)
-                this.els.btnCharSelectAction.style.display = 'none';
-                
-                // Enable Delete for selected slot
+                this.els.btnCharSelectAction.textContent = "SPIEL LADEN";
+                this.els.btnCharSelectAction.className = "action-button w-full border-green-500 text-green-500 font-bold py-3 mb-2";
                 if(this.els.btnCharDeleteAction) {
                     this.els.btnCharDeleteAction.disabled = false;
                     this.els.btnCharDeleteAction.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
             } else {
-                // SHOW Create button for empty slots
-                this.els.btnCharSelectAction.style.display = 'block';
                 this.els.btnCharSelectAction.textContent = "CHARAKTER ERSTELLEN";
                 this.els.btnCharSelectAction.className = "action-button w-full border-yellow-400 text-yellow-400 font-bold py-3 mb-2";
-                
-                // Disable Delete for empty slot
                 if(this.els.btnCharDeleteAction) {
                     this.els.btnCharDeleteAction.disabled = true;
                     this.els.btnCharDeleteAction.classList.add('opacity-50', 'cursor-not-allowed');
@@ -350,5 +336,3 @@ const UI = {
         this.els.charSelectScreen.focus();
     }
 };
-
-console.log("UI Core Loaded successfully.");
