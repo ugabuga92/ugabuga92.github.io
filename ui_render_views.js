@@ -1,4 +1,4 @@
-// [v0.8.0]
+// [v0.8.1]
 // Main View Renderers (Inventory, Map, Screens)
 Object.assign(UI, {
     
@@ -75,7 +75,7 @@ Object.assign(UI, {
                 case 'component': return '🔩';
                 case 'rare': return '⭐';
                 case 'blueprint': return '📜'; 
-                case 'tool': return '⛺'; // [v0.8.0]
+                case 'tool': return '⛺'; 
                 default: return '📦';
             }
         };
@@ -115,11 +115,9 @@ Object.assign(UI, {
         const grid = document.getElementById('stat-grid');
         const perksContainer = document.getElementById('perk-container');
         
-        if(!grid) return; // Basic Safety
+        if(!grid) return; 
 
-        // --- 1. UPDATE STATIC INFO (HEADER) ---
-        // Dies geschieht jetzt UNABHÄNGIG vom Modus, da die Elemente in 'views/char.html' sicher getrennt wurden.
-        
+        // Update Header Info
         const lvlDisplay = document.getElementById('char-lvl');
         if(lvlDisplay) lvlDisplay.textContent = Game.state.lvl;
 
@@ -145,7 +143,7 @@ Object.assign(UI, {
             }
         }
         
-        // Update Equipment Display
+        // Equipment Info
         const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2};
         const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}};
         const elWpnName = document.getElementById('equip-weapon-name');
@@ -166,16 +164,14 @@ Object.assign(UI, {
             elArmStats.textContent = armStats || "Kein Bonus";
         }
         
-        // Update Perks Button Label
+        // Perks Button Update
         const perkPoints = Game.state.perkPoints || 0;
         const perkBtn = document.getElementById('btn-show-perks');
         if(perkBtn) {
              perkBtn.innerHTML = `PERKS ${perkPoints > 0 ? `<span class="bg-yellow-400 text-black px-1 ml-1 text-xs animate-pulse">${perkPoints}</span>` : ''}`;
         }
         
-        // --- 2. RENDER DYNAMIC CONTENT BASED ON MODE ---
-
-        // Update Buttons Styling (Active Tab)
+        // Toggle Buttons Style
         const btnStats = document.getElementById('btn-show-stats');
         if(btnStats && perkBtn) {
              if(mode === 'stats') {
@@ -243,7 +239,6 @@ Object.assign(UI, {
         }
     },
     
-    // [v0.8.0] NEU: Camp View Render
     renderCamp: function() {
         const camp = Game.state.camp;
         if(!camp) { this.switchView('map'); return; }
@@ -334,7 +329,7 @@ Object.assign(UI, {
                         }
                     }
 
-                    // --- [v0.8.0] DRAW CAMP ICON ---
+                    // DRAW CAMP ICON
                     if(Game.state.camp && Game.state.camp.sector.x === x && Game.state.camp.sector.y === y) {
                         ctx.font = "bold 20px monospace";
                         ctx.textAlign = "center";
@@ -372,7 +367,7 @@ Object.assign(UI, {
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // --- [v0.8.0] SHOW ENTER BUTTON ON MAP IF AT CAMP ---
+        // SHOW ENTER BUTTON ON MAP IF AT CAMP
         const camp = Game.state.camp;
         const btnCamp = document.getElementById('btn-map-enter-camp');
         
@@ -486,9 +481,13 @@ Object.assign(UI, {
                 }
             }
         } else if (category === 'crafting') {
-            // FIX: Safety Check
             if (Game.recipes && Game.recipes.length > 0) {
                 Game.recipes.forEach(r => {
+                    // Zeige nur bekannte Rezepte
+                    if(Game.state.knownRecipes && !Game.state.knownRecipes.includes(r.id)) {
+                        return; // Überspringen
+                    }
+                    
                     const outName = r.out === "AMMO" ? "Munition x15" : (Game.items[r.out] ? Game.items[r.out].name : r.out);
                     const reqs = Object.keys(r.req).map(rid => {
                         const iName = Game.items[rid] ? Game.items[rid].name : rid;
@@ -581,7 +580,10 @@ Object.assign(UI, {
         else if(Game.state.caps < healCost) healSub = "Zu wenig Kronkorken";
         
         addBtn("🏥", "KLINIK", healSub, () => UI.switchView('clinic'), !canHeal);
-        addBtn("🛒", "MARKTPLATZ", "Waffen, Rüstung & Munition", () => UI.switchView('shop'));
+        
+        // [v0.8.1] Fix: Call renderShop after switching view
+        addBtn("🛒", "MARKTPLATZ", "Waffen, Rüstung & Munition", () => UI.switchView('shop').then(() => UI.renderShop()));
+        
         addBtn("🛠️", "WERKBANK", "Gegenstände herstellen", () => this.toggleView('crafting'));
         
         addBtn("🎯", "TRAININGSGELÄNDE", "Hacking & Schlossknacken üben", () => {
@@ -611,40 +613,39 @@ Object.assign(UI, {
         backBtn.textContent = "<< Speichern & Zurück";
         backBtn.onclick = () => { 
             Game.saveGame(); 
-            this.switchView('city'); // Back to city menu instead of map directly
+            this.switchView('city'); 
         };
         container.appendChild(backBtn);
 
-        // Helper for Shop Items
+        // [v0.8.1] Helper for Shop Items (Fixed Layout)
         const addShopItem = (itemKey, item) => {
             const canAfford = Game.state.caps >= item.cost;
             const isEquipped = (Game.state.equip[item.slot] && Game.state.equip[item.slot].name === item.name);
             
             const div = document.createElement('div');
-            div.className = `flex justify-between items-center p-3 mb-2 border ${canAfford ? 'border-green-500 bg-green-900/20' : 'border-red-900 bg-black/40'} transition-all hover:bg-green-900/40`;
+            // Flex row layout mit fester Höhe und besserer Ausrichtung
+            div.className = `flex justify-between items-center p-2 mb-2 border h-16 w-full ${canAfford ? 'border-green-500 bg-green-900/20' : 'border-red-900 bg-black/40'} transition-all hover:bg-green-900/40`;
             
-            // Icon Logic
             let icon = "📦";
             if(item.type === 'weapon') icon = "🔫";
             if(item.type === 'body') icon = "🛡️";
             if(item.type === 'consumable') icon = "💊";
 
             div.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <span class="text-2xl">${icon}</span>
-                    <div class="flex flex-col">
-                        <span class="font-bold ${canAfford ? 'text-green-400' : 'text-gray-500'}">${item.name}</span>
-                        <span class="text-xs text-green-600">${item.desc || item.type}</span>
+                <div class="flex items-center gap-3 overflow-hidden flex-1">
+                    <span class="text-2xl flex-shrink-0">${icon}</span>
+                    <div class="flex flex-col overflow-hidden">
+                        <span class="font-bold truncate ${canAfford ? 'text-green-400' : 'text-gray-500'} text-sm">${item.name}</span>
+                        <span class="text-[10px] text-green-600 truncate">${item.desc || item.type}</span>
                     </div>
                 </div>
-                <div class="flex flex-col items-end">
-                    <span class="font-mono text-yellow-400 font-bold">${item.cost} KK</span>
+                <div class="flex flex-col items-end flex-shrink-0 ml-2 min-w-[60px]">
+                    <span class="font-mono text-yellow-400 font-bold text-sm">${item.cost} KK</span>
                 </div>
             `;
             
-            // Interaction
             if(isEquipped) {
-                div.innerHTML += `<div class="absolute inset-0 flex justify-center items-center bg-black/60 text-green-500 font-bold border border-green-500 rotate-[-5deg]">AUSGERÜSTET</div>`;
+                div.innerHTML += `<div class="absolute inset-0 flex justify-center items-center bg-black/60 text-green-500 font-bold border border-green-500 rotate-[-5deg] pointer-events-none">AUSGERÜSTET</div>`;
                 div.style.position = 'relative';
                 div.style.opacity = '0.7';
             } else if (!canAfford) {
@@ -660,109 +661,31 @@ Object.assign(UI, {
 
         // --- MUNITION (Special) ---
         const ammoDiv = document.createElement('div');
-        ammoDiv.className = "flex justify-between items-center p-3 mb-4 border border-blue-500 bg-blue-900/20 cursor-pointer hover:bg-blue-900/40";
+        ammoDiv.className = "flex justify-between items-center p-2 mb-4 border border-blue-500 bg-blue-900/20 cursor-pointer hover:bg-blue-900/40 h-16 w-full";
         const canBuyAmmo = Game.state.caps >= 10;
         ammoDiv.innerHTML = `
-             <div class="flex items-center gap-3">
-                <span class="text-2xl">🧨</span>
-                <div class="flex flex-col">
-                    <span class="font-bold text-blue-300">10x Munition</span>
-                    <span class="text-xs text-blue-500">Standard Kaliber</span>
+             <div class="flex items-center gap-3 overflow-hidden flex-1">
+                <span class="text-2xl flex-shrink-0">🧨</span>
+                <div class="flex flex-col overflow-hidden">
+                    <span class="font-bold text-blue-300 text-sm">10x Munition</span>
+                    <span class="text-[10px] text-blue-500 truncate">Standard Kaliber</span>
                 </div>
             </div>
-            <span class="font-mono text-yellow-400 font-bold">10 KK</span>
+            <span class="font-mono text-yellow-400 font-bold text-sm ml-2">10 KK</span>
         `;
         if(!canBuyAmmo) { ammoDiv.style.opacity = 0.5; }
         else { ammoDiv.onclick = () => Game.buyAmmo(); }
         container.appendChild(ammoDiv);
 
         // --- ITEMS LIST ---
-        // Sort by cost
         const sortedKeys = Object.keys(Game.items).sort((a,b) => Game.items[a].cost - Game.items[b].cost);
         
         sortedKeys.forEach(key => {
             const item = Game.items[key];
-            // Filter: Only show items with cost > 0 and reasonable level logic
-            // Hide "Rusty" items from shop (Starter Loot)
             if(item.cost > 0 && !key.startsWith('rusty_')) {
                 addShopItem(key, item);
             }
         });
-    },
-
-    renderClinic: function() {
-        let container = document.getElementById('clinic-list');
-        if(!container) {
-             this.els.view.innerHTML = `<div class="p-4 flex flex-col items-center"><h2 class="text-2xl text-green-500 mb-4">DR. ZIMMERMANN</h2><div id="clinic-list" class="w-full max-w-md"></div></div>`;
-             container = document.getElementById('clinic-list');
-        }
-        
-        container.innerHTML = '';
-        const backBtn = document.createElement('button');
-        backBtn.className = "action-button w-full mb-4 text-center border-yellow-400 text-yellow-400";
-        backBtn.textContent = "SPEICHERN & ZURÜCK";
-        backBtn.onclick = () => { Game.saveGame(); this.switchView('map'); };
-        container.appendChild(backBtn);
-
-        const healBtn = document.createElement('button');
-        healBtn.className = "action-button w-full mb-4 py-4 flex flex-col items-center border-red-500 text-red-500";
-        healBtn.innerHTML = `<span class="text-2xl mb-2">💊</span><span class="font-bold">VOLLSTÄNDIGE HEILUNG</span><span class="text-sm">25 Kronkorken</span>`;
-        if(Game.state.caps < 25 || Game.state.hp >= Game.state.maxHp) { 
-            healBtn.disabled = true; healBtn.style.opacity = 0.5; 
-            if(Game.state.hp >= Game.state.maxHp) healBtn.innerHTML += `<br><span class="text-xs text-green-500">(HP VOLL)</span>`;
-        }
-        else { healBtn.onclick = () => Game.heal(); }
-        container.appendChild(healBtn);
-    },
-
-    renderCombat: function() {
-        const enemy = Game.state.enemy;
-        if(!enemy) return;
-        
-        const nameEl = document.getElementById('enemy-name');
-        if(nameEl) nameEl.textContent = enemy.name;
-        
-        document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`;
-        document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`;
-        
-        // UPDATE VATS CHANCES
-        if(typeof Combat !== 'undefined' && typeof Combat.calculateHitChance === 'function') {
-             const cHead = Combat.calculateHitChance(0);
-             const cTorso = Combat.calculateHitChance(1);
-             const cLegs = Combat.calculateHitChance(2);
-             
-             const elHead = document.getElementById('chance-vats-0');
-             const elTorso = document.getElementById('chance-vats-1');
-             const elLegs = document.getElementById('chance-vats-2');
-             
-             if(elHead) elHead.textContent = cHead + "%";
-             if(elTorso) elTorso.textContent = cTorso + "%";
-             if(elLegs) elLegs.textContent = cLegs + "%";
-        }
-    },
-    
-    renderSpawnList: function(players) {
-        if(!this.els.spawnList) return;
-        this.els.spawnList.innerHTML = '';
-        if(Object.keys(players).length === 0) {
-            this.els.spawnList.innerHTML = '<div class="text-gray-500 italic">Keine Signale gefunden...</div>';
-            return;
-        }
-        for(let pid in players) {
-            const p = players[pid];
-            const btn = document.createElement('button');
-            btn.className = "action-button w-full mb-2 text-left text-xs";
-            btn.innerHTML = `SIGNAL: ${p.name} <span class="float-right">[${p.sector.x},${p.sector.y}]</span>`;
-            btn.onclick = () => {
-                this.els.spawnScreen.style.display = 'none';
-                this.startGame(null, this.selectedSlot, null);
-                Game.state.player.x = p.x;
-                Game.state.player.y = p.y;
-                Game.state.sector = p.sector;
-                Game.changeSector(p.sector.x, p.sector.y);
-            };
-            this.els.spawnList.appendChild(btn);
-        }
     },
 
     renderCrafting: function() {
