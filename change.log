@@ -1,5 +1,13 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.9.9] - 2025-12-30 01:45am (Radiation System) -----------------------------------
+- Core: 'rads' (Strahlung) zum Spielstand hinzugefügt.
+- Logic: Strahlung verringert die maximal nutzbaren HP.
+- UI: Roter Strahlungs-Balken wächst von rechts in die HP-Leiste.
+- Item: 'RadAway' entfernt jetzt Strahlung (-40 Rads).
+- Item: 'Nuka Cola' gibt jetzt +5 Rads (neben Heilung).
+- Fix: Retroaktive Unterstützung für alte Spielstände (Startet mit 0 Rads).
+
 [v0.9.5] - 2025-12-29 08:30pm (UX: Tap-to-Load) -----------------------------------
 - UX: Charakter laden durch erneutes Antippen des Slots (Doppel-Tap-Feeling).
 - UI: 'Spiel Laden' Button entfernt (redudant).
