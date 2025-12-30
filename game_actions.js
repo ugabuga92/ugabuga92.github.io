@@ -1,8 +1,6 @@
-// [v1.0] - 2025-12-30 14:15 (Inventory Persistence & Camp Update)
+// [v1.2.0] - 2025-12-30 15:00 (New Item Glow)
 // ------------------------------------------------
-// - Logic Update: Waffen & Rüstung bleiben beim Ausrüsten im Inventar.
-// - Logic Update: Zelt-Kit wird beim Aufbau nicht mehr entfernt (Vorbereitung für Bauplan-Logik).
-// - Safety: Legacy-Support beim Item-Wechsel hinzugefügt.
+// - Feature: Neue Items erhalten das Flag 'isNew = true', um im Inventar hervorzustechen.
 
 Object.assign(Game, {
     
@@ -91,14 +89,20 @@ Object.assign(Game, {
         }
 
         const itemDef = this.items[itemId];
+        // [v1.2.0] Add isNew flag
         if (props) {
-            this.state.inventory.push({ id: itemId, count: count, props: props });
+            this.state.inventory.push({ id: itemId, count: count, props: props, isNew: true });
             const colorClass = props.color ? props.color.split(' ')[0] : "text-green-400";
             UI.log(`+ ${props.name}`, colorClass);
         } else {
             const existing = this.state.inventory.find(i => i.id === itemId && !i.props); 
-            if(existing) existing.count += count; 
-            else this.state.inventory.push({id: itemId, count: count});
+            if(existing) {
+                existing.count += count; 
+                existing.isNew = true; // Mark existing stack as new
+            }
+            else {
+                this.state.inventory.push({id: itemId, count: count, isNew: true});
+            }
             const itemName = itemDef ? itemDef.name : itemId;
             UI.log(`+ ${itemName} (${count})`, "text-green-400"); 
         }
@@ -190,14 +194,12 @@ Object.assign(Game, {
             
             // Legacy Safety Check: Wenn wir ein altes Item ablegen, das NICHT im Inventar ist, fügen wir es hinzu.
             if(oldEquip && oldEquip.name !== "Fäuste" && oldEquip.name !== "Vault-Anzug") {
-                // Suche, ob das alte Item im Inventar existiert
                 const existsInInv = this.state.inventory.some(i => {
                     const iName = i.props ? i.props.name : this.items[i.id].name;
                     return iName === oldEquip.name;
                 });
 
                 if(!existsInInv) {
-                    // Item existiert physisch nicht im Inventar (altes System), also wiederherstellen
                     if(oldEquip._fromInv) this.addToInventory(oldEquip._fromInv);
                     else {
                         const oldKey = Object.keys(this.items).find(k => this.items[k].name === oldEquip.name);
@@ -217,7 +219,7 @@ Object.assign(Game, {
                 this.state.maxHp = this.calculateMaxHP(this.getStat('END')); 
                 this.state.hp += (this.state.maxHp - oldMax); 
             }
-            // HIER WICHTIG: count-- ENTFERNT. Item bleibt im Inventar.
+            // Item stays in inventory
         } 
         
         UI.update(); 
@@ -251,7 +253,6 @@ Object.assign(Game, {
         let pool = []; 
         let lvl = this.state.lvl; 
         
-        // [v0.9.10] FIX: Sicherstellen, dass dungeonLevel existiert (0 wenn undefined)
         const dLvl = this.state.dungeonLevel || 0;
         let difficultyMult = 1 + (dLvl * 0.2);
 
@@ -268,12 +269,11 @@ Object.assign(Game, {
         
         if(lvl >= 8 && Math.random() < 0.1) pool = [this.monsters.deathclaw]; 
         
-        if(pool.length === 0) pool = [this.monsters.radRoach]; // Fallback
+        if(pool.length === 0) pool = [this.monsters.radRoach]; 
 
         const template = pool[Math.floor(Math.random()*pool.length)]; 
         let enemy = { ...template }; 
         
-        // [v0.9.10] FIX: Sicherstellen, dass Multiplikator valide Zahl ist
         if(isNaN(difficultyMult)) difficultyMult = 1;
 
         enemy.hp = Math.floor(enemy.hp * difficultyMult);
@@ -359,8 +359,7 @@ Object.assign(Game, {
     deployCamp: function(invIndex) {
         if(this.state.camp) { UI.log("Lager existiert bereits!", "text-red-500"); return; }
         if(this.state.zone.includes("Stadt") || this.state.dungeonLevel > 0) { UI.log("Hier nicht möglich!", "text-red-500"); return; }
-        // NEW LOGIC: Camp Kit stays in inventory
-        // this.removeFromInventory('camp_kit', 1); <-- REMOVED
+        // Camp Kit stays in inventory
         this.state.camp = { sx: this.state.sector.x, sy: this.state.sector.y, x: this.state.player.x, y: this.state.player.y, level: 1 };
         UI.log("Lager aufgeschlagen!", "text-green-400 font-bold");
         UI.switchView('camp');
@@ -370,8 +369,7 @@ Object.assign(Game, {
     packCamp: function() {
         if(!this.state.camp) return;
         this.state.camp = null;
-        // NEW LOGIC: Camp Kit is already in inventory
-        // this.addToInventory('camp_kit', 1); <-- REMOVED
+        // Camp Kit is already in inventory
         UI.log("Lager eingepackt.", "text-yellow-400");
         UI.switchView('map');
         this.saveGame();
