@@ -1,5 +1,10 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.9.11] - 2025-12-30 02:30am (World Map Scanner) ---------------------------------
+- Map: Zufalls-Dungeons (Höhlen, Ruinen) leuchten jetzt auf der Weltkarte.
+- UX: Auch unentdeckte Sektoren zeigen ein schwaches Signal, wenn dort ein Dungeon ist.
+- Visual: Pulsierender Effekt für alle POIs hinzugefügt.
+
 [v0.9.9] - 2025-12-30 01:45am (Radiation System) -----------------------------------
 - Core: 'rads' (Strahlung) zum Spielstand hinzugefügt.
 - Logic: Strahlung verringert die maximal nutzbaren HP.
