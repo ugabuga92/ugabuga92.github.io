@@ -1,8 +1,9 @@
-// [v0.9.12] - Combat with Quest Trigger
+// [v0.9.13] - Combat with Quest Trigger & Selection Fix
 window.Combat = {
     loopId: null,
     turn: 'player', 
     logs: [],
+    selectedPart: 1, // Default Torso
 
     start: function(enemy) {
         Game.state.view = 'combat';
@@ -11,10 +12,12 @@ window.Combat = {
         
         this.logs = [];
         this.turn = 'player';
+        this.selectedPart = 1; // Reset selection
         
         this.log(`Kampf gestartet gegen: ${enemy.name}`, 'text-yellow-400');
         UI.switchView('combat').then(() => {
             this.render();
+            this.moveSelection(0); // Highlight initial selection
         });
     },
 
@@ -33,6 +36,30 @@ window.Combat = {
     render: function() {
         UI.renderCombat();
         this.renderLogs();
+    },
+
+    // [v0.9.13] Added moveSelection to fix crash
+    moveSelection: function(dir) {
+        if (typeof this.selectedPart === 'undefined') this.selectedPart = 1;
+        this.selectedPart += dir;
+        
+        // Wrap around 0-2 (Head, Torso, Legs)
+        if (this.selectedPart < 0) this.selectedPart = 2;
+        if (this.selectedPart > 2) this.selectedPart = 0;
+
+        // Visual Feedback
+        for(let i=0; i<3; i++) {
+            const btn = document.getElementById(`btn-vats-${i}`);
+            if(btn) {
+                // Remove old highlight classes
+                btn.classList.remove('border-yellow-400', 'text-yellow-400', 'bg-yellow-900/40');
+                
+                // Add highlight to selected
+                if(i === this.selectedPart) {
+                    btn.classList.add('border-yellow-400', 'text-yellow-400', 'bg-yellow-900/40');
+                }
+            }
+        }
     },
 
     // ACTIONS
@@ -199,6 +226,8 @@ window.Combat = {
     // UI Helpers mapped to buttons
     selectPart: function(partIndex) {
         this.selectedPart = partIndex;
+        // Update visual feedback manually if clicked
+        this.moveSelection(0);
     },
     
     confirmSelection: function() {
