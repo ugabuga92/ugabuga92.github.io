@@ -1,4 +1,4 @@
-// [v0.9.11] - World Map Scanner Update
+// [v0.9.12] - Quest System UI Update
 // Main View Renderers (Inventory, Map, Screens, Radio)
 Object.assign(UI, {
     
@@ -424,9 +424,7 @@ Object.assign(UI, {
                         ctx.fillStyle = color;
                         ctx.fillText(icon, cx, cy);
                     } else {
-                        // Faint hint for unvisited fixed POIs? (Optional, kept hidden for mystery, or ?)
-                        // Let's hide fixed POIs until visited to keep some mystery, OR hint them?
-                        // Usually main quest locations are known. Let's show them faintly.
+                        // Faint hint for unvisited fixed POIs
                         ctx.globalAlpha = 0.5;
                         ctx.shadowBlur = 10;
                         ctx.shadowColor = color;
@@ -649,21 +647,49 @@ Object.assign(UI, {
         content.innerHTML = htmlBuffer;
     },
 
+    // [v0.9.12] UPDATED QUEST RENDERER
     renderQuests: function() {
         const list = document.getElementById('quest-list');
         if(!list) return;
         list.innerHTML = '';
-        if(!Game.state.quests || Game.state.quests.length === 0) {
-            list.innerHTML = '<div class="text-gray-500 italic text-center mt-10">Keine aktiven Aufgaben.</div>';
+        
+        // Combine active (tracked) and legacy quests
+        const quests = Game.state.activeQuests || [];
+        
+        if(quests.length === 0) {
+            list.innerHTML = '<div class="text-gray-500 italic text-center mt-10">Keine aktiven Aufgaben.<br><span class="text-xs">Erkunde die Welt, um Quests zu finden!</span></div>';
             return;
         }
-        Game.state.quests.forEach(q => {
+
+        quests.forEach(q => {
+            // Find Definition
+            const def = Game.questDefs ? Game.questDefs.find(d => d.id === q.id) : null;
+            const title = def ? def.title : "Unbekannte Quest";
+            const desc = def ? def.desc : "???";
+            
+            // Progress Calculation
+            const pct = Math.min(100, Math.floor((q.progress / q.max) * 100));
+            
             const div = document.createElement('div');
-            div.className = "border border-green-900 bg-green-900/10 p-3 mb-2";
-            if(!q.read) { div.classList.add('border-l-4', 'border-l-green-400'); q.read = true; }
+            div.className = "border border-green-900 bg-green-900/10 p-3 mb-2 relative overflow-hidden";
+            
             div.innerHTML = `
-                <div class="font-bold text-yellow-400 text-lg mb-1">${q.title}</div>
-                <div class="text-green-200 text-sm leading-relaxed">${q.text}</div>
+                <div class="font-bold text-yellow-400 text-lg mb-1 flex justify-between">
+                    <span>${title}</span>
+                    <span class="text-xs text-gray-400 border border-gray-600 px-1 rounded">LVL ${def ? def.minLvl : 1}</span>
+                </div>
+                <div class="text-green-200 text-sm leading-relaxed mb-3">${desc}</div>
+                
+                <div class="w-full bg-black border border-green-700 h-4 relative">
+                    <div class="bg-green-600 h-full transition-all duration-500" style="width: ${pct}%"></div>
+                    <div class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white text-shadow-black">
+                        ${q.progress} / ${q.max} (${pct}%)
+                    </div>
+                </div>
+                
+                <div class="mt-2 text-right text-xs text-yellow-600">
+                    Belohnung: ${def && def.reward ? (def.reward.caps ? def.reward.caps + ' KK, ' : '') + def.reward.xp + ' XP' : '?'}
+                </div>
             `;
             list.appendChild(div);
         });
