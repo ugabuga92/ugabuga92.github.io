@@ -1,7 +1,6 @@
-// [v1.2.0] - 2025-12-30 15:00 (New Item Glow)
+// [v1.3.0] - 2025-12-30 15:15 (Workbench UI Cleanup)
 // ------------------------------------------------
-// - UI Update: Inventar-Items mit 'isNew'-Flag erhalten einen statischen Glow-Effekt.
-// - UI Update: Hover über ein neues Item entfernt den Glow-Effekt.
+// - UI Clean: Unnötiger 'Zurück' Button in der Werkbank entfernt.
 
 Object.assign(UI, {
     
@@ -98,7 +97,7 @@ Object.assign(UI, {
             const btn = document.createElement('div');
             btn.className = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center cursor-pointer hover:bg-green-500 hover:text-black transition-colors group";
             
-            // [v1.2.0] New Item Glow
+            // New Item Glow
             if(entry.isNew) {
                 btn.style.boxShadow = "0 0 8px rgba(57, 255, 20, 0.6)";
                 btn.classList.replace('border-green-500', 'border-green-300'); // Hellerer Rahmen
@@ -994,11 +993,7 @@ Object.assign(UI, {
         if(!container) return;
         container.innerHTML = '';
         
-        const backBtn = document.createElement('button');
-        backBtn.className = "action-button w-full mb-4 text-center border-yellow-400 text-yellow-400";
-        backBtn.textContent = "SPEICHERN & ZURÜCK";
-        backBtn.onclick = () => { Game.saveGame(); this.switchView('map'); };
-        container.appendChild(backBtn);
+        // [v1.3.0] REMOVED BACK BUTTON HERE
         
         const recipes = Game.recipes || [];
         let knownCount = 0; 
