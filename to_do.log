@@ -1,5 +1,6 @@
 🐛 Aktuelle Bugs & Anpassungen:
-
+- Waffen & Austrüstung die angelget wurde soll nicht aus dem Inventar verschwinden, hier das selbe Overlay wie im HÄndler mit "ausgerüstet", gleiches für das Zelt. 
+- Zelt bauplan logik ändern, Bauplan muss gekauft werden und dann für jedes auf und abbauen 100 Kronkorken.
 - Wir benötigen mal ein paar richtig sinnvolle quests mit tracking funktion + Levelabhängig
 - Neue Ausrüstung lässt ja den Inventar Button blinken, soll auch im Inventar selst mit einem leichtne glow effekt ohne pulsierend hervorgehoben werden bis angeklickt, oder drüber gehovert wurde.
 - Stimpk benutzen soll fragen ob nur 1 oder so viele (anzahl x, bis TP voll)  bis man komplett geheilt ist 
