@@ -1,12 +1,66 @@
-// [v0.7.3]
+// [v0.9.12] - Added Quest Definitions
 window.GameData = window.GameData || {};
 
-// --- PERKS (NEU) ---
+// --- PERKS ---
 window.GameData.perks = [
     { id: 'toughness', name: 'Zähigkeit', desc: '+20 Max HP dauerhaft.', icon: '🛡️' },
     { id: 'medic', name: 'Sanitäter', desc: 'Stimpacks heilen +50% mehr HP.', icon: '💉' },
     { id: 'fortune_finder', name: 'Schatzsucher', desc: 'Mehr Kronkorken in Loot.', icon: '💰' },
     { id: 'mysterious_stranger', name: 'Mysteriöser Fremder', desc: '10% Chance auf kritischen Treffer.', icon: '🕵️' }
+];
+
+// --- QUESTS (NEU) ---
+window.GameData.questDefs = [
+    { 
+        id: "q_start", 
+        title: "Überleben 101", 
+        desc: "Das Ödland ist gefährlich. Töte kleine Biester um zu üben.", 
+        type: "kill", 
+        target: "radRoach", 
+        amount: 3, 
+        minLvl: 1, 
+        reward: { xp: 50, caps: 25 } 
+    },
+    { 
+        id: "q_explore", 
+        title: "Zivilisation?", 
+        desc: "Finde die Handelsstadt Rusty Springs bei den Koordinaten [3,3].", 
+        type: "visit", 
+        target: "3,3", 
+        amount: 1, 
+        minLvl: 1, 
+        reward: { xp: 100, caps: 50, items: [{id:'stimpack', c:2}] } 
+    },
+    { 
+        id: "q_hunter", 
+        title: "Plagenbeseitigung", 
+        desc: "Blähfliegen übertragen Krankheiten. Lösche sie aus.", 
+        type: "kill", 
+        target: "bloatfly", 
+        amount: 5, 
+        minLvl: 2, 
+        reward: { xp: 150, caps: 60, items: [{id:'radaway', c:1}] } 
+    },
+    { 
+        id: "q_collect", 
+        title: "Schrottsammler", 
+        desc: "Sammle Schrottmetall, um dein Lager auszubauen.", 
+        type: "collect", 
+        target: "junk_metal", 
+        amount: 10, 
+        minLvl: 3, 
+        reward: { xp: 200, items: [{id:'bp_machete', c:1}] } 
+    },
+    { 
+        id: "q_raider", 
+        title: "Gesetzeshüter", 
+        desc: "Raider bedrohen die Handelsrouten. Zeig ihnen das Gesetz.", 
+        type: "kill", 
+        target: "raider", 
+        amount: 5, 
+        minLvl: 4, 
+        reward: { xp: 300, caps: 150, items: [{id:'combat_armor', c:1}] } 
+    }
 ];
 
 // --- FARBPALETTE ---
@@ -19,6 +73,8 @@ window.GameData.colors = {
     'M': '#3e2723', 'W': '#0d47a1', '~': '#2f4f2f', 
     't': '#1b5e20', 'T': '#0a3d0a', 'x': '#8b4513', 'o': '#808080',
     '+': '#666666', '"': '#3cb371', 'Y': '#deb887', 'U': '#212121',
+    // [v0.9.1] New POI Colors
+    'A': '#cc0000', 'K': '#00bfff',
     // City Tiles
     '$': '#ffd700', '&': '#ff8c00', 'P': '#ff3333', 'E': '#39ff14', 'F': '#00bfff', '|': '#777',
     'X': '#ff00ff', 
