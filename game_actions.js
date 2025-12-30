@@ -1,4 +1,9 @@
-// [v0.9.10] - Fix: Monster HP, RadAway, Radiation Helper
+// [v1.0] - 2025-12-30 14:15 (Inventory Persistence & Camp Update)
+// ------------------------------------------------
+// - Logic Update: Waffen & Rüstung bleiben beim Ausrüsten im Inventar.
+// - Logic Update: Zelt-Kit wird beim Aufbau nicht mehr entfernt (Vorbereitung für Bauplan-Logik).
+// - Safety: Legacy-Support beim Item-Wechsel hinzugefügt.
+
 Object.assign(Game, {
     
     // Helper: Strahlung hinzufügen/entfernen
@@ -158,10 +163,11 @@ Object.assign(Game, {
                 this.state.knownRecipes.push(itemDef.recipeId);
                 UI.log(`Gelernt: ${itemDef.name}`, "text-cyan-400 font-bold");
                 invItem.count--;
+                if(invItem.count <= 0) this.state.inventory.splice(index, 1);
             } else {
                 UI.log("Du kennst diesen Bauplan bereits.", "text-gray-500");
-                return;
             }
+            return;
         }
         else if(itemDef.type === 'consumable') { 
             if(itemDef.effect === 'heal') { 
@@ -175,17 +181,28 @@ Object.assign(Game, {
                 this.state.hp = Math.min(effectiveMax, this.state.hp + healAmt); 
                 UI.log(`Verwendet: ${itemDef.name} (+${healAmt} HP)`, "text-blue-400"); 
                 invItem.count--; 
+                if(invItem.count <= 0) this.state.inventory.splice(index, 1);
             } 
         } 
         else if (itemDef.type === 'weapon' || itemDef.type === 'body') { 
             const slot = itemDef.slot;
             let oldEquip = this.state.equip[slot];
             
+            // Legacy Safety Check: Wenn wir ein altes Item ablegen, das NICHT im Inventar ist, fügen wir es hinzu.
             if(oldEquip && oldEquip.name !== "Fäuste" && oldEquip.name !== "Vault-Anzug") {
-                if(oldEquip._fromInv) this.addToInventory(oldEquip._fromInv);
-                else {
-                    const oldKey = Object.keys(this.items).find(k => this.items[k].name === oldEquip.name);
-                    if(oldKey) this.addToInventory(oldKey, 1);
+                // Suche, ob das alte Item im Inventar existiert
+                const existsInInv = this.state.inventory.some(i => {
+                    const iName = i.props ? i.props.name : this.items[i.id].name;
+                    return iName === oldEquip.name;
+                });
+
+                if(!existsInInv) {
+                    // Item existiert physisch nicht im Inventar (altes System), also wiederherstellen
+                    if(oldEquip._fromInv) this.addToInventory(oldEquip._fromInv);
+                    else {
+                        const oldKey = Object.keys(this.items).find(k => this.items[k].name === oldEquip.name);
+                        if(oldKey) this.addToInventory(oldKey, 1);
+                    }
                 }
             } 
             
@@ -200,11 +217,7 @@ Object.assign(Game, {
                 this.state.maxHp = this.calculateMaxHP(this.getStat('END')); 
                 this.state.hp += (this.state.maxHp - oldMax); 
             }
-            invItem.count--; 
-        } 
-        
-        if(invItem.count <= 0) { 
-            this.state.inventory.splice(index, 1); 
+            // HIER WICHTIG: count-- ENTFERNT. Item bleibt im Inventar.
         } 
         
         UI.update(); 
@@ -346,7 +359,8 @@ Object.assign(Game, {
     deployCamp: function(invIndex) {
         if(this.state.camp) { UI.log("Lager existiert bereits!", "text-red-500"); return; }
         if(this.state.zone.includes("Stadt") || this.state.dungeonLevel > 0) { UI.log("Hier nicht möglich!", "text-red-500"); return; }
-        this.removeFromInventory('camp_kit', 1);
+        // NEW LOGIC: Camp Kit stays in inventory
+        // this.removeFromInventory('camp_kit', 1); <-- REMOVED
         this.state.camp = { sx: this.state.sector.x, sy: this.state.sector.y, x: this.state.player.x, y: this.state.player.y, level: 1 };
         UI.log("Lager aufgeschlagen!", "text-green-400 font-bold");
         UI.switchView('camp');
@@ -356,7 +370,8 @@ Object.assign(Game, {
     packCamp: function() {
         if(!this.state.camp) return;
         this.state.camp = null;
-        this.addToInventory('camp_kit', 1);
+        // NEW LOGIC: Camp Kit is already in inventory
+        // this.addToInventory('camp_kit', 1); <-- REMOVED
         UI.log("Lager eingepackt.", "text-yellow-400");
         UI.switchView('map');
         this.saveGame();
