@@ -1,5 +1,11 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.9.12] - 2025-12-30 01:00pm (Quest System 2.0) --------------------------------- 
+- System: Echtes Quest-System mit 'kill', 'collect' und 'visit' Zielen. 
+- UI: Quest-Log zeigt jetzt Fortschrittsbalken und Belohnungen an. 
+- Logic: Quests werden automatisch basierend auf dem Spieler-Level freigeschaltet. 
+- Content: 5 neue Quests hinzugefügt (Jäger, Erkunder, Sammler).
+
 [v0.9.11] - 2025-12-30 02:30am (World Map Scanner) ---------------------------------
 - Map: Zufalls-Dungeons (Höhlen, Ruinen) leuchten jetzt auf der Weltkarte.
 - UX: Auch unentdeckte Sektoren zeigen ein schwaches Signal, wenn dort ein Dungeon ist.
