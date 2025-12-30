@@ -1,4 +1,4 @@
-// [v0.9.10]
+// [v0.9.11] - World Map Scanner Update
 // Main View Renderers (Inventory, Map, Screens, Radio)
 Object.assign(UI, {
     
@@ -42,7 +42,6 @@ Object.assign(UI, {
         this.selectSlot(0);
     },
 
-    // [v0.9.10] Updated Inventory: Re-enabled Popup Confirm
     renderInventory: function() {
         const list = document.getElementById('inventory-list');
         const countDisplay = document.getElementById('inv-count');
@@ -93,7 +92,6 @@ Object.assign(UI, {
             const btn = document.createElement('div');
             btn.className = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center cursor-pointer hover:bg-green-500 hover:text-black transition-colors group";
             
-            // Name & Color Handling (Dynamic Loot)
             let displayName = item.name;
             let extraClass = "";
 
@@ -110,7 +108,6 @@ Object.assign(UI, {
                 <div class="absolute top-0 right-0 bg-green-900 text-white text-[10px] px-1 font-mono">${entry.count}</div>
             `;
             
-            // [v0.9.10] FIX: Use Show Item Confirm Dialog
             btn.onclick = () => {
                  UI.showItemConfirm(index);
             };
@@ -154,7 +151,7 @@ Object.assign(UI, {
             }
         }
         
-        // Equipment Info (Updated for Dynamic Names)
+        // Equipment Info
         const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2};
         const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}};
         const elWpnName = document.getElementById('equip-weapon-name');
@@ -220,16 +217,13 @@ Object.assign(UI, {
     renderPerksList: function(container) {
         if(!container) return;
         container.innerHTML = '';
-        
         const points = Game.state.perkPoints || 0;
-        
         container.innerHTML += `<div class="text-center mb-4">VERFÜGBARE PUNKTE: <span class="text-yellow-400 font-bold text-xl">${points}</span></div>`;
 
         if(Game.perkDefs) {
             Game.perkDefs.forEach(p => {
                 const hasPerk = Game.state.perks && Game.state.perks.includes(p.id);
                 const canAfford = points > 0 && !hasPerk;
-                
                 let btnHtml = '';
                 if(hasPerk) btnHtml = '<span class="text-green-500 font-bold border border-green-500 px-2 py-1 text-xs">GELERNT</span>';
                 else if(canAfford) btnHtml = `<button class="action-button text-xs px-2 py-1" onclick="Game.choosePerk('${p.id}')">LERNEN</button>`;
@@ -252,7 +246,6 @@ Object.assign(UI, {
         }
     },
     
-    // [v0.9.0] Radio Renderer
     renderRadio: function() {
         const btnToggle = document.getElementById('btn-radio-toggle');
         const stationName = document.getElementById('radio-station-name');
@@ -346,6 +339,7 @@ Object.assign(UI, {
         if(restBtn) restBtn.onclick = () => Game.restInCamp();
     },
 
+    // [v0.9.11] UPDATED RENDER WORLD MAP (SCANNER)
     renderWorldMap: function() {
         const cvs = document.getElementById('world-map-canvas');
         const details = document.getElementById('sector-details');
@@ -366,50 +360,115 @@ Object.assign(UI, {
             'city': '#444455', 'vault': '#002244'
         };
 
+        const pulse = (Date.now() % 1000) / 1000;
+        const glowAlpha = 0.3 + (Math.sin(Date.now() / 200) + 1) * 0.2; // 0.3 to 0.7
+
         for(let y=0; y<H; y++) {
             for(let x=0; x<W; x++) {
                 const key = `${x},${y}`;
                 const isVisited = Game.state.visitedSectors && Game.state.visitedSectors.includes(key);
                 const isCurrent = (x === Game.state.sector.x && y === Game.state.sector.y);
 
+                // --- DETECT DUNGEONS & POIS ---
+                let fixedPOI = null;
+                let randomDungeon = null;
+
+                if(Game.state.worldPOIs) {
+                    fixedPOI = Game.state.worldPOIs.find(p => p.x === x && p.y === y);
+                }
+
+                if(!fixedPOI) {
+                    // Predict Random Dungeon via Seed (Same logic as Game.loadSector)
+                    const mapSeed = (x + 1) * 5323 + (y + 1) * 8237 + 9283;
+                    if(typeof WorldGen !== 'undefined') {
+                        WorldGen.setSeed(mapSeed);
+                        const rng = () => WorldGen.rand();
+                        if(rng() < 0.35) {
+                            const r = rng();
+                            if(r < 0.3) randomDungeon = 'S'; // Supermarket
+                            else if(r < 0.6) randomDungeon = 'H'; // Cave
+                        }
+                    }
+                }
+
+                // DRAW TILE
                 if(isVisited) {
+                    // Draw Biome
                     const biome = WorldGen.getSectorBiome(x, y);
                     ctx.fillStyle = biomeColors[biome] || '#222';
                     ctx.fillRect(x * TILE_W - 0.5, y * TILE_H - 0.5, TILE_W + 1, TILE_H + 1);
+                } else {
+                    // Unvisited (Black)
+                    ctx.fillStyle = "#000";
+                    ctx.fillRect(x * TILE_W, y * TILE_H, TILE_W, TILE_H);
+                }
 
-                    // Draw POIs
-                    if(Game.state.worldPOIs) {
-                        const poi = Game.state.worldPOIs.find(p => p.x === x && p.y === y);
-                        if(poi) {
-                            ctx.font = "bold 20px monospace";
-                            ctx.textAlign = "center";
-                            ctx.textBaseline = "middle";
-                            let icon = "❓";
-                            let color = "#fff";
-                            
-                            if(poi.type === 'C') { icon = "🏙️"; color = "#00ffff"; }
-                            else if(poi.type === 'V') { icon = "⚙️"; color = "#ffff00"; }
-                            else if(poi.type === 'M') { icon = "🏰"; color = "#ff5555"; }
-                            else if(poi.type === 'R') { icon = "☠️"; color = "#ffaa00"; }
-                            else if(poi.type === 'T') { icon = "📡"; color = "#55ff55"; }
+                // DRAW POI ICONS / GLOW
+                const cx = x * TILE_W + TILE_W/2;
+                const cy = y * TILE_H + TILE_H/2;
 
-                            ctx.fillStyle = color;
-                            ctx.fillText(icon, x * TILE_W + TILE_W/2, y * TILE_H + TILE_H/2);
-                        }
+                ctx.font = "bold 20px monospace";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+
+                if (fixedPOI) {
+                    let icon = "❓";
+                    let color = "#fff";
+                    if(fixedPOI.type === 'C') { icon = "🏙️"; color = "#00ffff"; }
+                    else if(fixedPOI.type === 'V') { icon = "⚙️"; color = "#ffff00"; }
+                    else if(fixedPOI.type === 'M') { icon = "🏰"; color = "#ff5555"; }
+                    else if(fixedPOI.type === 'R') { icon = "☠️"; color = "#ffaa00"; }
+                    else if(fixedPOI.type === 'T') { icon = "📡"; color = "#55ff55"; }
+                    
+                    if(isVisited) {
+                        ctx.fillStyle = color;
+                        ctx.fillText(icon, cx, cy);
+                    } else {
+                        // Faint hint for unvisited fixed POIs? (Optional, kept hidden for mystery, or ?)
+                        // Let's hide fixed POIs until visited to keep some mystery, OR hint them?
+                        // Usually main quest locations are known. Let's show them faintly.
+                        ctx.globalAlpha = 0.5;
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = color;
+                        ctx.fillStyle = color;
+                        ctx.fillText("?", cx, cy);
+                        ctx.shadowBlur = 0;
+                        ctx.globalAlpha = 1.0;
                     }
-
-                    // DRAW CAMP ICON
-                    if(Game.state.camp && Game.state.camp.sector.x === x && Game.state.camp.sector.y === y) {
-                        ctx.font = "bold 20px monospace";
-                        ctx.textAlign = "center";
-                        ctx.textBaseline = "middle";
-                        ctx.fillStyle = "#ffffff";
-                        ctx.fillText("⛺", x * TILE_W + TILE_W/4, y * TILE_H + TILE_H/4);
+                }
+                else if (randomDungeon) {
+                    // [v0.9.11] Scanner Effect for Random Dungeons
+                    let color = "#a020f0"; // Purple for Mystery
+                    let icon = randomDungeon === 'S' ? '🛒' : '🦇'; // Hint if visited
+                    
+                    if(isVisited) {
+                        // Visited: Show Icon + Glow
+                        ctx.shadowBlur = 15;
+                        ctx.shadowColor = color;
+                        ctx.fillStyle = color;
+                        ctx.fillText(icon, cx, cy);
+                        ctx.shadowBlur = 0;
+                    } else {
+                        // Unvisited: Show "Signal" Glow
+                        ctx.fillStyle = `rgba(160, 32, 240, ${glowAlpha})`; // Pulsing Purple
+                        ctx.fillRect(x * TILE_W + 2, y * TILE_H + 2, TILE_W - 4, TILE_H - 4);
+                        ctx.fillStyle = "#fff";
+                        ctx.font = "10px monospace";
+                        ctx.fillText("?", cx, cy);
                     }
+                }
 
-                    if(isCurrent && details) {
-                        details.innerHTML = `SEKTOR [${x},${y}]<br><span class="text-white">${biome.toUpperCase()}</span>`;
-                    }
+                // DRAW CAMP ICON
+                if(Game.state.camp && Game.state.camp.sector.x === x && Game.state.camp.sector.y === y) {
+                    ctx.font = "bold 20px monospace";
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillText("⛺", x * TILE_W + TILE_W/4, y * TILE_H + TILE_H/4);
+                }
+
+                if(isCurrent && details) {
+                    let info = `SEKTOR [${x},${y}]`;
+                    if(randomDungeon) info += " <span class='text-purple-400 animate-pulse'>[SIGNAL]</span>";
+                    details.innerHTML = info;
                 }
             }
         }
@@ -420,8 +479,6 @@ Object.assign(UI, {
         
         const px = Game.state.sector.x * TILE_W + (relX * TILE_W);
         const py = Game.state.sector.y * TILE_H + (relY * TILE_H);
-        
-        const pulse = (Date.now() % 1000) / 1000;
         
         ctx.beginPath();
         ctx.arc(px, py, 4 + (pulse * 8), 0, Math.PI * 2);
@@ -436,7 +493,7 @@ Object.assign(UI, {
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // SHOW ENTER BUTTON ON MAP IF AT CAMP
+        // Show Enter Button
         const camp = Game.state.camp;
         const btnCamp = document.getElementById('btn-map-enter-camp');
         
@@ -446,7 +503,7 @@ Object.assign(UI, {
                 if(!btnCamp) {
                     const b = document.createElement('button');
                     b.id = 'btn-map-enter-camp';
-                    b.className = "absolute bottom-24 left-1/2 transform -translate-x-1/2 bg-black border-2 border-green-500 text-green-500 px-6 py-2 font-bold hover:bg-green-900 animate-bounce z-50";
+                    b.className = "absolute bottom-24 left-1/2 transform -translate-x-1/2 bg-black border-2 border-green-500 text-green-500 px-6 py-2 font-bold hover:bg-green-900 z-50";
                     b.innerHTML = "⛺ LAGER BETRETEN";
                     b.onclick = () => Game.enterCamp();
                     document.getElementById('view-container').appendChild(b);
@@ -650,7 +707,6 @@ Object.assign(UI, {
         
         addBtn("🏥", "KLINIK", healSub, () => UI.switchView('clinic'), !canHeal);
         
-        // Fix: Call renderShop after switching view
         addBtn("🛒", "MARKTPLATZ", "Waffen, Rüstung & Munition", () => UI.switchView('shop').then(() => UI.renderShop()));
         
         addBtn("🛠️", "WERKBANK", "Gegenstände herstellen", () => this.toggleView('crafting'));
@@ -676,7 +732,6 @@ Object.assign(UI, {
         
         container.innerHTML = '';
         
-        // Header / Back Button
         const backBtn = document.createElement('button');
         backBtn.className = "w-full py-3 mb-4 border border-yellow-400 text-yellow-400 font-bold hover:bg-yellow-400 hover:text-black transition-colors uppercase tracking-widest";
         backBtn.textContent = "<< Speichern & Zurück";
@@ -686,13 +741,11 @@ Object.assign(UI, {
         };
         container.appendChild(backBtn);
 
-        // Helper for Shop Items (Fixed Layout)
         const addShopItem = (itemKey, item) => {
             const canAfford = Game.state.caps >= item.cost;
             const isEquipped = (Game.state.equip[item.slot] && Game.state.equip[item.slot].name === item.name);
             
             const div = document.createElement('div');
-            // Flex row layout mit fester Höhe und besserer Ausrichtung
             div.className = `flex justify-between items-center p-2 mb-2 border h-16 w-full ${canAfford ? 'border-green-500 bg-green-900/20' : 'border-red-900 bg-black/40'} transition-all hover:bg-green-900/40`;
             
             let icon = "📦";
@@ -728,7 +781,6 @@ Object.assign(UI, {
             container.appendChild(div);
         };
 
-        // --- MUNITION (Special) ---
         const ammoDiv = document.createElement('div');
         ammoDiv.className = "flex justify-between items-center p-2 mb-4 border border-blue-500 bg-blue-900/20 cursor-pointer hover:bg-blue-900/40 h-16 w-full";
         const canBuyAmmo = Game.state.caps >= 10;
@@ -746,9 +798,7 @@ Object.assign(UI, {
         else { ammoDiv.onclick = () => Game.buyAmmo(); }
         container.appendChild(ammoDiv);
 
-        // --- ITEMS LIST ---
         const sortedKeys = Object.keys(Game.items).sort((a,b) => Game.items[a].cost - Game.items[b].cost);
-        
         sortedKeys.forEach(key => {
             const item = Game.items[key];
             if(item.cost > 0 && !key.startsWith('rusty_')) {
@@ -792,7 +842,6 @@ Object.assign(UI, {
         document.getElementById('enemy-hp-text').textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`;
         document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`;
         
-        // UPDATE VATS CHANCES
         if(typeof Combat !== 'undefined' && typeof Combat.calculateHitChance === 'function') {
              const cHead = Combat.calculateHitChance(0);
              const cTorso = Combat.calculateHitChance(1);
