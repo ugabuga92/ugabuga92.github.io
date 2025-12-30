@@ -1,11 +1,11 @@
-// [v1.3.0] - 2025-12-30 15:15 (Workbench UI Cleanup)
+// [v1.3.1] - 2025-12-30 15:30 (Fix Camp Crash in Render)
 // ------------------------------------------------
-// - UI Clean: Unnötiger 'Zurück' Button in der Werkbank entfernt.
+// - Logic Update: Render-Funktion repariert defekte Zelt-Objekte automatisch, um Abstürze zu verhindern.
 
 Object.assign(UI, {
     
-    // State für den aktuellen Tab (default: active)
-    questTab: 'active', 
+    // ... (renderCharacterSelection, renderInventory, renderChar, renderPerksList, renderRadio, renderCamp, renderWiki, renderQuests, renderCity, renderShop, renderClinic, renderCombat, renderSpawnList, renderCrafting bleiben unverändert) ...
+    // HIER nur renderWorldMap mit dem Fix:
 
     renderCharacterSelection: function(saves) {
         this.charSelectMode = true;
@@ -97,12 +97,9 @@ Object.assign(UI, {
             const btn = document.createElement('div');
             btn.className = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center cursor-pointer hover:bg-green-500 hover:text-black transition-colors group";
             
-            // New Item Glow
             if(entry.isNew) {
                 btn.style.boxShadow = "0 0 8px rgba(57, 255, 20, 0.6)";
                 btn.classList.replace('border-green-500', 'border-green-300'); // Hellerer Rahmen
-                
-                // Remove on Hover
                 btn.onmouseenter = () => {
                     if(entry.isNew) {
                         entry.isNew = false;
@@ -374,7 +371,7 @@ Object.assign(UI, {
 
         if(restBtn) restBtn.onclick = () => Game.restInCamp();
     },
-
+    
     renderWorldMap: function() {
         const cvs = document.getElementById('world-map-canvas');
         const details = document.getElementById('sector-details');
@@ -397,6 +394,12 @@ Object.assign(UI, {
 
         const pulse = (Date.now() % 1000) / 1000;
         const glowAlpha = 0.3 + (Math.sin(Date.now() / 200) + 1) * 0.2; // 0.3 to 0.7
+        
+        // [v1.3.1] SAFETY FIX FOR CAMP
+        if(Game.state.camp && !Game.state.camp.sector && Game.state.camp.sx !== undefined) {
+             console.log("Fixing broken camp object...");
+             Game.state.camp.sector = { x: Game.state.camp.sx, y: Game.state.camp.sy };
+        }
 
         for(let y=0; y<H; y++) {
             for(let x=0; x<W; x++) {
@@ -485,7 +488,7 @@ Object.assign(UI, {
                 }
 
                 // DRAW CAMP ICON
-                if(Game.state.camp && Game.state.camp.sector.x === x && Game.state.camp.sector.y === y) {
+                if(Game.state.camp && Game.state.camp.sector && Game.state.camp.sector.x === x && Game.state.camp.sector.y === y) {
                     ctx.font = "bold 20px monospace";
                     ctx.fillStyle = "#ffffff";
                     ctx.fillText("⛺", x * TILE_W + TILE_W/4, y * TILE_H + TILE_H/4);
@@ -523,7 +526,7 @@ Object.assign(UI, {
         const camp = Game.state.camp;
         const btnCamp = document.getElementById('btn-map-enter-camp');
         
-        if(camp && camp.sector.x === Game.state.sector.x && camp.sector.y === Game.state.sector.y) {
+        if(camp && camp.sector && camp.sector.x === Game.state.sector.x && camp.sector.y === Game.state.sector.y) {
             const dist = Math.abs(camp.x - Game.state.player.x) + Math.abs(camp.y - Game.state.player.y);
             if(dist <= 2) {
                 if(!btnCamp) {
@@ -992,8 +995,6 @@ Object.assign(UI, {
         const container = document.getElementById('crafting-list');
         if(!container) return;
         container.innerHTML = '';
-        
-        // [v1.3.0] REMOVED BACK BUTTON HERE
         
         const recipes = Game.recipes || [];
         let knownCount = 0; 
