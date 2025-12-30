@@ -1,15 +1,12 @@
-// [v1.1.1] - 2025-12-30 14:45 (Fix Quest Tab Bug)
+// [v1.2.0] - 2025-12-30 15:00 (New Item Glow)
 // ------------------------------------------------
-// - Bugfix: Klick auf Quest-Tabs schließt nicht mehr das Fenster.
-//   (Event Propagation gestoppt, bevor Re-Render das Element entfernt).
+// - UI Update: Inventar-Items mit 'isNew'-Flag erhalten einen statischen Glow-Effekt.
+// - UI Update: Hover über ein neues Item entfernt den Glow-Effekt.
 
 Object.assign(UI, {
     
     // State für den aktuellen Tab (default: active)
     questTab: 'active', 
-
-    // ... (renderCharacterSelection, renderInventory, renderChar, renderRadio, renderCamp, renderWorldMap, renderWiki bleiben unverändert) ...
-    // Ich füge hier nur die korrigierte renderQuests Funktion ein, der Rest der Datei bleibt wie in v1.1.0/v1.0.
 
     renderCharacterSelection: function(saves) {
         this.charSelectMode = true;
@@ -101,6 +98,21 @@ Object.assign(UI, {
             const btn = document.createElement('div');
             btn.className = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center cursor-pointer hover:bg-green-500 hover:text-black transition-colors group";
             
+            // [v1.2.0] New Item Glow
+            if(entry.isNew) {
+                btn.style.boxShadow = "0 0 8px rgba(57, 255, 20, 0.6)";
+                btn.classList.replace('border-green-500', 'border-green-300'); // Hellerer Rahmen
+                
+                // Remove on Hover
+                btn.onmouseenter = () => {
+                    if(entry.isNew) {
+                        entry.isNew = false;
+                        btn.style.boxShadow = "none";
+                        btn.classList.replace('border-green-300', 'border-green-500');
+                    }
+                };
+            }
+
             let displayName = item.name;
             let extraClass = "";
 
@@ -132,7 +144,6 @@ Object.assign(UI, {
                 btn.appendChild(overlay);
                 btn.style.borderColor = "#39ff14"; 
             }
-            // -------------------------------------
             
             btn.onclick = () => {
                  UI.showItemConfirm(index);
@@ -403,7 +414,6 @@ Object.assign(UI, {
                 }
 
                 if(!fixedPOI) {
-                    // Predict Random Dungeon via Seed (Same logic as Game.loadSector)
                     const mapSeed = (x + 1) * 5323 + (y + 1) * 8237 + 9283;
                     if(typeof WorldGen !== 'undefined') {
                         WorldGen.setSeed(mapSeed);
@@ -418,12 +428,10 @@ Object.assign(UI, {
 
                 // DRAW TILE
                 if(isVisited) {
-                    // Draw Biome
                     const biome = WorldGen.getSectorBiome(x, y);
                     ctx.fillStyle = biomeColors[biome] || '#222';
                     ctx.fillRect(x * TILE_W - 0.5, y * TILE_H - 0.5, TILE_W + 1, TILE_H + 1);
                 } else {
-                    // Unvisited (Black)
                     ctx.fillStyle = "#000";
                     ctx.fillRect(x * TILE_W, y * TILE_H, TILE_W, TILE_H);
                 }
@@ -449,7 +457,6 @@ Object.assign(UI, {
                         ctx.fillStyle = color;
                         ctx.fillText(icon, cx, cy);
                     } else {
-                        // Faint hint for unvisited fixed POIs
                         ctx.globalAlpha = 0.5;
                         ctx.shadowBlur = 10;
                         ctx.shadowColor = color;
@@ -460,19 +467,16 @@ Object.assign(UI, {
                     }
                 }
                 else if (randomDungeon) {
-                    // [v0.9.11] Scanner Effect for Random Dungeons
                     let color = "#a020f0"; // Purple for Mystery
                     let icon = randomDungeon === 'S' ? '🛒' : '🦇'; // Hint if visited
                     
                     if(isVisited) {
-                        // Visited: Show Icon + Glow
                         ctx.shadowBlur = 15;
                         ctx.shadowColor = color;
                         ctx.fillStyle = color;
                         ctx.fillText(icon, cx, cy);
                         ctx.shadowBlur = 0;
                     } else {
-                        // Unvisited: Show "Signal" Glow
                         ctx.fillStyle = `rgba(160, 32, 240, ${glowAlpha})`; // Pulsing Purple
                         ctx.fillRect(x * TILE_W + 2, y * TILE_H + 2, TILE_W - 4, TILE_H - 4);
                         ctx.fillStyle = "#fff";
@@ -672,7 +676,6 @@ Object.assign(UI, {
         content.innerHTML = htmlBuffer;
     },
 
-    // [v1.1.1] RENDER QUESTS WITH PROPAGATION FIX
     renderQuests: function() {
         const list = document.getElementById('quest-list');
         if(!list) return;
@@ -688,7 +691,6 @@ Object.assign(UI, {
         btnActive.className = `flex-1 py-2 font-bold text-center transition-colors ${this.questTab === 'active' ? 'bg-green-900/40 text-green-400 border-b-2 border-green-500' : 'bg-black text-gray-600 hover:text-green-500'}`;
         btnActive.textContent = "AKTIV";
         
-        // FIX: stopPropagation added
         btnActive.onclick = (e) => { 
             e.stopPropagation(); 
             this.questTab = 'active'; 
@@ -699,7 +701,6 @@ Object.assign(UI, {
         btnCompleted.className = `flex-1 py-2 font-bold text-center transition-colors ${this.questTab === 'completed' ? 'bg-green-900/40 text-green-400 border-b-2 border-green-500' : 'bg-black text-gray-600 hover:text-green-500'}`;
         btnCompleted.textContent = "ERLEDIGT";
         
-        // FIX: stopPropagation added
         btnCompleted.onclick = (e) => { 
             e.stopPropagation(); 
             this.questTab = 'completed'; 
