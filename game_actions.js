@@ -1,13 +1,13 @@
-// [v1.2.0] - 2025-12-30 15:00 (New Item Glow)
+// [v1.3.0] - 2025-12-30 15:15 (Camp Cost & Workbench Fix)
 // ------------------------------------------------
-// - Feature: Neue Items erhalten das Flag 'isNew = true', um im Inventar hervorzustechen.
+// - Logic Update: Zelt aufstellen kostet nun 100 Kronkorken.
+// - UI Fix: 'Speichern & Zurück' Button aus der Werkbank entfernt.
 
 Object.assign(Game, {
     
     // Helper: Strahlung hinzufügen/entfernen
     addRadiation: function(amount) {
         if(!this.state) return;
-        // Init rads if missing
         if(typeof this.state.rads === 'undefined') this.state.rads = 0;
         
         this.state.rads = Math.min(this.state.maxHp, Math.max(0, this.state.rads + amount));
@@ -15,13 +15,11 @@ Object.assign(Game, {
         if(amount > 0) UI.log(`+${amount} RADS!`, "text-red-500 font-bold animate-pulse");
         else UI.log(`${Math.abs(amount)} RADS entfernt.`, "text-green-300");
 
-        // HP Cap Check
         const effectiveMax = this.state.maxHp - this.state.rads;
         if(this.state.hp > effectiveMax) {
             this.state.hp = effectiveMax;
         }
 
-        // Death by Radiation
         if(this.state.hp <= 0 && amount > 0) {
             this.state.hp = 0;
             this.state.isGameOver = true;
@@ -42,7 +40,7 @@ Object.assign(Game, {
     heal: function() { 
         if(this.state.caps >= 25) { 
             this.state.caps -= 25; 
-            this.state.rads = 0; // Doc heilt auch Rads
+            this.state.rads = 0; 
             this.state.hp = this.state.maxHp; 
             UI.log("Dr. Zimmermann: 'Alles wieder gut!' (-RADS, +HP)", "text-green-400");
             UI.update(); 
@@ -89,7 +87,7 @@ Object.assign(Game, {
         }
 
         const itemDef = this.items[itemId];
-        // [v1.2.0] Add isNew flag
+        
         if (props) {
             this.state.inventory.push({ id: itemId, count: count, props: props, isNew: true });
             const colorClass = props.color ? props.color.split(' ')[0] : "text-green-400";
@@ -98,7 +96,7 @@ Object.assign(Game, {
             const existing = this.state.inventory.find(i => i.id === itemId && !i.props); 
             if(existing) {
                 existing.count += count; 
-                existing.isNew = true; // Mark existing stack as new
+                existing.isNew = true; 
             }
             else {
                 this.state.inventory.push({id: itemId, count: count, isNew: true});
@@ -155,7 +153,7 @@ Object.assign(Game, {
         }
 
         if(invItem.id === 'radaway') {
-            this.addRadiation(-50); // Entfernt 50 Rads
+            this.addRadiation(-50); 
             UI.log("RadAway verwendet. Strahlung sinkt.", "text-green-300 font-bold");
             this.removeFromInventory('radaway', 1);
             UI.update();
@@ -192,7 +190,6 @@ Object.assign(Game, {
             const slot = itemDef.slot;
             let oldEquip = this.state.equip[slot];
             
-            // Legacy Safety Check: Wenn wir ein altes Item ablegen, das NICHT im Inventar ist, fügen wir es hinzu.
             if(oldEquip && oldEquip.name !== "Fäuste" && oldEquip.name !== "Vault-Anzug") {
                 const existsInInv = this.state.inventory.some(i => {
                     const iName = i.props ? i.props.name : this.items[i.id].name;
@@ -219,7 +216,6 @@ Object.assign(Game, {
                 this.state.maxHp = this.calculateMaxHP(this.getStat('END')); 
                 this.state.hp += (this.state.maxHp - oldMax); 
             }
-            // Item stays in inventory
         } 
         
         UI.update(); 
@@ -359,9 +355,18 @@ Object.assign(Game, {
     deployCamp: function(invIndex) {
         if(this.state.camp) { UI.log("Lager existiert bereits!", "text-red-500"); return; }
         if(this.state.zone.includes("Stadt") || this.state.dungeonLevel > 0) { UI.log("Hier nicht möglich!", "text-red-500"); return; }
-        // Camp Kit stays in inventory
+        
+        // [v1.3.0] COST LOGIC ADDED
+        const cost = 100;
+        if(this.state.caps < cost) {
+            UI.log(`Benötigt ${cost} Kronkorken für Aufbau.`, "text-red-500");
+            return;
+        }
+
+        this.state.caps -= cost;
         this.state.camp = { sx: this.state.sector.x, sy: this.state.sector.y, x: this.state.player.x, y: this.state.player.y, level: 1 };
-        UI.log("Lager aufgeschlagen!", "text-green-400 font-bold");
+        
+        UI.log(`Lager aufgeschlagen! (-${cost} KK)`, "text-green-400 font-bold");
         UI.switchView('camp');
         this.saveGame();
     },
