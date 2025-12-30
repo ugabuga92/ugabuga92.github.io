@@ -1009,4 +1009,16 @@ Object.assign(UI, {
             if(Game.state.lvl < recipe.lvl) { canCraft = false; reqHtml += `<div class="text-red-500 text-xs mt-1">Benötigt Level ${recipe.lvl}</div>`; }
             div.innerHTML = `
                 <div class="flex justify-between items-start mb-2">
-                    <div class="font-bold text-yellow-400 text-lg">${out
+                    <div class="font-bold text-yellow-400 text-lg">${outItem.name}</div>
+                    <button class="action-button text-sm px-3" onclick="Game.craftItem('${recipe.id}')" ${canCraft ? '' : 'disabled'}>FERTIGEN</button>
+                </div>
+                <div class="pl-2 border-l-2 border-green-900">${reqHtml}</div>
+            `;
+            container.appendChild(div);
+        });
+        
+        if(knownCount === 0) {
+            container.innerHTML += '<div class="text-gray-500 italic mt-10 text-center border-t border-gray-800 pt-4">Du hast noch keine Baupläne gelernt.<br><span class="text-xs text-green-700">Suche in Dungeons oder der Wildnis nach Blueprints!</span></div>';
+        }
+    }
+});
