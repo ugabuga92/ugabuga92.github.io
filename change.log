@@ -1,5 +1,10 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v0.9.13] - 2025-12-30 14:00 (Fix Combat Crash & VATS Selection) 
+- Bugfix: Fehlende Funktion 'moveSelection' in combat.js hinzugefügt. 
+- Feature: Visuelle Auswahl (Hervorhebung) der Körperteile im Kampf-Modus hinzugefügt. 
+- Initiale Auswahl (Torso) beim Kampfstart gesetzt.
+
 [v0.9.12] - 2025-12-30 01:00pm (Quest System 2.0) --------------------------------- 
 - System: Echtes Quest-System mit 'kill', 'collect' und 'visit' Zielen. 
 - UI: Quest-Log zeigt jetzt Fortschrittsbalken und Belohnungen an. 
