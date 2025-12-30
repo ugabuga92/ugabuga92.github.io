@@ -1,12 +1,10 @@
-// [v1.3.1] - 2025-12-30 15:30 (Fix Camp Crash)
+// [v1.3.3] - 2025-12-30 15:55 (Fix Rest in Camp & Item Safety)
 // ------------------------------------------------
-// - Bugfix: Zelt-Datenstruktur korrigiert (sector: {x,y} statt sx,sy).
-// - System: Verhindert Abstürze bei existierenden, fehlerhaften Zelt-Daten.
+// - Bugfix: Fehlende Funktion 'restInCamp' hinzugefügt.
+// - Bugfix: Absturzschutz beim Item-Wechsel (Undefined checks).
 
 Object.assign(Game, {
     
-    // ... (addRadiation, rest, heal, buyAmmo, buyItem, addToInventory, removeFromInventory, useItem, craftItem, startCombat, gambleLegendaryLoot, upgradeStat, choosePerk bleiben unverändert) ...
-
     // Helper: Strahlung hinzufügen/entfernen
     addRadiation: function(amount) {
         if(!this.state) return;
@@ -30,12 +28,38 @@ Object.assign(Game, {
         UI.update();
     },
 
+    // --- BASIC ACTIONS ---
     rest: function() { 
         if(!this.state) return;
         const effectiveMax = this.state.maxHp - (this.state.rads || 0);
         this.state.hp = effectiveMax; 
         UI.log("Ausgeruht. HP voll (soweit möglich).", "text-blue-400"); 
         UI.update(); 
+    },
+
+    // [v1.3.3] Added missing restInCamp function
+    restInCamp: function() {
+        if(!this.state || !this.state.camp) return;
+        
+        const lvl = this.state.camp.level || 1;
+        const effectiveMax = this.state.maxHp - (this.state.rads || 0);
+        
+        let healAmount = 0;
+        
+        if(lvl === 1) {
+            // Level 1: Heilt 50% der Max HP
+            healAmount = Math.floor(effectiveMax * 0.5);
+            this.state.hp = Math.min(effectiveMax, this.state.hp + healAmount);
+            UI.log("Ausgeruht (Basis-Zelt). +50% HP.", "text-blue-400");
+        } else {
+            // Level 2+: Heilt 100%
+            this.state.hp = effectiveMax;
+            UI.log("Ausgeruht (Komfort-Zelt). HP voll.", "text-green-400 font-bold");
+        }
+        
+        UI.update();
+        // Refresh Camp View to show updated HP/Status
+        if(typeof UI.renderCamp === 'function') UI.renderCamp();
     },
 
     heal: function() { 
@@ -189,10 +213,18 @@ Object.assign(Game, {
             const slot = itemDef.slot;
             let oldEquip = this.state.equip[slot];
             
+            // [v1.3.3] EXTRA SAFETY CHECK HERE
             if(oldEquip && oldEquip.name !== "Fäuste" && oldEquip.name !== "Vault-Anzug") {
                 const existsInInv = this.state.inventory.some(i => {
-                    const iName = i.props ? i.props.name : this.items[i.id].name;
-                    return iName === oldEquip.name;
+                    // Props check first
+                    if(i.props) return i.props.name === oldEquip.name;
+                    
+                    // Safety check for item definition
+                    // If item ID is invalid/removed from DB, this.items[i.id] is undefined
+                    const def = this.items[i.id];
+                    if (def) return def.name === oldEquip.name;
+                    
+                    return false;
                 });
 
                 if(!existsInInv) {
@@ -362,7 +394,6 @@ Object.assign(Game, {
 
         this.state.caps -= cost;
         
-        // [v1.3.1] FIXED STRUCTURE HERE
         this.state.camp = { 
             sector: { x: this.state.sector.x, y: this.state.sector.y }, 
             x: this.state.player.x, 
