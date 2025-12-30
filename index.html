@@ -119,11 +119,13 @@
                 </div>
                 <div class="flex items-center gap-2 w-full max-w-xs">
                     <span class="text-xs font-bold w-6">HP</span>
-                    <div class="flex-grow h-3 bg-gray-900 border border-[#39ff14] relative">
+                    <div class="flex-grow h-3 bg-gray-900 border border-[#39ff14] relative overflow-hidden">
                         <div id="bar-hp" class="absolute top-0 left-0 h-full bg-[#1aff1a] transition-all duration-300" style="width: 100%"></div>
-                        <div id="val-hp" class="absolute inset-0 text-[10px] flex items-center justify-center text-black font-bold leading-none" style="text-shadow: none;">100/100</div>
+                        <div id="bar-rads" class="absolute top-0 right-0 h-full bg-red-600/90 transition-all duration-300 border-l border-red-400" style="width: 0%"></div>
+                        <div id="val-hp" class="absolute inset-0 text-[10px] flex items-center justify-center text-black font-bold leading-none z-10" style="text-shadow: none;">100/100</div>
                     </div>
                 </div>
+                
                 <div class="flex items-center gap-2 w-full max-w-xs">
                     <span class="text-xs font-bold w-6 text-yellow-400">XP</span>
                     <div class="flex-grow h-3 bg-gray-900 border border-yellow-500 relative">
