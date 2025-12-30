@@ -1,5 +1,4 @@
-// [v0.9.1]
-// Map Logic, Movement & Transitions
+// [v0.9.12] - Map with Quest Triggers
 Object.assign(Game, {
     reveal: function(px, py) { 
         if(!this.state) return;
@@ -36,7 +35,6 @@ Object.assign(Game, {
         if(this.state.hiddenItems && this.state.hiddenItems[posKey]) {
             const itemId = this.state.hiddenItems[posKey];
             this.addToInventory(itemId, 1);
-            // Safety check for display name
             const iName = (this.items && this.items[itemId]) ? this.items[itemId].name : itemId;
             UI.log(`Gefunden: ${iName}!`, "text-yellow-400 font-bold animate-pulse");
             UI.shakeView(); 
@@ -51,10 +49,8 @@ Object.assign(Game, {
         if (tile === 'X') { this.openChest(nx, ny); return; } 
         if (tile === 'v') { this.descendDungeon(); return; }
 
-        // --- KOLLISION [v0.9.1] ---
-        // 'M' (Berg) und 'T' (Baum) sind jetzt echte Hindernisse ohne Ausnahme. 'R' bleibt Ausnahme (Raider Base).
+        // --- KOLLISION ---
         if(['M', 'W', '#', 'U', 't', 'o', 'Y', '|', 'F', 'T', 'R'].includes(tile) && tile !== 'R') { 
-            // Sonderfall: Suche im Objekt
             if(this.state.hiddenItems && this.state.hiddenItems[posKey]) {
                  const itemId = this.state.hiddenItems[posKey];
                  this.addToInventory(itemId, 1);
@@ -79,12 +75,11 @@ Object.assign(Game, {
         this.reveal(nx, ny);
         if(typeof Network !== 'undefined') Network.sendHeartbeat();
 
-        // --- POI EVENTS [v0.9.1] ---
+        // --- POI EVENTS ---
         if(tile === 'V') { UI.switchView('vault'); return; }
         if(tile === 'C') { this.enterCity(); return; } 
         if(tile === 'S') { this.tryEnterDungeon("market"); return; }
         if(tile === 'H') { this.tryEnterDungeon("cave"); return; }
-        // NEW IDS: A = Army, K = Kommunikation/Tower
         if(tile === 'A') { this.tryEnterDungeon("military"); return; }
         if(tile === 'R') { this.tryEnterDungeon("raider"); return; }
         if(tile === 'K') { this.tryEnterDungeon("tower"); return; }
@@ -117,6 +112,12 @@ Object.assign(Game, {
         this.findSafeSpawn(); 
         this.reveal(this.state.player.x, this.state.player.y); 
         this.saveGame();
+        
+        // [v0.9.12] QUEST TRIGGER: Visit Sector
+        if(typeof this.updateQuestProgress === 'function') {
+             this.updateQuestProgress('visit', `${sx},${sy}`, 1);
+        }
+        
         UI.log(`Sektorwechsel: ${sx},${sy}`, "text-blue-400"); 
     },
 
@@ -185,8 +186,6 @@ Object.assign(Game, {
             if(attempts < 100) {
                 const bps = ['bp_ammo', 'bp_rusty_pistol', 'bp_machete', 'bp_leather_armor'];
                 const bp = bps[Math.floor(Math.random() * bps.length)];
-                
-                // Safe check if item exists
                 if(this.items && this.items[bp]) {
                     const recipeId = this.items[bp].recipeId;
                     if(!this.state.knownRecipes.includes(recipeId)) {
@@ -197,7 +196,6 @@ Object.assign(Game, {
         }
 
         this.fixMapBorders(this.state.currentMap, sx, sy);
-        
         if(!this.state.explored) this.state.explored = {};
         
         let zn = "Ödland"; 
@@ -209,7 +207,6 @@ Object.assign(Game, {
         
         this.findSafeSpawn();
         this.renderStaticMap(); 
-        
         this.reveal(this.state.player.x, this.state.player.y);
     },
 
@@ -230,7 +227,6 @@ Object.assign(Game, {
         const isSafe = (x, y) => {
             if(x < 0 || x >= this.MAP_W || y < 0 || y >= this.MAP_H) return false;
             const t = this.state.currentMap[y][x];
-            // [v0.9.1] A and K are POIs, not unsafe obstacles per se, but better spawn near not on
             return !['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F', 'R', 'A', 'K'].includes(t);
         };
         if(isSafe(this.state.player.x, this.state.player.y)) return;
@@ -268,7 +264,6 @@ Object.assign(Game, {
             this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
             this.state.sectorExploredCache = JSON.parse(JSON.stringify(this.state.explored));
         }
-        
         this.state.dungeonLevel = level;
         this.state.dungeonType = type;
 
@@ -280,7 +275,6 @@ Object.assign(Game, {
             this.state.player.y = data.startY;
 
             if(level < 3) {
-                // Ensure there is an exit (stairs)
                 for(let y=0; y<this.MAP_H; y++) {
                     for(let x=0; x<this.MAP_W; x++) {
                         if(this.state.currentMap[y][x] === 'X') {
@@ -322,12 +316,9 @@ Object.assign(Game, {
         this.state.caps += caps;
         this.addToInventory('legendary_part', 1 * multiplier);
         
-        // --- BLUEPRINT DROP CHANCE ---
         if(Math.random() < 0.4) { 
             const bps = ['bp_stimpack', 'bp_metal_armor', 'bp_ammo'];
             const bp = bps[Math.floor(Math.random() * bps.length)];
-            
-            // FIX: Check if items DB exists and item key exists
             if(this.items && this.items[bp]) {
                 const rid = this.items[bp].recipeId;
                 if(!this.state.knownRecipes.includes(rid)) {
@@ -337,7 +328,6 @@ Object.assign(Game, {
                     this.addToInventory('screws', 5);
                 }
             } else {
-                // Fallback if DB missing
                 this.addToInventory('screws', 5);
             }
         }
