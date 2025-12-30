@@ -1,4 +1,4 @@
-// [v0.7.7]
+// [v0.9.10]
 // [v0.7.7] - 2025-12-28 02:30pm (Victory Banner Fix)
 // ------------------------------------------------
 // - Victory Overlay Z-Index Fix (z-[200])
@@ -134,21 +134,39 @@ Object.assign(UI, {
         }
     },
 
-    showItemConfirm: function(itemId) {
+    // [v0.9.10] Fix: Support for Index (Unique Items)
+    showItemConfirm: function(invIndex) {
         if(!this.els.dialog) this.restoreOverlay();
-        if(!Game.items[itemId]) return;
-        const item = Game.items[itemId];
+        
+        // Safety check
+        if(!Game.state.inventory[invIndex]) return;
+        
+        const invItem = Game.state.inventory[invIndex];
+        const item = Game.items[invItem.id];
+        
+        if(!item) return;
+
         if(Game.state) Game.state.inDialog = true;
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
+        
         let statsText = "";
-        if(item.type === 'consumable') statsText = `Effekt: ${item.effect} (${item.val})`;
-        if(item.type === 'weapon') statsText = `Schaden: ${item.baseDmg}`;
-        if(item.type === 'body') statsText = `Rüstung: +${item.bonus.END || 0} END`;
+        let displayName = item.name;
+        
+        // Handle Unique Props
+        if(invItem.props) {
+            displayName = invItem.props.name;
+            if(invItem.props.dmgMult) statsText = `Schaden: ${Math.floor(item.baseDmg * invItem.props.dmgMult)} (Mod)`;
+        } else {
+            if(item.type === 'consumable') statsText = `Effekt: ${item.effect} (${item.val})`;
+            if(item.type === 'weapon') statsText = `Schaden: ${item.baseDmg}`;
+            if(item.type === 'body') statsText = `Rüstung: +${item.bonus.END || 0} END`;
+        }
+
         const box = document.createElement('div');
         box.className = "bg-black border-2 border-green-500 p-4 shadow-[0_0_15px_green] max-w-sm text-center mb-4";
         box.innerHTML = `
-            <h2 class="text-xl font-bold text-green-400 mb-2">${item.name}</h2>
+            <h2 class="text-xl font-bold text-green-400 mb-2">${displayName}</h2>
             <div class="text-xs text-green-200 mb-4 border-t border-b border-green-900 py-2">Typ: ${item.type.toUpperCase()}<br>Wert: ${item.cost} KK<br><span class="text-yellow-400">${statsText}</span></div>
             <p class="text-green-200 mb-4 text-sm">Gegenstand benutzen / ausrüsten?</p>
         `;
@@ -157,11 +175,15 @@ Object.assign(UI, {
         const btnYes = document.createElement('button');
         btnYes.className = "border border-green-500 text-green-500 hover:bg-green-900 px-4 py-2 font-bold w-full";
         btnYes.textContent = "BESTÄTIGEN";
-        btnYes.onclick = () => { Game.useItem(itemId); this.leaveDialog(); };
+        
+        // Call Game.useItem with INDEX!
+        btnYes.onclick = () => { Game.useItem(invIndex); this.leaveDialog(); };
+        
         const btnNo = document.createElement('button');
         btnNo.className = "border border-red-500 text-red-500 hover:bg-red-900 px-4 py-2 font-bold w-full";
         btnNo.textContent = "ABBRUCH";
         btnNo.onclick = () => { this.leaveDialog(); };
+        
         btnContainer.appendChild(btnYes); btnContainer.appendChild(btnNo);
         box.appendChild(btnContainer); this.els.dialog.appendChild(box);
         this.refreshFocusables();
