@@ -1,3 +1,7 @@
+[v2.3] - 2025-12-31 17:30pm (Admin & Docs) 
+- Komplettes 'readme.md' Handbuch mit neuen Mechaniken erstellt 
+- 'admin.html' und 'admin.js' hinzugefügt: Ermöglicht Login mit Passwort, User-Verwaltung, Editieren von Stats (Caps, Level, XP) und Hinzufügen von Items per Datenbank-Direktzugriff
+
 [v2.2] - 2025-12-31 16:30pm (Refactoring)
 • Aufteilung der ui_render_views.js in 5 Module für bessere Wartbarkeit
 • ui_view_inv.js: Inventar, Stats, Perks
