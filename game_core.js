@@ -1,4 +1,4 @@
-// [v1.7.0] - Economy & Restock Logic
+// [v1.7.1] - 2025-12-31 15:30pm (Save Fix) - Added default quests array initialization for legacy saves.
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     WORLD_W: 10, WORLD_H: 10, 
@@ -99,6 +99,8 @@ window.Game = {
                 // [v0.9.12] Init new Quest System if missing
                 if(!this.state.activeQuests) this.state.activeQuests = [];
                 if(!this.state.completedQuests) this.state.completedQuests = [];
+                // [v1.7.1] Fix for missing quests notification array
+                if(!this.state.quests) this.state.quests = [];
 
                 if(!this.state.camp) this.state.camp = null;
                 if(!this.state.knownRecipes) this.state.knownRecipes = ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp']; 
