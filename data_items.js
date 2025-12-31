@@ -1,4 +1,4 @@
-// [v0.8.0]
+// [v0.8.1] - Added missing Monster Drops & Cooked Food
 if(typeof window.GameData === 'undefined') window.GameData = {};
 if(typeof window.GameData.items === 'undefined') window.GameData.items = {}; 
 
@@ -11,9 +11,29 @@ Object.assign(window.GameData.items, {
     bp_metal_armor: { name: "Bauplan: Metallrüstung", type: "blueprint", recipeId: "craft_metal", cost: 250, desc: "Schweres Blech." },
     bp_machete: { name: "Bauplan: Machete", type: "blueprint", recipeId: "craft_machete", cost: 150, desc: "Scharfer Stahl." },
     
-    // --- CAMP ITEMS (NEU) ---
+    // --- CAMP ITEMS ---
     camp_kit: { name: "Zelt-Bausatz", type: "tool", cost: 150, desc: "Errichtet ein Lager im Ödland.", weight: 5 },
     cloth: { name: "Stoff", type: "component", cost: 2, desc: "Material für Zelte und Kleidung." },
+
+    // --- MONSTER DROPS (FIXED INVISIBLE LOOT) ---
+    meat_roach: { name: "Kakerlakenfleisch", type: "component", cost: 5, desc: "Ekelhaft, aber essbar." },
+    meat_fly: { name: "Fliegenfleisch", type: "component", cost: 5, desc: "Schleimig." },
+    meat_mole: { name: "Rattenfleisch", type: "component", cost: 8, desc: "Zäh." },
+    meat_scorp: { name: "Skorpiondrüse", type: "component", cost: 20, desc: "Delikatesse." },
+    meat_lurk: { name: "Mirelurk-Fleisch", type: "component", cost: 15, desc: "Weich und fischig." },
+    hide_yao: { name: "Yao Guai Leder", type: "component", cost: 40, desc: "Robustes Fell." },
+    
+    scrap_metal: { name: "Altmetall", type: "junk", cost: 3, desc: "Verwertbare Teile." },
+    adhesive: { name: "Kleber", type: "component", cost: 15, desc: "Hält ewig." },
+    nuclear_mat: { name: "Nukleares Material", type: "rare", cost: 50, desc: "Strahlend und wertvoll." },
+    springs: { name: "Federn", type: "component", cost: 10, desc: "Für mechanische Teile." },
+
+    // --- COOKED FOOD (CONSUMABLES) ---
+    cooked_roach: { name: "Gegrillte Kakerlake", type: "consumable", effect: "heal_rad", val: 15, rad: 2, cost: 10, desc: "Knusprig. +15 HP, +2 RAD" },
+    cooked_fly: { name: "Fliegen-Spieß", type: "consumable", effect: "heal_rad", val: 15, rad: 2, cost: 10, desc: "Proteinreich. +15 HP, +2 RAD" },
+    cooked_mole: { name: "Ratten-Steak", type: "consumable", effect: "heal_rad", val: 25, rad: 3, cost: 20, desc: "Macht satt. +25 HP, +3 RAD" },
+    cooked_scorp: { name: "Skorpion-Filet", type: "consumable", effect: "heal_rad", val: 40, rad: 5, cost: 50, desc: "Schmeckt nach Hühnchen. +40 HP, +5 RAD" },
+    cooked_lurk: { name: "Mirelurk-Kuchen", type: "consumable", effect: "heal_rad", val: 35, rad: 4, cost: 45, desc: "Fast wie Krabbe. +35 HP, +4 RAD" },
 
     // --- WAFFEN & ITEMS ---
     fists: { name: "Fäuste", type: "weapon", slot: "weapon", baseDmg: 2, cost: 0, desc: "Deine bloßen Hände." },
