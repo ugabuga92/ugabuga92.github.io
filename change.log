@@ -1,4 +1,8 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
+[v2.1] - 2025-12-31 16:15pm (Consumables Update & Loot Fix) 
+- Fix für 'Invisible Loot': Fehlende Item-Definitionen (Fleisch, Schrott) ergänzt 
+- Kochen im Lager hinzugefügt (neuer Button 'KOCHEN') 
+- Gekochtes Essen heilt HP und gibt Strahlung (heal_rad)
 
 [v2.0] - 2025-12-31 16:00pm (Radio Update) 
 - Implementierung der Web Audio API für echte Klangerzeugung (Statisches Rauschen & Synth-Sounds pro Sender) 
