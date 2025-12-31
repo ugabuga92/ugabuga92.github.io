@@ -1,4 +1,4 @@
-/* [v0.9.3] */
+/* [v0.9.18] - Added .lvl-ready-glow and animation */
 :root { --pip-green: #1aff1a; --pip-glow: #2bff2b; --pip-dim: #0d330d; --pip-bg: #051105; }
 
 html, body { width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; position: fixed; }
@@ -69,6 +69,17 @@ body { background-color: #000; color: var(--pip-green); font-family: 'VT323', mo
     animation: pulse-focus 1.5s infinite;
 }
 @keyframes pulse-focus { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+/* [v0.9.18] Level Up Text Glow */
+.lvl-ready-glow {
+    animation: pulse-lvl-text 1s infinite alternate;
+    color: #ffd700 !important;
+    text-shadow: 0 0 5px #b8860b;
+}
+@keyframes pulse-lvl-text {
+    0% { transform: scale(1); text-shadow: 0 0 5px #b8860b; }
+    100% { transform: scale(1.1); text-shadow: 0 0 15px #ffd700, 0 0 2px white; }
+}
 
 /* MINIGAME STYLES */
 .lock-container { position: relative; width: 250px; height: 250px; border-radius: 50%; border: 4px solid #333; background: radial-gradient(circle, #222, #000); box-shadow: inset 0 0 30px #000; margin: 0 auto; }
