@@ -1,10 +1,12 @@
-// [v1.3.4] - 2025-12-30 16:15 (Update Overlay Text)
+// [v1.5.0] - 2025-12-30 17:00 (Shop Overhaul - UI)
 // ------------------------------------------------
-// - UI Change: Zelt-Status im Inventar von 'AUFGEBAUT' zu 'AUFGESTELLT' geändert.
+// - UI Change: Handelsposten nun in Kategorien unterteilt (Waffen, Kleidung, Hilfsmittel, etc.).
+// - UI Change: Bessere visuelle Darstellung und 'Im Besitz' Marker bei ausgerüsteten Items.
+// - Integration: Klick öffnet nun den neuen 'showShopConfirm' Dialog.
 
 Object.assign(UI, {
     
-    // ... (renderCharacterSelection, renderChar, renderPerksList, renderRadio, renderCamp, renderWorldMap, renderWiki, renderQuests, renderCity, renderShop, renderClinic, renderCombat, renderSpawnList, renderCrafting bleiben unverändert) ...
+    // ... (renderCharacterSelection, renderInventory, renderChar, renderPerksList, renderRadio, renderCamp, renderWorldMap, renderWiki, renderQuests, renderCity bleiben unverändert) ...
 
     renderCharacterSelection: function(saves) {
         this.charSelectMode = true;
@@ -131,7 +133,6 @@ Object.assign(UI, {
             if(Game.state.equip.weapon && Game.state.equip.weapon.name === displayName) isEquipped = true;
             if(Game.state.equip.body && Game.state.equip.body.name === displayName) isEquipped = true;
             
-            // [v1.3.4] UPDATE TEXT
             if(entry.id === 'camp_kit' && Game.state.camp) { isEquipped = true; label = "AUFGESTELLT"; }
 
             if(isEquipped) {
@@ -397,7 +398,6 @@ Object.assign(UI, {
         const glowAlpha = 0.3 + (Math.sin(Date.now() / 200) + 1) * 0.2; // 0.3 to 0.7
         
         if(Game.state.camp && !Game.state.camp.sector && Game.state.camp.sx !== undefined) {
-             console.log("Fixing broken camp object...");
              Game.state.camp.sector = { x: Game.state.camp.sx, y: Game.state.camp.sy };
         }
 
@@ -835,6 +835,7 @@ Object.assign(UI, {
         addBtn("🚪", "STADT VERLASSEN", "Zurück in das Ödland", () => this.switchView('map'));
     },
     
+    // [v1.5.0] UPDATED RENDER SHOP WITH CATEGORIES & DIALOG
     renderShop: function(container) {
         if(!container) container = document.getElementById('shop-list');
         if(!container) return;
@@ -850,46 +851,91 @@ Object.assign(UI, {
         };
         container.appendChild(backBtn);
 
-        const addShopItem = (itemKey, item) => {
-            const canAfford = Game.state.caps >= item.cost;
-            const isEquipped = (Game.state.equip[item.slot] && Game.state.equip[item.slot].name === item.name);
-            
-            const div = document.createElement('div');
-            div.className = `flex justify-between items-center p-2 mb-2 border h-16 w-full ${canAfford ? 'border-green-500 bg-green-900/20' : 'border-red-900 bg-black/40'} transition-all hover:bg-green-900/40`;
-            
-            let icon = "📦";
-            if(item.type === 'weapon') icon = "🔫";
-            if(item.type === 'body') icon = "🛡️";
-            if(item.type === 'consumable') icon = "💊";
+        // Caps Display
+        const capsDisplay = document.createElement('div');
+        capsDisplay.className = "sticky top-0 bg-black/90 border-b border-yellow-500 text-yellow-400 font-bold text-right p-2 mb-4 z-10 font-mono";
+        capsDisplay.innerHTML = `VERMÖGEN: ${Game.state.caps} KK`;
+        container.appendChild(capsDisplay);
 
-            div.innerHTML = `
-                <div class="flex items-center gap-3 overflow-hidden flex-1">
-                    <span class="text-2xl flex-shrink-0">${icon}</span>
-                    <div class="flex flex-col overflow-hidden">
-                        <span class="font-bold truncate ${canAfford ? 'text-green-400' : 'text-gray-500'} text-sm">${item.name}</span>
-                        <span class="text-[10px] text-green-600 truncate">${item.desc || item.type}</span>
-                    </div>
-                </div>
-                <div class="flex flex-col items-end flex-shrink-0 ml-2 min-w-[60px]">
-                    <span class="font-mono text-yellow-400 font-bold text-sm">${item.cost} KK</span>
-                </div>
-            `;
-            
-            if(isEquipped) {
-                // FIXED OVERLAY STYLE: No slant, full cover
-                div.innerHTML += `<div class="absolute inset-0 flex justify-center items-center bg-black/60 text-green-500 font-bold border border-green-500 pointer-events-none">AUSGERÜSTET</div>`;
-                div.style.position = 'relative';
-                div.style.opacity = '0.9';
-            } else if (!canAfford) {
-                div.style.opacity = '0.5';
-                div.style.cursor = 'not-allowed';
-            } else {
-                div.style.cursor = 'pointer';
-                div.onclick = () => Game.buyItem(itemKey);
-            }
-            
-            container.appendChild(div);
+        // Categories
+        const categories = {
+            'consumable': { title: 'HILFSMITTEL', items: [] },
+            'weapon': { title: 'WAFFEN', items: [] },
+            'body': { title: 'KLEIDUNG & RÜSTUNG', items: [] },
+            'misc': { title: 'SONSTIGES', items: [] } 
         };
+
+        const sortedKeys = Object.keys(Game.items).sort((a,b) => Game.items[a].cost - Game.items[b].cost);
+        sortedKeys.forEach(key => {
+            const item = Game.items[key];
+            if(item.cost > 0 && !key.startsWith('rusty_')) {
+                if(categories[item.type]) {
+                    categories[item.type].items.push({key, ...item});
+                } else {
+                    categories['misc'].items.push({key, ...item});
+                }
+            }
+        });
+
+        const renderCategory = (catKey) => {
+            const cat = categories[catKey];
+            if(cat.items.length === 0) return;
+
+            const header = document.createElement('h3');
+            header.className = "text-green-500 font-bold border-b border-green-700 mt-4 mb-2 pb-1 pl-2 text-sm uppercase tracking-widest bg-green-900/20";
+            header.textContent = cat.title;
+            container.appendChild(header);
+
+            cat.items.forEach(data => {
+                const canAfford = Game.state.caps >= data.cost;
+                // [v1.5.0] Updated Check: Mark as Owned if equipped OR in inventory (for camp kit etc)
+                let isOwned = false;
+                if(Game.state.equip[data.slot] && Game.state.equip[data.slot].name === data.name) isOwned = true;
+                if(data.type === 'tool' || data.type === 'blueprint') {
+                     if(Game.state.inventory.some(i => i.id === data.key)) isOwned = true;
+                }
+                
+                const div = document.createElement('div');
+                div.className = `flex justify-between items-center p-2 mb-2 border h-16 w-full ${canAfford ? 'border-green-500 bg-green-900/20 hover:bg-green-900/40' : 'border-red-900 bg-black/40 opacity-70'} transition-all cursor-pointer group`;
+                
+                let icon = "📦";
+                if(data.type === 'weapon') icon = "🔫";
+                if(data.type === 'body') icon = "🛡️";
+                if(data.type === 'consumable') icon = "💊";
+                if(data.type === 'junk') icon = "⚙️";
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden flex-1">
+                        <span class="text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">${icon}</span>
+                        <div class="flex flex-col overflow-hidden">
+                            <span class="font-bold truncate ${canAfford ? 'text-green-400 group-hover:text-yellow-400' : 'text-gray-500'} text-sm">${data.name}</span>
+                            <span class="text-[10px] text-green-600 truncate">${data.desc || data.type}</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end flex-shrink-0 ml-2 min-w-[60px]">
+                        <span class="font-mono ${canAfford ? 'text-yellow-400' : 'text-red-500'} font-bold text-sm">${data.cost} KK</span>
+                    </div>
+                `;
+                
+                if(isOwned) {
+                    div.innerHTML += `<div class="absolute inset-0 flex justify-center items-center bg-black/60 text-green-500 font-bold border border-green-500 pointer-events-none text-xs tracking-widest">IM BESITZ</div>`;
+                    div.style.position = 'relative';
+                } 
+                
+                div.onclick = () => UI.showShopConfirm(data.key);
+                container.appendChild(div);
+            });
+        };
+
+        renderCategory('consumable');
+        renderCategory('weapon');
+        renderCategory('body');
+        renderCategory('misc');
+
+        const header = document.createElement('h3');
+        header.className = "text-blue-400 font-bold border-b border-blue-700 mt-4 mb-2 pb-1 pl-2 text-sm uppercase tracking-widest bg-blue-900/20";
+        header.textContent = "MUNITION & SPECIALS";
+        container.appendChild(header);
 
         const ammoDiv = document.createElement('div');
         ammoDiv.className = "flex justify-between items-center p-2 mb-4 border border-blue-500 bg-blue-900/20 cursor-pointer hover:bg-blue-900/40 h-16 w-full";
@@ -907,14 +953,6 @@ Object.assign(UI, {
         if(!canBuyAmmo) { ammoDiv.style.opacity = 0.5; }
         else { ammoDiv.onclick = () => Game.buyAmmo(); }
         container.appendChild(ammoDiv);
-
-        const sortedKeys = Object.keys(Game.items).sort((a,b) => Game.items[a].cost - Game.items[b].cost);
-        sortedKeys.forEach(key => {
-            const item = Game.items[key];
-            if(item.cost > 0 && !key.startsWith('rusty_')) {
-                addShopItem(key, item);
-            }
-        });
     },
 
     renderClinic: function() {
