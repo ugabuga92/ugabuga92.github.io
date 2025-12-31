@@ -1,4 +1,4 @@
-// [v1.7.3] - 2025-12-31 (Data Expansion)
+// [v0.9.12] - Added Quest Definitions
 window.GameData = window.GameData || {};
 
 // --- PERKS ---
@@ -9,85 +9,76 @@ window.GameData.perks = [
     { id: 'mysterious_stranger', name: 'Mysteriöser Fremder', desc: '10% Chance auf kritischen Treffer.', icon: '🕵️' }
 ];
 
-// --- RADIO STATIONS ---
-window.GameData.radioStations = [
-    {
-        name: "GALAXY NEWS",
-        freq: "101.5",
-        tracks: [
-            "Nachrichten: Supermutanten in Sektor 7 gesichtet...",
-            "Song: 'I Don't Want to Set the World on Fire'",
-            "Three Dog: 'Kämpft den guten Kampf!'",
-            "Song: 'Maybe'",
-            "Werbung: Nuka Cola - Trink das Strahlen!"
-        ]
-    },
-    {
-        name: "ENCLAVE RADIO",
-        freq: "98.2",
-        tracks: [
-            "Präsident Eden: 'Die Wiederherstellung Amerikas...'",
-            "Marschmusik: 'Stars and Stripes Forever'",
-            "Präsident Eden: 'Vertraut eurem Präsidenten.'",
-            "Hymne: 'America the Beautiful'"
-        ]
-    },
-    {
-        name: "KLASSIK FM",
-        freq: "88.0",
-        tracks: [
-            "Agatha: 'Eine Melodie für das Ödland...'",
-            "Violin Solo No. 4",
-            "Bach: Cello Suite",
-            "Stille (Rauschen)"
-        ]
-    }
-];
-
-// --- LOOT PREFIXES ---
-window.GameData.lootPrefixes = {
-    'rusty': { name: 'Rostige', dmgMult: 0.8, valMult: 0.5, color: 'text-gray-500' },
-    'hardened': { name: 'Gehärtete', dmgMult: 1.2, valMult: 1.3, color: 'text-gray-300' },
-    'precise': { name: 'Präzise', dmgMult: 1.1, valMult: 1.5, bonus: {PER: 1}, color: 'text-blue-300' },
-    'radiated': { name: 'Verstrahlte', dmgMult: 1.0, valMult: 1.2, effect: 'rads', color: 'text-green-300' },
-    'legendary': { name: 'Legendäre', dmgMult: 1.5, valMult: 3.0, bonus: {LUC: 2}, color: 'text-yellow-400 font-bold' }
-};
-
-// --- QUESTS ---
+// --- QUESTS (NEU) ---
 window.GameData.questDefs = [
     { 
-        id: "q_start", title: "Überleben 101", desc: "Das Ödland ist gefährlich. Töte kleine Biester um zu üben.", 
-        type: "kill", target: "radRoach", amount: 3, minLvl: 1, reward: { xp: 50, caps: 25 } 
+        id: "q_start", 
+        title: "Überleben 101", 
+        desc: "Das Ödland ist gefährlich. Töte kleine Biester um zu üben.", 
+        type: "kill", 
+        target: "radRoach", 
+        amount: 3, 
+        minLvl: 1, 
+        reward: { xp: 50, caps: 25 } 
     },
     { 
-        id: "q_explore", title: "Zivilisation?", desc: "Finde die Handelsstadt Rusty Springs bei den Koordinaten [3,3].", 
-        type: "visit", target: "3,3", amount: 1, minLvl: 1, reward: { xp: 100, caps: 50, items: [{id:'stimpack', c:2}] } 
+        id: "q_explore", 
+        title: "Zivilisation?", 
+        desc: "Finde die Handelsstadt Rusty Springs bei den Koordinaten [3,3].", 
+        type: "visit", 
+        target: "3,3", 
+        amount: 1, 
+        minLvl: 1, 
+        reward: { xp: 100, caps: 50, items: [{id:'stimpack', c:2}] } 
     },
     { 
-        id: "q_hunter", title: "Plagenbeseitigung", desc: "Blähfliegen übertragen Krankheiten. Lösche sie aus.", 
-        type: "kill", target: "bloatfly", amount: 5, minLvl: 2, reward: { xp: 150, caps: 60, items: [{id:'radaway', c:1}] } 
+        id: "q_hunter", 
+        title: "Plagenbeseitigung", 
+        desc: "Blähfliegen übertragen Krankheiten. Lösche sie aus.", 
+        type: "kill", 
+        target: "bloatfly", 
+        amount: 5, 
+        minLvl: 2, 
+        reward: { xp: 150, caps: 60, items: [{id:'radaway', c:1}] } 
     },
     { 
-        id: "q_collect", title: "Schrottsammler", desc: "Sammle Schrottmetall, um dein Lager auszubauen.", 
-        type: "collect", target: "junk_metal", amount: 10, minLvl: 3, reward: { xp: 200, items: [{id:'bp_machete', c:1}] } 
+        id: "q_collect", 
+        title: "Schrottsammler", 
+        desc: "Sammle Schrottmetall, um dein Lager auszubauen.", 
+        type: "collect", 
+        target: "junk_metal", 
+        amount: 10, 
+        minLvl: 3, 
+        reward: { xp: 200, items: [{id:'bp_machete', c:1}] } 
     },
     { 
-        id: "q_raider", title: "Gesetzeshüter", desc: "Raider bedrohen die Handelsrouten. Zeig ihnen das Gesetz.", 
-        type: "kill", target: "raider", amount: 5, minLvl: 4, reward: { xp: 300, caps: 150, items: [{id:'combat_armor', c:1}] } 
+        id: "q_raider", 
+        title: "Gesetzeshüter", 
+        desc: "Raider bedrohen die Handelsrouten. Zeig ihnen das Gesetz.", 
+        type: "kill", 
+        target: "raider", 
+        amount: 5, 
+        minLvl: 4, 
+        reward: { xp: 300, caps: 150, items: [{id:'combat_armor', c:1}] } 
     }
 ];
 
 // --- FARBPALETTE ---
 window.GameData.colors = { 
-    '.':'#2d241b', '_':'#4a4036', ',':'#1a261a', ';':'#1e1e11', '=':'#333333', '#':'#555', 
+    '.':'#2d241b', '_':'#4a4036', ',':'#1a261a', ';':'#1e1e11', '=':'#333333', 
+    '#':'#555', 
     'line_default': '#2a5a2a', 'line_wall': '#39ff14', 
     'V': '#39ff14', 'C': '#eab308', 'S': '#ff0000', 'G': '#00ffff', 'H': '#888888', 
     '^': '#111', 'v':'#111', '<':'#111', '>':'#111',
     'M': '#3e2723', 'W': '#0d47a1', '~': '#2f4f2f', 
     't': '#1b5e20', 'T': '#0a3d0a', 'x': '#8b4513', 'o': '#808080',
     '+': '#666666', '"': '#3cb371', 'Y': '#deb887', 'U': '#212121',
+    // [v0.9.1] New POI Colors
     'A': '#cc0000', 'K': '#00bfff',
-    '$': '#ffd700', '&': '#ff8c00', 'P': '#ff3333', 'E': '#39ff14', 'F': '#00bfff', '|': '#777', 'X': '#ff00ff', 
+    // City Tiles
+    '$': '#ffd700', '&': '#ff8c00', 'P': '#ff3333', 'E': '#39ff14', 'F': '#00bfff', '|': '#777',
+    'X': '#ff00ff', 
+    // Map Colors
     'wasteland': '#5d5345', 'desert': '#eecfa1', 'jungle': '#1a3300', 'city': '#555555', 'swamp': '#1e1e11'
 };
 

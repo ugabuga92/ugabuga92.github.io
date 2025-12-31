@@ -1,55 +1,112 @@
-// [v1.7.5] - 2025-12-31 (Critical Fix: Combat & Logic Restore)
-Object.assign(window.Game, {
+// [v1.7.0] - Unequip & Shop Stock Actions
+Object.assign(Game, {
     
-    // --- MOVEMENT & MAP ---
-    changeSector: function(x, y) {
-        if(x < 0 || x >= this.WORLD_W || y < 0 || y >= this.WORLD_H) return;
-        this.state.sector = {x, y};
-        this.state.player.x = Math.floor(this.MAP_W / 2);
-        this.state.player.y = Math.floor(this.MAP_H / 2);
-        
-        // Track visited
-        this.state.visitedSectors = this.state.visitedSectors || [];
-        const key = `${x},${y}`;
-        if(!this.state.visitedSectors.includes(key)) this.state.visitedSectors.push(key);
-        
-        // Quest Progress
-        if(typeof UI !== 'undefined' && UI.updateQuestProgress) UI.updateQuestProgress('visit', `${x},${y}`);
-
-        this.loadSector(x, y);
-        this.saveGame();
-    },
-
-    loadSector: function(sx, sy) {
-        if(typeof WorldGen !== 'undefined') {
-            this.worldData = WorldGen.generateSector(sx, sy); 
+    // ... (addRadiation, rest, restInCamp, heal bleiben gleich) ...
+    addRadiation: function(amount) {
+        if(!this.state) return;
+        if(typeof this.state.rads === 'undefined') this.state.rads = 0;
+        this.state.rads = Math.min(this.state.maxHp, Math.max(0, this.state.rads + amount));
+        if(amount > 0) UI.log(`+${amount} RADS!`, "text-red-500 font-bold animate-pulse");
+        else UI.log(`${Math.abs(amount)} RADS entfernt.`, "text-green-300");
+        const effectiveMax = this.state.maxHp - this.state.rads;
+        if(this.state.hp > effectiveMax) { this.state.hp = effectiveMax; }
+        if(this.state.hp <= 0 && amount > 0) {
+            this.state.hp = 0; this.state.isGameOver = true;
+            if(UI && UI.showGameOver) UI.showGameOver();
         }
-        this.initCache(); 
-        if(this.renderStaticMap) this.renderStaticMap(); 
-        this.reveal(this.state.player.x, this.state.player.y);
+        UI.update();
     },
 
-    reveal: function(px, py) {
-        const rad = 6;
-        const key = `${this.state.sector.x},${this.state.sector.y}`;
-        if(!this.state.explored[key]) this.state.explored[key] = [];
+    rest: function() { 
+        if(!this.state) return;
+        const effectiveMax = this.state.maxHp - (this.state.rads || 0);
+        this.state.hp = effectiveMax; 
+        UI.log("Ausgeruht. HP voll (soweit möglich).", "text-blue-400"); 
+        UI.update(); 
+    },
+
+    restInCamp: function() {
+        if(!this.state || !this.state.camp) return;
+        const lvl = this.state.camp.level || 1;
+        const effectiveMax = this.state.maxHp - (this.state.rads || 0);
+        let healAmount = 0;
+        if(lvl === 1) {
+            healAmount = Math.floor(effectiveMax * 0.5);
+            this.state.hp = Math.min(effectiveMax, this.state.hp + healAmount);
+            UI.log("Ausgeruht (Basis-Zelt). +50% HP.", "text-blue-400");
+        } else {
+            this.state.hp = effectiveMax;
+            UI.log("Ausgeruht (Komfort-Zelt). HP voll.", "text-green-400 font-bold");
+        }
+        UI.update();
+        if(typeof UI.renderCamp === 'function') UI.renderCamp();
+    },
+
+    heal: function() { 
+        if(this.state.caps >= 25) { 
+            this.state.caps -= 25; 
+            this.state.rads = 0; 
+            this.state.hp = this.state.maxHp; 
+            UI.log("Dr. Zimmermann: 'Alles wieder gut!' (-RADS, +HP)", "text-green-400");
+            UI.update(); 
+        } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); }
+    },
+    
+    buyAmmo: function() { 
+        // [v1.7.0] Stock Check
+        if(this.state.shop && this.state.shop.ammoStock <= 0) {
+            UI.log("Händler: 'Keine Munition mehr vorrätig!'", "text-red-500");
+            return;
+        }
+
+        if(this.state.caps >= 10) { 
+            this.state.caps -= 10; 
+            this.state.ammo += 10; 
+            
+            if(this.state.shop) this.state.shop.ammoStock--;
+            
+            UI.log("Munition gekauft.", "text-green-400"); 
+            const con = document.getElementById('shop-list');
+            if(con) UI.renderShop(con);
+            UI.update(); 
+        } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); }
+    },
+    
+    buyItem: function(key) { 
+        const item = this.items[key]; 
         
-        for(let y = py - rad; y <= py + rad; y++) {
-            for(let x = px - rad; x <= px + rad; x++) {
-                if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) {
-                    const dist = (x-px)**2 + (y-py)**2;
-                    if(dist <= rad*rad) {
-                        const idx = y * this.MAP_W + x;
-                        if(!this.state.explored[key].includes(idx)) {
-                            this.state.explored[key].push(idx);
-                        }
-                    }
-                }
+        // [v1.7.0] Stock Check Logic
+        if(this.state.shop && this.state.shop.stock) {
+            const stock = this.state.shop.stock[key] || 0;
+            if(stock <= 0) {
+                UI.log("Dieser Artikel ist ausverkauft.", "text-red-500");
+                return;
             }
         }
+
+        if (key === 'camp_kit') {
+            const hasCamp = this.state.inventory && this.state.inventory.some(i => i.id === 'camp_kit');
+            if (hasCamp) { UI.log("Du besitzt bereits einen Zeltbausatz!", "text-orange-500"); return; }
+        }
+
+        if(this.state.caps >= item.cost) { 
+            this.state.caps -= item.cost; 
+            this.addToInventory(key, 1); 
+            
+            // Decrease Stock
+            if(this.state.shop && this.state.shop.stock && this.state.shop.stock[key] > 0) {
+                this.state.shop.stock[key]--;
+            }
+
+            UI.log(`Gekauft: ${item.name}`, "text-green-400"); 
+            const con = document.getElementById('shop-list');
+            if(con) UI.renderShop(con);
+            UI.update(); 
+        } else { 
+            UI.log("Zu wenig Kronkorken.", "text-red-500"); 
+        } 
     },
 
-    // --- INVENTORY & ITEMS ---
     addToInventory: function(idOrItem, count=1) { 
         if(!this.state.inventory) this.state.inventory = []; 
         let itemId, props = null;
@@ -82,8 +139,8 @@ Object.assign(window.Game, {
         if(itemDef && (itemDef.type === 'weapon' || itemDef.type === 'body')) {
             if(typeof UI !== 'undefined' && UI.triggerInventoryAlert) UI.triggerInventoryAlert();
         }
-    },
-
+    }, 
+    
     removeFromInventory: function(itemId, amount=1) {
         if(!this.state) return false;
         const idx = this.state.inventory.findIndex(i => i.id === itemId);
@@ -96,42 +153,25 @@ Object.assign(window.Game, {
         return false;
     },
 
-    equipItem: function(index) {
-        const itemEntry = this.state.inventory[index];
-        if(!itemEntry) return;
-        const itemDef = this.items[itemEntry.id];
-        if(!itemDef) return;
-
-        if(itemDef.type === 'weapon') {
-            this.state.equip.weapon = { ...itemDef, props: itemEntry.props, _fromInv: itemEntry };
-            UI.log(`${itemEntry.props ? itemEntry.props.name : itemDef.name} ausgerüstet.`, "text-green-400");
-        } else if (itemDef.type === 'body') {
-            this.state.equip.body = { ...itemDef, props: itemEntry.props, _fromInv: itemEntry };
-            UI.log(`${itemEntry.props ? itemEntry.props.name : itemDef.name} angezogen.`, "text-green-400");
-        }
-        
-        this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
-        if(this.state.hp > this.state.maxHp) this.state.hp = this.state.maxHp;
-
-        this.saveGame();
-        UI.renderInventory();
-    },
-
+    // [v1.7.0] Unequip Function
     unequipItem: function(slot) {
         if(!this.state.equip[slot]) return;
         const item = this.state.equip[slot];
 
+        // Standard Items cannot be fully unequipped to 'nothing' if they are defaults
         if(item.name === "Fäuste" || item.name === "Vault-Anzug") {
              UI.log("Das kann nicht abgelegt werden.", "text-gray-500");
              return;
         }
 
+        // Try to reconstruct item for inventory
         let itemToAdd = item._fromInv || item.id;
         if (!itemToAdd && item.id) itemToAdd = item.id;
         if (!item._fromInv && item.props) itemToAdd = { id: item.id, count: 1, props: item.props };
 
         this.addToInventory(itemToAdd, 1);
         
+        // Restore Defaults
         if(slot === 'weapon') this.state.equip.weapon = this.items.fists;
         if(slot === 'body') {
             this.state.equip.body = this.items.vault_suit;
@@ -154,7 +194,6 @@ Object.assign(window.Game, {
         invItem = this.state.inventory[index];
         const itemDef = this.items[invItem.id];
         
-        // Special Items
         if(invItem.id === 'camp_kit') { this.deployCamp(index); return; }
 
         if(invItem.id === 'nuka_cola') {
@@ -176,7 +215,6 @@ Object.assign(window.Game, {
             return;
         }
 
-        // Blueprint
         if(itemDef.type === 'blueprint') {
             if(!this.state.knownRecipes.includes(itemDef.recipeId)) {
                 this.state.knownRecipes.push(itemDef.recipeId);
@@ -186,8 +224,6 @@ Object.assign(window.Game, {
             } else { UI.log("Du kennst diesen Bauplan bereits.", "text-gray-500"); }
             return;
         }
-        
-        // Consumable (Heal)
         else if(itemDef.type === 'consumable') { 
             if(itemDef.effect === 'heal') { 
                 let healAmt = itemDef.val; 
@@ -214,14 +250,11 @@ Object.assign(window.Game, {
                 }
             } 
         } 
-        
-        // Equip
         else if (itemDef.type === 'weapon' || itemDef.type === 'body') { 
             const slot = itemDef.slot;
             let oldEquip = this.state.equip[slot];
             
             if(oldEquip && oldEquip.name !== "Fäuste" && oldEquip.name !== "Vault-Anzug") {
-                // Return old item to inventory logic
                 const existsInInv = this.state.inventory.some(i => {
                     if(i.props) return i.props.name === oldEquip.name;
                     const def = this.items[i.id];
@@ -255,8 +288,9 @@ Object.assign(window.Game, {
         if(this.state.view === 'inventory') UI.renderInventory(); 
         this.saveGame(); 
     }, 
+    
+    // ... (craftItem, startCombat, gambleLegendaryLoot, upgradeStat, choosePerk, deployCamp, packCamp, upgradeCamp, toggleRadio, tuningRadio bleiben unverändert) ...
 
-    // --- CRAFTING ---
     craftItem: function(recipeId) {
         const recipe = this.recipes.find(r => r.id === recipeId);
         if(!recipe) return;
@@ -278,85 +312,6 @@ Object.assign(window.Game, {
         if(typeof UI !== 'undefined') UI.renderCrafting(); 
     },
 
-    // --- SHOP & ECONOMY ---
-    buyItem: function(key) { 
-        const item = this.items[key]; 
-        
-        // Stock Check Logic
-        if(this.state.shop && this.state.shop.stock) {
-            const stock = this.state.shop.stock[key] || 0;
-            if(stock <= 0) {
-                UI.log("Dieser Artikel ist ausverkauft.", "text-red-500");
-                return;
-            }
-        }
-
-        if (key === 'camp_kit') {
-            const hasCamp = this.state.inventory && this.state.inventory.some(i => i.id === 'camp_kit');
-            if (hasCamp) { UI.log("Du besitzt bereits einen Zeltbausatz!", "text-orange-500"); return; }
-        }
-
-        if(this.state.caps >= item.cost) { 
-            this.state.caps -= item.cost; 
-            this.addToInventory(key, 1); 
-            
-            // Decrease Stock
-            if(this.state.shop && this.state.shop.stock && this.state.shop.stock[key] > 0) {
-                this.state.shop.stock[key]--;
-            }
-
-            UI.log(`Gekauft: ${item.name}`, "text-green-400"); 
-            const con = document.getElementById('shop-list');
-            if(con) UI.renderShop(con);
-            UI.update(); 
-        } else { 
-            UI.log("Zu wenig Kronkorken.", "text-red-500"); 
-        } 
-    },
-    
-    buyAmmo: function() { 
-        // Stock Check
-        if(this.state.shop && this.state.shop.ammoStock <= 0) {
-            UI.log("Händler: 'Keine Munition mehr vorrätig!'", "text-red-500");
-            return;
-        }
-
-        if(this.state.caps >= 10) { 
-            this.state.caps -= 10; 
-            this.state.ammo += 10; 
-            
-            if(this.state.shop) this.state.shop.ammoStock--;
-            
-            UI.log("Munition gekauft.", "text-green-400"); 
-            const con = document.getElementById('shop-list');
-            if(con) UI.renderShop(con);
-            UI.update(); 
-        } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); }
-    },
-
-    sellItem: function(index) {
-        const entry = this.state.inventory[index];
-        if(!entry) return;
-        const item = this.items[entry.id];
-        
-        let val = Math.floor(item.cost * 0.3); // 30% Wert
-        if(entry.props && entry.props.valMult) val = Math.floor(val * entry.props.valMult);
-        if(val < 1) val = 1;
-        
-        if(this.state.perks.includes('fortune_finder')) val = Math.floor(val * 1.2);
-
-        this.state.caps += val;
-        this.removeFromInventory(entry.id, 1);
-        UI.log(`${entry.props ? entry.props.name : item.name} verkauft (+${val} KK).`, "text-yellow-200");
-        
-        this.saveGame();
-        
-        if(UI.els.dialog) UI.closeDialog();
-        if(this.state.view === 'shop') UI.renderShop(); 
-        else UI.renderInventory();
-    },
-
-    // --- COMBAT (Wiederhergestellt) ---
     startCombat: function() { 
         let pool = []; 
         let lvl = this.state.lvl; 
@@ -365,7 +320,6 @@ Object.assign(window.Game, {
         let biome = this.worldData[`${this.state.sector.x},${this.state.sector.y}`]?.biome || 'wasteland'; 
         let zone = this.state.zone; 
         
-        // Monster Pools
         if(zone.includes("Supermarkt")) { pool = [this.monsters.raider, this.monsters.ghoul, this.monsters.wildDog]; if(lvl >= 4) pool.push(this.monsters.superMutant); } 
         else if (zone.includes("Höhle")) { pool = [this.monsters.moleRat, this.monsters.radScorpion, this.monsters.bloatfly]; if(lvl >= 3) pool.push(this.monsters.ghoul); } 
         else if(biome === 'city') { pool = [this.monsters.raider, this.monsters.ghoul, this.monsters.protectron]; if(lvl >= 5) pool.push(this.monsters.superMutant); if(lvl >= 7) pool.push(this.monsters.sentryBot); } 
@@ -427,7 +381,6 @@ Object.assign(window.Game, {
         this.saveGame();
     },
 
-    // --- CHARACTER PROGRESSION ---
     upgradeStat: function(key, e) { 
         if(e) e.stopPropagation(); 
         if(this.state.statPoints > 0) { 
@@ -457,7 +410,6 @@ Object.assign(window.Game, {
         }
     },
 
-    // --- CAMPING ---
     deployCamp: function(invIndex) {
         if(this.state.camp) { UI.log("Lager existiert bereits!", "text-red-500"); return; }
         if(this.state.zone.includes("Stadt") || this.state.dungeonLevel > 0) { UI.log("Hier nicht möglich!", "text-red-500"); return; }
@@ -495,58 +447,6 @@ Object.assign(window.Game, {
         UI.renderCamp();
     },
 
-    // --- STATUS & REST ---
-    addRadiation: function(amount) {
-        if(!this.state) return;
-        if(typeof this.state.rads === 'undefined') this.state.rads = 0;
-        this.state.rads = Math.min(this.state.maxHp, Math.max(0, this.state.rads + amount));
-        if(amount > 0) UI.log(`+${amount} RADS!`, "text-red-500 font-bold animate-pulse");
-        else UI.log(`${Math.abs(amount)} RADS entfernt.`, "text-green-300");
-        const effectiveMax = this.state.maxHp - this.state.rads;
-        if(this.state.hp > effectiveMax) { this.state.hp = effectiveMax; }
-        if(this.state.hp <= 0 && amount > 0) {
-            this.state.hp = 0; this.state.isGameOver = true;
-            if(UI && UI.showGameOver) UI.showGameOver();
-        }
-        UI.update();
-    },
-
-    rest: function() { 
-        if(!this.state) return;
-        const effectiveMax = this.state.maxHp - (this.state.rads || 0);
-        this.state.hp = effectiveMax; 
-        UI.log("Ausgeruht. HP voll (soweit möglich).", "text-blue-400"); 
-        UI.update(); 
-    },
-
-    restInCamp: function() {
-        if(!this.state || !this.state.camp) return;
-        const lvl = this.state.camp.level || 1;
-        const effectiveMax = this.state.maxHp - (this.state.rads || 0);
-        let healAmount = 0;
-        if(lvl === 1) {
-            healAmount = Math.floor(effectiveMax * 0.5);
-            this.state.hp = Math.min(effectiveMax, this.state.hp + healAmount);
-            UI.log("Ausgeruht (Basis-Zelt). +50% HP.", "text-blue-400");
-        } else {
-            this.state.hp = effectiveMax;
-            UI.log("Ausgeruht (Komfort-Zelt). HP voll.", "text-green-400 font-bold");
-        }
-        UI.update();
-        if(typeof UI.renderCamp === 'function') UI.renderCamp();
-    },
-
-    heal: function() { 
-        if(this.state.caps >= 25) { 
-            this.state.caps -= 25; 
-            this.state.rads = 0; 
-            this.state.hp = this.state.maxHp; 
-            UI.log("Dr. Zimmermann: 'Alles wieder gut!' (-RADS, +HP)", "text-green-400");
-            UI.update(); 
-        } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); }
-    },
-
-    // --- RADIO ---
     toggleRadio: function() { this.state.radio.on = !this.state.radio.on; UI.renderRadio(); },
     tuningRadio: function(dir) {
         if(!this.state.radio.on) return;

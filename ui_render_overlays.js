@@ -1,24 +1,10 @@
-// [v1.7.5] - 2025-12-31 (Overlays Restored)
+// [v0.9.14] - 2025-12-31 12:00pm (Visual Polish & Fixes)
+// ------------------------------------------------
+// - Visual: Dungeon Victory Banner bounce entfernt.
+
 Object.assign(UI, {
     
-    closeDialog: function() {
-        if(this.els.dialog) this.els.dialog.classList.add('hidden');
-        if(Game.state) Game.state.inDialog = false;
-        this.leaveDialog(); // Alias to ensure compatibility
-    },
-
-    leaveDialog: function() { 
-        if(Game.state) Game.state.inDialog = false; 
-        if(this.els.dialog) this.els.dialog.style.display = 'none'; 
-        if(typeof this.update === 'function') this.update(); 
-    },
-
-    restoreOverlay: function() {
-        if(!this.els.dialog) {
-            this.els.dialog = document.getElementById('dialog-overlay');
-            if(!this.els.dialog) console.error("Dialog Overlay not found in DOM");
-        }
-    },
+    // ... (showMapLegend, showHighscoreBoard, showShopConfirm, showItemConfirm, showDungeonWarning, showWastelandGamble, showDungeonLocked bleiben unverändert) ...
 
     showMapLegend: function() {
         if(!this.els.dialog) this.restoreOverlay();
@@ -181,7 +167,6 @@ Object.assign(UI, {
         }
 
         const canAfford = Game.state.caps >= item.cost;
-        const stock = Game.state.shop.stock ? (Game.state.shop.stock[itemKey] || 0) : 0;
         const costColor = canAfford ? "text-yellow-400" : "text-red-500";
 
         const box = document.createElement('div');
@@ -196,7 +181,6 @@ Object.assign(UI, {
                 <div class="mb-1 text-xs italic text-green-400">${item.desc || "Standard Ausrüstung."}</div>
                 <div class="w-full h-px bg-green-900/50 my-2"></div>
                 <div class="font-bold text-yellow-200">${statsText}</div>
-                <div class="text-xs text-gray-400 mt-2">Lagerbestand: ${stock}</div>
             </div>
 
             <div class="flex justify-between items-center bg-black border border-green-900 p-2 mb-4">
@@ -205,8 +189,8 @@ Object.assign(UI, {
             </div>
             
             <div class="flex flex-col gap-2 w-full">
-                <button id="btn-buy" class="action-button border-green-500 text-green-500 hover:bg-green-900 py-3 font-bold" ${!canAfford || stock <= 0 ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>
-                    ${stock <= 0 ? 'AUSVERKAUFT' : (canAfford ? 'KAUFEN' : 'ZU TEUER')}
+                <button id="btn-buy" class="action-button border-green-500 text-green-500 hover:bg-green-900 py-3 font-bold" ${!canAfford ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>
+                    ${canAfford ? 'KAUFEN' : 'ZU TEUER'}
                 </button>
                 <button id="btn-cancel" class="action-button border-red-500 text-red-500 hover:bg-red-900 py-2 font-bold">
                     ABBRUCH
@@ -217,7 +201,7 @@ Object.assign(UI, {
         this.els.dialog.appendChild(box);
         
         const btnBuy = document.getElementById('btn-buy');
-        if(canAfford && stock > 0) {
+        if(canAfford) {
             btnBuy.onclick = () => { 
                 Game.buyItem(itemKey); 
                 this.leaveDialog(); 
@@ -225,6 +209,7 @@ Object.assign(UI, {
         }
         
         document.getElementById('btn-cancel').onclick = () => this.leaveDialog();
+        this.refreshFocusables();
     },
 
     showItemConfirm: function(invIndex) {
@@ -273,17 +258,14 @@ Object.assign(UI, {
             document.getElementById('btn-use-one').onclick = () => { Game.useItem(invIndex, 1); this.leaveDialog(); };
             document.getElementById('btn-use-max').onclick = () => { Game.useItem(invIndex, 'max'); this.leaveDialog(); };
             document.getElementById('btn-cancel').onclick = () => { this.leaveDialog(); };
+            
+            this.refreshFocusables();
             return;
         }
 
         let statsText = "";
         let displayName = item.name;
         
-        // Sell Value Calculation
-        let sellVal = Math.floor(item.cost * 0.3);
-        if(invItem.props && invItem.props.valMult) sellVal = Math.floor(sellVal * invItem.props.valMult);
-        if(sellVal < 1) sellVal = 1;
-
         if(invItem.props) {
             displayName = invItem.props.name;
             if(invItem.props.dmgMult) statsText = `Schaden: ${Math.floor(item.baseDmg * invItem.props.dmgMult)} (Mod)`;
@@ -299,27 +281,21 @@ Object.assign(UI, {
             <p class="text-green-200 mb-4 text-sm">Gegenstand benutzen / ausrüsten?</p>
         `;
         const btnContainer = document.createElement('div');
-        btnContainer.className = "flex flex-col gap-2 justify-center w-full";
-        
+        btnContainer.className = "flex gap-2 justify-center w-full";
         const btnYes = document.createElement('button');
         btnYes.className = "border border-green-500 text-green-500 hover:bg-green-900 px-4 py-2 font-bold w-full";
-        btnYes.textContent = (item.type === 'weapon' || item.type === 'body') ? "AUSRÜSTEN" : "BENUTZEN";
+        btnYes.textContent = "BESTÄTIGEN";
+        
         btnYes.onclick = () => { Game.useItem(invIndex); this.leaveDialog(); };
         
-        const btnSell = document.createElement('button');
-        btnSell.className = "border border-yellow-500 text-yellow-500 hover:bg-yellow-900 px-4 py-2 font-bold w-full";
-        btnSell.innerHTML = `VERKAUFEN <span class="text-xs">(${sellVal} KK)</span>`;
-        btnSell.onclick = () => { Game.sellItem(invIndex); };
-
         const btnNo = document.createElement('button');
         btnNo.className = "border border-red-500 text-red-500 hover:bg-red-900 px-4 py-2 font-bold w-full";
         btnNo.textContent = "ABBRUCH";
         btnNo.onclick = () => { this.leaveDialog(); };
         
-        btnContainer.appendChild(btnYes);
-        btnContainer.appendChild(btnSell); 
-        btnContainer.appendChild(btnNo);
+        btnContainer.appendChild(btnYes); btnContainer.appendChild(btnNo);
         box.appendChild(btnContainer); this.els.dialog.appendChild(box);
+        this.refreshFocusables();
     },
 
     showDungeonWarning: function(callback) {
@@ -345,6 +321,7 @@ Object.assign(UI, {
         btnNo.onclick = () => { this.leaveDialog(); };
         btnContainer.appendChild(btnYes); btnContainer.appendChild(btnNo);
         box.appendChild(btnContainer); this.els.dialog.appendChild(box);
+        this.refreshFocusables();
     },
 
     showWastelandGamble: function(callback) {
@@ -424,6 +401,7 @@ Object.assign(UI, {
         btn.textContent = "VERSTANDEN";
         btn.onclick = () => this.leaveDialog();
         box.appendChild(btn); this.els.dialog.appendChild(box);
+        this.refreshFocusables();
     },
 
     showDungeonVictory: function(caps, lvl) {
@@ -431,6 +409,7 @@ Object.assign(UI, {
         overlay.id = "victory-overlay";
         overlay.className = "fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 animate-fadeIn";
         
+        // [v0.9.14] REMOVED 'animate-bounce' class from container
         overlay.innerHTML = `
             <div class="bg-black border-4 border-yellow-400 p-6 shadow-[0_0_30px_gold] max-w-md text-center mb-4 relative">
                 <div class="text-6xl mb-2">👑⚔️</div>
@@ -477,6 +456,7 @@ Object.assign(UI, {
     showGameOver: function() {
         if(this.els.gameOver) this.els.gameOver.classList.remove('hidden');
         if(typeof Network !== 'undefined' && Game.state) Network.registerDeath(Game.state);
+        this.toggleControls(false);
     },
     
     showManualOverlay: async function() {
@@ -529,5 +509,11 @@ Object.assign(UI, {
         this.els.dialog.appendChild(restBtn); 
         this.els.dialog.appendChild(leaveBtn); 
         this.els.dialog.style.display = 'flex'; 
+    },
+    
+    leaveDialog: function() { 
+        if(Game.state) Game.state.inDialog = false; 
+        this.els.dialog.style.display = 'none'; 
+        if(typeof this.update === 'function') this.update(); 
     }
 });
