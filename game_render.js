@@ -1,4 +1,4 @@
-// [v0.9.14]
+// [v0.9.15] - 2025-12-31 15:15pm (Crash Fix) - Added safety check for invalid map rows in draw loop to prevent undefined property access.
 // Canvas Rendering Logic
 Object.assign(Game, {
     renderStaticMap: function() { 
@@ -55,6 +55,9 @@ Object.assign(Game, {
                         ctx.fillRect(x * this.TILE, y * this.TILE, this.TILE, this.TILE);
                         continue; 
                     }
+
+                    // [v0.9.15] FIX: Safety check for row existence
+                    if(!this.state.currentMap[y]) continue; 
 
                     const t = this.state.currentMap[y][x]; 
                     if(['V', 'S', 'C', 'G', 'H', '^', 'v', '<', '>', '$', '&', 'P', 'E', 'F', 'X'].includes(t)) { 
