@@ -1,11 +1,11 @@
-// [v1.3.4] - 2025-12-30 16:15 (Camp Limit & Overlay Text)
+// [v1.4.0] - 2025-12-30 16:30 (Stimpack Logic Action)
 // ------------------------------------------------
-// - Logic: Maximal 1 Zeltbausatz im Inventar erlaubt (Kauf/Loot blockiert bei Besitz).
-// - Logic: buyItem prüft nun Besitz vor Abzug der Kronkorken.
+// - Logic: 'useItem' unterstützt nun 'max' mode für Auto-Healing.
+// - Logic: Berechnung der benötigten Menge bei Heil-Items implementiert.
 
 Object.assign(Game, {
     
-    // ... (addRadiation, rest, restInCamp, heal, buyAmmo bleiben unverändert) ...
+    // ... (addRadiation, rest, restInCamp, heal, buyAmmo, buyItem, addToInventory, removeFromInventory bleiben unverändert) ...
 
     addRadiation: function(amount) {
         if(!this.state) return;
@@ -84,7 +84,6 @@ Object.assign(Game, {
     buyItem: function(key) { 
         const item = this.items[key]; 
         
-        // [v1.3.4] Check Limit for Camp Kit
         if (key === 'camp_kit') {
             const hasCamp = this.state.inventory && this.state.inventory.some(i => i.id === 'camp_kit');
             if (hasCamp) {
@@ -117,14 +116,9 @@ Object.assign(Game, {
             itemId = idOrItem;
         }
 
-        // [v1.3.4] Limit Camp Kit to 1 (Loot protection)
         if (itemId === 'camp_kit') {
             const hasCamp = this.state.inventory.some(i => i.id === 'camp_kit');
-            if (hasCamp) {
-                // If looting, maybe log it?
-                // UI.log("Zeltbausatz gefunden (Du hast schon eins).", "text-gray-500");
-                return; 
-            }
+            if (hasCamp) return; 
         }
 
         const itemDef = this.items[itemId];
@@ -151,8 +145,6 @@ Object.assign(Game, {
         }
     }, 
     
-    // ... (removeFromInventory, useItem, craftItem, startCombat, gambleLegendaryLoot, upgradeStat, choosePerk, deployCamp, packCamp, upgradeCamp, toggleRadio, tuningRadio bleiben unverändert) ...
-
     removeFromInventory: function(itemId, amount=1) {
         if(!this.state) return false;
         const idx = this.state.inventory.findIndex(i => i.id === itemId);
@@ -168,7 +160,7 @@ Object.assign(Game, {
         return false;
     },
 
-    useItem: function(invIndexOrId) { 
+    useItem: function(invIndexOrId, mode = 1) { 
         let invItem, index;
         if(typeof invIndexOrId === 'string') {
             index = this.state.inventory.findIndex(i => i.id === invIndexOrId);
@@ -221,10 +213,27 @@ Object.assign(Game, {
                 const effectiveMax = this.state.maxHp - (this.state.rads || 0);
                 if(this.state.hp >= effectiveMax) { UI.log("Gesundheit voll (Strahlung blockiert mehr).", "text-gray-500"); return; } 
                 
-                this.state.hp = Math.min(effectiveMax, this.state.hp + healAmt); 
-                UI.log(`Verwendet: ${itemDef.name} (+${healAmt} HP)`, "text-blue-400"); 
-                invItem.count--; 
-                if(invItem.count <= 0) this.state.inventory.splice(index, 1);
+                // [v1.4.0] AUTO-HEAL LOGIC
+                let countToUse = 1;
+                
+                if (mode === 'max') {
+                    const missing = effectiveMax - this.state.hp;
+                    if (missing > 0) {
+                        countToUse = Math.ceil(missing / healAmt);
+                        if (countToUse > invItem.count) countToUse = invItem.count;
+                    } else {
+                        countToUse = 0; // Should be caught by check above, but safe is safe
+                    }
+                }
+
+                if (countToUse > 0) {
+                    const totalHeal = healAmt * countToUse;
+                    this.state.hp = Math.min(effectiveMax, this.state.hp + totalHeal); 
+                    UI.log(`Verwendet: ${countToUse}x ${itemDef.name} (+${totalHeal} HP)`, "text-blue-400"); 
+                    
+                    // Safe removal
+                    this.removeFromInventory(invItem.id, countToUse);
+                }
             } 
         } 
         else if (itemDef.type === 'weapon' || itemDef.type === 'body') { 
@@ -266,6 +275,8 @@ Object.assign(Game, {
         this.saveGame(); 
     }, 
     
+    // ... (craftItem, startCombat, gambleLegendaryLoot, upgradeStat, choosePerk, deployCamp, packCamp, upgradeCamp, toggleRadio, tuningRadio bleiben unverändert) ...
+
     craftItem: function(recipeId) {
         const recipe = this.recipes.find(r => r.id === recipeId);
         if(!recipe) return;
