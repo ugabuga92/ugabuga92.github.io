@@ -1,4 +1,4 @@
-// [v1.7.2] - 2025-12-31 (Code Cleanup)
+// [v1.7.3] - 2025-12-31 (Logic Optimized)
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     WORLD_W: 10, WORLD_H: 10, 
@@ -10,49 +10,8 @@ window.Game = {
     recipes: (typeof window.GameData !== 'undefined') ? window.GameData.recipes : [],
     perkDefs: (typeof window.GameData !== 'undefined') ? window.GameData.perks : [],
     questDefs: (typeof window.GameData !== 'undefined') ? window.GameData.questDefs : [],
-
-    // Static Data (Candidates for data_core.js move)
-    radioStations: [
-        {
-            name: "GALAXY NEWS",
-            freq: "101.5",
-            tracks: [
-                "Nachrichten: Supermutanten in Sektor 7 gesichtet...",
-                "Song: 'I Don't Want to Set the World on Fire'",
-                "Three Dog: 'Kämpft den guten Kampf!'",
-                "Song: 'Maybe'",
-                "Werbung: Nuka Cola - Trink das Strahlen!"
-            ]
-        },
-        {
-            name: "ENCLAVE RADIO",
-            freq: "98.2",
-            tracks: [
-                "Präsident Eden: 'Die Wiederherstellung Amerikas...'",
-                "Marschmusik: 'Stars and Stripes Forever'",
-                "Präsident Eden: 'Vertraut eurem Präsidenten.'",
-                "Hymne: 'America the Beautiful'"
-            ]
-        },
-        {
-            name: "KLASSIK FM",
-            freq: "88.0",
-            tracks: [
-                "Agatha: 'Eine Melodie für das Ödland...'",
-                "Violin Solo No. 4",
-                "Bach: Cello Suite",
-                "Stille (Rauschen)"
-            ]
-        }
-    ],
-
-    lootPrefixes: {
-        'rusty': { name: 'Rostige', dmgMult: 0.8, valMult: 0.5, color: 'text-gray-500' },
-        'hardened': { name: 'Gehärtete', dmgMult: 1.2, valMult: 1.3, color: 'text-gray-300' },
-        'precise': { name: 'Präzise', dmgMult: 1.1, valMult: 1.5, bonus: {PER: 1}, color: 'text-blue-300' },
-        'radiated': { name: 'Verstrahlte', dmgMult: 1.0, valMult: 1.2, effect: 'rads', color: 'text-green-300' },
-        'legendary': { name: 'Legendäre', dmgMult: 1.5, valMult: 3.0, bonus: {LUC: 2}, color: 'text-yellow-400 font-bold' }
-    },
+    radioStations: (typeof window.GameData !== 'undefined') ? window.GameData.radioStations : [],
+    lootPrefixes: (typeof window.GameData !== 'undefined') ? window.GameData.lootPrefixes : {},
 
     // Engine State
     state: null, worldData: {}, ctx: null, loopId: null, 
