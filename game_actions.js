@@ -1,11 +1,12 @@
-// [v1.3.3] - 2025-12-30 15:55 (Fix Rest in Camp & Item Safety)
+// [v1.3.4] - 2025-12-30 16:15 (Camp Limit & Overlay Text)
 // ------------------------------------------------
-// - Bugfix: Fehlende Funktion 'restInCamp' hinzugefügt.
-// - Bugfix: Absturzschutz beim Item-Wechsel (Undefined checks).
+// - Logic: Maximal 1 Zeltbausatz im Inventar erlaubt (Kauf/Loot blockiert bei Besitz).
+// - Logic: buyItem prüft nun Besitz vor Abzug der Kronkorken.
 
 Object.assign(Game, {
     
-    // Helper: Strahlung hinzufügen/entfernen
+    // ... (addRadiation, rest, restInCamp, heal, buyAmmo bleiben unverändert) ...
+
     addRadiation: function(amount) {
         if(!this.state) return;
         if(typeof this.state.rads === 'undefined') this.state.rads = 0;
@@ -28,7 +29,6 @@ Object.assign(Game, {
         UI.update();
     },
 
-    // --- BASIC ACTIONS ---
     rest: function() { 
         if(!this.state) return;
         const effectiveMax = this.state.maxHp - (this.state.rads || 0);
@@ -37,7 +37,6 @@ Object.assign(Game, {
         UI.update(); 
     },
 
-    // [v1.3.3] Added missing restInCamp function
     restInCamp: function() {
         if(!this.state || !this.state.camp) return;
         
@@ -47,18 +46,15 @@ Object.assign(Game, {
         let healAmount = 0;
         
         if(lvl === 1) {
-            // Level 1: Heilt 50% der Max HP
             healAmount = Math.floor(effectiveMax * 0.5);
             this.state.hp = Math.min(effectiveMax, this.state.hp + healAmount);
             UI.log("Ausgeruht (Basis-Zelt). +50% HP.", "text-blue-400");
         } else {
-            // Level 2+: Heilt 100%
             this.state.hp = effectiveMax;
             UI.log("Ausgeruht (Komfort-Zelt). HP voll.", "text-green-400 font-bold");
         }
         
         UI.update();
-        // Refresh Camp View to show updated HP/Status
         if(typeof UI.renderCamp === 'function') UI.renderCamp();
     },
 
@@ -87,6 +83,16 @@ Object.assign(Game, {
     
     buyItem: function(key) { 
         const item = this.items[key]; 
+        
+        // [v1.3.4] Check Limit for Camp Kit
+        if (key === 'camp_kit') {
+            const hasCamp = this.state.inventory && this.state.inventory.some(i => i.id === 'camp_kit');
+            if (hasCamp) {
+                UI.log("Du besitzt bereits einen Zeltbausatz!", "text-orange-500");
+                return;
+            }
+        }
+
         if(this.state.caps >= item.cost) { 
             this.state.caps -= item.cost; 
             this.addToInventory(key, 1); 
@@ -109,6 +115,16 @@ Object.assign(Game, {
             count = idOrItem.count || 1;
         } else {
             itemId = idOrItem;
+        }
+
+        // [v1.3.4] Limit Camp Kit to 1 (Loot protection)
+        if (itemId === 'camp_kit') {
+            const hasCamp = this.state.inventory.some(i => i.id === 'camp_kit');
+            if (hasCamp) {
+                // If looting, maybe log it?
+                // UI.log("Zeltbausatz gefunden (Du hast schon eins).", "text-gray-500");
+                return; 
+            }
         }
 
         const itemDef = this.items[itemId];
@@ -135,6 +151,8 @@ Object.assign(Game, {
         }
     }, 
     
+    // ... (removeFromInventory, useItem, craftItem, startCombat, gambleLegendaryLoot, upgradeStat, choosePerk, deployCamp, packCamp, upgradeCamp, toggleRadio, tuningRadio bleiben unverändert) ...
+
     removeFromInventory: function(itemId, amount=1) {
         if(!this.state) return false;
         const idx = this.state.inventory.findIndex(i => i.id === itemId);
@@ -213,17 +231,11 @@ Object.assign(Game, {
             const slot = itemDef.slot;
             let oldEquip = this.state.equip[slot];
             
-            // [v1.3.3] EXTRA SAFETY CHECK HERE
             if(oldEquip && oldEquip.name !== "Fäuste" && oldEquip.name !== "Vault-Anzug") {
                 const existsInInv = this.state.inventory.some(i => {
-                    // Props check first
                     if(i.props) return i.props.name === oldEquip.name;
-                    
-                    // Safety check for item definition
-                    // If item ID is invalid/removed from DB, this.items[i.id] is undefined
                     const def = this.items[i.id];
                     if (def) return def.name === oldEquip.name;
-                    
                     return false;
                 });
 
