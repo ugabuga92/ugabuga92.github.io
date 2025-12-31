@@ -1,4 +1,4 @@
-// [v0.9.17] - 2025-12-31 15:45pm (Syntax Fix) - Cleaned file header and ensured safe quest array access.
+// [v0.9.18] - 2025-12-31 15:55pm (UI/UX Update) - Removed 'LVL UP' text. Name and Level now pulse when stat points are available.
 // Core Rendering & Logic (HUD, View Switching)
 Object.assign(UI, {
     
@@ -9,19 +9,26 @@ Object.assign(UI, {
         // Lazy load ammo element if not in core map
         if(!this.els.ammo) this.els.ammo = document.getElementById('val-ammo');
         
+        // [v0.9.18] Global Level-Up Check
+        const hasPoints = Game.state.statPoints > 0;
+
         // Header Info
         if(this.els.name) {
             const sectorStr = Game.state.sector ? ` [${Game.state.sector.x},${Game.state.sector.y}]` : "";
             const displayName = Game.state.playerName || (typeof Network !== 'undefined' ? Network.myDisplayName : "SURVIVOR");
             this.els.name.textContent = displayName + sectorStr;
+
+            // [v0.9.18] Name Glow on Level Up
+            if(hasPoints) this.els.name.classList.add('lvl-ready-glow');
+            else this.els.name.classList.remove('lvl-ready-glow');
         }
 
         if(this.els.lvl) {
-            if(Game.state.statPoints > 0) {
-                this.els.lvl.innerHTML = `${Game.state.lvl} <span class="text-yellow-400 animate-pulse ml-1 text-xs">LVL UP!</span>`;
-            } else {
-                this.els.lvl.textContent = Game.state.lvl;
-            }
+            // [v0.9.18] Removed 'LVL UP' Span, added Glow Class
+            this.els.lvl.textContent = Game.state.lvl;
+
+            if(hasPoints) this.els.lvl.classList.add('lvl-ready-glow');
+            else this.els.lvl.classList.remove('lvl-ready-glow');
         }
 
         // [v0.9.9] HP & Radiation Bars
