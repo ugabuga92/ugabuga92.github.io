@@ -1,4 +1,4 @@
-// [v1.7.0] - 2025-12-31 14:15pm (Full Render Views Update)
+// [v1.7.1] - 2025-12-31 14:30pm (Visual Tweak)
 // ------------------------------------------------
 // Enthält alle View-Funktionen: Inventory, Char, Map, Shop, etc.
 
@@ -94,13 +94,16 @@ Object.assign(UI, {
             const btn = document.createElement('div');
             btn.className = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center cursor-pointer hover:bg-green-500 hover:text-black transition-colors group";
             
+            // [v1.7.1] Stronger Glow for New Items
             if(entry.isNew) {
-                btn.style.boxShadow = "0 0 8px rgba(57, 255, 20, 0.6)";
+                btn.style.boxShadow = "0 0 20px rgba(57, 255, 20, 1.0)"; // Much stronger glow
+                btn.style.zIndex = "10"; // Bring to front
                 btn.classList.replace('border-green-500', 'border-green-300'); 
                 btn.onmouseenter = () => {
                     if(entry.isNew) {
                         entry.isNew = false;
                         btn.style.boxShadow = "none";
+                        btn.style.zIndex = "auto";
                         btn.classList.replace('border-green-300', 'border-green-500');
                     }
                 };
@@ -182,7 +185,7 @@ Object.assign(UI, {
             }
         }
         
-        // Equipment Info & Unequip Logic [v1.7.0]
+        // Equipment Info & Unequip Logic
         const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2};
         const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}};
         
