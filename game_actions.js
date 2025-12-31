@@ -1,4 +1,4 @@
-// [v2.0] - 2025-12-31 16:00pm (Radio Update) - Connected Radio Controls to Audio System
+// [v2.1] - 2025-12-31 16:15pm (Consumables Update) - Added support for 'heal_rad' effect (Food).
 Object.assign(Game, {
     
     addRadiation: function(amount) {
@@ -60,7 +60,9 @@ Object.assign(Game, {
         if(this.state.caps >= 10) { 
             this.state.caps -= 10; 
             this.state.ammo += 10; 
+            
             if(this.state.shop) this.state.shop.ammoStock--;
+            
             UI.log("Munition gekauft.", "text-green-400"); 
             const con = document.getElementById('shop-list');
             if(con) UI.renderShop(con);
@@ -87,9 +89,12 @@ Object.assign(Game, {
         if(this.state.caps >= item.cost) { 
             this.state.caps -= item.cost; 
             this.addToInventory(key, 1); 
+            
+            // Decrease Stock
             if(this.state.shop && this.state.shop.stock && this.state.shop.stock[key] > 0) {
                 this.state.shop.stock[key]--;
             }
+
             UI.log(`Gekauft: ${item.name}`, "text-green-400"); 
             const con = document.getElementById('shop-list');
             if(con) UI.renderShop(con);
@@ -213,7 +218,8 @@ Object.assign(Game, {
             return;
         }
         else if(itemDef.type === 'consumable') { 
-            if(itemDef.effect === 'heal') { 
+            // [v2.1] Supports 'heal' and 'heal_rad'
+            if(itemDef.effect === 'heal' || itemDef.effect === 'heal_rad') { 
                 let healAmt = itemDef.val; 
                 if(this.state.perks && this.state.perks.includes('medic')) {
                     healAmt = Math.floor(healAmt * 1.5);
@@ -233,6 +239,12 @@ Object.assign(Game, {
                 if (countToUse > 0) {
                     const totalHeal = healAmt * countToUse;
                     this.state.hp = Math.min(effectiveMax, this.state.hp + totalHeal); 
+                    
+                    // Trigger Rads if food
+                    if(itemDef.effect === 'heal_rad' && itemDef.rad) {
+                        this.addRadiation(itemDef.rad * countToUse);
+                    }
+
                     UI.log(`Verwendet: ${countToUse}x ${itemDef.name} (+${totalHeal} HP)`, "text-blue-400"); 
                     this.removeFromInventory(invItem.id, countToUse);
                 }
@@ -295,7 +307,13 @@ Object.assign(Game, {
         }
         if(recipe.out === "AMMO") { this.state.ammo += recipe.count; UI.log(`Hergestellt: ${recipe.count} Munition`, "text-green-400 font-bold"); } 
         else { this.addToInventory(recipe.out, recipe.count); UI.log(`Hergestellt: ${this.items[recipe.out].name}`, "text-green-400 font-bold"); }
-        if(typeof UI !== 'undefined') UI.renderCrafting(); 
+        
+        // Refresh correct view
+        if(recipe.type === 'cooking') {
+            if(typeof UI.renderCampCooking === 'function') UI.renderCampCooking();
+        } else {
+            if(typeof UI !== 'undefined') UI.renderCrafting(); 
+        }
     },
 
     startCombat: function() { 
@@ -433,15 +451,11 @@ Object.assign(Game, {
         UI.renderCamp();
     },
 
-    // [v2.0] RADIO AUDIO CONTROLS
     toggleRadio: function() { 
         this.state.radio.on = !this.state.radio.on; 
-        
-        // Trigger Audio System
         if(Game.Audio) {
             Game.Audio.toggle(this.state.radio.on, this.state.radio.station);
         }
-
         UI.renderRadio(); 
     },
 
@@ -453,11 +467,9 @@ Object.assign(Game, {
         this.state.radio.station = next;
         this.state.radio.trackIndex = 0;
         
-        // Trigger Audio Change
         if(Game.Audio && this.state.radio.on) {
             Game.Audio.playStation(next);
         }
-
         UI.renderRadio();
     }
 });
