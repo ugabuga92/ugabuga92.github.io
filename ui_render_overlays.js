@@ -1,10 +1,12 @@
-// [v0.9.10]
-// [v0.7.7] - 2025-12-28 02:30pm (Victory Banner Fix)
+// [v1.4.0] - 2025-12-30 16:30 (Stimpack Logic UI)
 // ------------------------------------------------
-// - Victory Overlay Z-Index Fix (z-[200])
+// - UI Update: Spezieller Dialog für Stimpacks hinzugefügt.
+// - Feature: Auswahl zwischen "1 Benutzen" und "Auto-Heal (Max)".
 
 Object.assign(UI, {
     
+    // ... (showMapLegend, showHighscoreBoard bleiben unverändert) ...
+
     showMapLegend: function() {
         if(!this.els.dialog) this.restoreOverlay();
         if(Game.state) Game.state.inDialog = true;
@@ -15,7 +17,6 @@ Object.assign(UI, {
         const box = document.createElement('div');
         box.className = "bg-black border-4 border-green-500 p-6 shadow-[0_0_30px_green] max-w-sm w-full relative";
         
-        // Helper für Einträge
         const item = (icon, text, color) => `
             <div class="flex items-center gap-4 mb-3 border-b border-green-900/30 pb-1 last:border-0">
                 <span class="text-2xl w-10 text-center filter drop-shadow-[0_0_5px_rgba(255,255,255,0.3)]" style="color: ${color}">${icon}</span>
@@ -134,13 +135,11 @@ Object.assign(UI, {
         }
     },
 
-    // [v0.9.10] Fix: Support for Index (Unique Items)
     showItemConfirm: function(invIndex) {
         if(!this.els.dialog) this.restoreOverlay();
         
-        // Safety check
-        if(!Game.state.inventory[invIndex]) return;
-        
+        // Safety checks
+        if(!Game.state.inventory || !Game.state.inventory[invIndex]) return;
         const invItem = Game.state.inventory[invIndex];
         const item = Game.items[invItem.id];
         
@@ -150,10 +149,48 @@ Object.assign(UI, {
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         
+        const box = document.createElement('div');
+        box.className = "bg-black border-2 border-green-500 p-4 shadow-[0_0_15px_green] max-w-sm text-center mb-4 w-full";
+
+        // --- [v1.4.0] SPECIAL STIMPACK DIALOG ---
+        if (item.id === 'stimpack') {
+             box.innerHTML = `
+                <h2 class="text-xl font-bold text-green-400 mb-2 border-b border-green-500 pb-2">${item.name}</h2>
+                <div class="text-xs text-green-200 mb-4 bg-green-900/20 p-2">
+                    <div class="flex justify-between"><span>TP Aktuell:</span> <span class="text-white font-bold">${Math.floor(Game.state.hp)} / ${Game.state.maxHp}</span></div>
+                    <div class="flex justify-between"><span>Verfügbar:</span> <span class="text-yellow-400 font-bold">${invItem.count} Stück</span></div>
+                </div>
+                
+                <div class="flex flex-col gap-3 w-full">
+                    <button id="btn-use-one" class="action-button border-green-500 text-green-500 hover:bg-green-900 py-3 font-bold flex justify-between px-4">
+                        <span>1x BENUTZEN</span>
+                        <span class="text-xs mt-1 text-green-300">+${item.val} HP</span>
+                    </button>
+                    
+                    <button id="btn-use-max" class="action-button border-blue-500 text-blue-400 hover:bg-blue-900 py-3 font-bold flex justify-between px-4">
+                        <span>AUTO-HEAL (MAX)</span>
+                        <span class="text-xs mt-1 text-blue-200">Bis voll</span>
+                    </button>
+                    
+                    <button id="btn-cancel" class="action-button border-red-500 text-red-500 hover:bg-red-900 py-2 font-bold mt-2">
+                        ABBRUCH
+                    </button>
+                </div>
+            `;
+            this.els.dialog.appendChild(box);
+            
+            document.getElementById('btn-use-one').onclick = () => { Game.useItem(invIndex, 1); this.leaveDialog(); };
+            document.getElementById('btn-use-max').onclick = () => { Game.useItem(invIndex, 'max'); this.leaveDialog(); };
+            document.getElementById('btn-cancel').onclick = () => { this.leaveDialog(); };
+            
+            this.refreshFocusables();
+            return;
+        }
+        // ---------------------------------------
+
         let statsText = "";
         let displayName = item.name;
         
-        // Handle Unique Props
         if(invItem.props) {
             displayName = invItem.props.name;
             if(invItem.props.dmgMult) statsText = `Schaden: ${Math.floor(item.baseDmg * invItem.props.dmgMult)} (Mod)`;
@@ -163,8 +200,6 @@ Object.assign(UI, {
             if(item.type === 'body') statsText = `Rüstung: +${item.bonus.END || 0} END`;
         }
 
-        const box = document.createElement('div');
-        box.className = "bg-black border-2 border-green-500 p-4 shadow-[0_0_15px_green] max-w-sm text-center mb-4";
         box.innerHTML = `
             <h2 class="text-xl font-bold text-green-400 mb-2">${displayName}</h2>
             <div class="text-xs text-green-200 mb-4 border-t border-b border-green-900 py-2">Typ: ${item.type.toUpperCase()}<br>Wert: ${item.cost} KK<br><span class="text-yellow-400">${statsText}</span></div>
@@ -176,7 +211,6 @@ Object.assign(UI, {
         btnYes.className = "border border-green-500 text-green-500 hover:bg-green-900 px-4 py-2 font-bold w-full";
         btnYes.textContent = "BESTÄTIGEN";
         
-        // Call Game.useItem with INDEX!
         btnYes.onclick = () => { Game.useItem(invIndex); this.leaveDialog(); };
         
         const btnNo = document.createElement('button');
@@ -188,6 +222,8 @@ Object.assign(UI, {
         box.appendChild(btnContainer); this.els.dialog.appendChild(box);
         this.refreshFocusables();
     },
+
+    // ... (showDungeonWarning, showWastelandGamble, showDungeonLocked, showDungeonVictory, showPermadeathWarning, showGameOver, showManualOverlay, showChangelogOverlay, enterVault, leaveDialog bleiben unverändert) ...
 
     showDungeonWarning: function(callback) {
         if(!this.els.dialog) this.restoreOverlay();
@@ -295,9 +331,7 @@ Object.assign(UI, {
         this.refreshFocusables();
     },
 
-    // --- REPLACED: showDungeonVictory (Z-Index Fix) ---
     showDungeonVictory: function(caps, lvl) {
-        // Overlay wird nun direkt in den Body gehängt mit z-index 200
         const overlay = document.createElement('div');
         overlay.id = "victory-overlay";
         overlay.className = "fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 animate-fadeIn";
@@ -323,7 +357,7 @@ Object.assign(UI, {
                 const el = document.getElementById('victory-overlay');
                 if(el) el.remove();
                 if(Game.state) Game.state.inDialog = false;
-                UI.leaveDialog(); // Cleanup für alle Fälle
+                UI.leaveDialog(); 
             };
             btn.focus();
         }
