@@ -1,8 +1,9 @@
-// [v1.7.0] - Economy & Restock Logic
+// [v1.7.2] - 2025-12-31 (Code Cleanup)
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     WORLD_W: 10, WORLD_H: 10, 
     
+    // External Data References
     colors: (typeof window.GameData !== 'undefined') ? window.GameData.colors : {},
     items: (typeof window.GameData !== 'undefined') ? window.GameData.items : {},
     monsters: (typeof window.GameData !== 'undefined') ? window.GameData.monsters : {},
@@ -10,7 +11,7 @@ window.Game = {
     perkDefs: (typeof window.GameData !== 'undefined') ? window.GameData.perks : [],
     questDefs: (typeof window.GameData !== 'undefined') ? window.GameData.questDefs : [],
 
-    // [v0.9.0] Radio Data
+    // Static Data (Candidates for data_core.js move)
     radioStations: [
         {
             name: "GALAXY NEWS",
@@ -45,7 +46,6 @@ window.Game = {
         }
     ],
 
-    // [v0.9.0] Loot Prefixes
     lootPrefixes: {
         'rusty': { name: 'Rostige', dmgMult: 0.8, valMult: 0.5, color: 'text-gray-500' },
         'hardened': { name: 'Gehärtete', dmgMult: 1.2, valMult: 1.3, color: 'text-gray-300' },
@@ -54,7 +54,10 @@ window.Game = {
         'legendary': { name: 'Legendäre', dmgMult: 1.5, valMult: 3.0, bonus: {LUC: 2}, color: 'text-yellow-400 font-bold' }
     },
 
-    state: null, worldData: {}, ctx: null, loopId: null, camera: { x: 0, y: 0 }, cacheCanvas: null, cacheCtx: null,
+    // Engine State
+    state: null, worldData: {}, ctx: null, loopId: null, 
+    camera: { x: 0, y: 0 }, 
+    cacheCanvas: null, cacheCtx: null,
 
     initCache: function() { 
         this.cacheCanvas = document.createElement('canvas'); 
@@ -91,12 +94,12 @@ window.Game = {
 
             if (saveData) {
                 this.state = saveData;
+                // Safety checks / Legacy support
                 if(!this.state.explored) this.state.explored = {};
                 if(!this.state.view) this.state.view = 'map';
                 if(!this.state.radio) this.state.radio = { on: false, station: 0, trackIndex: 0 };
                 if(typeof this.state.rads === 'undefined') this.state.rads = 0;
                 
-                // [v0.9.12] Init new Quest System if missing
                 if(!this.state.activeQuests) this.state.activeQuests = [];
                 if(!this.state.completedQuests) this.state.completedQuests = [];
 
@@ -104,11 +107,10 @@ window.Game = {
                 if(!this.state.knownRecipes) this.state.knownRecipes = ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp']; 
                 if(!this.state.perks) this.state.perks = [];
                 
-                // [v1.7.0] Init Shop State
                 if(!this.state.shop) this.state.shop = { nextRestock: 0, stock: {} };
 
                 this.state.saveSlot = slotIndex;
-                this.checkNewQuests(); // Check for available quests on load
+                this.checkNewQuests(); 
                 UI.log(">> Spielstand geladen.", "text-cyan-400");
             } else {
                 isNewGame = true;
@@ -135,7 +137,6 @@ window.Game = {
                     quests: [], 
                     knownRecipes: ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp'], 
                     hiddenItems: {},
-                    // [v1.7.0] Shop Init
                     shop: { nextRestock: 0, stock: {} },
                     startTime: Date.now()
                 };
@@ -148,8 +149,12 @@ window.Game = {
                 this.saveGame(); 
             }
 
-            if (isNewGame) { this.loadSector(this.state.sector.x, this.state.sector.y); } 
-            else { if(this.renderStaticMap) this.renderStaticMap(); this.reveal(this.state.player.x, this.state.player.y); }
+            if (isNewGame) { 
+                this.loadSector(this.state.sector.x, this.state.sector.y); 
+            } else { 
+                if(this.renderStaticMap) this.renderStaticMap(); 
+                this.reveal(this.state.player.x, this.state.player.y); 
+            }
 
             UI.switchView('map').then(() => { 
                 if(UI.els.gameOver) UI.els.gameOver.classList.add('hidden'); 
@@ -203,12 +208,11 @@ window.Game = {
             this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
             this.state.hp = this.state.maxHp;
             UI.log(`LEVEL UP! Du bist jetzt Level ${this.state.lvl}`, "text-yellow-400 font-bold animate-pulse");
-            this.checkNewQuests(); // Check quests on level up
+            this.checkNewQuests(); 
             this.saveGame(); 
         }
     },
 
-    // [v0.9.12] QUEST SYSTEM LOGIC
     checkNewQuests: function() {
         if(!this.questDefs || !this.state) return;
         this.questDefs.forEach(def => {
@@ -271,7 +275,6 @@ window.Game = {
         this.saveGame();
     },
     
-    // [v1.7.0] SHOP RESTOCK LOGIC
     checkShopRestock: function() {
         const now = Date.now();
         if(!this.state.shop) this.state.shop = { nextRestock: 0, stock: {} };
@@ -283,10 +286,10 @@ window.Game = {
             stock['radaway'] = 1 + Math.floor(Math.random() * 3);
             stock['nuka_cola'] = 3 + Math.floor(Math.random() * 5);
             
-            // Ammo Packs (simulated as ID 'ammo_pack' or just separate count)
-            this.state.shop.ammoStock = 5 + Math.floor(Math.random() * 10); // 10er Packs
+            // Ammo
+            this.state.shop.ammoStock = 5 + Math.floor(Math.random() * 10); 
 
-            // Random Equipment
+            // Equipment
             const weapons = Object.keys(this.items).filter(k => this.items[k].type === 'weapon' && !k.includes('legendary') && !k.startsWith('rusty'));
             const armor = Object.keys(this.items).filter(k => this.items[k].type === 'body');
             
@@ -299,7 +302,7 @@ window.Game = {
                 if(a) stock[a] = 1;
             }
             
-            // Fixed Tools
+            // Tools
             stock['lockpick'] = 5;
             stock['camp_kit'] = 1;
 
