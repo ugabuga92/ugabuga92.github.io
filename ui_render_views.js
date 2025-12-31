@@ -1,8 +1,6 @@
-// [v1.5.0] - 2025-12-30 17:00 (Shop Overhaul - UI)
+// [v0.9.14] - 2025-12-31 12:00pm (Visual Polish & Fixes)
 // ------------------------------------------------
-// - UI Change: Handelsposten nun in Kategorien unterteilt (Waffen, Kleidung, Hilfsmittel, etc.).
-// - UI Change: Bessere visuelle Darstellung und 'Im Besitz' Marker bei ausgerüsteten Items.
-// - Integration: Klick öffnet nun den neuen 'showShopConfirm' Dialog.
+// - Fix: Crafting-Liste zeigt nun gelernte Rezepte zuverlässiger an.
 
 Object.assign(UI, {
     
@@ -1035,11 +1033,14 @@ Object.assign(UI, {
         container.innerHTML = '';
         
         const recipes = Game.recipes || [];
+        // [v0.9.14] FIX: Ensure knownRecipes is treated as an array even if missing
+        const known = Game.state.knownRecipes || [];
         let knownCount = 0; 
 
         recipes.forEach(recipe => {
-            if(Game.state.knownRecipes && !Game.state.knownRecipes.includes(recipe.id)) {
-                return; 
+            // [v0.9.14] FIX: Check if recipe is known. Safe logic.
+            if(!known.includes(recipe.id)) {
+                return; // Not known yet
             }
             knownCount++;
 
