@@ -1,5 +1,9 @@
 CHANGE LOG - PIP-BOY 3000 Mk-V
 
+[v1.7.1] - 2025-12-31 14:30pm (Visual Tweak)
+------------------------------------------------
+- Visual: Glow-Effekt für neue Items im Inventar verstärkt (von 8px/0.6 auf 20px/1.0).
+
 [v1.7.0] - 2025-12-31 14:00 (Equipment & Economy Update)
 ------------------------------------------------
 - Feature: Ausrüstung kann nun im Charakter-Menü abgelegt werden (kleines 'X' neben dem Item).
