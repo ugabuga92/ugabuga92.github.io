@@ -1,10 +1,54 @@
-// [v1.7.5] - 2025-12-31 (Full Restore & Logic Update)
+// [v1.7.5] - 2025-12-31 (Critical Fix: Combat & Logic Restore)
 Object.assign(window.Game, {
     
-    // --- MOVEMENT & MAP HELPER ---
-    // Diese Funktionen unterstützen die Map-Logik, falls sie hier benötigt werden.
-    // Hauptbewegungslogik liegt meist in game_map.js, aber Actions greifen darauf zu.
-    
+    // --- MOVEMENT & MAP ---
+    changeSector: function(x, y) {
+        if(x < 0 || x >= this.WORLD_W || y < 0 || y >= this.WORLD_H) return;
+        this.state.sector = {x, y};
+        this.state.player.x = Math.floor(this.MAP_W / 2);
+        this.state.player.y = Math.floor(this.MAP_H / 2);
+        
+        // Track visited
+        this.state.visitedSectors = this.state.visitedSectors || [];
+        const key = `${x},${y}`;
+        if(!this.state.visitedSectors.includes(key)) this.state.visitedSectors.push(key);
+        
+        // Quest Progress
+        if(typeof UI !== 'undefined' && UI.updateQuestProgress) UI.updateQuestProgress('visit', `${x},${y}`);
+
+        this.loadSector(x, y);
+        this.saveGame();
+    },
+
+    loadSector: function(sx, sy) {
+        if(typeof WorldGen !== 'undefined') {
+            this.worldData = WorldGen.generateSector(sx, sy); 
+        }
+        this.initCache(); 
+        if(this.renderStaticMap) this.renderStaticMap(); 
+        this.reveal(this.state.player.x, this.state.player.y);
+    },
+
+    reveal: function(px, py) {
+        const rad = 6;
+        const key = `${this.state.sector.x},${this.state.sector.y}`;
+        if(!this.state.explored[key]) this.state.explored[key] = [];
+        
+        for(let y = py - rad; y <= py + rad; y++) {
+            for(let x = px - rad; x <= px + rad; x++) {
+                if(x>=0 && x<this.MAP_W && y>=0 && y<this.MAP_H) {
+                    const dist = (x-px)**2 + (y-py)**2;
+                    if(dist <= rad*rad) {
+                        const idx = y * this.MAP_W + x;
+                        if(!this.state.explored[key].includes(idx)) {
+                            this.state.explored[key].push(idx);
+                        }
+                    }
+                }
+            }
+        }
+    },
+
     // --- INVENTORY & ITEMS ---
     addToInventory: function(idOrItem, count=1) { 
         if(!this.state.inventory) this.state.inventory = []; 
@@ -24,8 +68,6 @@ Object.assign(window.Game, {
         const itemDef = this.items[itemId];
         
         if (props) {
-            // Stack items with same props? For simplicity, unique props items don't stack well usually unless we check props equality.
-            // For now, push as new if props exist to keep unique stats.
             this.state.inventory.push({ id: itemId, count: count, props: props, isNew: true });
             const colorClass = props.color ? props.color.split(' ')[0] : "text-green-400";
             UI.log(`+ ${props.name}`, colorClass);
@@ -40,7 +82,7 @@ Object.assign(window.Game, {
         if(itemDef && (itemDef.type === 'weapon' || itemDef.type === 'body')) {
             if(typeof UI !== 'undefined' && UI.triggerInventoryAlert) UI.triggerInventoryAlert();
         }
-    }, 
+    },
 
     removeFromInventory: function(itemId, amount=1) {
         if(!this.state) return false;
@@ -314,7 +356,7 @@ Object.assign(window.Game, {
         else UI.renderInventory();
     },
 
-    // --- COMBAT ---
+    // --- COMBAT (Wiederhergestellt) ---
     startCombat: function() { 
         let pool = []; 
         let lvl = this.state.lvl; 
