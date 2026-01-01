@@ -1,4 +1,4 @@
-// [v2.1] - 2025-12-31 16:15pm (Consumables Update) - Added support for 'heal_rad' effect (Food).
+// [v2.2] - 2026-01-01 13:30pm(Inventory & Backpack Update) - addToInventory mit Stacking-Logik & Slot-Cap - buyAmmo nutzt nun Inventar - unequip update
 Object.assign(Game, {
     
     addRadiation: function(amount) {
@@ -51,6 +51,7 @@ Object.assign(Game, {
         } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); }
     },
     
+    // [v2.2] Updated: Buys Ammo Item Stacks
     buyAmmo: function() { 
         if(this.state.shop && this.state.shop.ammoStock <= 0) {
             UI.log("Händler: 'Keine Munition mehr vorrätig!'", "text-red-500");
@@ -58,15 +59,16 @@ Object.assign(Game, {
         }
 
         if(this.state.caps >= 10) { 
-            this.state.caps -= 10; 
-            this.state.ammo += 10; 
-            
-            if(this.state.shop) this.state.shop.ammoStock--;
-            
-            UI.log("Munition gekauft.", "text-green-400"); 
-            const con = document.getElementById('shop-list');
-            if(con) UI.renderShop(con);
-            UI.update(); 
+            // Try adding 10 Ammo
+            if(this.addToInventory('ammo', 10)) {
+                this.state.caps -= 10; 
+                if(this.state.shop) this.state.shop.ammoStock--;
+                
+                UI.log("Munition gekauft.", "text-green-400"); 
+                const con = document.getElementById('shop-list');
+                if(con) UI.renderShop(con);
+                UI.update(); 
+            }
         } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); }
     },
     
@@ -87,23 +89,25 @@ Object.assign(Game, {
         }
 
         if(this.state.caps >= item.cost) { 
-            this.state.caps -= item.cost; 
-            this.addToInventory(key, 1); 
-            
-            // Decrease Stock
-            if(this.state.shop && this.state.shop.stock && this.state.shop.stock[key] > 0) {
-                this.state.shop.stock[key]--;
-            }
+            // [v2.2] Use new addToInventory check
+            if(this.addToInventory(key, 1)) {
+                this.state.caps -= item.cost; 
+                // Decrease Stock
+                if(this.state.shop && this.state.shop.stock && this.state.shop.stock[key] > 0) {
+                    this.state.shop.stock[key]--;
+                }
 
-            UI.log(`Gekauft: ${item.name}`, "text-green-400"); 
-            const con = document.getElementById('shop-list');
-            if(con) UI.renderShop(con);
-            UI.update(); 
+                UI.log(`Gekauft: ${item.name}`, "text-green-400"); 
+                const con = document.getElementById('shop-list');
+                if(con) UI.renderShop(con);
+                UI.update(); 
+            }
         } else { 
             UI.log("Zu wenig Kronkorken.", "text-red-500"); 
         } 
     },
 
+    // [v2.2] NEW Inventory Logic
     addToInventory: function(idOrItem, count=1) { 
         if(!this.state.inventory) this.state.inventory = []; 
         let itemId, props = null;
@@ -116,40 +120,89 @@ Object.assign(Game, {
 
         if (itemId === 'camp_kit') {
             const hasCamp = this.state.inventory.some(i => i.id === 'camp_kit');
-            if (hasCamp) return; 
+            if (hasCamp) return false; 
         }
 
-        const itemDef = this.items[itemId];
-        
-        if (props) {
-            this.state.inventory.push({ id: itemId, count: count, props: props, isNew: true });
-            const colorClass = props.color ? props.color.split(' ')[0] : "text-green-400";
-            UI.log(`+ ${props.name}`, colorClass);
-        } else {
-            const existing = this.state.inventory.find(i => i.id === itemId && !i.props); 
-            if(existing) { existing.count += count; existing.isNew = true; }
-            else { this.state.inventory.push({id: itemId, count: count, isNew: true}); }
-            const itemName = itemDef ? itemDef.name : itemId;
-            UI.log(`+ ${itemName} (${count})`, "text-green-400"); 
+        const limit = this.getStackLimit(itemId);
+        let remaining = count;
+        let added = false;
+
+        // 1. Fill existing Stacks (if no props)
+        if (!props) {
+            for (let item of this.state.inventory) {
+                if (item.id === itemId && !item.props && item.count < limit) {
+                    const space = limit - item.count;
+                    const take = Math.min(space, remaining);
+                    item.count += take;
+                    remaining -= take;
+                    added = true;
+                    if (remaining <= 0) break;
+                }
+            }
         }
-        
-        if(itemDef && (itemDef.type === 'weapon' || itemDef.type === 'body')) {
-            if(typeof UI !== 'undefined' && UI.triggerInventoryAlert) UI.triggerInventoryAlert();
+
+        // 2. Add New Stacks
+        if (remaining > 0) {
+            const maxSlots = this.getMaxSlots();
+            while (remaining > 0) {
+                if (this.getUsedSlots() >= maxSlots) {
+                    UI.log("INVENTAR VOLL!", "text-red-500 font-bold blink-red");
+                    if (added && itemId === 'ammo') this.syncAmmo(); 
+                    return false; 
+                }
+
+                const take = Math.min(limit, remaining);
+                const newItem = { id: itemId, count: take, isNew: true };
+                if (props) newItem.props = props;
+                this.state.inventory.push(newItem);
+                remaining -= take;
+                added = true;
+            }
         }
+
+        if (added) {
+            const itemDef = this.items[itemId];
+            const name = (props && props.name) ? props.name : (itemDef ? itemDef.name : itemId);
+            const color = (props && props.color) ? props.color.split(' ')[0] : "text-green-400";
+            
+            if(itemId !== 'ammo' || count < 10) {
+                UI.log(`+ ${name} (${count})`, color);
+            } else {
+                UI.log(`+ ${count} Munition`, "text-green-400");
+            }
+            
+            if (itemId === 'ammo') this.syncAmmo();
+            
+            if(itemDef && (itemDef.type === 'weapon' || itemDef.type === 'body' || itemDef.type === 'back')) {
+                if(typeof UI !== 'undefined' && UI.triggerInventoryAlert) UI.triggerInventoryAlert();
+            }
+            return true;
+        }
+        return false;
     }, 
     
     removeFromInventory: function(itemId, amount=1) {
         if(!this.state) return false;
-        const idx = this.state.inventory.findIndex(i => i.id === itemId);
-        if(idx === -1) return false;
-        if(this.state.inventory[idx].count > amount) {
-            this.state.inventory[idx].count -= amount; return true;
-        } else if(this.state.inventory[idx].count === amount) {
-            this.state.inventory.splice(idx, 1); return true;
+        let remaining = amount;
+        
+        for (let i = 0; i < this.state.inventory.length; i++) {
+            const item = this.state.inventory[i];
+            if (item.id === itemId) {
+                const take = Math.min(item.count, remaining);
+                item.count -= take;
+                remaining -= take;
+                if (item.count <= 0) {
+                    this.state.inventory.splice(i, 1);
+                    i--;
+                }
+                if (remaining <= 0) break;
+            }
         }
-        return false;
+        if(itemId === 'ammo') this.syncAmmo();
+        return remaining === 0;
     },
 
+    // [v2.2] Check Capacity on Unequip
     unequipItem: function(slot) {
         if(!this.state.equip[slot]) return;
         const item = this.state.equip[slot];
@@ -159,17 +212,28 @@ Object.assign(Game, {
              return;
         }
 
+        // Check Capacity
+        if(this.getUsedSlots() >= this.getMaxSlots()) {
+             UI.log("Inventar voll! Ablegen nicht möglich.", "text-red-500");
+             return;
+        }
+
         let itemToAdd = item._fromInv || item.id;
         if (!itemToAdd && item.id) itemToAdd = item.id;
-        if (!item._fromInv && item.props) itemToAdd = { id: item.id, count: 1, props: item.props };
+        let objToAdd = itemToAdd;
+        if (!item._fromInv && item.props) objToAdd = { id: item.id, count: 1, props: item.props };
+        else if (typeof itemToAdd === 'string') objToAdd = { id: itemToAdd, count: 1 };
 
-        this.addToInventory(itemToAdd, 1);
+        this.state.inventory.push(objToAdd);
         
         if(slot === 'weapon') this.state.equip.weapon = this.items.fists;
         if(slot === 'body') {
             this.state.equip.body = this.items.vault_suit;
             this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
             if(this.state.hp > this.state.maxHp) this.state.hp = this.state.maxHp;
+        }
+        if(slot === 'back') {
+            this.state.equip.back = null; // Rucksack removed
         }
 
         UI.log(`${item.name} abgelegt.`, "text-yellow-400");
@@ -187,6 +251,28 @@ Object.assign(Game, {
         invItem = this.state.inventory[index];
         const itemDef = this.items[invItem.id];
         
+        // [v2.2] Backpack Logic
+        if (itemDef.type === 'back') {
+            const slot = 'back';
+            let oldEquip = this.state.equip[slot];
+            // Swap: Remove from Inv, Add old to Inv (Temporary ignore capacity as we swap 1:1 slot usually)
+            this.state.inventory.splice(index, 1);
+            if(oldEquip) {
+                const oldItem = { id: oldEquip.id, count: 1, props: oldEquip.props, isNew: true };
+                this.state.inventory.push(oldItem);
+            }
+            this.state.equip[slot] = { ...itemDef, ...invItem.props };
+            UI.log(`Rucksack angelegt: ${itemDef.name}`, "text-yellow-400");
+            
+            // Warning if now overloaded
+            if(this.getUsedSlots() > this.getMaxSlots()) UI.log("WARNUNG: Überladen!", "text-red-500 blink-red");
+            
+            UI.update();
+            if(this.state.view === 'inventory') UI.renderInventory();
+            this.saveGame();
+            return;
+        }
+
         if(invItem.id === 'camp_kit') { this.deployCamp(index); return; }
 
         if(invItem.id === 'nuka_cola') {
@@ -218,14 +304,13 @@ Object.assign(Game, {
             return;
         }
         else if(itemDef.type === 'consumable') { 
-            // [v2.1] Supports 'heal' and 'heal_rad'
             if(itemDef.effect === 'heal' || itemDef.effect === 'heal_rad') { 
                 let healAmt = itemDef.val; 
                 if(this.state.perks && this.state.perks.includes('medic')) {
                     healAmt = Math.floor(healAmt * 1.5);
                 }
                 const effectiveMax = this.state.maxHp - (this.state.rads || 0);
-                if(this.state.hp >= effectiveMax) { UI.log("Gesundheit voll (Strahlung blockiert mehr).", "text-gray-500"); return; } 
+                if(this.state.hp >= effectiveMax) { UI.log("Gesundheit voll.", "text-gray-500"); return; } 
                 
                 let countToUse = 1;
                 if (mode === 'max') {
@@ -239,12 +324,9 @@ Object.assign(Game, {
                 if (countToUse > 0) {
                     const totalHeal = healAmt * countToUse;
                     this.state.hp = Math.min(effectiveMax, this.state.hp + totalHeal); 
-                    
-                    // Trigger Rads if food
                     if(itemDef.effect === 'heal_rad' && itemDef.rad) {
                         this.addRadiation(itemDef.rad * countToUse);
                     }
-
                     UI.log(`Verwendet: ${countToUse}x ${itemDef.name} (+${totalHeal} HP)`, "text-blue-400"); 
                     this.removeFromInventory(invItem.id, countToUse);
                 }
@@ -263,14 +345,15 @@ Object.assign(Game, {
                 });
 
                 if(!existsInInv) {
-                    if(oldEquip._fromInv) this.addToInventory(oldEquip._fromInv);
+                    if(oldEquip._fromInv) this.state.inventory.push(oldEquip._fromInv);
                     else {
                         const oldKey = Object.keys(this.items).find(k => this.items[k].name === oldEquip.name);
-                        if(oldKey) this.addToInventory(oldKey, 1);
+                        if(oldKey) this.state.inventory.push({id: oldKey, count: 1, isNew: true});
                     }
                 }
             } 
             
+            this.state.inventory.splice(index, 1);
             const equipObject = { ...itemDef, ...invItem.props, _fromInv: invItem }; 
             this.state.equip[slot] = equipObject;
             
@@ -305,10 +388,16 @@ Object.assign(Game, {
             invItem.count -= countNeeded;
             if(invItem.count <= 0) this.state.inventory = this.state.inventory.filter(i => i.id !== reqId);
         }
-        if(recipe.out === "AMMO") { this.state.ammo += recipe.count; UI.log(`Hergestellt: ${recipe.count} Munition`, "text-green-400 font-bold"); } 
-        else { this.addToInventory(recipe.out, recipe.count); UI.log(`Hergestellt: ${this.items[recipe.out].name}`, "text-green-400 font-bold"); }
         
-        // Refresh correct view
+        // [v2.2] Sync Ammo if produced
+        if(recipe.out === "AMMO") { 
+            this.addToInventory('ammo', recipe.count);
+        } else { 
+            this.addToInventory(recipe.out, recipe.count); 
+        }
+        
+        UI.log(`Hergestellt: ${recipe.count}x ${recipe.out === "AMMO" ? "Munition" : this.items[recipe.out].name}`, "text-green-400 font-bold");
+
         if(recipe.type === 'cooking') {
             if(typeof UI.renderCampCooking === 'function') UI.renderCampCooking();
         } else {
@@ -366,7 +455,7 @@ Object.assign(Game, {
         UI.log(`🎲 Wasteland Gamble: ${sum}`, "text-yellow-400 font-bold");
         if(sum <= 9) {
             if(Math.random() < 0.5) { this.state.caps += 50; UI.log("Gewinn: 50 Kronkorken", "text-green-400"); } 
-            else { this.state.ammo += 10; UI.log("Gewinn: 10x Munition", "text-green-400"); }
+            else { this.addToInventory('ammo', 10); UI.log("Gewinn: 10x Munition", "text-green-400"); }
         }
         else if(sum <= 15) {
             this.state.caps += 150;
