@@ -1,4 +1,4 @@
-// [v0.4.18]
+// [v2.7] - 2025-12-31 18:30pm (Admin Tracking Update) - Added email and timestamp to save data for admin identification.
 const Network = {
     db: null,
     auth: null,
@@ -66,18 +66,12 @@ const Network = {
     // --- HIGHSCORE SYSTEM ---
     updateHighscore: function(gameState) {
         if(!this.active || !this.myId || !gameState) return;
-        // Speichert unter 'leaderboard/{uid}' 
-        // Wir nutzen die UID als Key, damit jeder User nur einen "aktiven" Eintrag pro Slot hat? 
-        // Oder besser: Wir nutzen den Charakternamen als Key?
-        // Anforderung: "Nach Tod sollen sie verbleiben... bis neuer Char mit selbem Namen erstellt wird"
-        // Also Key = CharacterName (sanitize it first)
-        
         const safeName = (gameState.playerName || "Unknown").replace(/[.#$/[\]]/g, "_");
         const entry = {
             name: gameState.playerName || "Unknown",
             lvl: gameState.lvl,
             kills: gameState.kills || 0,
-            xp: gameState.xp + (gameState.lvl * 1000), // Approximate total XP score
+            xp: gameState.xp + (gameState.lvl * 1000), 
             status: 'alive',
             owner: this.myId,
             timestamp: Date.now()
@@ -95,7 +89,7 @@ const Network = {
             lvl: gameState.lvl,
             kills: gameState.kills || 0,
             xp: gameState.xp + (gameState.lvl * 1000),
-            status: 'dead', // Totenschädel flag
+            status: 'dead', 
             owner: this.myId,
             deathTime: Date.now()
         };
@@ -110,7 +104,6 @@ const Network = {
         const snap = await ref.once('value');
         if(snap.exists()) {
             const val = snap.val();
-            // Wenn der Eintrag mir gehört und 'dead' ist, löschen wir ihn, da wir ihn "neu geboren" haben
             if(val.owner === this.myId && val.status === 'dead') {
                 await ref.remove();
             }
@@ -131,6 +124,14 @@ const Network = {
     saveToSlot: function(slotIndex, gameState) {
         if(!this.active || !this.myId) return;
         const saveObj = JSON.parse(JSON.stringify(gameState));
+        
+        // [v2.7] E-Mail für Admin-Zwecke mitspeichern
+        if(this.auth && this.auth.currentUser && this.auth.currentUser.email) {
+            saveObj._userEmail = this.auth.currentUser.email;
+        }
+        // Timestamp für "Zuletzt online"
+        saveObj._lastSeen = Date.now();
+
         const updates = {};
         updates[`saves/${this.myId}/${slotIndex}`] = saveObj;
         this.db.ref().update(updates)
@@ -170,7 +171,6 @@ const Network = {
         
         if(typeof UI !== 'undefined') {
             UI.setConnectionState('online');
-            // FIX: Use Game.state.playerName if available, else account name
             const charName = (typeof Game !== 'undefined' && Game.state && Game.state.playerName) ? Game.state.playerName : this.myDisplayName;
             UI.log(`TERMINAL LINK: ${charName}`, "text-green-400 font-bold");
         }
