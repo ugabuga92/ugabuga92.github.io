@@ -1,8 +1,34 @@
-[v2.3] - 2025-12-31 17:30pm (Admin & Docs) 
+[v2.7] - 2026-01-01 17:30pm (Mobile UI & Header Overhaul)
+- Responsive Header Design (Konzept A) implementiert
+- Desktop: Volle Info-Dichte (Name, Lvl, KK, Mun, HP-Balken, XP-Balken)
+- Mobile: Reduzierte Ansicht (Fokus auf HP), XP-Leiste als feine Linie am unteren Bildschirmrand
+- Burger-Menü Button (SVG Icon) integriert
+- Status-Leisten Logik in ui_render_core.js für mobile Endgeräte angepasst
+
+[v2.3] - 2026-01-01 16:20pm (Inventory UI Update)
+- Visuelle Slot-Anzeige (Belegt / Max) im Inventar hinzugefügt
+- Doppelte Munitions-Anzeige im Inventar entfernt (jetzt nur noch als Item-Stack)
+- Rucksack-Slot Anzeige im Charakter-Screen ("Char") ergänzt
+- Warn-Animation bei vollem Inventar hinzugefügt
+
+[v2.2] - 2026-01-01 13:30pm (Inventory & Backpack System)
+- Slot-System eingeführt (Basis 10 + Stärke-Bonus + Rucksack)
+- Rucksäcke als ausrüstbare Items erstellt (Small +5, Medium +10, Large +20 Slots)
+- Munition ('ammo') zu echtem, stapelbaren Item umgewandelt (Max Stack 100)
+- addToInventory() Logik komplett neu geschrieben (prüft Slot-Limits und stackt intelligent)
+- Händler verkauft nun echte Munitions-Packs und Rucksäcke
+
+[v2.1] - 2026-01-01 12:00pm (Core & Audio Refactor)
+- Audio System auf Web Audio API umgestellt (Game.Audio)
+- Volume Control und Mute-Logik stabilisiert und gekapselt
+- Game.init() Struktur bereinigt und Initialisierungsprozess optimiert
+- Consumables erweitert: Support für 'heal_rad' (Nahrung heilt, gibt aber Strahlung)
+
+[v2.x] - 2025-12-31 17:30pm (Admin & Docs) 
 - Komplettes 'readme.md' Handbuch mit neuen Mechaniken erstellt 
 - 'admin.html' und 'admin.js' hinzugefügt: Ermöglicht Login mit Passwort, User-Verwaltung, Editieren von Stats (Caps, Level, XP) und Hinzufügen von Items per Datenbank-Direktzugriff
 
-[v2.2] - 2025-12-31 16:30pm (Refactoring)
+[v2.x] - 2025-12-31 16:30pm (Refactoring)
 • Aufteilung der ui_render_views.js in 5 Module für bessere Wartbarkeit
 • ui_view_inv.js: Inventar, Stats, Perks
 • ui_view_world.js: Map, Camp (inkl. Kochen), Radio
