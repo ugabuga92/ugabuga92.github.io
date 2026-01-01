@@ -1,65 +1,78 @@
-// [v2.4] - 2026-01-01 16:30pm (Mobile UI Overhaul) - Added Update Logic for Mobile XP Bar
+// [v2.8] - 2026-01-01 17:45pm (Sector & Header Update) - Sector moved to Map Overlay - Header Layout split for Mobile/Desktop
 Object.assign(UI, {
     
     // Updates HUD and Button States
     update: function() {
         if (!Game.state) return;
         
-        // Lazy load ammo element if not in core map
+        // Lazy load dynamic elements
         if(!this.els.ammo) this.els.ammo = document.getElementById('val-ammo');
+        const sectorDisplay = document.getElementById('val-sector-display');
         
         // Global Level-Up Check
         const hasPoints = Game.state.statPoints > 0;
 
-        // Header Info
+        // 1. NAME UPDATE (Mobile & Desktop targets)
+        const displayName = Game.state.playerName || (typeof Network !== 'undefined' ? Network.myDisplayName : "SURVIVOR");
+        
+        // Mobile ID
         if(this.els.name) {
-            const sectorStr = Game.state.sector ? ` [${Game.state.sector.x},${Game.state.sector.y}]` : "";
-            const displayName = Game.state.playerName || (typeof Network !== 'undefined' ? Network.myDisplayName : "SURVIVOR");
-            this.els.name.textContent = displayName + sectorStr;
-
+            this.els.name.textContent = displayName;
             if(hasPoints) this.els.name.classList.add('lvl-ready-glow');
             else this.els.name.classList.remove('lvl-ready-glow');
         }
+        // Desktop Class Target (da ID unique sein muss, nutzen wir hier Klassen für Desktop Duplikate wenn nötig oder ID update)
+        const dtName = document.querySelector('.desktop-name-target');
+        if(dtName) dtName.textContent = displayName;
 
-        if(this.els.lvl) {
+        // 2. SECTOR UPDATE (Map Overlay)
+        if(sectorDisplay) {
+            const sx = Game.state.sector ? Game.state.sector.x : 0;
+            const sy = Game.state.sector ? Game.state.sector.y : 0;
+            sectorDisplay.textContent = `SEKTOR [${sx},${sy}]`;
+        }
+
+        // 3. LEVEL UPDATE
+        if(this.els.lvl) { // Mobile ID
             this.els.lvl.textContent = Game.state.lvl;
             if(hasPoints) this.els.lvl.classList.add('lvl-ready-glow');
             else this.els.lvl.classList.remove('lvl-ready-glow');
         }
+        const dtLvl = document.querySelector('.desktop-lvl-target');
+        if(dtLvl) dtLvl.textContent = Game.state.lvl;
 
-        // HP & Radiation Bars
+        // 4. HP & RADS UPDATE
         const maxHp = Game.state.maxHp;
         const hp = Game.state.hp;
         const rads = Game.state.rads || 0;
+        const hpPct = Math.max(0, (hp / maxHp) * 100);
+        const radPct = Math.min(100, (rads / maxHp) * 100);
         
+        // Text Val
         if(this.els.hp) this.els.hp.textContent = `${Math.round(hp)}/${maxHp}`;
         
-        if(this.els.hpBar) {
-            const hpPct = Math.max(0, (hp / maxHp) * 100);
-            this.els.hpBar.style.width = `${hpPct}%`;
-        }
-        
+        // Desktop Bars
+        if(this.els.hpBar) this.els.hpBar.style.width = `${hpPct}%`;
         const radBar = document.getElementById('bar-rads');
-        if(radBar) {
-            const radPct = Math.min(100, (rads / maxHp) * 100);
-            radBar.style.width = `${radPct}%`;
-        }
+        if(radBar) radBar.style.width = `${radPct}%`;
 
-        // XP Bar (Standard & Mobile)
+        // Mobile Bars (New IDs)
+        const mobHp = document.getElementById('bar-hp-mobile');
+        const mobRad = document.getElementById('bar-rads-mobile');
+        if(mobHp) mobHp.style.width = `${hpPct}%`;
+        if(mobRad) mobRad.style.width = `${radPct}%`;
+
+        // 5. XP UPDATE
         const nextXp = Game.expToNextLevel(Game.state.lvl);
         const expPct = Math.min(100, Math.floor((Game.state.xp / nextXp) * 100));
         
         if(this.els.xpTxt) this.els.xpTxt.textContent = expPct;
         if(this.els.expBarTop) this.els.expBarTop.style.width = `${expPct}%`;
-        
-        // [v2.4] Update Mobile Bar
         if(this.els.expBarMobile) this.els.expBarMobile.style.width = `${expPct}%`;
         
+        // Misc
         if(this.els.caps) this.els.caps.textContent = `${Game.state.caps}`;
-        
-        if(this.els.ammo) {
-            this.els.ammo.textContent = Game.state.ammo || 0;
-        }
+        if(this.els.ammo) this.els.ammo.textContent = Game.state.ammo || 0;
 
         // Camp Button Visibility Logic
         const campBtn = document.getElementById('btn-enter-camp');
@@ -94,6 +107,7 @@ Object.assign(UI, {
             else this.els.btnMenu.classList.remove('alert-glow-red');
         }
 
+        // Disable Buttons in Combat
         const inCombat = Game.state.view === 'combat';
         [this.els.btnWiki, this.els.btnMap, this.els.btnChar, this.els.btnQuests, this.els.btnSave, this.els.btnLogout, this.els.btnInv].forEach(btn => {
             if(btn) {
@@ -139,10 +153,15 @@ Object.assign(UI, {
         const ver = verDisplay ? verDisplay.textContent.trim() : Date.now();
         
         if (name === 'map') {
+            // [v2.8] Added Sector Display Overlay here
             this.els.view.innerHTML = `
                 <div id="map-view" class="w-full h-full flex justify-center items-center bg-black relative">
                     <canvas id="game-canvas" class="w-full h-full object-contain" style="image-rendering: pixelated;"></canvas>
                     
+                    <div id="val-sector-display" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/80 border border-green-500 text-green-500 px-3 py-1 text-sm font-bold tracking-widest z-20 shadow-[0_0_10px_#39ff14] pointer-events-none rounded">
+                        SEKTOR [?,?]
+                    </div>
+
                     <button onclick="UI.switchView('worldmap')" class="absolute top-4 right-4 bg-black/80 border-2 border-green-500 text-green-500 p-2 rounded-full hover:bg-green-900 hover:text-white transition-all z-20 shadow-[0_0_15px_#39ff14] animate-pulse cursor-pointer" title="Weltkarte öffnen">
                         <span class="text-2xl">🌍</span>
                     </button>
