@@ -1,4 +1,4 @@
-// [v2.0] - 2025-12-31 16:00pm (Radio Update) - Implemented Web Audio API for real sound generation (Static + Synth Stations).
+// [v2.2] - 2026-01-01 13:30pm(Inventory & Backpack Update) - Slot-System implementiert - Rucksäcke hinzugefügt - Munition als echtes Item mit Stacks
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     WORLD_W: 10, WORLD_H: 10, 
@@ -15,8 +15,8 @@ window.Game = {
         {
             name: "GALAXY NEWS",
             freq: "101.5",
-            synthType: "square", // Retro Game Sound
-            pitch: 220, // Base Frequency
+            synthType: "square", 
+            pitch: 220, 
             tracks: [
                 "Nachrichten: Supermutanten in Sektor 7 gesichtet...",
                 "Song: 'I Don't Want to Set the World on Fire'",
@@ -27,7 +27,7 @@ window.Game = {
         {
             name: "ENCLAVE RADIO",
             freq: "98.2",
-            synthType: "sawtooth", // Aggressive/Militaristic
+            synthType: "sawtooth", 
             pitch: 110,
             tracks: [
                 "Präsident Eden: 'Die Wiederherstellung Amerikas...'",
@@ -38,7 +38,7 @@ window.Game = {
         {
             name: "KLASSIK FM",
             freq: "88.0",
-            synthType: "sine", // Smooth/Calm
+            synthType: "sine", 
             pitch: 440,
             tracks: [
                 "Agatha: 'Eine Melodie für das Ödland...'",
@@ -50,28 +50,17 @@ window.Game = {
 
     // [v2.0] NEW AUDIO SYSTEM
     Audio: {
-        ctx: null,
-        masterGain: null,
-        noiseNode: null,
-        noiseGain: null,
-        osc: null,
-        oscGain: null,
-        analyser: null,
-        dataArray: null,
+        ctx: null, masterGain: null, noiseNode: null, noiseGain: null, osc: null, oscGain: null, analyser: null, dataArray: null,
 
         init: function() {
             if(this.ctx) return;
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             this.ctx = new AudioContext();
-            
-            // Master Volume
             this.masterGain = this.ctx.createGain();
             this.masterGain.gain.value = 0.4;
             this.masterGain.connect(this.ctx.destination);
-
-            // Analyser for Visualizer
             this.analyser = this.ctx.createAnalyser();
-            this.analyser.fftSize = 64; // Low res for retro look
+            this.analyser.fftSize = 64; 
             this.masterGain.connect(this.analyser);
             const bufferLength = this.analyser.frequencyBinCount;
             this.dataArray = new Uint8Array(bufferLength);
@@ -80,68 +69,44 @@ window.Game = {
         toggle: function(isOn, stationIndex) {
             this.init();
             if(this.ctx.state === 'suspended') this.ctx.resume();
-
-            if(isOn) {
-                this.startStatic();
-                this.playStation(stationIndex);
-            } else {
-                this.stopAll();
-            }
+            if(isOn) { this.startStatic(); this.playStation(stationIndex); } else { this.stopAll(); }
         },
 
         startStatic: function() {
             if(this.noiseNode) return;
-            const bufferSize = this.ctx.sampleRate * 2; // 2 seconds buffer
+            const bufferSize = this.ctx.sampleRate * 2; 
             const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
             const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                data[i] = Math.random() * 2 - 1;
-            }
-
+            for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
             this.noiseNode = this.ctx.createBufferSource();
             this.noiseNode.buffer = buffer;
             this.noiseNode.loop = true;
-            
             this.noiseGain = this.ctx.createGain();
-            this.noiseGain.gain.value = 0.05; // Low volume static background
-
+            this.noiseGain.gain.value = 0.05; 
             this.noiseNode.connect(this.noiseGain);
             this.noiseGain.connect(this.masterGain);
             this.noiseNode.start();
         },
 
         playStation: function(index) {
-            // Stop old synth if running
             if(this.osc) { this.osc.stop(); this.osc = null; }
-
             const station = Game.radioStations[index];
             if(!station) return;
-
-            // Simple Synth Tone for Station (Placeholder for real MP3s)
             this.osc = this.ctx.createOscillator();
             this.osc.type = station.synthType || 'sine';
             this.osc.frequency.setValueAtTime(station.pitch || 440, this.ctx.currentTime);
-            
-            // LFO for "Signal" effect (Modulation)
-            // Dies lässt den Ton "schwanken" wie ein Radiosignal
             const lfo = this.ctx.createOscillator();
-            lfo.frequency.value = 2; // 2Hz wobble
+            lfo.frequency.value = 2; 
             const lfoGain = this.ctx.createGain();
             lfoGain.gain.value = 10;
             lfo.connect(lfoGain);
             lfoGain.connect(this.osc.frequency);
             lfo.start();
-
             this.oscGain = this.ctx.createGain();
             this.oscGain.gain.value = 0.1;
-            
             this.osc.connect(this.oscGain);
             this.oscGain.connect(this.masterGain);
             this.osc.start();
-
-            // NOTE: Hier könnte man später echte MP3s abspielen:
-            // const audio = new Audio(`music/${station.name}.mp3`);
-            // audio.play();
         },
 
         stopAll: function() {
@@ -192,34 +157,91 @@ window.Game = {
         }
     },
 
+    // [v2.2] Inventory Helper Functions
+    getMaxSlots: function() {
+        if(!this.state) return 10;
+        let slots = 10; // Basis
+        slots += Math.max(0, this.getStat('STR') - 5); // Stärke Bonus
+        const backpack = this.state.equip.back; // Rucksack Bonus
+        if(backpack && backpack.props && backpack.props.slots) {
+            slots += backpack.props.slots;
+        }
+        return slots;
+    },
+
+    getUsedSlots: function() {
+        if(!this.state || !this.state.inventory) return 0;
+        return this.state.inventory.length;
+    },
+
+    getStackLimit: function(itemId) {
+        if(itemId === 'ammo') return 100; 
+        if(itemId === 'caps') return 99999;
+        const item = this.items[itemId];
+        if(!item) return 1;
+        if(item.type === 'consumable' || item.type === 'junk') return 20;
+        if(item.type === 'ammo') return 100;
+        return 1;
+    },
+    
+    syncAmmo: function() {
+        if(!this.state) return;
+        const totalAmmo = this.state.inventory.reduce((sum, item) => {
+            return item.id === 'ammo' ? sum + item.count : sum;
+        }, 0);
+        this.state.ammo = totalAmmo;
+        if(typeof UI !== 'undefined' && UI.update) UI.update();
+    },
+
     init: function(saveData, spawnTarget=null, slotIndex=0, newName=null) {
         this.worldData = {};
         this.initCache();
+
+        // [v2.2] Inject Backpacks & Ammo Item into Game Items if missing
+        if(this.items) {
+            this.items.backpack_small = { name: "Leder-Ranzen", type: "back", cost: 150, slot: "back", props: { slots: 5 }, icon: "🎒" };
+            this.items.backpack_medium = { name: "Reiserucksack", type: "back", cost: 400, slot: "back", props: { slots: 10 }, icon: "🎒" };
+            this.items.backpack_large = { name: "Militär-Rucksack", type: "back", cost: 900, slot: "back", props: { slots: 20 }, icon: "🎒" };
+            this.items.ammo = { name: "Patronen (5.56mm)", type: "ammo", cost: 2, icon: "bullet" };
+        }
+
         try {
             let isNewGame = false;
             const defaultPOIs = [ {type: 'V', x: 4, y: 4}, {type: 'C', x: 3, y: 3}, {type: 'A', x: 8, y: 1}, {type: 'R', x: 1, y: 8}, {type: 'K', x: 9, y: 9} ];
 
             if (saveData) {
                 this.state = saveData;
+                // Defaults for updates
                 if(!this.state.explored) this.state.explored = {};
                 if(!this.state.view) this.state.view = 'map';
                 if(!this.state.radio) this.state.radio = { on: false, station: 0, trackIndex: 0 };
                 if(typeof this.state.rads === 'undefined') this.state.rads = 0;
-                
-                // [v0.9.12] Init new Quest System if missing
                 if(!this.state.activeQuests) this.state.activeQuests = [];
                 if(!this.state.completedQuests) this.state.completedQuests = [];
                 if(!this.state.quests) this.state.quests = [];
-
                 if(!this.state.camp) this.state.camp = null;
                 if(!this.state.knownRecipes) this.state.knownRecipes = ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp']; 
                 if(!this.state.perks) this.state.perks = [];
-                
-                // [v1.7.0] Init Shop State
                 if(!this.state.shop) this.state.shop = { nextRestock: 0, stock: {} };
+                
+                // [v2.2] Ensure Back Slot exists
+                if(!this.state.equip.back) this.state.equip.back = null;
 
                 this.state.saveSlot = slotIndex;
-                this.checkNewQuests(); // Check for available quests on load
+                this.checkNewQuests();
+                
+                // [v2.2] Convert old ammo number to item if needed (One Time Migration)
+                if(this.state.ammo > 0 && !this.state.inventory.some(i => i.id === 'ammo')) {
+                   // Add ammo as items (ignoring capacity for migration)
+                   let ammoLeft = this.state.ammo;
+                   while(ammoLeft > 0) {
+                       const chunk = Math.min(100, ammoLeft);
+                       this.state.inventory.push({id: 'ammo', count: chunk, isNew: true});
+                       ammoLeft -= chunk;
+                   }
+                }
+                this.syncAmmo();
+
                 UI.log(">> Spielstand geladen.", "text-cyan-400");
             } else {
                 isNewGame = true;
@@ -230,9 +252,9 @@ window.Game = {
                     worldPOIs: defaultPOIs,
                     player: {x: 20, y: 20, rot: 0},
                     stats: { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 }, 
-                    equip: { weapon: this.items.fists, body: this.items.vault_suit },
+                    equip: { weapon: this.items.fists, body: this.items.vault_suit, back: null }, // Added back
                     inventory: [], 
-                    hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 10, statPoints: 0, 
+                    hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 0, statPoints: 0, 
                     perkPoints: 0, perks: [], 
                     camp: null, 
                     radio: { on: false, station: 0, trackIndex: 0 },
@@ -249,7 +271,11 @@ window.Game = {
                     shop: { nextRestock: 0, stock: {} },
                     startTime: Date.now()
                 };
+                
+                // Start Items via new method
                 this.addToInventory('stimpack', 1);
+                this.addToInventory('ammo', 10); // Start Ammo
+
                 this.state.hp = this.calculateMaxHP(this.getStat('END')); 
                 this.state.maxHp = this.state.hp;
                 
@@ -313,7 +339,7 @@ window.Game = {
             this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
             this.state.hp = this.state.maxHp;
             UI.log(`LEVEL UP! Du bist jetzt Level ${this.state.lvl}`, "text-yellow-400 font-bold animate-pulse");
-            this.checkNewQuests(); // Check quests on level up
+            this.checkNewQuests(); 
             this.saveGame(); 
         }
     },
@@ -407,7 +433,10 @@ window.Game = {
                 if(a) stock[a] = 1;
             }
             
-            // Fixed Tools
+            // Random Backpacks (NEW)
+            if(Math.random() < 0.3) stock['backpack_small'] = 1;
+            if(Math.random() < 0.1) stock['backpack_medium'] = 1;
+
             stock['lockpick'] = 5;
             stock['camp_kit'] = 1;
 
