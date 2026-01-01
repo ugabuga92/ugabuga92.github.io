@@ -1,4 +1,4 @@
-// [v2.4] - 2026-01-01 16:30pm (Mobile UI Overhaul) - Registered Mobile XP Bar
+// [v2.8b] - 2026-01-01 18:00pm (Bugfix) - Added toggleNav function & restored Menu HTML
 const UI = {
     els: {},
     timerInterval: null,
@@ -345,6 +345,20 @@ const UI = {
         this.deleteMode = false;
         this.els.deleteOverlay.style.display = 'none';
         this.els.charSelectScreen.focus();
+    },
+
+    // [v2.8b] ADDED: Menu Toggle Logic
+    toggleNav: function() {
+        if(!this.els.navMenu) this.els.navMenu = document.getElementById('main-nav');
+        if(!this.els.navMenu) return;
+
+        if(this.els.navMenu.classList.contains('hidden')) {
+            this.els.navMenu.classList.remove('hidden');
+            this.els.navMenu.style.display = 'flex';
+        } else {
+            this.els.navMenu.classList.add('hidden');
+            this.els.navMenu.style.display = 'none';
+        }
     }
 };
 console.log("UI Core Loaded.");
