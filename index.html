@@ -114,53 +114,38 @@
     <div id="player-list-overlay"><div class="font-bold border-b border-green-500 mb-2 pb-1 text-center">SIGNALE</div><div id="player-list-content" class="text-sm space-y-1"></div><button class="action-button w-full mt-2 text-xs" onclick="UI.togglePlayerList()">SCHLIESSEN</button></div>
 
     <div id="game-screen" class="hidden opacity-0 transition-opacity duration-1000">
-                <header class="flex items-center justify-between p-2 border-b-2 border-[#39ff14] bg-[#001100] z-30 h-auto min-h-[64px] shrink-0 relative gap-2 w-full transition-all duration-300">
-        
-        <div class="flex flex-col justify-center w-full min-w-0 leading-tight">
+            <header class="flex items-center justify-between p-2 border-b-2 border-[#39ff14] bg-[#001100] z-30 h-16 md:h-20 shrink-0 relative gap-2 w-full transition-all duration-300">
+        <div class="flex flex-col justify-center h-full min-w-0 flex-grow leading-tight gap-1 relative">
             
-            <div class="md:hidden flex flex-col w-full">
-                <div class="flex items-center">
-                    <span id="val-name" class="text-lg font-bold text-cyan-400 uppercase tracking-wide truncate mr-2">PLAYER</span>
-                    
-                    <div class="w-24 h-3 bg-gray-900 border border-[#39ff14] relative overflow-hidden -mt-1">
-                        <div id="bar-hp-mobile" class="absolute top-0 left-0 h-full bg-[#1aff1a] transition-all duration-300" style="width: 100%"></div>
-                        <div id="bar-rads-mobile" class="absolute top-0 right-0 h-full bg-red-600/90 border-l border-red-400 transition-all duration-300" style="width: 0%"></div>
-                    </div>
-                </div>
+            <div class="flex items-baseline gap-2">
+                <span id="val-name" class="text-lg md:text-xl font-bold text-cyan-400 uppercase tracking-wide truncate">PLAYER</span>
+                <span class="text-yellow-400 font-bold text-xs md:text-sm">LVL <span id="val-lvl">1</span></span>
                 
-                <div class="text-xs text-yellow-400 font-bold mt-[-2px]">LVL <span id="val-lvl">1</span></div>
+                <span class="hidden md:inline text-yellow-400 font-bold text-sm ml-2"> <span id="val-caps" class="text-yellow-400 text-lg">0</span> KK</span>
+                <span class="hidden md:inline text-yellow-400 font-bold text-sm ml-2"> <span id="val-ammo" class="text-yellow-400 text-lg">0</span> MUN</span>
             </div>
 
-            <div class="hidden md:flex items-center gap-4 w-full">
-                <div class="flex items-baseline gap-2">
-                    <span class="text-xl font-bold text-cyan-400 uppercase tracking-wide truncate desktop-name-target">PLAYER</span>
-                    <span class="text-yellow-400 font-bold text-sm">LVL <span class="desktop-lvl-target">1</span></span>
-                    <span class="text-yellow-400 font-bold text-sm ml-2"> <span id="val-caps" class="text-yellow-400 text-lg">0</span> KK</span>
-                    <span class="text-yellow-400 font-bold text-sm ml-2"> <span id="val-ammo" class="text-yellow-400 text-lg">0</span> MUN</span>
-                </div>
-
-                <div class="flex flex-col gap-1 flex-grow max-w-md ml-auto">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold w-6">HP</span>
-                        <div class="flex-grow h-3 bg-gray-900 border border-[#39ff14] relative overflow-hidden">
-                            <div id="bar-hp" class="absolute top-0 left-0 h-full bg-[#1aff1a] transition-all duration-300" style="width: 100%"></div>
-                            <div id="bar-rads" class="absolute top-0 right-0 h-full bg-red-600/90 border-l border-red-400 transition-all duration-300" style="width: 0%"></div>
-                            <div id="val-hp" class="absolute inset-0 text-[8px] flex items-center justify-center text-black font-bold leading-none z-10">100/100</div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold w-6 text-yellow-400">XP</span>
-                        <div class="flex-grow h-2 bg-gray-900 border border-yellow-500 relative">
-                            <div id="bar-exp-top" class="absolute top-0 left-0 h-full bg-yellow-500 transition-all duration-300" style="width: 0%"></div>
-                        </div>
-                    </div>
+            <div class="flex items-center gap-2 w-full max-w-[200px] md:max-w-xs">
+                <span class="text-[10px] md:text-xs font-bold w-4 md:w-6">HP</span>
+                <div class="flex-grow h-2 md:h-3 bg-gray-900 border border-[#39ff14] relative overflow-hidden">
+                    <div id="bar-hp" class="absolute top-0 left-0 h-full bg-[#1aff1a] transition-all duration-300" style="width: 100%"></div>
+                    <div id="bar-rads" class="absolute top-0 right-0 h-full bg-red-600/90 transition-all duration-300 border-l border-red-400" style="width: 0%"></div>
+                    <div id="val-hp" class="absolute inset-0 text-[8px] md:text-[10px] flex items-center justify-center text-black font-bold leading-none z-10">100/100</div>
                 </div>
             </div>
-
+            
+            <div class="hidden md:flex items-center gap-2 w-full max-w-xs">
+                <span class="text-xs font-bold w-6 text-yellow-400">XP</span>
+                <div class="flex-grow h-3 bg-gray-900 border border-yellow-500 relative">
+                    <div id="bar-exp-top" class="absolute top-0 left-0 h-full bg-yellow-500 transition-all duration-300" style="width: 0%"></div>
+                    <div class="absolute inset-0 text-[10px] flex items-center justify-center text-black font-bold leading-none"><span id="val-xp-txt">0</span>%</div>
+                </div>
+            </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row items-center gap-2 shrink-0 h-full justify-center">
+        <div class="flex flex-col sm:flex-row items-center gap-2 shrink-0">
             <button id="btn-save" class="header-btn border-yellow-400 text-yellow-400 hover:bg-yellow-900 hidden md:flex" title="Speichern">SPEICHERN</button>
+            
             <button id="btn-menu-toggle" class="header-btn border-[#39ff14] w-10 h-10 flex items-center justify-center p-1 hover:bg-[#39ff14] hover:text-black transition-colors" title="Menü">
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" class="w-6 h-6"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
             </button>
@@ -170,7 +155,6 @@
             <div id="bar-exp-mobile" class="h-full bg-yellow-500 transition-all duration-300 shadow-[0_0_5px_#fbbf24]" style="width: 0%"></div>
         </div>
     </header>
-
 
         <div id="main-content">
             <div id="main-panel">
@@ -198,11 +182,11 @@
         const bootLines = [
             "ROBCO INDUSTRIES UNIFIED OPERATING SYSTEM",
             "COPYRIGHT 2075-2077 ROBCO INDUSTRIES",
-            "SERVER: ONLINE",
-            `LOADING SYSTEM VERSION ${ver || 'DETECTING...'}...`,
-            "MEMORY: 64KB OK",
-            "BIO-METRICS: NOT FOUND",
-            "INITIALIZING PIP-BOY 3003 INTERFACE..."
+            "- SERVER: ONLINE",
+            `- LOADING SYSTEM VERSION ${ver || 'DETECTING...'}...`,
+            "- MEMORY: 64KB OK",
+            "- BIO-METRICS: NOT FOUND",
+            "- INITIALIZING PIP-BOY 3003 INTERFACE..."
         ];
         const log = document.getElementById('boot-log');
         const bootSeq = document.getElementById('boot-sequence');
