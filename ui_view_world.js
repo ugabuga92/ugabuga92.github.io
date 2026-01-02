@@ -1,5 +1,5 @@
 // [v2.2] - Modularized World Views (Map, Camp, Radio)
-// [v2.9.1] - Vault Icon Update (Bigger & Label)
+// [v2.9.4] - Vault Icon Shrink (Back to normal size)
 Object.assign(UI, {
 
     renderWorldMap: function() {
@@ -79,8 +79,8 @@ Object.assign(UI, {
                     else if(fixedPOI.type === 'V') { 
                         icon = "⚙️"; 
                         color = "#ffff00"; 
-                        fontSize = "40px"; // [MOD] Größer
-                        label = "VAULT 101"; // [MOD] Label
+                        fontSize = "25px"; // [MOD] Wieder kleiner (war 40px)
+                        label = "VAULT 101"; 
                     }
                     else if(fixedPOI.type === 'M') { icon = "🏰"; color = "#ff5555"; }
                     else if(fixedPOI.type === 'R') { icon = "☠️"; color = "#ffaa00"; }
@@ -94,7 +94,7 @@ Object.assign(UI, {
                         ctx.fillText(icon, cx, cy);
                         ctx.shadowBlur = 0;
                         
-                        // [MOD] Draw Label
+                        // Label zeichnen
                         if(label) {
                             ctx.font = "bold 10px monospace";
                             ctx.fillStyle = "#ffffff";
