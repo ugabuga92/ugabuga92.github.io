@@ -1,12 +1,3 @@
-[v2.9.10] - 2026-01-02 23:50pm (Critical Crash Fix)
-- UI CORE: Fix der Element-Zuweisung. 'this.els.log' sucht nun robust nach 'game-log' ODER 'log-area'.
-- UI INPUT: Sicherheitsabfrage hinzugefügt, um Absturz bei fehlendem Log-Element zu verhindern.
-
-[v2.9.9] - 2026-01-02 21:10pm (UI Clean Up)
-- HTML: Weltkugel-Button oben rechts entfernt.
-- HTML: Sektor-Anzeige (Mitte) ist nun ein klickbarer Button (führt zur Map).
-- UI CORE: Sektor-Anzeige zeigt nun ein Icon (🗺️) und unterscheidet zwischen "WELTKARTE" und "SEKTOR [x,y]".
-
 [v2.9.8] - 2026-01-02 20:50pm (Visual Fix)
 - RENDER: Vault-Tile (V) auf der Spielkarte pulsiert nicht mehr (statische Deckkraft).
 
