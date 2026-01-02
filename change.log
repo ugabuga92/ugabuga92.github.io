@@ -1,22 +1,8 @@
-[v2.8b] - 2026-01-01 18:00pm (Bugfix Menu & UI)
-- Fix: Menü ließ sich nicht öffnen, da das <nav> Element im HTML fehlte. Element wiederhergestellt.
-- Fix: UI.toggleNav() Funktion in ui_core.js ergänzt.
-- UI: Menü-Button ist nun strikt quadratisch (w-10 h-10 aspect-square) und hat keine abgerundeten Ecken (rounded-none).
-- UI: 'onclick' Handler explizit zum Menü-Button hinzugefügt für zuverlässige Funktion.
-
-[v2.8] - 2026-01-01 17:45pm (Sector & Header Update)
-- Sektor-Anzeige aus dem Header entfernt und als Overlay mittig auf die Karte (Map View) verschoben.
-- Header-Layout komplett getrennt für Mobile vs. Desktop.
-- Mobile: HP-Leiste direkt neben dem Namen positioniert, Level darunter für kompaktere Ansicht.
-- Desktop: Klassische Ansicht mit voller Info-Dichte (Name, Level, KK, Mun, HP, XP).
-- ui_render_core.js: Update-Logik erweitert, um Desktop- und Mobile-Elemente (Doppelung im DOM) synchron zu halten.
-
-[v2.7] - 2026-01-01 17:30pm (Mobile UI & Header Overhaul)
-- Responsive Header Design (Konzept A) implementiert
-- Desktop: Volle Info-Dichte (Name, Lvl, KK, Mun, HP-Balken, XP-Balken)
-- Mobile: Reduzierte Ansicht (Fokus auf HP), XP-Leiste als feine Linie am unteren Bildschirmrand
-- Burger-Menü Button (SVG Icon) integriert
-- Status-Leisten Logik in ui_render_core.js für mobile Endgeräte angepasst
+[v2.9] - 2026-01-02 17:35pm(Equipment Overhaul)
+- CORE: Neue Ausrüstungs-Slots hinzugefügt: Kopf, Arme, Beine, Füße.
+- ITEMS: Neue Items (Helme, Hosen, Stiefel, Armschienen) in die Datenbank eingepflegt.
+- ACTIONS: 'unequip' und 'equip' Logik generalisiert, damit alle neuen Slots funktionieren.
+- UI: Charakter-Screen (renderChar) komplett überarbeitet – erstellt die Slot-Liste jetzt dynamisch (keine HTML-Änderung nötig).
 
 [v2.3] - 2026-01-01 16:20pm (Inventory UI Update)
 - Visuelle Slot-Anzeige (Belegt / Max) im Inventar hinzugefügt
