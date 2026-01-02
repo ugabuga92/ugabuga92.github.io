@@ -1,4 +1,5 @@
 // [v0.9.15] - 2025-12-31 15:15pm (Crash Fix) - Added safety check for invalid map rows in draw loop to prevent undefined property access.
+// [v2.9.1] - Map Tile Update (Vault Gear)
 // Canvas Rendering Logic
 Object.assign(Game, {
     renderStaticMap: function() { 
@@ -56,7 +57,6 @@ Object.assign(Game, {
                         continue; 
                     }
 
-                    // [v0.9.15] FIX: Safety check for row existence
                     if(!this.state.currentMap[y]) continue; 
 
                     const t = this.state.currentMap[y][x]; 
@@ -64,7 +64,7 @@ Object.assign(Game, {
                         this.drawTile(ctx, x, y, t, pulse); 
                     } 
                     
-                    // --- HIDDEN ITEM SHIMMER (NEU) ---
+                    // --- HIDDEN ITEM SHIMMER ---
                     if(this.state.hiddenItems && this.state.hiddenItems[`${x},${y}`]) {
                         const shimmer = (Math.sin(Date.now() / 200) + 1) / 2;
                         ctx.globalAlpha = 0.3 + (shimmer * 0.5);
@@ -123,7 +123,6 @@ Object.assign(Game, {
         const ts = this.TILE; const px = x * ts; const py = y * ts; 
         let bg = this.colors['.']; if(['_', ',', ';', '=', 'W', 'M', '~', '|', 'B'].includes(type)) bg = this.colors[type]; 
         
-        // [v0.9.14] FIX: Stairs and Chests (X) no longer get grid stroke
         if (!['^','v','<','>'].includes(type) && type !== '#') { ctx.fillStyle = bg; ctx.fillRect(px, py, ts, ts); } 
         if(!['^','v','<','>','M','W','~','X'].includes(type) && type !== '#') { ctx.strokeStyle = "rgba(40, 90, 40, 0.05)"; ctx.lineWidth = 1; ctx.strokeRect(px, py, ts, ts); } 
         
@@ -151,7 +150,31 @@ Object.assign(Game, {
             case '~': ctx.strokeStyle = "#556b2f"; ctx.lineWidth = 2; ctx.moveTo(px+5, py+15); ctx.lineTo(px+15, py+10); ctx.lineTo(px+25, py+15); ctx.stroke(); break;
             case '=': ctx.strokeStyle = "#5d4037"; ctx.lineWidth = 2; ctx.moveTo(px, py+5); ctx.lineTo(px+ts, py+5); ctx.moveTo(px, py+25); ctx.lineTo(px+ts, py+25); ctx.stroke(); break;
             case 'U': ctx.fillStyle = "#000"; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI, true); ctx.fill(); break;
-            case 'V': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['V']; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "#000"; ctx.font="bold 12px monospace"; ctx.fillText("101", px+5, py+20); break; 
+            
+            // [MOD] START VAULT TILE FIX
+            case 'V': 
+                ctx.globalAlpha = pulse; 
+                ctx.fillStyle = "#444"; 
+                ctx.beginPath();
+                ctx.arc(px+ts/2, py+ts/2, ts/2 - 1, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = this.colors['V']; 
+                ctx.beginPath();
+                ctx.arc(px+ts/2, py+ts/2, ts/2 - 4, 0, Math.PI*2); 
+                ctx.fill();
+                ctx.strokeStyle = "#000"; 
+                ctx.lineWidth = 2; 
+                ctx.stroke(); 
+                ctx.fillStyle = "#000"; 
+                ctx.font="bold 13px monospace"; 
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("101", px+ts/2, py+ts/2); 
+                ctx.textAlign = "start";
+                ctx.textBaseline = "alphabetic";
+                break; 
+            // [MOD] END VAULT TILE FIX
+
             case 'C': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['C']; ctx.fillRect(px+6, py+14, 18, 12); ctx.beginPath(); ctx.moveTo(px+4, py+14); ctx.lineTo(px+15, py+4); ctx.lineTo(px+26, py+14); ctx.fill(); break; 
             case 'S': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['S']; ctx.arc(px+ts/2, py+12, 6, 0, Math.PI*2); ctx.fill(); ctx.fillRect(px+10, py+18, 10, 6); break; 
             case 'H': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['H']; ctx.arc(px+ts/2, py+ts/2, ts/2.5, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(px+ts/2, py+ts/2, ts/4, 0, Math.PI*2); ctx.fill(); break; 
