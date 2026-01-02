@@ -1,4 +1,4 @@
-// [v2.2] - 2026-01-01 13:30pm(Inventory & Backpack Update) - Slot-System implementiert - Rucksäcke hinzugefügt - Munition als echtes Item mit Stacks
+// [v2.9] - 2026-01-02 17:35pm (Equipment Overhaul) - Support for Head, Legs, Feet, Arms
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     WORLD_W: 10, WORLD_H: 10, 
@@ -10,7 +10,7 @@ window.Game = {
     perkDefs: (typeof window.GameData !== 'undefined') ? window.GameData.perks : [],
     questDefs: (typeof window.GameData !== 'undefined') ? window.GameData.questDefs : [],
 
-    // [v2.0] Radio Data - Now with Synth Properties
+    // [v2.0] Radio Data
     radioStations: [
         {
             name: "GALAXY NEWS",
@@ -48,7 +48,7 @@ window.Game = {
         }
     ],
 
-    // [v2.0] NEW AUDIO SYSTEM
+    // [v2.0] Audio System
     Audio: {
         ctx: null, masterGain: null, noiseNode: null, noiseGain: null, osc: null, oscGain: null, analyser: null, dataArray: null,
 
@@ -157,7 +157,6 @@ window.Game = {
         }
     },
 
-    // [v2.2] Inventory Helper Functions
     getMaxSlots: function() {
         if(!this.state) return 10;
         let slots = 10; // Basis
@@ -197,7 +196,6 @@ window.Game = {
         this.worldData = {};
         this.initCache();
 
-        // [v2.2] Inject Backpacks & Ammo Item into Game Items if missing
         if(this.items) {
             this.items.backpack_small = { name: "Leder-Ranzen", type: "back", cost: 150, slot: "back", props: { slots: 5 }, icon: "🎒" };
             this.items.backpack_medium = { name: "Reiserucksack", type: "back", cost: 400, slot: "back", props: { slots: 10 }, icon: "🎒" };
@@ -224,15 +222,17 @@ window.Game = {
                 if(!this.state.perks) this.state.perks = [];
                 if(!this.state.shop) this.state.shop = { nextRestock: 0, stock: {} };
                 
-                // [v2.2] Ensure Back Slot exists
+                // [v2.9] Ensure New Slots exist in savegame
                 if(!this.state.equip.back) this.state.equip.back = null;
+                if(!this.state.equip.head) this.state.equip.head = null;
+                if(!this.state.equip.legs) this.state.equip.legs = null;
+                if(!this.state.equip.feet) this.state.equip.feet = null;
+                if(!this.state.equip.arms) this.state.equip.arms = null;
 
                 this.state.saveSlot = slotIndex;
                 this.checkNewQuests();
                 
-                // [v2.2] Convert old ammo number to item if needed (One Time Migration)
                 if(this.state.ammo > 0 && !this.state.inventory.some(i => i.id === 'ammo')) {
-                   // Add ammo as items (ignoring capacity for migration)
                    let ammoLeft = this.state.ammo;
                    while(ammoLeft > 0) {
                        const chunk = Math.min(100, ammoLeft);
@@ -252,7 +252,16 @@ window.Game = {
                     worldPOIs: defaultPOIs,
                     player: {x: 20, y: 20, rot: 0},
                     stats: { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 }, 
-                    equip: { weapon: this.items.fists, body: this.items.vault_suit, back: null }, // Added back
+                    // [v2.9] Expanded Equipment
+                    equip: { 
+                        weapon: this.items.fists, 
+                        body: this.items.vault_suit, 
+                        back: null,
+                        head: null,
+                        legs: null,
+                        feet: null,
+                        arms: null
+                    }, 
                     inventory: [], 
                     hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 0, statPoints: 0, 
                     perkPoints: 0, perks: [], 
@@ -272,9 +281,8 @@ window.Game = {
                     startTime: Date.now()
                 };
                 
-                // Start Items via new method
                 this.addToInventory('stimpack', 1);
-                this.addToInventory('ammo', 10); // Start Ammo
+                this.addToInventory('ammo', 10); 
 
                 this.state.hp = this.calculateMaxHP(this.getStat('END')); 
                 this.state.maxHp = this.state.hp;
@@ -312,13 +320,17 @@ window.Game = {
     getStat: function(key) {
         if(!this.state) return 5;
         let val = this.state.stats[key] || 5;
-        if(this.state.equip.body && this.state.equip.body.bonus && this.state.equip.body.bonus[key]) 
-            val += this.state.equip.body.bonus[key];
-        const wpn = this.state.equip.weapon;
-        if(wpn) {
-            if(wpn.bonus && wpn.bonus[key]) val += wpn.bonus[key];
-            if(wpn.props && wpn.props.bonus && wpn.props.bonus[key]) val += wpn.props.bonus[key];
-        }
+        
+        // [v2.9] Iterate over ALL equipment slots for stats
+        const slots = ['weapon', 'body', 'head', 'legs', 'feet', 'arms', 'back'];
+        slots.forEach(slot => {
+            const item = this.state.equip[slot];
+            if(item) {
+                if(item.bonus && item.bonus[key]) val += item.bonus[key];
+                if(item.props && item.props.bonus && item.props.bonus[key]) val += item.props.bonus[key];
+            }
+        });
+
         return val;
     },
 
@@ -424,16 +436,22 @@ window.Game = {
             const weapons = Object.keys(this.items).filter(k => this.items[k].type === 'weapon' && !k.includes('legendary') && !k.startsWith('rusty'));
             const armor = Object.keys(this.items).filter(k => this.items[k].type === 'body');
             
+            // [v2.9] Add new slots to shop pool
+            const heads = Object.keys(this.items).filter(k => this.items[k].type === 'head');
+            const legs = Object.keys(this.items).filter(k => this.items[k].type === 'legs');
+            const feet = Object.keys(this.items).filter(k => this.items[k].type === 'feet');
+            
             for(let i=0; i<3; i++) {
                 const w = weapons[Math.floor(Math.random() * weapons.length)];
                 if(w) stock[w] = 1;
             }
-            for(let i=0; i<2; i++) {
-                const a = armor[Math.floor(Math.random() * armor.length)];
+            // Mix of armor types
+            const allArmor = [...armor, ...heads, ...legs, ...feet];
+            for(let i=0; i<3; i++) {
+                const a = allArmor[Math.floor(Math.random() * allArmor.length)];
                 if(a) stock[a] = 1;
             }
             
-            // Random Backpacks (NEW)
             if(Math.random() < 0.3) stock['backpack_small'] = 1;
             if(Math.random() < 0.1) stock['backpack_medium'] = 1;
 
@@ -441,7 +459,7 @@ window.Game = {
             stock['camp_kit'] = 1;
 
             this.state.shop.stock = stock;
-            this.state.shop.nextRestock = now + (15 * 60 * 1000); // 15 Min
+            this.state.shop.nextRestock = now + (15 * 60 * 1000); 
             UI.log("INFO: Der Händler hat neue Ware erhalten.", "text-green-500 italic");
         }
     },
