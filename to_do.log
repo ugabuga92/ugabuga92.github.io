@@ -1,7 +1,8 @@
 🐛 Aktuelle Bugs & Anpassungen:
 
-- Anfangsvault (symbol und schrift) zu klein auf der Karte, muss größer und. schöner werden 
-- Fleisch von Tieren muss stackbar sein bis 10 stück, mach es sinnvoll für alles was gedroppt wird.
+Trefferanzeige für Kämpfe, es ist nicht ersichtlich ob man trifft, verfehlt, schaden bekommt oder sonst was. Weder beim Kampf noch biem Flüchten.
+- Erfüllte Quests sollen auf dem Bildschirm kurz eingeblendet werden, also aus dem Log raus. als kleines Feld für ein paar sekunden eingeblendet werden, oben unter dem Sektor auf der Spielekarte, dann wieder Verschwinden. 
+Kein Bounce effekt oder sonst was. Geld als Schriftfarbe is super, größe passt auch so wie im Log. Log bleibt dann in dem Fall leer von quest beenden nachrichten.
 
 
 Ideen für die Zukunft (Roadmap)
