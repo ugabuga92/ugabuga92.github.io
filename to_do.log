@@ -1,6 +1,13 @@
 🐛 Aktuelle Bugs & Anpassungen:
+- Nukleares Material nicht stapelbar?
+- Inventar zu klein, bzw Dropprate zu hoch. Lass uns besser die Droprate bisschen Ruterschrauben, nicht jedes Tier ist verwertbar für Zeug. unter
+- name leuchtet ja beim Level up, lass das LVL direkt daneben mit leuchten. Beides soll anklickbar sein und einen in das "Charakter bzw Perk menü bringen" Menü bringen, je nachdem für was noch Punkte da sind. Standart, sofern beides Punkte hat zum verteilen sind die Stats.
+- Items müssen beim Händler verkauft werden können und verschrottet / weggeworfen werden können. Verkaufen beim Händler nur gegen begrenzte Kapazität an Kronkorken
+- UI Header überabeiten. Speicherbutton komplett entfernen. Menü Schrift ersetzen durch Burger Menü zeichen. LVL direkt unter den Namen. XP anzeige kompletter Balken von links nach rechts über Spielfeld & Log (also komplette breite ausnutzten)
+Kronkorken & Mun direkt untereinander. Den freien Bereich rechts davon bis zum Menü Button wird als HP Anzeige benutzt, komplett volle höhe und Breite Dynamisch für jedes Gerät.
+Bei Fragen, frag!
 
-- Weltkugel auf Hauptbildschirm mit in die Sektoranzeige integrieren. Somit wird die Sektoranzeige der "hyperlink" zur Weltkarte.
+
 - Trefferanzeige für Kämpfe, es ist nicht ersichtlich ob man trifft, verfehlt, schaden bekommt oder sonst was. Weder beim Kampf noch biem Flüchten.
 - Erfüllte Quests sollen auf dem Bildschirm kurz eingeblendet werden, also aus dem Log raus. als kleines Feld für ein paar sekunden eingeblendet werden, oben unter dem Sektor auf der Spielekarte, dann wieder Verschwinden. 
 Kein Bounce effekt oder sonst was. Geld als Schriftfarbe is super, größe passt auch so wie im Log. Log bleibt dann in dem Fall leer von quest beenden nachrichten.
