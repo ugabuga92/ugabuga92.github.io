@@ -1,3 +1,7 @@
+[v2.9.4] - 2026-01-02 19:15pm (Visual Swap Update)
+- WORLDMAP: Vault-Icon verkleinert (von 40px auf 25px), damit es nicht mehr so dominant ist.
+- RENDER: Lokales Vault-Tile komplett geändert. Es nutzt jetzt das "⚙️" Emoji (groß) und den Schriftzug "VAULT 101", genau wie vorher die Weltkarte.
+
 [v2.9.3] - 2026-01-02 18:55pm (Render Crash Fix)
 - RENDER: Sicherheitsabfrage 'if(!this.state.currentMap) return;' zur draw() Funktion hinzugefügt.
 - RENDER: Verhindert Absturz, wenn Netzwerk-Events feuern, bevor die Map geladen ist.
