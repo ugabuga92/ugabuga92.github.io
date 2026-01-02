@@ -1,3 +1,8 @@
+[v3.0] - 2026-01-03 00:15am (UI & Map Link) 
+- UI: Sektoranzeige im Hauptbildschirm (Map View) integriert nun die Weltkugel (🌍).
+- UI: Text "WELTKARTE" entfernt; der Button zeigt nun immer den aktuellen Sektor "SEKTOR [X,Y]" an.
+- UX: Sektoranzeige fungiert weiterhin als direkter Link zur Weltkarte.
+
 [v2.9.8] - 2026-01-02 20:50pm (Visual Fix)
 - RENDER: Vault-Tile (V) auf der Spielkarte pulsiert nicht mehr (statische Deckkraft).
 
