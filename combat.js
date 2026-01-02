@@ -1,4 +1,7 @@
-// [v0.9.13] - Combat with Quest Trigger & Selection Fix
+// [v3.0] - 2026-01-03 00:30am (Combat Visual Feedback)
+// - Added 'triggerFeedback' for visual damage numbers and effects.
+// - Integrated feedback into attack, enemyTurn and flee.
+
 window.Combat = {
     loopId: null,
     turn: 'player', 
@@ -38,7 +41,6 @@ window.Combat = {
         this.renderLogs();
     },
 
-    // [v0.9.13] Added moveSelection to fix crash
     moveSelection: function(dir) {
         if (typeof this.selectedPart === 'undefined') this.selectedPart = 1;
         this.selectedPart += dir;
@@ -60,6 +62,49 @@ window.Combat = {
                 }
             }
         }
+    },
+
+    // [v3.0] VISUAL FEEDBACK SYSTEM
+    triggerFeedback: function(type, value) {
+        const layer = document.getElementById('combat-feedback-layer');
+        if(!layer) return;
+
+        const el = document.createElement('div');
+        el.className = "float-text absolute font-bold text-4xl pointer-events-none z-50 text-shadow-black";
+        
+        // Random slight offset for "natural" feel
+        const offset = Math.floor(Math.random() * 40) - 20;
+        el.style.transform = `translateX(${offset}px)`;
+
+        if(type === 'hit') {
+            el.innerHTML = `-${value}`;
+            el.className += " text-yellow-400"; // Enemy takes dmg
+        } else if(type === 'crit') {
+            el.innerHTML = `CRIT! -${value}`;
+            el.className += " text-red-500 text-6xl blink-red"; // Big Crit
+        } else if(type === 'miss') {
+            el.innerHTML = "MISS";
+            el.className += " text-gray-500 text-2xl";
+        } else if(type === 'damage') {
+            el.innerHTML = `-${value}`;
+            el.className += " text-red-600"; // Player takes dmg
+            
+            // Screen Flash Red
+            const flash = document.getElementById('damage-flash');
+            if(flash) {
+                flash.classList.remove('hidden');
+                flash.style.opacity = 0.5;
+                setTimeout(() => { flash.style.opacity = 0; flash.classList.add('hidden'); }, 300);
+            }
+        } else if(type === 'dodge') {
+            el.innerHTML = "AUSGEWICHEN";
+            el.className += " text-blue-400 text-2xl";
+        }
+
+        layer.appendChild(el);
+
+        // Remove element after animation
+        setTimeout(() => { el.remove(); }, 1000);
     },
 
     // ACTIONS
@@ -90,13 +135,15 @@ window.Combat = {
 
             enemy.hp -= dmg;
             this.log(`Du triffst ${this.getBodyPartName(partIndex)} für ${dmg} Schaden! ${isCrit?'CRIT!':''}`, 'text-green-400 font-bold');
-            
+            this.triggerFeedback(isCrit ? 'crit' : 'hit', dmg);
+
             if(enemy.hp <= 0) {
                 this.win();
                 return;
             }
         } else {
             this.log("Du hast verfehlt!", 'text-gray-500');
+            this.triggerFeedback('miss');
         }
 
         this.turn = 'enemy';
@@ -121,6 +168,7 @@ window.Combat = {
         if(roll < 0.8) { // 80% Hit Chance for Enemy
             Game.state.hp -= dmg;
             this.log(`${enemy.name} trifft dich für ${dmg} Schaden!`, 'text-red-500');
+            this.triggerFeedback('damage', dmg);
             
             if(Game.state.hp <= 0) {
                 Game.state.isGameOver = true;
@@ -129,6 +177,7 @@ window.Combat = {
             }
         } else {
             this.log(`${enemy.name} verfehlt dich!`, 'text-blue-300');
+            this.triggerFeedback('dodge');
         }
 
         this.turn = 'player';
@@ -158,7 +207,7 @@ window.Combat = {
             });
         }
 
-        // [v0.9.12] QUEST TRIGGER (Generic Mapping)
+        // QUEST TRIGGER
         let mobId = null;
         if(Game.monsters) {
             for(let k in Game.monsters) {
@@ -185,12 +234,14 @@ window.Combat = {
     flee: function() {
         if(Math.random() < 0.5) {
             this.log("Flucht gelungen!", 'text-green-400');
+            this.triggerFeedback('dodge'); // Visual feedback for success
             setTimeout(() => {
                 Game.state.enemy = null;
                 UI.switchView('map');
             }, 800);
         } else {
             this.log("Flucht fehlgeschlagen!", 'text-red-500');
+            // Fail triggers enemy turn -> visual feedback for damage there
             this.turn = 'enemy';
             setTimeout(() => this.enemyTurn(), 800);
         }
@@ -212,8 +263,6 @@ window.Combat = {
         let dmg = wpn.baseDmg;
         if(wpn.props && wpn.props.dmgMult) dmg *= wpn.props.dmgMult;
         
-        // Strength Bonus for Melee (simple check: if no ammo cost/type logic yet, assume melee for fists/knife)
-        // For now: Just add STR/2
         dmg += (Game.getStat('STR') * 0.5);
         
         return Math.floor(dmg);
