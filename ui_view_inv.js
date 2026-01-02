@@ -1,4 +1,4 @@
-// [v2.3] - 2026-01-01 16:20pm (UI Update) - Added Slot Counter (Used/Max) - Removed duplicate Ammo display - Added Backpack Slot to Char View
+// [v2.9] - 2026-01-02 17:35pm (UI Update) - Dynamic Equipment List Rendering for New Slots
 Object.assign(UI, {
 
     renderInventory: function() {
@@ -11,7 +11,6 @@ Object.assign(UI, {
         list.innerHTML = '';
         capsDisplay.textContent = Game.state.caps;
         
-        // --- NEU: Slot Anzeige statt reiner Item-Zahl ---
         const usedSlots = Game.getUsedSlots();
         const maxSlots = Game.getMaxSlots();
         
@@ -24,12 +23,16 @@ Object.assign(UI, {
             }
         }
         
-        // Icons Mapping
+        // Icons Mapping - Added new types
         const getIcon = (type) => {
             switch(type) {
                 case 'weapon': return '🔫';
                 case 'body': return '🛡️';
-                case 'back': return '🎒'; // Icon für Rucksäcke
+                case 'head': return '🪖';
+                case 'legs': return '👖';
+                case 'feet': return '🥾';
+                case 'arms': return '🦾';
+                case 'back': return '🎒'; 
                 case 'consumable': return '💉';
                 case 'junk': return '⚙️';
                 case 'ammo': return '🧨';
@@ -42,14 +45,12 @@ Object.assign(UI, {
         // Render Grid
         Game.state.inventory.forEach((entry, index) => {
             if(entry.count <= 0) return;
-            
             const item = Game.items[entry.id];
             if(!item) return;
 
             const btn = document.createElement('div');
             btn.className = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center cursor-pointer hover:bg-green-500 hover:text-black transition-colors group";
             
-            // New Item Glow
             if(entry.isNew) {
                 btn.style.boxShadow = "0 0 20px rgba(57, 255, 20, 1.0)"; 
                 btn.style.zIndex = "10";
@@ -80,15 +81,13 @@ Object.assign(UI, {
                 <div class="absolute top-0 right-0 bg-green-900 text-white text-[10px] px-1 font-mono">${entry.count}</div>
             `;
             
-            // Overlay: Equipped
             let isEquipped = false;
             let label = "AUSGERÜSTET";
             
-            // Check Weapons/Armor/Backpack
-            if(Game.state.equip.weapon && Game.state.equip.weapon.name === displayName) isEquipped = true;
-            if(Game.state.equip.body && Game.state.equip.body.name === displayName) isEquipped = true;
-            if(Game.state.equip.back && Game.state.equip.back.name === displayName) isEquipped = true;
-            
+            // Check all slots
+            for(let key in Game.state.equip) {
+                if(Game.state.equip[key] && Game.state.equip[key].name === displayName) isEquipped = true;
+            }
             if(entry.id === 'camp_kit' && Game.state.camp) { isEquipped = true; label = "AUFGESTELLT"; }
 
             if(isEquipped) {
@@ -111,7 +110,7 @@ Object.assign(UI, {
         const perksContainer = document.getElementById('perk-container');
         if(!grid) return; 
 
-        // Update Header Info
+        // 1. Header Info (Level, EXP)
         const lvlDisplay = document.getElementById('char-lvl');
         if(lvlDisplay) lvlDisplay.textContent = Game.state.lvl;
 
@@ -126,7 +125,7 @@ Object.assign(UI, {
         if(elNext) elNext.textContent = nextXp;
         if(elBar) elBar.style.width = `${expPct}%`;
 
-        // Points
+        // Points Display
         const pts = Game.state.statPoints || 0;
         const ptsEl = document.getElementById('char-points');
         if(ptsEl) {
@@ -134,116 +133,108 @@ Object.assign(UI, {
             else ptsEl.textContent = pts;
         }
         
-        // Equipment Info & Unequip Logic
-        const wpn = Game.state.equip.weapon || {name: "Fäuste", baseDmg: 2};
-        const arm = Game.state.equip.body || {name: "Vault-Anzug", bonus: {END: 1}};
-        const back = Game.state.equip.back || {name: "Kein Rucksack", props: {slots: 0}};
+        // 2. [NEW] Dynamic Equipment Rendering
+        // Wir suchen den Container wo bisher die Stats waren und bauen ihn neu auf.
+        // Das ist robuster als einzelne IDs zu suchen.
+        const charView = document.getElementById('view-char');
+        let equipContainer = document.getElementById('dynamic-equip-list');
         
-        const elWpnName = document.getElementById('equip-weapon-name');
-        const elWpnStats = document.getElementById('equip-weapon-stats');
-        const elArmName = document.getElementById('equip-body-name');
-        const elArmStats = document.getElementById('equip-body-stats');
-        
-        // --- NEU: Rucksack Slot im Char Screen ---
-        // (Falls du das HTML nicht anpasst, nutzen wir hier eine generische Injection oder gehen davon aus, dass du es noch einbaust.
-        // Um sicherzugehen, hänge ich den Rucksack Info-Block dynamisch an, falls er im HTML fehlt)
-        
-        let elBackContainer = document.getElementById('equip-back-container');
-        if(!elBackContainer) {
-            // Create container dynamically if missing in HTML
-            const parent = elArmName ? elArmName.parentElement.parentElement : null; // Try to find parent stats container
-            if(parent) {
-                elBackContainer = document.createElement('div');
-                elBackContainer.id = 'equip-back-container';
-                elBackContainer.className = "mb-2 border-b border-green-900/30 pb-2";
-                elBackContainer.innerHTML = `
-                    <div class="text-xs text-green-500 mb-1">RUCKSACK</div>
+        if(!equipContainer) {
+            // Find existing static container and replace/hide it or create new one
+            // We'll search for 'equip-weapon-name' parent parent to find the box
+            const oldRef = document.getElementById('equip-weapon-name');
+            if(oldRef) {
+                const oldContainer = oldRef.parentElement.parentElement.parentElement; // box -> div -> name
+                oldContainer.innerHTML = '<div id="dynamic-equip-list" class="flex flex-col gap-2"></div>';
+                equipContainer = document.getElementById('dynamic-equip-list');
+            }
+        }
+
+        if(equipContainer) {
+            equipContainer.innerHTML = ''; // Clear old list
+            
+            const slotConfig = [
+                { key: 'weapon', label: 'WAFFE', icon: '🔫' },
+                { key: 'head', label: 'KOPF', icon: '🪖' },
+                { key: 'body', label: 'KÖRPER', icon: '🛡️' },
+                { key: 'arms', label: 'ARME', icon: '🦾' },
+                { key: 'legs', label: 'BEINE', icon: '👖' },
+                { key: 'feet', label: 'FÜSSE', icon: '🥾' },
+                { key: 'back', label: 'RUCKSACK', icon: '🎒' }
+            ];
+
+            slotConfig.forEach(slot => {
+                const item = Game.state.equip[slot.key];
+                const isEmpty = !item || (slot.key === 'back' && !item.props) || (slot.key !== 'back' && (!item.name || item.name === 'Fäuste' || item.name === 'Vault-Anzug' || item.name === 'Kein Rucksack'));
+                
+                // Determine Name & Stats
+                let name = "---";
+                let statsText = "";
+                let canUnequip = false;
+
+                if(item) {
+                    name = item.props ? item.props.name : item.name;
+                    
+                    // Stats String Building
+                    if(slot.key === 'weapon') {
+                        let dmg = item.baseDmg || 0;
+                        if(item.props && item.props.dmgMult) dmg = Math.floor(dmg * item.props.dmgMult);
+                        statsText = `DMG: ${dmg}`;
+                    } else if (slot.key === 'back') {
+                        if(item.props && item.props.slots) statsText = `+${item.props.slots} Slots`;
+                    } else {
+                        // Armor
+                        let bonus = item.bonus || (item.props ? item.props.bonus : {});
+                        if(bonus) {
+                             statsText = Object.entries(bonus).map(([k,v]) => `${k}:${v}`).join(' ');
+                        }
+                    }
+                    
+                    // Check if default item (cannot unequip defaults)
+                    if(item.name !== 'Fäuste' && item.name !== 'Vault-Anzug' && item.name !== 'Kein Rucksack') {
+                        canUnequip = true;
+                    }
+                }
+
+                if(isEmpty) {
+                    // Show empty slot placeholder
+                    if(slot.key === 'weapon') name = "Fäuste (2 DMG)";
+                    if(slot.key === 'body') name = "Vault-Anzug";
+                }
+
+                const div = document.createElement('div');
+                div.className = "border-b border-green-900/30 pb-1 mb-1";
+                div.innerHTML = `
+                    <div class="text-[10px] text-green-600 font-mono tracking-widest mb-0.5 flex items-center gap-1">
+                        <span>${slot.icon}</span> ${slot.label}
+                    </div>
                     <div class="flex justify-between items-center">
-                        <span id="equip-back-name" class="font-bold text-yellow-400">...</span>
-                        <span id="equip-back-stats" class="text-xs font-mono"></span>
+                        <div class="font-bold ${item && item.props && item.props.color ? item.props.color : 'text-yellow-400'} text-sm">${name}</div>
+                        <div class="text-xs font-mono text-green-400 text-right">${statsText}</div>
                     </div>
                 `;
-                parent.appendChild(elBackContainer);
-            }
+                
+                if(canUnequip) {
+                    const btn = document.createElement('button');
+                    btn.innerHTML = "×";
+                    btn.className = "absolute right-0 top-0 text-red-500 hover:text-white px-2 font-bold";
+                    btn.style.position = "relative"; // Fix positioning
+                    btn.style.marginLeft = "10px";
+                    btn.onclick = (e) => { e.stopPropagation(); Game.unequipItem(slot.key); };
+                    div.querySelector('.flex').appendChild(btn);
+                }
+
+                equipContainer.appendChild(div);
+            });
         }
 
-        const elBackName = document.getElementById('equip-back-name');
-        const elBackStats = document.getElementById('equip-back-stats');
-
-        // Render Weapon
-        if(elWpnName) {
-            elWpnName.textContent = wpn.props ? wpn.props.name : wpn.name;
-            const existingBtn = document.getElementById('btn-unequip-weapon');
-            if(existingBtn) existingBtn.remove();
-            
-            if(wpn.name !== "Fäuste") {
-                const btn = document.createElement('button');
-                btn.id = 'btn-unequip-weapon';
-                btn.innerHTML = "&#10006;";
-                btn.title = "Waffe ablegen";
-                btn.className = "ml-2 text-red-500 hover:text-white font-bold bg-black border border-red-900 px-1 rounded text-xs";
-                btn.onclick = (e) => { e.stopPropagation(); Game.unequipItem('weapon'); };
-                elWpnName.appendChild(btn);
-            }
-        }
-        if(elWpnStats) {
-            let dmg = wpn.baseDmg;
-            if(wpn.props && wpn.props.dmgMult) dmg = Math.floor(dmg * wpn.props.dmgMult);
-            let wpnStats = `DMG: ${dmg}`;
-            if(wpn.bonus) { for(let s in wpn.bonus) wpnStats += ` ${s}:${wpn.bonus[s]}`; }
-            elWpnStats.textContent = wpnStats;
-        }
-
-        // Render Armor
-        if(elArmName) {
-            elArmName.textContent = arm.props ? arm.props.name : arm.name;
-            const existingBtn = document.getElementById('btn-unequip-body');
-            if(existingBtn) existingBtn.remove();
-            
-            if(arm.name !== "Vault-Anzug") {
-                const btn = document.createElement('button');
-                btn.id = 'btn-unequip-body';
-                btn.innerHTML = "&#10006;";
-                btn.title = "Rüstung ablegen";
-                btn.className = "ml-2 text-red-500 hover:text-white font-bold bg-black border border-red-900 px-1 rounded text-xs";
-                btn.onclick = (e) => { e.stopPropagation(); Game.unequipItem('body'); };
-                elArmName.appendChild(btn);
-            }
-        }
-        if(elArmStats) {
-            let armStats = "";
-            if(arm.bonus) { for(let s in arm.bonus) armStats += `${s}:${arm.bonus[s]} `; }
-            elArmStats.textContent = armStats || "Kein Bonus";
-        }
-
-        // Render Backpack
-        if(elBackName) {
-            elBackName.textContent = back.name;
-            const existingBtn = document.getElementById('btn-unequip-back');
-            if(existingBtn) existingBtn.remove();
-            
-            if(back.name !== "Kein Rucksack") {
-                const btn = document.createElement('button');
-                btn.id = 'btn-unequip-back';
-                btn.innerHTML = "&#10006;";
-                btn.title = "Rucksack ablegen";
-                btn.className = "ml-2 text-red-500 hover:text-white font-bold bg-black border border-red-900 px-1 rounded text-xs";
-                btn.onclick = (e) => { e.stopPropagation(); Game.unequipItem('back'); };
-                elBackName.appendChild(btn);
-            }
-        }
-        if(elBackStats) {
-            elBackStats.textContent = back.props && back.props.slots ? `+${back.props.slots} SLOTS` : "";
-        }
-        
-        // Perks Button
+        // Perks & Tabs
         const perkPoints = Game.state.perkPoints || 0;
         const perkBtn = document.getElementById('btn-show-perks');
         if(perkBtn) {
              perkBtn.innerHTML = `PERKS ${perkPoints > 0 ? `<span class="bg-yellow-400 text-black px-1 ml-1 text-xs animate-pulse">${perkPoints}</span>` : ''}`;
         }
         
-        // Tab Switch Logic
         const btnStats = document.getElementById('btn-show-stats');
         if(btnStats && perkBtn) {
              if(mode === 'stats') {
