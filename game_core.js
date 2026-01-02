@@ -1,4 +1,7 @@
-// [v2.9.5] - 2026-01-02 19:45pm (Performance Update) - Debounced Saving Logic
+// [v3.0] - 2026-01-03 01:00am (Quest Overlay Update)
+// - Entfernt: Text-Logs für abgeschlossene Quests.
+// - Neu: Aufruf von UI.showQuestComplete für HUD-Benachrichtigung.
+
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     WORLD_W: 10, WORLD_H: 10, 
@@ -445,12 +448,14 @@ window.Game = {
         const q = this.state.activeQuests[index];
         const def = this.questDefs.find(d => d.id === q.id);
         if(def) {
-            UI.log(`QUEST ERFÜLLT: ${def.title}!`, "text-yellow-400 font-bold animate-bounce text-lg");
+            // [v3.0] REMOVED LOGS, ADDED HUD CALL
+            // UI.log(`QUEST ERFÜLLT: ${def.title}!`, "text-yellow-400 font-bold animate-bounce text-lg");
+            
             if(def.reward) {
                 if(def.reward.xp) this.gainExp(def.reward.xp);
                 if(def.reward.caps) {
                     this.state.caps += def.reward.caps;
-                    UI.log(`Belohnung: ${def.reward.caps} Kronkorken`, "text-yellow-200");
+                    // UI.log(`Belohnung: ${def.reward.caps} Kronkorken`, "text-yellow-200");
                 }
                 if(def.reward.items) {
                     def.reward.items.forEach(item => {
@@ -459,6 +464,11 @@ window.Game = {
                 }
             }
             this.state.completedQuests.push(q.id);
+            
+            // Trigger HUD Overlay
+            if(typeof UI !== 'undefined' && UI.showQuestComplete) {
+                UI.showQuestComplete(def);
+            }
         }
         this.state.activeQuests.splice(index, 1);
         this.saveGame(true); // Force Save on Quest Complete
@@ -514,7 +524,7 @@ window.Game = {
         if(!itemDef || itemDef.type !== 'weapon') return { id: baseId, count: 1 };
         const roll = Math.random();
         let prefixKey = null;
-        if(roll < 0.3) prefixKey = 'rusty';      
+        if(roll < 0.3) prefixKey = 'rusty';       
         else if(roll < 0.45) prefixKey = 'precise'; 
         else if(roll < 0.55) prefixKey = 'hardened';
         else if(roll < 0.58) prefixKey = 'radiated';
