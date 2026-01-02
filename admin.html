@@ -10,95 +10,123 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
     <style>
-        body { background-color: #050505; color: #39ff14; font-family: 'Courier New', monospace; }
-        .scanline { background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2)); background-size: 100% 4px; position: fixed; inset: 0; pointer-events: none; z-index: 10; }
-        input, select { background: #001100; border: 1px solid #39ff14; color: #39ff14; padding: 5px; }
-        input:focus { outline: none; background: #002200; }
-        .btn { border: 1px solid #39ff14; padding: 5px 15px; cursor: pointer; text-transform: uppercase; font-weight: bold; }
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        body { font-family: 'VT323', monospace; background-color: #050a05; color: #39ff14; }
+        .crt::before {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2; background-size: 100% 2px, 3px 100%; pointer-events: none;
+        }
+        .btn { border: 1px solid #39ff14; padding: 5px 15px; background: rgba(0, 50, 0, 0.5); cursor: pointer; transition: all 0.2s; text-transform: uppercase; font-weight: bold; }
         .btn:hover { background: #39ff14; color: black; }
-        .btn-red { border-color: red; color: red; }
-        .btn-red:hover { background: red; color: black; }
+        .btn-red { border-color: #ff3333; color: #ff3333; }
+        .btn-red:hover { background: #ff3333; color: black; }
+        input, select { background: #000; border: 1px solid #39ff14; color: #39ff14; padding: 5px; width: 100%; font-family: 'VT323', monospace; font-size: 1.2rem; }
+        input:focus { outline: none; border-color: #fff; }
     </style>
 </head>
-<body class="p-4">
-    <div class="scanline"></div>
+<body class="crt h-screen w-screen overflow-hidden flex flex-col">
 
-    <div id="login-overlay" class="fixed inset-0 bg-black flex flex-col items-center justify-center z-50">
-        <h1 class="text-4xl mb-4 font-bold border-b-2 border-[#39ff14]">ADMIN ACCESS</h1>
-        <input type="password" id="admin-pass" placeholder="PASSWORD" class="text-center text-xl mb-4 w-64" onkeydown="if(event.key==='Enter') Admin.login()">
-        <button class="btn" onclick="Admin.login()">AUTHENTICATE</button>
-        <div id="login-msg" class="text-red-500 mt-2"></div>
+    <div id="login-overlay" class="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center p-4">
+        <div class="border-2 border-green-500 p-8 max-w-md w-full shadow-[0_0_20px_green] bg-black">
+            <h1 class="text-4xl font-bold text-center mb-6 animate-pulse">VAULT-TEC ADMIN</h1>
+            <div class="space-y-4">
+                <input type="email" id="admin-email" placeholder="ADMIN ID (EMAIL)">
+                <input type="password" id="admin-pass" placeholder="PASSWORD">
+                <button onclick="Admin.login()" class="btn w-full text-xl py-2">ACCESS TERMINAL</button>
+            </div>
+            <div id="login-msg" class="text-red-500 mt-4 text-center h-6"></div>
+            
+            <div class="mt-8 text-center border-t border-green-900 pt-4">
+                <a href="index.html" class="text-green-700 hover:text-green-400 text-sm hover:underline decoration-green-500">
+                    &lt;&lt; ZURÜCK ZUM SPIEL (INDEX.HTML)
+                </a>
+            </div>
+        </div>
     </div>
 
-    <div id="dashboard" class="hidden max-w-6xl mx-auto">
-        <header class="flex justify-between items-center mb-6 border-b border-[#39ff14] pb-2">
-            <h1 class="text-2xl font-bold">VAULT-TEC OVERSEER TERMINAL</h1>
-            <button class="btn btn-red" onclick="Admin.logout()">LOGOUT</button>
+    <div id="admin-panel" class="hidden flex-col h-full p-4 max-w-6xl mx-auto w-full">
+        <header class="flex justify-between items-end border-b-2 border-green-500 pb-2 mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-yellow-400">OVERSEER DASHBOARD v2.9</h1>
+                <div class="text-sm text-green-600">CONNECTED: <span id="db-status" class="text-green-400">ONLINE</span></div>
+            </div>
+            
+            <div class="flex gap-4">
+                <button onclick="window.location.href='index.html'" class="btn text-sm">ZUM SPIEL</button>
+                <button onclick="Admin.logout()" class="btn btn-red text-sm">LOGOUT</button>
+            </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="md:col-span-1 border border-[#39ff14] p-2 h-[80vh] overflow-y-auto">
-                <h2 class="font-bold mb-2 bg-[#002200] p-1">BEWOHNER (ACCOUNTS)</h2>
-                <div id="user-list" class="flex flex-col gap-2 text-sm">LOADING...</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-grow overflow-hidden">
+            <div class="border border-green-900 flex flex-col bg-green-900/10">
+                <div class="bg-green-900 text-black px-2 py-1 font-bold flex justify-between">
+                    <span>BEWOHNER</span>
+                    <button onclick="Admin.fetchUsers()" class="text-xs hover:text-white">↻</button>
+                </div>
+                <div id="user-list" class="overflow-y-auto flex-grow p-2 space-y-1 text-sm custom-scrollbar">
+                    </div>
             </div>
 
-            <div class="md:col-span-2 border border-[#39ff14] p-4 h-[80vh] overflow-y-auto relative">
-                <div id="editor-area" class="hidden">
-                    <h2 class="text-xl font-bold mb-4 text-yellow-400" id="edit-title">EDIT MODE</h2>
-                    
-                    <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="col-span-2 border border-green-900 flex flex-col bg-green-900/10 relative">
+                <div class="bg-green-900 text-black px-2 py-1 font-bold">EDITOR</div>
+                
+                <div id="editor-area" class="p-4 overflow-y-auto flex-grow hidden">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label class="block text-xs text-green-700">NAME</label>
-                            <input type="text" id="inp-name" class="w-full">
+                            <label class="text-xs text-gray-500">Name</label>
+                            <input id="inp-name" type="text">
                         </div>
                         <div>
-                            <label class="block text-xs text-green-700">LEVEL</label>
-                            <input type="number" id="inp-lvl" class="w-full">
+                            <label class="text-xs text-gray-500">Level</label>
+                            <input id="inp-lvl" type="number">
                         </div>
                         <div>
-                            <label class="block text-xs text-green-700">XP</label>
-                            <input type="number" id="inp-xp" class="w-full">
+                            <label class="text-xs text-gray-500">Kronkorken</label>
+                            <input id="inp-caps" type="number">
                         </div>
                         <div>
-                            <label class="block text-xs text-green-700">KRONKORKEN (CAPS)</label>
-                            <input type="number" id="inp-caps" class="w-full">
+                            <label class="text-xs text-gray-500">XP</label>
+                            <input id="inp-xp" type="number">
                         </div>
                         <div>
-                            <label class="block text-xs text-green-700">HP (AKTUELL)</label>
-                            <input type="number" id="inp-hp" class="w-full">
+                            <label class="text-xs text-gray-500">HP (Aktuell)</label>
+                            <input id="inp-hp" type="number">
                         </div>
                         <div>
-                            <label class="block text-xs text-green-700">MAX HP</label>
-                            <input type="number" id="inp-maxhp" class="w-full">
+                            <label class="text-xs text-gray-500">Max HP</label>
+                            <input id="inp-maxhp" type="number">
                         </div>
                         <div>
-                            <label class="block text-xs text-green-700">MUNITION</label>
-                            <input type="number" id="inp-ammo" class="w-full">
+                            <label class="text-xs text-gray-500">Munition</label>
+                            <input id="inp-ammo" type="number">
                         </div>
                         <div>
-                            <label class="block text-xs text-green-700">STRAHLUNG (RADS)</label>
-                            <input type="number" id="inp-rads" class="w-full">
+                            <label class="text-xs text-gray-500">Strahlung</label>
+                            <input id="inp-rads" type="number">
                         </div>
                     </div>
 
-                    <h3 class="font-bold border-b border-gray-700 mb-2 mt-4">ITEM HINZUFÜGEN</h3>
-                    <div class="flex gap-2 mb-6">
-                        <select id="item-select" class="flex-grow">
+                    <div class="mb-4">
+                        <label class="text-xs text-gray-500 mb-1 block">Inventar Item Hinzufügen</label>
+                        <div class="flex gap-2">
+                            <select id="item-select" class="flex-grow">
+                                <option value="">- Item wählen -</option>
                             </select>
-                        <input type="number" id="item-count" value="1" class="w-16 text-center">
-                        <button class="btn" onclick="Admin.addItem()">+ GIVE</button>
+                            <input id="item-count" type="number" value="1" class="w-20">
+                            <button onclick="Admin.addItem()" class="btn">+</button>
+                        </div>
                     </div>
 
-                    <h3 class="font-bold border-b border-gray-700 mb-2">INVENTAR (READ ONLY)</h3>
-                    <div id="inv-preview" class="text-xs font-mono text-gray-400 mb-6 max-h-32 overflow-y-auto"></div>
-
-                    <div class="flex gap-4 mt-8 border-t border-[#39ff14] pt-4">
-                        <button class="btn bg-green-900 w-1/2" onclick="Admin.saveChanges()">ÄNDERUNGEN SPEICHERN</button>
-                        <button class="btn btn-red w-1/2" onclick="Admin.deleteSave()">SAVE LÖSCHEN ⚠️</button>
+                    <div class="flex justify-between mt-8 pt-4 border-t border-green-900">
+                        <button onclick="Admin.deleteSave()" class="btn btn-red">SPIELSTAND LÖSCHEN</button>
+                        <button onclick="Admin.saveChanges()" class="btn">ÄNDERUNGEN SPEICHERN</button>
                     </div>
                 </div>
-                <div id="editor-placeholder" class="flex items-center justify-center h-full text-gray-500 animate-pulse">
+
+                <div id="editor-placeholder" class="absolute inset-0 flex items-center justify-center text-green-900 font-bold text-2xl pointer-events-none select-none animate-pulse">
                     &lt; WÄHLE EINEN BEWOHNER AUS &gt;
                 </div>
             </div>
@@ -120,12 +148,14 @@
                 </div>
             </div>
         </div>
-
-
-        
     </div>
 
-    <script src="data_items.js"></script> 
+    <script src="data_items.js"></script>
     <script src="admin.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            Admin.init();
+        });
+    </script>
 </body>
 </html>
