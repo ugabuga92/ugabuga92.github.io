@@ -1,4 +1,4 @@
-// [v2.9.10] - 2026-01-02 23:50pm (Critical Fix) - Robust DOM Mapping
+// [v0.9.7] - Fix: Loading Loop & Syntax Check
 const UI = {
     els: {},
     timerInterval: null,
@@ -20,21 +20,11 @@ const UI = {
 
     // Utils
     log: function(msg, color="text-green-500") {
-        // Fallback log if element missing
-        if(!this.els.log) {
-            console.log(`[LOG] ${msg}`);
-            return;
-        }
-        
+        if(!this.els.log) return;
         const line = document.createElement('div');
         line.className = color;
         line.textContent = `> ${msg}`;
         this.els.log.prepend(line);
-        
-        // Cleanup old logs
-        if(this.els.log.children.length > 50) {
-            this.els.log.lastElementChild.remove();
-        }
     },
 
     error: function(msg) {
@@ -52,150 +42,278 @@ const UI = {
         const v = this.els.version;
         if(!v) return;
         if(status === 'online') {
-            v.className = "text-[#39ff14] text-shadow";
-            v.textContent = "ONLINE";
+            v.className = "text-[#39ff14] font-bold tracking-widest";
+            v.style.textShadow = "0 0 5px #39ff14";
+        } else if (status === 'offline') {
+            v.className = "text-red-500 font-bold tracking-widest";
+            v.style.textShadow = "0 0 5px red";
         } else {
-            v.className = "text-red-500 blink-red";
-            v.textContent = "OFFLINE";
+            v.className = "text-yellow-400 font-bold tracking-widest animate-pulse";
         }
     },
 
-    // INIT
+    updateTimer: function() {
+        if(Game.state && this.els.gameScreen && !this.els.gameScreen.classList.contains('hidden')) {
+            if(Date.now() - this.lastInputTime > 300000) {
+                this.logout("AFK: ZEITÜBERSCHREITUNG");
+                return;
+            }
+        }
+        if(!Game.state || !Game.state.startTime) return;
+        const diff = Math.floor((Date.now() - Game.state.startTime) / 1000);
+        const h = Math.floor(diff / 3600).toString().padStart(2,'0');
+        const m = Math.floor((diff % 3600) / 60).toString().padStart(2,'0');
+        const s = (diff % 60).toString().padStart(2,'0');
+        if(this.els.timer) this.els.timer.textContent = `${h}:${m}:${s}`;
+        
+        // Dynamic Updates (HP, XP, Combat State) from ui_render.js
+        if(this.update) this.update();
+    },
+
+    // Initialization
     init: function() {
-        console.log("UI Core Initializing...");
-        
-        // 1. Map Elements (Robust Check)
-        this.els.view = document.getElementById('view-container');
-        
-        // [FIX] Priority mapping for Log: Try 'game-log' (Overlay) first, then 'log-area' (Panel)
-        this.els.log = document.getElementById('game-log') || document.getElementById('log-area');
-        
-        this.els.loginScreen = document.getElementById('login-screen');
-        this.els.gameScreen = document.getElementById('game-screen');
-        
-        this.els.loginEmail = document.getElementById('login-email');
-        this.els.loginPass = document.getElementById('login-pass');
-        this.els.loginName = document.getElementById('login-name');
-        this.els.btnLogin = document.getElementById('btn-login');
-        this.els.btnToggleRegister = document.getElementById('btn-toggle-register');
-        this.els.loginStatus = document.getElementById('login-status');
-        this.els.loginTitle = document.getElementById('login-title');
-        this.els.inputName = document.getElementById('login-name'); // Alias
-        
-        this.els.charSelectScreen = document.getElementById('char-select-screen');
-        this.els.charSlotsList = document.getElementById('char-slots-list');
-        this.els.newCharOverlay = document.getElementById('new-char-overlay');
-        this.els.inputNewCharName = document.getElementById('new-char-name');
-        this.els.btnCreateChar = document.getElementById('btn-create-char');
-        this.els.btnCharSelectAction = document.getElementById('btn-char-select-action');
-        this.els.btnCharDeleteAction = document.getElementById('btn-char-delete-action');
-        this.els.btnCharBack = document.getElementById('btn-char-back');
-        
-        this.els.deleteOverlay = document.getElementById('delete-confirm-overlay');
-        this.els.deleteTargetName = document.getElementById('delete-target-name');
-        this.els.deleteInput = document.getElementById('delete-input');
-        this.els.btnDeleteConfirm = document.getElementById('btn-delete-confirm');
-        this.els.btnDeleteCancel = document.getElementById('btn-delete-cancel');
-        
-        this.els.spawnScreen = document.getElementById('spawn-screen');
-        this.els.spawnList = document.getElementById('spawn-list');
-        this.els.btnSpawnRandom = document.getElementById('btn-spawn-random');
-        this.els.gameOver = document.getElementById('game-over-screen');
-        
-        this.els.playerList = document.getElementById('player-list-overlay');
-        this.els.playerListContent = document.getElementById('player-list-content');
-        
-        this.els.navMenu = document.getElementById('main-nav');
-        this.els.btnMenu = document.getElementById('btn-menu'); // Mobile Menu Btn
-        
-        // HUD Elements
-        this.els.name = document.getElementById('val-name');
-        this.els.lvl = document.getElementById('val-lvl') || document.getElementById('char-lvl'); // Support both IDs
-        this.els.hp = document.getElementById('val-hp') || document.getElementById('val-hp-text');
-        this.els.hpBar = document.getElementById('bar-hp');
-        this.els.xpTxt = document.getElementById('val-xp-txt');
-        this.els.expBarTop = document.getElementById('bar-exp-top');
-        this.els.expBarMobile = document.getElementById('bar-exp-mobile');
-        this.els.caps = document.getElementById('val-caps');
-        this.els.ammo = document.getElementById('val-ammo');
-        
-        // Buttons
-        this.els.btnWiki = document.getElementById('btn-wiki');
-        this.els.btnMap = document.getElementById('btn-map');
-        this.els.btnChar = document.getElementById('btn-char');
-        this.els.btnInv = document.getElementById('btn-inv');
-        this.els.btnQuests = document.getElementById('btn-quests');
-        this.els.btnSave = document.getElementById('btn-save');
-        this.els.btnLogout = document.getElementById('btn-logout');
-        
-        // 2. Initialize Sub-Modules
-        if(this.initInput) this.initInput();
-        if(typeof Network !== 'undefined' && Network.init) Network.init();
-        
-        // 3. Start Timer
-        this.timerInterval = setInterval(() => {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString();
-            const el = document.getElementById('game-timer');
-            if(el) el.textContent = timeStr;
-        }, 1000);
+        // Map DOM Elements
+        this.els = {
+            touchArea: document.getElementById('main-content'),
+            view: document.getElementById('view-container'),
+            log: document.getElementById('log-area'),
+            hp: document.getElementById('val-hp'),
+            hpBar: document.getElementById('bar-hp'),
+            expBarTop: document.getElementById('bar-exp-top'),
+            lvl: document.getElementById('val-lvl'),
+            xpTxt: document.getElementById('val-xp-txt'),
+            caps: document.getElementById('val-caps'),
+            name: document.getElementById('val-name'),
+            version: document.getElementById('version-display'),
+            joyBase: null, joyStick: null,
+            dialog: document.getElementById('dialog-overlay'),
+            timer: document.getElementById('game-timer'),
+            
+            btnNew: document.getElementById('btn-new'),
+            btnInv: document.getElementById('btn-inv'),
+            btnWiki: document.getElementById('btn-wiki'),
+            btnMap: document.getElementById('btn-map'),
+            btnChar: document.getElementById('btn-char'),
+            btnQuests: document.getElementById('btn-quests'),
+            btnRadio: document.getElementById('btn-radio'),
+            
+            btnSave: document.getElementById('btn-save'),
+            btnMenuSave: document.getElementById('btn-menu-save'),
+            btnLogout: document.getElementById('btn-logout'),
+            btnReset: document.getElementById('btn-reset'),
+            btnMenu: document.getElementById('btn-menu-toggle'),
+            navMenu: document.getElementById('main-nav'),
+            playerCount: document.getElementById('val-players'),
+            playerList: document.getElementById('player-list-overlay'),
+            playerListContent: document.getElementById('player-list-content'),
+            
+            loginScreen: document.getElementById('login-screen'),
+            loginStatus: document.getElementById('login-status'),
+            inputEmail: document.getElementById('login-email'),
+            inputPass: document.getElementById('login-pass'),
+            inputName: document.getElementById('login-name'),
+            btnLogin: document.getElementById('btn-login'),
+            btnToggleRegister: document.getElementById('btn-toggle-register'),
+            loginTitle: document.getElementById('login-title'),
+            
+            charSelectScreen: document.getElementById('char-select-screen'),
+            charSlotsList: document.getElementById('char-slots-list'),
+            newCharOverlay: document.getElementById('new-char-overlay'),
+            inputNewCharName: document.getElementById('new-char-name'),
+            btnCreateCharConfirm: document.getElementById('btn-create-char'),
+            btnCharSelectAction: document.getElementById('btn-char-select-action'),
+            btnCharDeleteAction: document.getElementById('btn-char-delete-action'),
+            btnCharBack: document.getElementById('btn-char-back'),
+            
+            deleteOverlay: document.getElementById('delete-confirm-overlay'),
+            deleteTargetName: document.getElementById('delete-target-name'),
+            deleteInput: document.getElementById('delete-input'),
+            btnDeleteConfirm: document.getElementById('btn-delete-confirm'),
+            btnDeleteCancel: document.getElementById('btn-delete-cancel'),
 
-        console.log("UI Core Loaded.");
+            spawnScreen: document.getElementById('spawn-screen'),
+            spawnMsg: document.getElementById('spawn-msg'),
+            spawnList: document.getElementById('spawn-list'),
+            btnSpawnRandom: document.getElementById('btn-spawn-random'),
+            resetOverlay: document.getElementById('reset-overlay'),
+            btnConfirmReset: document.getElementById('btn-confirm-reset'),
+            btnCancelReset: document.getElementById('btn-cancel-reset'),
+            gameScreen: document.getElementById('game-screen'),
+            gameOver: document.getElementById('game-over-screen')
+        };
+        
+        if(this.els.btnInv) {
+             this.els.btnInv.addEventListener('click', () => this.resetInventoryAlert());
+        }
+
+        window.Game = Game;
+        window.UI = this;
+
+        if(this.initInput) this.initInput();
+        
+        if(this.timerInterval) clearInterval(this.timerInterval);
+        this.timerInterval = setInterval(() => this.updateTimer(), 1000);
+    },
+    
+    triggerInventoryAlert: function() {
+        if(this.els.btnInv) this.els.btnInv.classList.add('alert-glow-yellow');
+        if(this.els.btnMenu) this.els.btnMenu.classList.add('alert-glow-yellow');
     },
 
-    toggleNav: function() {
-        if(!this.els.navMenu) {
-            this.els.navMenu = document.getElementById('main-nav'); // Re-try fetch
-            if(!this.els.navMenu) return;
+    resetInventoryAlert: function() {
+        if(this.els.btnInv) this.els.btnInv.classList.remove('alert-glow-yellow');
+        if(this.els.btnMenu) this.els.btnMenu.classList.remove('alert-glow-yellow');
+    },
+
+    isMobile: function() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+    },
+
+    startGame: function(saveData, slotIndex, newName=null) {
+        this.charSelectMode = false;
+        this.els.charSelectScreen.style.display = 'none';
+        this.els.gameScreen.classList.remove('hidden');
+        this.els.gameScreen.classList.remove('opacity-0');
+        
+        Game.init(saveData, null, slotIndex, newName);
+        
+        if(this.isMobile()) {
+            this.showMobileControlsHint();
+        }
+        if(typeof Network !== 'undefined') Network.startPresence();
+    },
+
+    logout: function(msg) {
+        this.loginBusy = false;
+        this.selectedSlot = -1; // [v0.9.7] Reset selection on logout
+        if(typeof Network !== 'undefined') Network.disconnect();
+        if(Game.state) {
+            Game.saveGame();
+            Game.state = null;
         }
         
-        const isHidden = this.els.navMenu.classList.contains('hidden') || this.els.navMenu.style.display === 'none';
+        this.els.gameScreen.classList.add('hidden');
+        this.els.loginScreen.style.display = 'flex';
+        this.els.loginStatus.textContent = msg || "AUSGELOGGT";
+        this.els.loginStatus.className = "mt-4 text-yellow-400";
+        this.els.inputPass.value = "";
         
-        if (isHidden) {
-            this.els.navMenu.classList.remove('hidden');
-            this.els.navMenu.style.display = 'flex';
-            if(this.els.btnMenu) this.els.btnMenu.classList.add('border-yellow-400', 'text-yellow-400');
-        } else {
+        if(this.els.navMenu) this.els.navMenu.classList.add('hidden');
+        if(this.els.playerList) this.els.playerList.style.display = 'none';
+    },
+
+    attemptLogin: async function() {
+        if(this.loginBusy) return;
+        this.loginBusy = true;
+        const email = this.els.inputEmail.value.trim();
+        const pass = this.els.inputPass.value.trim();
+        const name = this.els.inputName ? this.els.inputName.value.trim().toUpperCase() : "";
+        
+        this.els.loginStatus.textContent = "VERBINDE MIT VAULT-TEC...";
+        this.els.loginStatus.className = "mt-4 text-yellow-400 animate-pulse";
+        
+        try {
+            if(typeof Network === 'undefined') throw new Error("Netzwerkfehler");
+            Network.init();
+            let saves = null;
+            if (this.isRegistering) {
+                if (email.length < 5 || pass.length < 6 || name.length < 3) throw new Error("Daten unvollständig (PW min 6, Name min 3)");
+                saves = await Network.register(email, pass, name);
+            } else {
+                if (email.length < 5 || pass.length < 1) throw new Error("Bitte E-Mail und Passwort eingeben");
+                saves = await Network.login(email, pass);
+            }
+            
+            this.selectedSlot = -1; // [v0.9.7] Reset selection BEFORE rendering list
+            if(this.renderCharacterSelection) this.renderCharacterSelection(saves || {});
+            
+        } catch(e) {
+            let msg = e.message;
+            if (e.code === "auth/email-already-in-use") msg = "E-Mail wird bereits verwendet!";
+            if (e.code === "auth/invalid-email") msg = "Ungültige E-Mail-Adresse!";
+            if (e.code === "auth/wrong-password") msg = "Falsches Passwort!";
+            if (e.code === "auth/user-not-found") msg = "Benutzer nicht gefunden!";
+            this.els.loginStatus.textContent = "FEHLER: " + msg;
+            this.els.loginStatus.className = "mt-4 text-red-500 font-bold blink-red";
+        } finally {
+            this.loginBusy = false;
+        }
+    },
+
+    handleSaveClick: function() {
+        Game.saveGame(true);
+        [this.els.btnSave, this.els.btnMenuSave].forEach(btn => {
+            if(!btn) return;
+            const originalText = btn.textContent;
+            const originalClass = btn.className;
+            btn.textContent = "SAVED!";
+            btn.className = "header-btn bg-[#39ff14] text-black border-[#39ff14] w-full text-left";
+            if(btn === this.els.btnSave) btn.className = "header-btn bg-[#39ff14] text-black border-[#39ff14] hidden md:flex";
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.className = originalClass;
+            }, 1000);
+        });
+    },
+
+    handleReset: function() {
+        if(this.els.navMenu) {
             this.els.navMenu.classList.add('hidden');
             this.els.navMenu.style.display = 'none';
-            if(this.els.btnMenu) this.els.btnMenu.classList.remove('border-yellow-400', 'text-yellow-400');
+        }
+        if(this.els.resetOverlay) this.els.resetOverlay.style.display = 'flex';
+    },
+    
+    confirmReset: function() { if(typeof Game !== 'undefined') Game.hardReset(); },
+    cancelReset: function() { if(this.els.resetOverlay) this.els.resetOverlay.style.display = 'none'; },
+
+    selectSpawn: function(mode) {
+        this.els.spawnScreen.style.display = 'none';
+        if(mode === 'random') {
+            this.startGame(null, this.selectedSlot, null);
         }
     },
-
-    showGameOver: function() {
-        if(this.els.gameOver) this.els.gameOver.classList.remove('hidden');
-    },
-
-    showPermadeathWarning: function() {
-        if(Game.state.lvl === 1 && Game.state.xp === 0) {
-            this.log("WARNUNG: PERMADEATH SYSTEM AKTIV.", "text-red-500 font-bold");
-            this.log("Wenn deine HP 0 erreichen, wird der Spielstand gelöscht.", "text-red-400");
-        }
-    },
-
+    
+    // [v0.9.7] Tap-to-Load Logic Fixed
     selectSlot: function(index) {
-        this.selectedSlot = index;
-        document.querySelectorAll('.char-slot').forEach(el => {
-            el.classList.remove('selected');
-            if(parseInt(el.dataset.index) === index) el.classList.add('selected');
-        });
+        // If clicking the ALREADY selected slot -> Load Game immediately
+        if(this.selectedSlot === index) {
+            this.triggerCharSlot();
+            return;
+        }
 
-        const save = this.currentSaves[index];
-        if (save) {
-            this.els.btnCharSelectAction.textContent = "SPIEL LADEN";
-            this.els.btnCharSelectAction.onclick = () => this.startGame(save, index);
-            this.els.btnCharSelectAction.className = "action-button w-full font-bold border-green-500 text-green-500 py-3";
-            
-            this.els.btnCharDeleteAction.disabled = false;
-            this.els.btnCharDeleteAction.classList.remove('opacity-50', 'cursor-not-allowed');
-            this.els.btnCharDeleteAction.onclick = () => this.triggerDeleteSlot();
-        } else {
-            this.els.btnCharSelectAction.textContent = "NEUEN CHARAKTER ERSTELLEN";
-            this.els.btnCharSelectAction.onclick = () => this.triggerCharSlot();
-            this.els.btnCharSelectAction.className = "action-button w-full font-bold border-yellow-400 text-yellow-400 py-3";
-            
-            this.els.btnCharDeleteAction.disabled = true;
-            this.els.btnCharDeleteAction.classList.add('opacity-50', 'cursor-not-allowed');
+        this.selectedSlot = index;
+        if(this.els.charSlotsList && this.els.charSlotsList.children) {
+            const slots = this.els.charSlotsList.children;
+            for(let i=0; i<slots.length; i++) {
+                slots[i].classList.remove('active-slot');
+            }
+            if(slots[index]) slots[index].classList.add('active-slot');
+        }
+        
+        const save = this.currentSaves ? this.currentSaves[index] : null;
+        if (this.els.btnCharSelectAction) {
+            if (save) {
+                // HIDE the load button (user wants to tap)
+                this.els.btnCharSelectAction.style.display = 'none';
+                
+                // Enable Delete for selected slot
+                if(this.els.btnCharDeleteAction) {
+                    this.els.btnCharDeleteAction.disabled = false;
+                    this.els.btnCharDeleteAction.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            } else {
+                // SHOW Create button for empty slots
+                this.els.btnCharSelectAction.style.display = 'block';
+                this.els.btnCharSelectAction.textContent = "CHARAKTER ERSTELLEN";
+                this.els.btnCharSelectAction.className = "action-button w-full border-yellow-400 text-yellow-400 font-bold py-3 mb-2";
+                
+                // Disable Delete for empty slot
+                if(this.els.btnCharDeleteAction) {
+                    this.els.btnCharDeleteAction.disabled = true;
+                    this.els.btnCharDeleteAction.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            }
         }
     },
 
@@ -232,19 +350,10 @@ const UI = {
         this.els.deleteInput.focus();
     },
 
-    startGame: function(saveData, slotIndex, newName=null) {
-        // Check Version Compatibility
-        const currentVer = document.getElementById('version-display') ? document.getElementById('version-display').textContent : "0.0.0";
-        // Optional: Reset if version mismatch logic here
-        
-        Game.init(saveData, null, slotIndex, newName);
-        
-        this.els.charSelectScreen.style.display = 'none';
-        this.els.gameScreen.classList.remove('hidden');
-        
-        // Fade In
-        requestAnimationFrame(() => {
-            this.els.gameScreen.style.opacity = 1;
-        });
+    closeDeleteOverlay: function() {
+        this.deleteMode = false;
+        this.els.deleteOverlay.style.display = 'none';
+        this.els.charSelectScreen.focus();
     }
 };
+console.log("UI Core Loaded.");
