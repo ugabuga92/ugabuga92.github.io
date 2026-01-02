@@ -1,5 +1,4 @@
-// [v2.2] - Modularized World Views (Map, Camp, Radio)
-// [v2.9.4] - Vault Icon Shrink (Back to normal size)
+// [v2.9.6] - Camp Layout fixed (Hardcoded Buttons for Reliability)
 Object.assign(UI, {
 
     renderWorldMap: function() {
@@ -79,7 +78,7 @@ Object.assign(UI, {
                     else if(fixedPOI.type === 'V') { 
                         icon = "⚙️"; 
                         color = "#ffff00"; 
-                        fontSize = "25px"; // [MOD] Wieder kleiner (war 40px)
+                        fontSize = "25px"; 
                         label = "VAULT 101"; 
                     }
                     else if(fixedPOI.type === 'M') { icon = "🏰"; color = "#ff5555"; }
@@ -94,7 +93,6 @@ Object.assign(UI, {
                         ctx.fillText(icon, cx, cy);
                         ctx.shadowBlur = 0;
                         
-                        // Label zeichnen
                         if(label) {
                             ctx.font = "bold 10px monospace";
                             ctx.fillStyle = "#ffffff";
@@ -195,57 +193,74 @@ Object.assign(UI, {
         }
     },
 
+    // [MOD] REWRITTEN CAMP RENDER
     renderCamp: function() {
         const camp = Game.state.camp;
         if(!camp) { this.switchView('map'); return; }
-
-        const lvlEl = document.getElementById('camp-lvl');
-        const statusEl = document.getElementById('camp-status');
-        const upgradeBtn = document.getElementById('btn-camp-upgrade');
-        const restBtn = document.getElementById('btn-camp-rest');
-        const cookBtn = document.getElementById('btn-camp-cook'); 
-
-        if(lvlEl) lvlEl.textContent = camp.level;
         
-        let statusText = "Basis-Schutz. Heilung 50%.";
-        let upgradeCost = "10x Schrott";
-        let canUpgrade = true;
-
-        if(camp.level === 2) {
-            statusText = "Komfortables Zelt. Heilung 100%.";
-            upgradeCost = "25x Schrott (MAX)";
-            canUpgrade = false; 
+        // Setup variables for button states
+        let statusText = "Basis-Zelt (Lvl 1). Heilung 50%.";
+        let upgradeText = "Lager verbessern";
+        let upgradeSub = "Kosten: 10x Schrott";
+        let upgradeDisabled = false;
+        
+        if(camp.level >= 2) {
+            statusText = "Komfort-Zelt (Lvl 2). Heilung 100%.";
+            upgradeText = "Lager maximiert";
+            upgradeSub = "Maximum erreicht";
+            upgradeDisabled = true;
         }
 
-        if(statusEl) statusEl.textContent = statusText;
-        
-        if(upgradeBtn) {
-            if(canUpgrade) {
-                upgradeBtn.innerHTML = `Lager verbessern <span class="text-xs block text-gray-400">Kosten: ${upgradeCost}</span>`;
-                upgradeBtn.disabled = false;
-                upgradeBtn.onclick = () => Game.upgradeCamp();
-            } else {
-                upgradeBtn.innerHTML = `Lager maximiert`;
-                upgradeBtn.disabled = true;
-                upgradeBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            }
-        }
+        // Build HTML directly for stability
+        this.els.view.innerHTML = `
+            <div class="flex flex-col h-full w-full max-w-lg mx-auto p-4 gap-4">
+                
+                <div class="border-b-2 border-green-500 pb-2 flex justify-between items-end">
+                    <h1 class="text-3xl font-bold text-yellow-400">⛺ LAGER</h1>
+                    <span class="text-green-500 font-mono">LEVEL ${camp.level}</span>
+                </div>
+                
+                <div class="bg-green-900/20 border border-green-900 p-4 text-center">
+                    <p class="text-green-300">${statusText}</p>
+                </div>
 
-        if(restBtn) restBtn.onclick = () => Game.restInCamp();
-        
-        if(!cookBtn) {
-            const actionsDiv = document.querySelector('#view-container .grid');
-            if(actionsDiv && !document.getElementById('btn-camp-cook')) {
-                const b = document.createElement('button');
-                b.id = 'btn-camp-cook';
-                b.className = "border border-yellow-500 p-4 hover:bg-yellow-900/30 flex flex-col items-center justify-center transition-all group";
-                b.innerHTML = `<span class="text-3xl mb-2 group-hover:scale-110 transition-transform">🍖</span><span class="font-bold text-yellow-400">KOCHEN</span><span class="text-xs text-yellow-600">Essen zubereiten</span>`;
-                b.onclick = () => UI.renderCampCooking();
-                actionsDiv.insertBefore(b, actionsDiv.lastElementChild);
-            }
-        } else {
-             cookBtn.onclick = () => UI.renderCampCooking();
-        }
+                <div class="grid grid-cols-2 gap-4 flex-grow">
+                    
+                    <button class="flex flex-col items-center justify-center border ${upgradeDisabled ? 'border-gray-700 text-gray-500 cursor-not-allowed' : 'border-yellow-500 text-yellow-400 hover:bg-yellow-900/30'} p-4 transition-all"
+                        onclick="Game.upgradeCamp()" ${upgradeDisabled ? 'disabled' : ''}>
+                        <span class="text-3xl mb-1">🔨</span>
+                        <span class="font-bold">${upgradeText}</span>
+                        <span class="text-xs opacity-70">${upgradeSub}</span>
+                    </button>
+
+                    <button class="flex flex-col items-center justify-center border border-blue-500 text-blue-400 hover:bg-blue-900/30 p-4 transition-all"
+                        onclick="Game.restInCamp()">
+                        <span class="text-3xl mb-1">💤</span>
+                        <span class="font-bold">SCHLAFEN</span>
+                        <span class="text-xs opacity-70">HP wiederherstellen</span>
+                    </button>
+
+                    <button class="flex flex-col items-center justify-center border border-orange-500 text-orange-400 hover:bg-orange-900/30 p-4 transition-all"
+                        onclick="UI.renderCampCooking()">
+                        <span class="text-3xl mb-1">🍖</span>
+                        <span class="font-bold">KOCHEN</span>
+                        <span class="text-xs opacity-70">Nahrung zubereiten</span>
+                    </button>
+
+                    <button class="flex flex-col items-center justify-center border border-red-500 text-red-400 hover:bg-red-900/30 p-4 transition-all"
+                        onclick="Game.packCamp()">
+                        <span class="text-3xl mb-1">🎒</span>
+                        <span class="font-bold">ABBAUEN</span>
+                        <span class="text-xs opacity-70">Lager einpacken</span>
+                    </button>
+                
+                </div>
+
+                <button onclick="UI.switchView('map')" class="mt-auto w-full py-4 border-t border-green-500 text-green-500 font-bold hover:bg-green-900/50">
+                    ZURÜCK ZUR KARTE
+                </button>
+            </div>
+        `;
     },
 
     renderCampCooking: function() {
@@ -256,7 +271,7 @@ Object.assign(UI, {
                     <span>🔥</span> LAGERFEUER
                 </h2>
                 <div id="cooking-list" class="flex-grow overflow-y-auto pr-2 custom-scrollbar"></div>
-                <button onclick="UI.switchView('camp')" class="mt-4 border border-yellow-500 text-yellow-500 py-3 font-bold hover:bg-yellow-900/40 uppercase tracking-widest">
+                <button onclick="UI.renderCamp()" class="mt-4 border border-yellow-500 text-yellow-500 py-3 font-bold hover:bg-yellow-900/40 uppercase tracking-widest">
                     << Zurück zum Zelt
                 </button>
             </div>
