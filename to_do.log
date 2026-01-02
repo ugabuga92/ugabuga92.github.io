@@ -1,15 +1,15 @@
 🐛 Aktuelle Bugs & Anpassungen:
 
-Trefferanzeige für Kämpfe, es ist nicht ersichtlich ob man trifft, verfehlt, schaden bekommt oder sonst was. Weder beim Kampf noch biem Flüchten.
+- Weltkugel auf Hauptbildschirm mit in die Sektoranzeige integrieren. Somit wird die Sektoranzeige der "hyperlink" zur Weltkarte.
+- Trefferanzeige für Kämpfe, es ist nicht ersichtlich ob man trifft, verfehlt, schaden bekommt oder sonst was. Weder beim Kampf noch biem Flüchten.
 - Erfüllte Quests sollen auf dem Bildschirm kurz eingeblendet werden, also aus dem Log raus. als kleines Feld für ein paar sekunden eingeblendet werden, oben unter dem Sektor auf der Spielekarte, dann wieder Verschwinden. 
 Kein Bounce effekt oder sonst was. Geld als Schriftfarbe is super, größe passt auch so wie im Log. Log bleibt dann in dem Fall leer von quest beenden nachrichten.
 
 
 Ideen für die Zukunft (Roadmap)
-1. mehr Ausrüstungs Variation  und mehr ausrüstungsplätze am Charakter. Arme, Hose, Schuhe, brustpanzer, helm etc. 
-2. Waffen Verbesserungen, Schalldämpfer, Fernrohr Zielen etc. 
-3. Radio-Stationen
-• Ein kleiner Tab "RADIO", der (lizenzfreie) Retro-Musik, speicherplatz ist vorhanden auf github. 
+1. Waffen Verbesserungen, Schalldämpfer, Fernrohr Zielen etc. 
+2. Radio-Stationen
+• lizenzfreie Retro-Musik, speicherplatz ist vorhanden auf github. 
 4. Item-Präfixe (Loot-Generierung)
 • Waffen nicht nur als "Pistole", sondern dynamisch generiert: "Rostige Pistole" (-Dmg), "Gehärtete Pistole" (+Dmg).
 
