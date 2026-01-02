@@ -1,10 +1,55 @@
-// [v0.9.14] - 2025-12-31 12:00pm (Visual Polish & Fixes)
-// ------------------------------------------------
-// - Visual: Dungeon Victory Banner bounce entfernt.
+// [v3.0] - 2026-01-03 01:00am (Quest Overlay Implementation)
+// - Neu: showQuestComplete für HUD Anzeige statt Logs.
 
 Object.assign(UI, {
     
-    // ... (showMapLegend, showHighscoreBoard, showShopConfirm, showItemConfirm, showDungeonWarning, showWastelandGamble, showDungeonLocked bleiben unverändert) ...
+    // [v3.0] NEW QUEST HUD
+    showQuestComplete: function(questDef) {
+        // Ensure container exists
+        let container = document.getElementById('hud-quest-overlay');
+        if(!container) {
+             const view = document.getElementById('game-screen'); 
+             if(!view) return;
+             container = document.createElement('div');
+             container.id = 'hud-quest-overlay';
+             // Positionierung: Oben mittig (Top 24 = ~96px, unter Header), z-index hoch
+             container.className = "absolute top-24 left-1/2 transform -translate-x-1/2 flex flex-col items-center pointer-events-none z-[60] w-full max-w-md";
+             view.appendChild(container);
+        }
+
+        const msg = document.createElement('div');
+        // Styling: Box ohne Bounce, Fade-In Animation
+        msg.className = "bg-black/90 border border-yellow-400 p-3 shadow-[0_0_15px_rgba(255,215,0,0.5)] mb-2 text-center transition-opacity duration-500 opacity-0 transform translate-y-2";
+        
+        let rewardHtml = '';
+        if(questDef.reward) {
+             // Gleiche Farben wie im alten Log
+             if(questDef.reward.xp) rewardHtml += `<div class="text-yellow-400 font-bold">+${questDef.reward.xp} XP</div>`;
+             if(questDef.reward.caps) rewardHtml += `<div class="text-yellow-200">+${questDef.reward.caps} Kronkorken</div>`;
+             if(questDef.reward.items) rewardHtml += `<div class="text-blue-300 text-xs">+ Items erhalten</div>`;
+        }
+
+        msg.innerHTML = `
+            <div class="text-yellow-400 font-bold tracking-widest text-sm border-b border-yellow-900/50 pb-1 mb-1">QUEST ERFÜLLT</div>
+            <div class="text-white font-bold mb-1">${questDef.title}</div>
+            ${rewardHtml}
+        `;
+
+        container.appendChild(msg);
+        
+        // Animate in
+        requestAnimationFrame(() => {
+            msg.classList.remove('opacity-0', 'translate-y-2');
+        });
+
+        // Remove after time (4s)
+        setTimeout(() => {
+            msg.classList.add('opacity-0');
+            setTimeout(() => msg.remove(), 500);
+        }, 4000);
+    },
+
+    // ... (Andere Funktionen unverändert) ...
 
     showMapLegend: function() {
         if(!this.els.dialog) this.restoreOverlay();
