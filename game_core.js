@@ -1,4 +1,4 @@
-// [v2.9.2] - 2026-01-02 18:05pm (Stacking Fix) - Meat & Components now stack up to 20
+// [v2.9.5] - 2026-01-02 19:45pm (Performance Update) - Debounced Saving Logic
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
     WORLD_W: 10, WORLD_H: 10, 
@@ -130,6 +130,10 @@ window.Game = {
     },
 
     state: null, worldData: {}, ctx: null, loopId: null, camera: { x: 0, y: 0 }, cacheCanvas: null, cacheCtx: null,
+    
+    // [PERFORMANCE] Save throttling
+    saveTimer: null,
+    isDirty: false,
 
     initCache: function() { 
         this.cacheCanvas = document.createElement('canvas'); 
@@ -157,12 +161,11 @@ window.Game = {
         }
     },
 
-    // [v2.2] Inventory Helper Functions
     getMaxSlots: function() {
         if(!this.state) return 10;
-        let slots = 10; // Basis
-        slots += Math.max(0, this.getStat('STR') - 5); // Stärke Bonus
-        const backpack = this.state.equip.back; // Rucksack Bonus
+        let slots = 10; 
+        slots += Math.max(0, this.getStat('STR') - 5); 
+        const backpack = this.state.equip.back; 
         if(backpack && backpack.props && backpack.props.slots) {
             slots += backpack.props.slots;
         }
@@ -180,8 +183,7 @@ window.Game = {
         const item = this.items[itemId];
         if(!item) return 1;
         
-        // [MOD] Stacking Logic Updated - Now includes components (Meat, etc.)
-        if(item.type === 'component') return 20; // Fleisch, Leder, Kleber, etc.
+        if(item.type === 'component') return 20; 
         if(item.type === 'consumable' || item.type === 'junk') return 20; 
         if(item.type === 'ammo') return 100;
         
@@ -200,6 +202,11 @@ window.Game = {
     init: function(saveData, spawnTarget=null, slotIndex=0, newName=null) {
         this.worldData = {};
         this.initCache();
+        
+        // [PERFORMANCE] Save on close
+        window.addEventListener('beforeunload', () => {
+            if(this.isDirty) this.saveGame(true);
+        });
 
         if(this.items) {
             this.items.backpack_small = { name: "Leder-Ranzen", type: "back", cost: 150, slot: "back", props: { slots: 5 }, icon: "🎒" };
@@ -226,7 +233,6 @@ window.Game = {
                 if(!this.state.perks) this.state.perks = [];
                 if(!this.state.shop) this.state.shop = { nextRestock: 0, stock: {} };
                 
-                // Ensure Slots exist
                 if(!this.state.equip.back) this.state.equip.back = null;
                 if(!this.state.equip.head) this.state.equip.head = null;
                 if(!this.state.equip.legs) this.state.equip.legs = null;
@@ -292,7 +298,7 @@ window.Game = {
                 
                 this.checkNewQuests(); 
                 UI.log(">> Neuer Charakter erstellt.", "text-green-400");
-                this.saveGame(); 
+                this.saveGame(true); // Force Save Initial
             }
 
             if (isNewGame) { this.loadSector(this.state.sector.x, this.state.sector.y); } 
@@ -307,9 +313,45 @@ window.Game = {
         }
     },
 
-    saveGame: function() {
-        if(typeof Network !== 'undefined') { Network.save(this.state); if(!this.state.isGameOver) Network.updateHighscore(this.state); }
-        try { localStorage.setItem('pipboy_save', JSON.stringify(this.state)); } catch(e){}
+    // [MOD] Performance Optimized Save Function
+    saveGame: function(force = false) {
+        // Mark as dirty (needs saving)
+        this.isDirty = true;
+
+        // If forced, save immediately and clear timer
+        if (force) {
+            this.performSave();
+            return;
+        }
+
+        // If a timer is already running, do nothing (wait for it)
+        if (this.saveTimer) return;
+
+        // Start new timer (Debounce for 2 seconds)
+        this.saveTimer = setTimeout(() => {
+            this.performSave();
+        }, 2000);
+    },
+
+    performSave: function() {
+        if(this.saveTimer) {
+            clearTimeout(this.saveTimer);
+            this.saveTimer = null;
+        }
+
+        if(!this.isDirty) return;
+
+        if(typeof Network !== 'undefined') { 
+            Network.save(this.state); 
+            if(!this.state.isGameOver) Network.updateHighscore(this.state); 
+        }
+        try { 
+            localStorage.setItem('pipboy_save', JSON.stringify(this.state)); 
+            // Optional: Small debug log to see when it saves
+            // console.log("Saved.");
+        } catch(e){}
+        
+        this.isDirty = false;
     },
 
     hardReset: function() { if(typeof Network !== 'undefined') Network.deleteSave(); this.state = null; location.reload(); },
@@ -354,7 +396,9 @@ window.Game = {
             this.state.hp = this.state.maxHp;
             UI.log(`LEVEL UP! Du bist jetzt Level ${this.state.lvl}`, "text-yellow-400 font-bold animate-pulse");
             this.checkNewQuests(); 
-            this.saveGame(); 
+            this.saveGame(true); // Force Save on Level Up
+        } else {
+            this.saveGame();
         }
     },
 
@@ -417,7 +461,7 @@ window.Game = {
             this.state.completedQuests.push(q.id);
         }
         this.state.activeQuests.splice(index, 1);
-        this.saveGame();
+        this.saveGame(true); // Force Save on Quest Complete
     },
     
     checkShopRestock: function() {
@@ -438,7 +482,6 @@ window.Game = {
             const weapons = Object.keys(this.items).filter(k => this.items[k].type === 'weapon' && !k.includes('legendary') && !k.startsWith('rusty'));
             const armor = Object.keys(this.items).filter(k => this.items[k].type === 'body');
             
-            // [v2.9] Add new slots to shop pool
             const heads = Object.keys(this.items).filter(k => this.items[k].type === 'head');
             const legs = Object.keys(this.items).filter(k => this.items[k].type === 'legs');
             const feet = Object.keys(this.items).filter(k => this.items[k].type === 'feet');
