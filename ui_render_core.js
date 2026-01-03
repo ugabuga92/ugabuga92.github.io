@@ -1,4 +1,4 @@
-// [v3.6] - 2026-01-03 (Camp UI & Logic)
+// [v3.6b] - 2026-01-03 (UI Routing Fix)
 Object.assign(UI, {
     
     // Updates HUD and Button States
@@ -230,6 +230,21 @@ Object.assign(UI, {
             Game.initCanvas();
             this.restoreOverlay();
             this.toggleControls(true);
+            this.updateButtonStates(name);
+            this.update();
+            return;
+        }
+
+        // [v3.6b] FIX: Handle CAMP via JS instead of fetching camp.html
+        if (name === 'camp') {
+            Game.state.view = name;
+            if(typeof this.renderCamp === 'function') {
+                this.renderCamp(); // Uses the new Layout from ui_view_world.js
+            } else {
+                this.els.view.innerHTML = '<div class="text-red-500 p-4">Render Error: UI.renderCamp missing.</div>';
+            }
+            this.restoreOverlay();
+            this.toggleControls(false);
             this.updateButtonStates(name);
             this.update();
             return;
