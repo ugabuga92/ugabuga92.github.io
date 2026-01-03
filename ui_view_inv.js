@@ -1,8 +1,6 @@
-// [v3.2.2] - 2026-01-03 03:30am (Inventory Logic Fix)
-// - Fix: Inventory now renders both Backpack Items AND Equipped Items (fetched from slots).
-// - UI: Equipped items appear at the bottom under a separator.
-// - UI: Clicking equipped items in inventory un-equips them.
-// - UI: Improved large X button in Char Menu.
+// [v3.2.3] - 2026-01-03 03:40am (Inventory Static Equip)
+// - Fix: Equipped items in inventory are now read-only (visual only).
+// - UI: Removed click actions & hover effects for equipped items list.
 
 Object.assign(UI, {
 
@@ -50,7 +48,18 @@ Object.assign(UI, {
         // --- BUTTON GENERATOR ---
         const createBtn = (itemDef, count, props, isNew, isEquipped, label, onClick) => {
             const btn = document.createElement('div');
-            btn.className = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center cursor-pointer hover:bg-green-500 hover:text-black transition-colors group";
+            
+            // Base Style
+            let cssClass = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center transition-colors group";
+            
+            // Interaction Style (Only if clickable)
+            if(onClick) {
+                cssClass += " cursor-pointer hover:bg-green-500 hover:text-black";
+            } else {
+                cssClass += " cursor-default opacity-80"; // Visual cue for "read-only"
+            }
+            
+            btn.className = cssClass;
             
             if(isNew && !isEquipped) {
                 btn.style.boxShadow = "0 0 20px rgba(57, 255, 20, 1.0)"; 
@@ -80,7 +89,10 @@ Object.assign(UI, {
                 btn.style.borderColor = "#39ff14"; 
             }
             
-            btn.onclick = onClick;
+            if(onClick) {
+                btn.onclick = onClick;
+            }
+            
             return btn;
         };
 
@@ -93,12 +105,11 @@ Object.assign(UI, {
             const item = Game.items[entry.id];
             if(!item) return;
 
-            // Special Case: Camp Kit (stays in inv but can be deployed)
+            // Special Case: Camp Kit (stays in inv but is deployed)
             if(entry.id === 'camp_kit' && Game.state.camp) {
-                 const btn = createBtn(item, entry.count, entry.props, false, true, "AUFGESTELLT", () => {
-                     if(confirm("Lager einpacken?")) Game.packCamp();
-                 });
-                 equippedList.push(btn); // Visually move to equipped
+                 // [v3.2.3] No Click Action for deployed camp in inventory
+                 const btn = createBtn(item, entry.count, entry.props, false, true, "AUFGESTELLT", null);
+                 equippedList.push(btn); 
                  return;
             }
 
@@ -124,24 +135,23 @@ Object.assign(UI, {
             // Ignore defaults/empty
             if(!equippedItem || equippedItem.name === 'Fäuste' || equippedItem.name === 'Vault-Anzug' || equippedItem.name === 'Kein Rucksack') return;
 
-            // Find base definition to get type/icon correctly
-            // equippedItem might be the object from inventory, so it has id
+            // Find base definition
             let baseDef = Game.items[equippedItem.id];
             if(!baseDef) {
-                // Fallback by name if ID missing (legacy save safety)
                 const key = Object.keys(Game.items).find(k => Game.items[k].name === equippedItem.name);
                 if(key) baseDef = Game.items[key];
             }
             if(!baseDef) return; 
 
+            // [v3.2.3] Pass NULL as onClick to make it static
             const btn = createBtn(
                 baseDef, 
-                1, // Count is always 1 for equipped
-                equippedItem.props || { name: equippedItem.name, color: equippedItem.color, bonus: equippedItem.bonus }, // Preserve properties
+                1, 
+                equippedItem.props || { name: equippedItem.name, color: equippedItem.color, bonus: equippedItem.bonus }, 
                 false, 
                 true, 
                 "AUSGERÜSTET", 
-                () => { Game.unequipItem(slot); } // Direct Unequip on click
+                null 
             );
             equippedList.push(btn);
         });
@@ -260,7 +270,7 @@ Object.assign(UI, {
                 if(canUnequip) {
                     const btn = document.createElement('button');
                     btn.innerHTML = "✖"; 
-                    // [MOD] BIGGER UNEQUIP BUTTON
+                    // [MOD] BIGGER UNEQUIP BUTTON (Same as v3.2.2)
                     btn.className = "absolute right-0 top-0 h-full w-8 bg-red-900/20 hover:bg-red-500 hover:text-white text-red-500 flex items-center justify-center font-bold text-lg transition-colors";
                     btn.onclick = (e) => { e.stopPropagation(); Game.unequipItem(slot.key); };
                     div.appendChild(btn);
