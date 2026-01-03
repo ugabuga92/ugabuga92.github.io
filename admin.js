@@ -1,32 +1,35 @@
-// [v3.9a] - 2026-01-03 10:00am (Admin Network Fix)
-// - BUGFIX: Network.init() wird nun explizit aufgerufen.
-// - LOGIC: Wartet auf Firebase-Verbindung vor dem Rendern.
+// [v3.9b] - 2026-01-03 10:30am (Admin Robustness Update)
+// - FIX: Try-Catch block around Network.init to prevent UI binding crashes.
+// - LOGIC: Ensures Database connection is established before listening.
 
 const Admin = {
     selectedId: null,
     players: {},
 
     init: function() {
-        console.log("[Admin] System start...");
+        console.log("[Admin] Initializing...");
 
-        // 1. NETZWERK STARTEN (WICHTIG!)
-        if(typeof Network !== 'undefined') {
-            if(!Network.db) {
-                console.log("[Admin] Initializing Network connection...");
-                // Versuche die Standard-Init Funktion zu nutzen
-                if(typeof Network.init === 'function') {
-                    Network.init();
-                } else {
-                    // Fallback: Manuelle Firebase Init, falls Network.init UI-abhängig ist
-                    if(typeof firebase !== 'undefined' && !firebase.apps.length) {
-                         // Config muss in network.js vorhanden sein, wir nutzen die Instanz dort
-                         console.error("Network.init nicht gefunden. Prüfe network.js");
+        // 1. Force Network Init
+        if (typeof Network !== 'undefined') {
+            if (!Network.db) {
+                console.log("[Admin] Starting Network...");
+                try {
+                    // Versuche Standard-Init
+                    if (typeof Network.init === 'function') {
+                        Network.init(); 
+                    }
+                } catch (e) {
+                    console.warn("[Admin] Network.init encountered UI errors (expected in Admin Mode):", e);
+                    // Falls Init abbricht, prüfen wir ob DB trotzdem da ist oder starten manuell
+                    if (!Network.db && typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+                        Network.db = firebase.database();
+                        console.log("[Admin] Manual DB binding successful.");
                     }
                 }
             }
         }
 
-        // 2. Auto-Login Check
+        // 2. Auto Login
         if(localStorage.getItem('admin_session') === 'active') {
             this.showDashboard();
         }
@@ -59,23 +62,26 @@ const Admin = {
         document.getElementById('dashboard').classList.add('flex');
         
         this.populateItems();
-        // Kurze Verzögerung, damit Firebase Zeit hat zu verbinden
-        setTimeout(() => this.startListener(), 500);
+        // Starte Listener Loop
+        this.checkDbConnection();
+    },
+
+    checkDbConnection: function() {
+        if(Network.db) {
+            console.log("[Admin] DB Connected. Starting Listeners.");
+            this.startListener();
+        } else {
+            console.log("[Admin] Waiting for DB...");
+            setTimeout(() => this.checkDbConnection(), 500);
+        }
     },
 
     startListener: function() {
-        // Warten bis DB bereit ist
-        if(!Network.db) { 
-            console.log("[Admin] Warte auf Datenbank...");
-            setTimeout(() => this.startListener(), 500); 
-            return; 
-        }
-        
-        console.log("[Admin] Datenbank verbunden. Lade Spieler...");
-        
         Network.db.ref('players').on('value', snap => {
             this.players = snap.val() || {};
             this.renderList();
+            
+            // Falls ausgewähltes Ziel sich ändert (z.B. HP update), Details refreshen
             if(this.selectedId && this.players[this.selectedId]) {
                 this.updateDetailView(this.players[this.selectedId]);
             }
@@ -100,19 +106,16 @@ const Admin = {
             
             const isDead = p.hp <= 0;
             const statusIcon = isDead ? '💀' : '👤';
-            
-            // Safe Access für Sektor
-            const secX = p.sector ? p.sector.x : '?';
-            const secY = p.sector ? p.sector.y : '?';
+            const secStr = p.sector ? `[${p.sector.x},${p.sector.y}]` : '[?,?]';
 
             div.innerHTML = `
                 <div class="flex flex-col">
-                    <span class="font-bold text-lg ${isDead ? 'text-red-500' : ''}">${statusIcon} ${p.name || 'Unknown'}</span>
-                    <span class="text-xs opacity-70 font-mono">${pid.substr(0,6)}...</span>
+                    <span class="font-bold text-lg ${isDead ? 'text-red-500 line-through' : 'text-green-300'}">${statusIcon} ${p.name || 'Unknown'}</span>
+                    <span class="text-xs opacity-70 font-mono text-gray-400">${pid.substr(0,6)}...</span>
                 </div>
                 <div class="text-right">
-                    <div class="font-bold">Lvl ${p.lvl || 1}</div>
-                    <div class="text-xs opacity-70">Sektor [${secX},${secY}]</div>
+                    <div class="font-bold text-yellow-500">Lvl ${p.lvl || 1}</div>
+                    <div class="text-xs opacity-70 text-blue-300">${secStr}</div>
                 </div>
             `;
             list.appendChild(div);
@@ -121,7 +124,7 @@ const Admin = {
 
     selectPlayer: function(pid) {
         this.selectedId = pid;
-        this.renderList(); // Highlight update
+        this.renderList(); 
         
         const panel = document.getElementById('control-panel');
         const overlay = document.getElementById('no-selection-msg');
@@ -138,22 +141,17 @@ const Admin = {
         document.getElementById('target-lvl').textContent = p.lvl || 1;
         document.getElementById('target-hp').textContent = `${Math.round(p.hp)}/${p.maxHp}`;
         
-        // Farbe bei Low HP
         const hpEl = document.getElementById('target-hp');
         hpEl.className = p.hp < (p.maxHp * 0.3) ? 'text-red-500 font-bold blink-red' : 'text-green-400';
     },
 
     populateItems: function() {
         const sel = document.getElementById('item-select');
-        if(!Game || !Game.items) {
-            console.warn("Game.items nicht gefunden. Lade data_items.js?");
-            return;
-        }
+        if(!Game || !Game.items) return;
 
-        // Leere alte Einträge (außer dem ersten)
+        // Clear old options (keep first)
         while(sel.options.length > 1) sel.remove(1);
 
-        // Sortierte Liste
         const keys = Object.keys(Game.items).sort();
         keys.forEach(k => {
             const item = Game.items[k];
@@ -181,12 +179,12 @@ const Admin = {
         const p = this.players[this.selectedId];
         Network.db.ref(`players/${this.selectedId}/hp`).set(p.maxHp);
         Network.db.ref(`players/${this.selectedId}/rads`).set(0);
-        Network.db.ref(`players/${this.selectedId}/isGameOver`).set(false); 
+        Network.db.ref(`players/${this.selectedId}/isGameOver`).set(false);
     },
 
     killTarget: function() {
         if(!this.selectedId) return;
-        if(confirm("Diesen Spieler wirklich töten? (HP auf 0)")) {
+        if(confirm("Diesen Spieler wirklich töten?")) {
             Network.db.ref(`players/${this.selectedId}/hp`).set(0);
         }
     },
@@ -195,7 +193,6 @@ const Admin = {
         if(!this.selectedId) return;
         const item = document.getElementById('item-select').value;
         const count = parseInt(document.getElementById('item-count').value) || 1;
-        
         if(!item) { alert("Bitte Item wählen!"); return; }
 
         this.sendToInv(this.selectedId, [{id: item, count: count}]);
@@ -203,13 +200,11 @@ const Admin = {
 
     giveKit: function(type) {
         if(!this.selectedId) return;
-        
         const kits = {
             'starter': [{id:'knife',count:1}, {id:'stimpack',count:3}, {id:'water',count:2}],
             'camp': [{id:'camp_kit',count:1}, {id:'wood',count:10}, {id:'meat',count:5}],
             'god': [{id:'plasma_rifle',count:1}, {id:'power_armor',count:1}, {id:'ammo',count:500}, {id:'stimpack',count:50}]
         };
-
         if(kits[type]) this.sendToInv(this.selectedId, kits[type]);
     },
 
@@ -219,7 +214,6 @@ const Admin = {
             
             itemsToAdd.forEach(newItem => {
                 let added = false;
-                // Stack check
                 for(let i of inv) {
                     if(i.id === newItem.id && !i.props) {
                         i.count += newItem.count;
@@ -231,15 +225,13 @@ const Admin = {
             });
 
             Network.db.ref(`players/${pid}/inventory`).set(inv);
-            // Kleines Feedback
+            
             const btn = document.activeElement;
             if(btn) {
-                const oldText = btn.innerText;
-                btn.innerText = "GESENDET!";
-                setTimeout(() => btn.innerText = oldText, 1000);
+                const old = btn.innerText;
+                btn.innerText = "✓";
+                setTimeout(() => btn.innerText = old, 500);
             }
         });
     }
 };
-
-window.onload = function() { Admin.init(); };
