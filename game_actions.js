@@ -1,4 +1,6 @@
-// [v2.9] - 2026-01-02 17:35pm(Equipment Overhaul) - Generic Equip/Unequip Logic for all Slots
+// [v3.1a] - 2026-01-03 01:45am (Smart Unequip)
+// - Fix: unequipItem renders UI only if inside char view.
+
 Object.assign(Game, {
     
     addRadiation: function(amount) {
@@ -223,7 +225,10 @@ Object.assign(Game, {
         }
 
         UI.log(`${item.name} abgelegt.`, "text-yellow-400");
-        if(typeof UI !== 'undefined') UI.renderChar(); 
+        
+        // [v3.1a] Only render Char if in Char View
+        if(typeof UI !== 'undefined' && this.state.view === 'char') UI.renderChar(); 
+        
         this.saveGame();
     },
 
