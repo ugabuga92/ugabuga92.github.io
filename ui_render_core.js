@@ -1,4 +1,4 @@
-// [v3.4b] - 2026-01-03 (UI & Logic) - TP Display Update
+// [v3.4a] - 2026-01-03 (UI & Logic) - TP Update
 Object.assign(UI, {
     
     // Updates HUD and Button States
@@ -24,6 +24,7 @@ Object.assign(UI, {
             this.els.name.textContent = displayName;
         }
         
+        // Apply Glow to the whole container if any points available
         if(this.els.headerCharInfo) {
             if(hasPoints) this.els.headerCharInfo.classList.add('lvl-ready-glow');
             else this.els.headerCharInfo.classList.remove('lvl-ready-glow');
@@ -51,19 +52,22 @@ Object.assign(UI, {
         const maxHp = Game.state.maxHp;
         const hp = Game.state.hp;
         const rads = Game.state.rads || 0;
-        
-        // [v3.4b] Effektiv verfügbar (Max - Rads) for Display
+        // Effektiv verfügbar (Max - Rads)
         const effectiveMax = Math.max(1, maxHp - rads);
         
         const hpPct = Math.min(100, Math.max(0, (hp / maxHp) * 100));
         const radPct = Math.min(100, (rads / maxHp) * 100);
         
-        // Display Text: Current / Effective Max
+        // [v3.4a] Display: Current / Effective Max (after Rads)
         const hpText = `${Math.round(hp)}/${Math.round(effectiveMax)}`;
         
-        // Update Text Element in Header
-        const valHpEl = document.getElementById('val-hp');
-        if(valHpEl) valHpEl.textContent = hpText;
+        // Desktop / Header Bar
+        if(this.els.hp) {
+             this.els.hp.textContent = hpText; // Not visible in bar-hp div usually, but safety
+             // The actual text is in #val-hp now
+             const valHpEl = document.getElementById('val-hp');
+             if(valHpEl) valHpEl.textContent = hpText;
+        }
 
         // Bar Colors
         let barColor = "bg-green-500";
@@ -78,7 +82,7 @@ Object.assign(UI, {
         const radBar = document.getElementById('bar-rads');
         if(radBar) radBar.style.width = `${radPct}%`;
 
-        // Mobile Bars (Legacy support)
+        // Mobile Bars (Legacy support if elements exist)
         const mobHp = document.getElementById('bar-hp-mobile');
         const mobRad = document.getElementById('bar-rads-mobile');
         const mobText = document.getElementById('val-hp-mobile-text');
@@ -118,7 +122,7 @@ Object.assign(UI, {
             }
         }
 
-        // Glow Alerts
+        // Glow Alerts (Button specific)
         let hasAlert = false;
         if(this.els.btnChar) {
             if(hasPoints) { this.els.btnChar.classList.add('alert-glow-yellow'); hasAlert = true; } 
@@ -250,7 +254,7 @@ Object.assign(UI, {
                 this.toggleControls(false);
             }
             
-            if (name === 'char') this.renderChar('stats'); // Default render for char
+            if (name === 'char') this.renderChar();
             if (name === 'inventory') this.renderInventory();
             if (name === 'wiki') this.renderWiki();
             if (name === 'worldmap') this.renderWorldMap();
