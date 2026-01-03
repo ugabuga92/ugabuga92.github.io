@@ -1,3 +1,8 @@
+[v5.3] - 2026-01-03 10:45pm (Admin Panel Mobile Fix)
+- Layout: Mobile-Optimized (Portrait Mode) -> Sidebar stacked on top, Editor below.
+- UX: Tabsleiste horizontal scrollbar gemacht für kleine Screens.
+- Fix: Flex-Direction Logic angepasst (Column on Mobile, Row on Desktop).
+
 [v5.2] - 2026-01-03 10:25pm (UI Overlay Fixes)
 - Vault Legends: Fensterhöhe auf 90% des Containers begrenzt -> Verhindert Abschneiden auf Mobile.
 - Vault Legends: Hintergrund-Klick schließt Fenster nun zuverlässig (pointer-events-auto Fix).
