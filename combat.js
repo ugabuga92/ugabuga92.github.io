@@ -1,7 +1,7 @@
-// [v3.1] - 2026-01-03 01:20am (Bugs & Balancing)
+// [v3.1a] - 2026-01-03 01:45am (Combat Flow & Ammo Fix)
 // - Feature: Range weapons consume 'ammo'.
-// - Logic: Attack blocked if no ammo.
-// - Visual: Floating text position randomized (X/Y).
+// - UX: Auto-Unequip if ammo runs out -> Switch to Fists instantly.
+// - Visual: Floating text position randomized (X/Y) to reduce clutter.
 
 window.Combat = {
     loopId: null,
@@ -110,7 +110,7 @@ window.Combat = {
     },
 
     isMelee: function(weaponName) {
-        const meleeNames = ["Fäuste", "Rostiges Messer", "Kampfmesser", "Machete", "Baseballschläger"];
+        const meleeNames = ["Fäuste", "Messer", "Machete", "Schläger", "Axt", "Faust"];
         return meleeNames.some(m => weaponName.includes(m));
     },
 
@@ -118,14 +118,29 @@ window.Combat = {
     attack: function(partIndex) {
         if(this.turn !== 'player') return;
 
-        // [v3.1] Ammo Check
-        const wpn = Game.state.equip.weapon || {name: "Fäuste"};
+        let wpn = Game.state.equip.weapon || {name: "Fäuste"}; // Use let to allow update
+        
+        // [v3.1a] Auto-Unequip Logic
         if(!this.isMelee(wpn.name)) {
             const hasAmmo = Game.removeFromInventory('ammo', 1);
             if(!hasAmmo) {
-                this.log("Klick! Keine Munition!", "text-red-500 font-bold");
-                this.triggerFeedback('miss'); 
-                return;
+                this.log("Klick! Munition leer.", "text-red-500");
+                
+                // Try to unequip
+                Game.unequipItem('weapon');
+                
+                // Check if unequip worked (weapon should now be fists)
+                const newWpn = Game.state.equip.weapon;
+                if(this.isMelee(newWpn.name)) {
+                    this.log("Waffe abgelegt - Nahkampf!", "text-yellow-400 font-bold");
+                    wpn = newWpn; // Update weapon reference for calculation
+                    // Continue attack flow with fists immediately
+                } else {
+                    // Unequip failed (Inventory full?)
+                    this.log("Kein Platz zum Ablegen!", "text-red-500 font-bold");
+                    this.triggerFeedback('miss');
+                    return; // Stop attack
+                }
             }
         }
         
