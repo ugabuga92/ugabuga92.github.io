@@ -1,6 +1,4 @@
-// [v3.4a] - 2026-01-03 04:45am (Stats/Perk Logic)
-// - Click Logic for Stats/Perks priority.
-
+// [v3.4b] - 2026-01-03 05:00am (Smart Tab Switching)
 const UI = {
     els: {},
     timerInterval: null,
@@ -146,25 +144,23 @@ const UI = {
              this.els.btnInv.addEventListener('click', () => this.resetInventoryAlert());
         }
 
-        // [v3.4a] Header Info Click Event - Smart Routing
+        // [v3.4b] Header Info Click Event - Smart Tab Routing
         if(this.els.headerCharInfo) {
-            this.els.headerCharInfo.addEventListener('click', () => {
+            this.els.headerCharInfo.addEventListener('click', async () => {
                 const hasStats = Game.state.statPoints > 0;
-                const hasPerks = Game.state.perkPoints > 0; // Assuming perkPoints key
+                const hasPerks = (Game.state.perkPoints && Game.state.perkPoints > 0);
                 
-                if(hasStats) {
-                    // Prio 1: Stats
-                    this.switchView('char'); 
-                    // ToDo: Force Stat Tab if needed
-                } else if (hasPerks) {
-                    // Prio 2: Perks
-                    this.switchView('char');
-                    // ToDo: Force Perk Tab switch here if possible
-                    // setTimeout(() => document.getElementById('tab-perks')?.click(), 100);
-                } else {
-                    // Default
-                    this.switchView('char');
-                }
+                await this.switchView('char');
+                
+                setTimeout(() => {
+                    if(hasStats) {
+                        if(this.renderChar) this.renderChar('stats');
+                    } else if (hasPerks) {
+                        if(this.renderChar) this.renderChar('perks');
+                    } else {
+                        if(this.renderChar) this.renderChar('stats');
+                    }
+                }, 50);
             });
         }
 
