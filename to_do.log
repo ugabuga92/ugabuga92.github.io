@@ -1,24 +1,12 @@
 🐛 Aktuelle Bugs & Anpassungen:
-- Zelt hat immer noch kein Button zum gesammeltes Fleisch "verbraten", außerdem soll beim "übernachten" und regenerieren ein kleiner anteil an RAD dazukommen, man Übernachtet ja im freien.
-- Eingang Raiderfestung unsichtbar. Mach hier mal eine schöne Grafik rein, ein Supermarkt solls werden!
 - name leuchtet ja beim Level up, lass das LVL direkt daneben mit leuchten. Beides soll anklickbar sein und einen in das "Charakter bzw Perk menü bringen" Menü bringen, je nachdem für was noch Punkte da sind. Standart, sofern beides Punkte hat zum verteilen sind die Stats.
-- Quest erfüllt Fenster komplett mittig einblenden
 - UI Header überabeiten. Speicherbutton komplett entfernen. Menü Schrift ersetzen durch Burger Menü zeichen. LVL direkt unter den Namen. XP anzeige kompletter Balken von links nach rechts über Spielfeld & Log (also komplette breite ausnutzten)
 Kronkorken & Mun direkt untereinander. Den freien Bereich rechts davon bis zum Menü Button wird als HP Anzeige benutzt, komplett volle höhe und Breite Dynamisch für jedes Gerät.
 Bei Fragen, frag!
-
+- Zelt hat immer noch kein Button zum gesammeltes Fleisch "verbraten"
 - Items muss man aus dem Inventar schmeißen können. bzw zerstören.
 - Würfelspiele ab und an nach Legendary? Hatte bissher nie glück, rate minimal erhöhen? Oder ist es gar nicht mehr eingebaut?
 - Zelt/Lager. Aktuell muss man es aus dem Inventar raus benutzen, super wäre die Option: Zelt Symbol ist permament auf dem Spielfeld links oben sichtbar ohne den Glow, sobald man ein Zeltbausatz besitzt.
 über den Button kann man dann, sofern kein POI auf der Karte im Sektor ist, das Zeltlager aufschlagen, ist dies aufgeschlagen kommt, solange man in diesem Sektor ist, der Glow um den Button hinzu. Nach aufbau verschwindet der Button auf den restlichen sektoren (zelt wurde ja benutzt). 
 Nach aufbau rutscht das Zelt auch unten im Inventar in den "ausgerüstet" sektor bis es abgebaut wird)
 - Admin panel überarbeiten und auffrischen, so das alles mit allen funtkionen aus dem spiel funktioniert! Hazard Zone kann raus, wir haben keine Toten spieler mehr. Denk dran. Ich will mich in die Admin zone nur mit dem passwort "zintel1992" anmelden. die richtigen anmelde daten id: admin@pipboy-system.com und passwort : zintel1992, sollen danach im hintergrund eingegeben werden.
-
-Ideen für die Zukunft (Roadmap)
-1. Waffen Verbesserungen, Schalldämpfer, Fernrohr Zielen etc. 
-2. Radio-Stationen
-• lizenzfreie Retro-Musik, speicherplatz ist vorhanden auf github. 
-4. Item-Präfixe (Loot-Generierung)
-• Waffen nicht nur als "Pistole", sondern dynamisch generiert: "Rostige Pistole" (-Dmg), "Gehärtete Pistole" (+Dmg).
-
-
