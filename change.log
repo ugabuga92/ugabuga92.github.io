@@ -1,3 +1,28 @@
+[v4.2] - 2026-01-03 06:30pm (Atmosphere & Weather Integration)
+- LOGIC: 'game_core.js' enthält nun Weltzeit (Day/Night) und Wetter-System (Rain, Storm, Fog).
+- VISUAL: 'game_render.js' verarbeitet Helligkeit basierend auf der Uhrzeit.
+- VISUAL: Partikel-System reagiert auf Wetter (Regen fällt schnell, Asche langsam).
+- GFX: Blitzeffekte bei Sturm hinzugefügt.
+
+[v4.1] - 2026-01-03 06:15pm (Visual Atmosphere Overhaul)
+- RENDER: Multi-Pass Rendering eingeführt (World -> Light -> Particles -> UI).
+- GFX: Dynamische Lichtquellen (Taschenlampe des Spielers, glühende Radioaktivität).
+- UI: CRT-Scanlines und Vignette werden nun direkt über den Canvas gelegt.
+
+[v4.0] - 2026-01-03 05:45pm (Lighting Engine Foundation)
+- ENGINE: Licht-Engine implementiert (Dunkelheit als Standard, "Löcher" werden hineingeschnitten).
+- GFX: Farbige Licht-Akzente (Glow) für spezielle Zonen (Grün für Rads, Gelb für Vault).
+
+[v3.9.5] - 2026-01-03 05:30pm (Complete Asset Overhaul)
+- ASSETS: Interner Tileset-Generator auf 16 Texturen erweitert.
+- GFX: Neue Texturen für Asphalt (Straßen), Zäune, Felsen, Terminals.
+- UI: Icons für Shop ($), Arzt (P) und Crafting (&) grafisch integriert.
+
+[v3.9] - 2026-01-03 05:15pm (Game View Pixel Revolution)
+- CORE: Umstellung von Vektor-Grafik auf prozedurale Pixel-Art.
+- CHAR: Spieler ist nun ein animierter Sprite (kein grünes Viereck mehr).
+- WORLD: Wände, Bäume und Boden haben nun Textur-Noise.
+
 [v3.6] - 2026-01-03 06:00am (Camp System 2.0)
 - FEATURE: Permanentes Zelt-Icon (⛺) auf dem Spielfeld hinzugefügt.
   - Wenn Bausatz im Inventar: Button zeigt "BAUEN".
