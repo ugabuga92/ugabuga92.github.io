@@ -1,6 +1,6 @@
-// [v3.7] - 2026-01-03 07:00am (Fix: Camp Routing Priority)
-// - FIX: 'switchView' fängt 'camp' nun ganz oben ab.
-// - UI: Camp-Menü öffnet sich zuverlässig, auch wenn 'camp.html' gelöscht wurde.
+// [v3.7a] - 2026-01-03 (Core Renderer Update)
+// - FIX: 'switchView' lädt Camp wieder als HTML.
+// - LOGIC: 'renderCamp()' wird nach dem Laden aufgerufen.
 
 Object.assign(UI, {
     
@@ -108,7 +108,6 @@ Object.assign(UI, {
         }
         // -------------------------
 
-        // Alerts
         let hasAlert = false;
         if(this.els.btnChar) {
             if(hasPoints) { this.els.btnChar.classList.add('alert-glow-yellow'); hasAlert = true; } 
@@ -125,7 +124,6 @@ Object.assign(UI, {
             else this.els.btnMenu.classList.remove('alert-glow-red');
         }
 
-        // Disable Buttons in Combat
         const inCombat = Game.state.view === 'combat';
         [this.els.btnWiki, this.els.btnMap, this.els.btnChar, this.els.btnQuests, this.els.btnLogout, this.els.btnInv].forEach(btn => { if(btn) btn.disabled = inCombat; });
         
@@ -174,8 +172,7 @@ Object.assign(UI, {
         const verDisplay = document.getElementById('version-display');
         const ver = verDisplay ? verDisplay.textContent.trim() : Date.now();
         
-        // --- SPEZIAL ROUTING FÜR MAP UND CAMP (KEIN FETCH!) ---
-
+        // --- Special Routing: Map & Minigames (No fetch) ---
         if (name === 'map') {
             this.els.view.innerHTML = `
                 <div id="map-view" class="w-full h-full flex justify-center items-center bg-black relative">
@@ -197,25 +194,12 @@ Object.assign(UI, {
             return;
         }
 
-        // [v3.7] FIX: Camp wird direkt gerendert, kein HTML Fetch mehr!
-        if (name === 'camp') {
-            Game.state.view = name;
-            if(typeof this.renderCamp === 'function') {
-                this.renderCamp();
-            } else {
-                this.els.view.innerHTML = '<div class="text-red-500 p-6 text-center border border-red-500">FEHLER: Camp UI nicht geladen.<br>Bitte Seite neu laden.</div>';
-            }
-            this.restoreOverlay();
-            this.toggleControls(false);
-            this.updateButtonStates(name);
-            this.update();
-            return;
-        }
-
         if(name === 'hacking') { this.renderHacking(); Game.state.view = name; return; }
         if(name === 'lockpicking') { this.renderLockpicking(true); Game.state.view = name; return; }
 
-        // --- STANDARD VIEWS VIA FETCH ---
+        // --- Standard Views (Fetch HTML) ---
+        // Das schließt jetzt auch 'camp' wieder mit ein!
+        
         const path = `views/${name}.html?v=${ver}`;
         try {
             const res = await fetch(path);
@@ -234,6 +218,7 @@ Object.assign(UI, {
                 this.toggleControls(false);
             }
             
+            // Render Logic Calls
             if (name === 'char') this.renderChar();
             if (name === 'inventory') this.renderInventory();
             if (name === 'wiki') this.renderWiki();
@@ -243,6 +228,12 @@ Object.assign(UI, {
             if (name === 'crafting') this.renderCrafting();
             if (name === 'shop') this.renderShop(document.getElementById('shop-list'));
             if (name === 'clinic') this.renderClinic();
+            
+            // [v3.7a] NEU: Camp Logic Aufruf
+            if (name === 'camp') {
+                if(typeof this.renderCamp === 'function') this.renderCamp();
+                else console.error("UI.renderCamp is missing! Check if ui_view_camp.js is loaded.");
+            }
             
             this.updateButtonStates(name);
             this.update();
