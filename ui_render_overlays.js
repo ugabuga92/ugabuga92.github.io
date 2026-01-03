@@ -1,5 +1,6 @@
-// [v3.0] - 2026-01-03 01:00am (Quest Overlay Implementation)
-// - Neu: showQuestComplete für HUD Anzeige statt Logs.
+// [v5.0] - 2026-01-03 08:30pm (UI & Vault Legends Update)
+// - Vault Legends: Fensterhöhe auf Spielbereich begrenzt (max-height).
+// - Vault Legends: Scrollbalken verbessert und Close-by-Click auf Hintergrund eingebaut.
 
 Object.assign(UI, {
     
@@ -49,17 +50,19 @@ Object.assign(UI, {
         }, 4000);
     },
 
-    // ... (Andere Funktionen unverändert) ...
-
     showMapLegend: function() {
         if(!this.els.dialog) this.restoreOverlay();
         if(Game.state) Game.state.inDialog = true;
         
+        this.els.dialog.onclick = (e) => {
+            if(e.target === this.els.dialog) UI.leaveDialog();
+        };
+
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         
         const box = document.createElement('div');
-        box.className = "bg-black border-4 border-green-500 p-6 shadow-[0_0_30px_green] max-w-sm w-full relative";
+        box.className = "bg-black border-4 border-green-500 p-6 shadow-[0_0_30px_green] max-w-sm w-full relative pointer-events-auto";
         
         const item = (icon, text, color) => `
             <div class="flex items-center gap-4 mb-3 border-b border-green-900/30 pb-1 last:border-0">
@@ -87,8 +90,13 @@ Object.assign(UI, {
         if(!this.els.dialog) this.restoreOverlay();
         if(Game.state) Game.state.inDialog = true;
         
+        // [v5.0] Click-Outside Logic: Schließt Fenster bei Klick auf den Hintergrund
+        this.els.dialog.onclick = (e) => {
+            if(e.target === this.els.dialog) UI.leaveDialog();
+        };
+
         this.els.dialog.innerHTML = `
-            <div class="flex flex-col items-center justify-center p-6 border-2 border-green-500 bg-black shadow-[0_0_20px_green]">
+            <div class="flex flex-col items-center justify-center p-6 border-2 border-green-500 bg-black shadow-[0_0_20px_green] pointer-events-auto">
                 <div class="text-green-500 animate-pulse text-2xl mb-6">EMPFANGE DATEN VOM HUB...</div>
                 <button class="action-button border-red-500 text-red-500 w-full" onclick="UI.leaveDialog()">ABBRECHEN</button>
             </div>`;
@@ -101,7 +109,8 @@ Object.assign(UI, {
             scores.sort((a,b) => b.lvl - a.lvl || b.xp - a.xp);
 
             const box = document.createElement('div');
-            box.className = "bg-black border-4 border-green-600 p-6 shadow-[0_0_30px_green] w-full max-w-2xl h-3/4 flex flex-col relative";
+            // [v5.0] Styles Update: max-h-[85%] für Begrenzung, min-h-0 für Flex-Scroll
+            box.className = "bg-black border-4 border-green-600 p-6 shadow-[0_0_30px_green] w-full max-w-2xl max-h-[85%] flex flex-col relative pointer-events-auto";
             
             const closeBtn = document.createElement('button');
             closeBtn.className = "absolute top-2 right-2 text-green-500 text-xl border border-green-500 px-3 hover:bg-green-900 font-bold z-50";
@@ -110,14 +119,14 @@ Object.assign(UI, {
             
             box.innerHTML = `
                 <h2 class="text-4xl font-bold text-green-400 mb-4 text-center border-b-2 border-green-600 pb-2 tracking-widest">VAULT LEGENDS</h2>
-                <div class="flex justify-between mb-2 text-xs text-green-300 uppercase font-bold px-2">
+                <div class="flex justify-between mb-2 text-xs text-green-300 uppercase font-bold px-2 flex-shrink-0">
                     <span class="w-8">#</span>
                     <span class="w-1/3 cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'name')">NAME</span>
                     <span class="w-16 text-right cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'lvl')">LVL</span>
                     <span class="w-16 text-right cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'kills')">KILLS</span>
                     <span class="w-24 text-right cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'xp')">EXP</span>
                 </div>
-                <div id="highscore-list" class="flex-grow overflow-y-auto pr-2 custom-scrollbar"></div>
+                <div id="highscore-list" class="flex-grow overflow-y-auto pr-2 custom-scrollbar min-h-0"></div>
             `;
             box.appendChild(closeBtn);
 
@@ -170,7 +179,7 @@ Object.assign(UI, {
                 msg = "ZUGRIFF VERWEIGERT: FIREBASE REGELN BLOCKIEREN 'leaderboard'.";
             }
             this.els.dialog.innerHTML = `
-                <div class="border-2 border-red-500 bg-black p-6 text-center shadow-[0_0_20px_red]">
+                <div class="border-2 border-red-500 bg-black p-6 text-center shadow-[0_0_20px_red] pointer-events-auto">
                     <div class="text-red-500 font-bold text-2xl mb-4 tracking-widest">NETZWERK FEHLER</div>
                     <div class="text-green-400 font-mono mb-6">${msg}</div>
                     <button class="action-button w-full border-red-500 text-red-500" onclick="UI.leaveDialog()">SCHLIESSEN</button>
@@ -186,6 +195,11 @@ Object.assign(UI, {
         if(!item) return;
 
         if(Game.state) Game.state.inDialog = true;
+        
+        this.els.dialog.onclick = (e) => {
+            if(e.target === this.els.dialog) UI.leaveDialog();
+        };
+
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         
@@ -215,7 +229,7 @@ Object.assign(UI, {
         const costColor = canAfford ? "text-yellow-400" : "text-red-500";
 
         const box = document.createElement('div');
-        box.className = "bg-black border-2 border-green-500 p-4 shadow-[0_0_15px_green] max-w-sm text-center mb-4 w-full";
+        box.className = "bg-black border-2 border-green-500 p-4 shadow-[0_0_15px_green] max-w-sm text-center mb-4 w-full pointer-events-auto";
         box.innerHTML = `
             <div class="border-b border-green-500 pb-2 mb-2">
                 <h2 class="text-xl font-bold text-green-400">${item.name}</h2>
@@ -267,11 +281,16 @@ Object.assign(UI, {
         if(!item) return;
 
         if(Game.state) Game.state.inDialog = true;
+        
+        this.els.dialog.onclick = (e) => {
+            if(e.target === this.els.dialog) UI.leaveDialog();
+        };
+
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         
         const box = document.createElement('div');
-        box.className = "bg-black border-2 border-green-500 p-4 shadow-[0_0_15px_green] max-w-sm text-center mb-4 w-full";
+        box.className = "bg-black border-2 border-green-500 p-4 shadow-[0_0_15px_green] max-w-sm text-center mb-4 w-full pointer-events-auto";
 
         // Stimpack Dialog
         if (invItem.id === 'stimpack') {
@@ -360,10 +379,15 @@ Object.assign(UI, {
     showDungeonWarning: function(callback) {
         if(!this.els.dialog) this.restoreOverlay();
         if(Game.state) Game.state.inDialog = true;
+        
+        this.els.dialog.onclick = (e) => {
+            if(e.target === this.els.dialog) UI.leaveDialog();
+        };
+
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         const box = document.createElement('div');
-        box.className = "bg-black border-2 border-red-600 p-4 shadow-[0_0_20px_red] max-w-sm text-center animate-pulse mb-4";
+        box.className = "bg-black border-2 border-red-600 p-4 shadow-[0_0_20px_red] max-w-sm text-center animate-pulse mb-4 pointer-events-auto";
         box.innerHTML = `
             <h2 class="text-3xl font-bold text-red-600 mb-2 tracking-widest">⚠️ WARNING ⚠️</h2>
             <p class="text-red-400 mb-4 font-bold">HOHE GEFAHR!<br>Sicher, dass du eintreten willst?</p>
@@ -389,8 +413,11 @@ Object.assign(UI, {
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         
+        // Prevent accidental close during gamble
+        this.els.dialog.onclick = null;
+
         const box = document.createElement('div');
-        box.className = "bg-black border-4 border-yellow-500 p-6 shadow-[0_0_40px_gold] max-w-sm text-center relative overflow-hidden";
+        box.className = "bg-black border-4 border-yellow-500 p-6 shadow-[0_0_40px_gold] max-w-sm text-center relative overflow-hidden pointer-events-auto";
         
         const bg = document.createElement('div');
         bg.className = "absolute inset-0 bg-yellow-900/20 z-0 pointer-events-none";
@@ -447,10 +474,15 @@ Object.assign(UI, {
     showDungeonLocked: function(minutesLeft) {
         if(!this.els.dialog) this.restoreOverlay();
         if(Game.state) Game.state.inDialog = true;
+        
+        this.els.dialog.onclick = (e) => {
+            if(e.target === this.els.dialog) UI.leaveDialog();
+        };
+
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         const box = document.createElement('div');
-        box.className = "bg-black border-2 border-gray-600 p-4 shadow-[0_0_20px_gray] max-w-sm text-center mb-4";
+        box.className = "bg-black border-2 border-gray-600 p-4 shadow-[0_0_20px_gray] max-w-sm text-center mb-4 pointer-events-auto";
         box.innerHTML = `
             <h2 class="text-3xl font-bold text-gray-400 mb-2 tracking-widest">🔒 LOCKED</h2>
             <p class="text-gray-300 mb-4 font-bold">Dieses Gebiet ist versiegelt.<br>Versuche es in ${minutesLeft} Minuten wieder.</p>
@@ -499,10 +531,13 @@ Object.assign(UI, {
     showPermadeathWarning: function() {
         if(!this.els.dialog) this.restoreOverlay();
         if(Game.state) Game.state.inDialog = true;
+        
+        this.els.dialog.onclick = null; // Zwingende Bestätigung
+
         this.els.dialog.innerHTML = '';
         this.els.dialog.style.display = 'flex';
         const box = document.createElement('div');
-        box.className = "bg-black border-4 border-red-600 p-6 shadow-[0_0_50px_red] max-w-lg text-center animate-pulse";
+        box.className = "bg-black border-4 border-red-600 p-6 shadow-[0_0_50px_red] max-w-lg text-center animate-pulse pointer-events-auto";
         box.innerHTML = `
             <div class="text-6xl text-red-600 mb-4 font-bold">☠️</div>
             <h1 class="text-4xl font-bold text-red-600 mb-4 tracking-widest border-b-2 border-red-600 pb-2">PERMADEATH AKTIV</h1>
@@ -556,13 +591,18 @@ Object.assign(UI, {
 
     enterVault: function() { 
         if(Game.state) Game.state.inDialog = true; 
+        
+        this.els.dialog.onclick = (e) => {
+            if(e.target === this.els.dialog) UI.leaveDialog();
+        };
+
         this.els.dialog.innerHTML = ''; 
         const restBtn = document.createElement('button'); 
-        restBtn.className = "action-button w-full mb-1 border-blue-500 text-blue-300"; 
+        restBtn.className = "action-button w-full mb-1 border-blue-500 text-blue-300 pointer-events-auto"; 
         restBtn.textContent = "Ausruhen (Gratis)"; 
         restBtn.onclick = () => { Game.rest(); this.leaveDialog(); }; 
         const leaveBtn = document.createElement('button'); 
-        leaveBtn.className = "action-button w-full"; 
+        leaveBtn.className = "action-button w-full pointer-events-auto"; 
         leaveBtn.textContent = "Weiter geht's"; 
         leaveBtn.onclick = () => this.leaveDialog(); 
         this.els.dialog.appendChild(restBtn); 
@@ -573,6 +613,7 @@ Object.assign(UI, {
     leaveDialog: function() { 
         if(Game.state) Game.state.inDialog = false; 
         this.els.dialog.style.display = 'none'; 
+        this.els.dialog.onclick = null; // [v5.0] Listener aufräumen
         if(typeof this.update === 'function') this.update(); 
     }
 });
