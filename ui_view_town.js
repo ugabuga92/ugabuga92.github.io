@@ -1,11 +1,10 @@
-// [v3.2] - 2026-01-03 02:45am (Shop UI Overhaul)
-// - UI: Added Quantity Toggles (1x, 5x, MAX).
-// - Layout: Buying info field widened.
-// - Selling: Replaced small button with large text area; whole row clickable.
+// [v3.3] - 2026-01-04 01:45am (Workbench Scrapping Tab)
+// - Feature: Added Tab system to renderCrafting (Create / Scrap).
+// - UI: Scrap view lists scrappable items with direct action button.
 
 Object.assign(UI, {
     
-    shopQty: 1, // Default quantity
+    shopQty: 1,
 
     renderCity: function() {
         const con = document.getElementById('city-options');
@@ -25,9 +24,7 @@ Object.assign(UI, {
                 </div>
                 <div class="text-xl text-green-800 group-hover:text-green-400 transition-transform group-hover:translate-x-1">▶</div>
             `;
-            
             b.onclick = cb;
-            
             if(disabled) { 
                 b.disabled = true; 
                 b.classList.add('opacity-40', 'cursor-not-allowed', 'filter', 'grayscale');
@@ -45,7 +42,7 @@ Object.assign(UI, {
         
         addBtn("🏥", "KLINIK", healSub, () => UI.switchView('clinic'), !canHeal);
         addBtn("🛒", "MARKTPLATZ", "Waffen, Rüstung & Munition", () => UI.switchView('shop').then(() => UI.renderShop()));
-        addBtn("🛠️", "WERKBANK", "Gegenstände herstellen", () => this.toggleView('crafting'));
+        addBtn("🛠️", "WERKBANK", "Gegenstände herstellen & zerlegen", () => this.toggleView('crafting'));
         
         addBtn("🎯", "TRAININGSGELÄNDE", "Hacking & Schlossknacken üben", () => {
              con.innerHTML = '';
@@ -94,7 +91,6 @@ Object.assign(UI, {
         tabs.appendChild(btnSell);
         container.appendChild(tabs);
         
-        // Quantity Toggles
         const qtyContainer = document.createElement('div');
         qtyContainer.className = "flex justify-center gap-2 mb-4";
         
@@ -124,7 +120,6 @@ Object.assign(UI, {
         
         Game.checkShopRestock();
         container.innerHTML = '';
-        
         this.renderShopHeader(container);
         this.renderShopTabs(container, 'buy');
 
@@ -157,11 +152,8 @@ Object.assign(UI, {
                  cat.items.forEach(data => {
                     const canAfford = Game.state.caps >= data.cost;
                     const stock = Game.state.shop.stock[data.key];
-                    
                     const div = document.createElement('div');
-                    // [v3.2] CSS Adjustment: Reduced right column width/padding to widen text area
                     div.className = `flex justify-between items-center p-2 mb-2 border h-16 w-full ${canAfford ? 'border-green-500 bg-green-900/20 hover:bg-green-900/40' : 'border-red-900 bg-black/40 opacity-70'} transition-all cursor-pointer group`;
-                    
                     let icon = "📦";
                     if(data.type === 'weapon') icon = "🔫"; if(data.type === 'body') icon = "🛡️"; if(data.type === 'consumable') icon = "💊";
 
@@ -183,7 +175,6 @@ Object.assign(UI, {
              }
         }
         
-        // Ammo
         const ammoStock = Game.state.shop.ammoStock || 0;
         const ammoDiv = document.createElement('div');
         ammoDiv.className = "flex justify-between items-center p-2 mb-4 border border-blue-500 bg-blue-900/20 cursor-pointer hover:bg-blue-900/40 h-16 w-full mt-4";
@@ -202,7 +193,6 @@ Object.assign(UI, {
         else { ammoDiv.onclick = () => Game.buyAmmo(this.shopQty); }
         container.appendChild(ammoDiv);
 
-        // Back Button
         const backBtn = document.createElement('button');
         backBtn.className = "w-full py-3 mt-4 border border-yellow-400 text-yellow-400 font-bold hover:bg-yellow-400 hover:text-black transition-colors uppercase tracking-widest";
         backBtn.textContent = "<< Speichern & Zurück";
@@ -214,7 +204,6 @@ Object.assign(UI, {
         const container = document.getElementById('shop-list');
         if(!container) return;
         container.innerHTML = '';
-        
         this.renderShopHeader(container);
         this.renderShopTabs(container, 'sell');
 
@@ -225,14 +214,12 @@ Object.assign(UI, {
                 const def = Game.items[item.id];
                 if(!def) return;
                 
-                // Sell Price Calculation
                 let valMult = 1;
                 if(item.props && item.props.valMult) valMult = item.props.valMult;
                 let sellPrice = Math.floor((def.cost * 0.25) * valMult);
                 if(sellPrice < 1) sellPrice = 1;
                 
                 const canSell = Game.state.shop.merchantCaps >= sellPrice;
-
                 const div = document.createElement('div');
                 div.className = `flex justify-between items-center p-2 mb-2 border h-16 w-full ${canSell ? 'border-yellow-600 bg-yellow-900/10 hover:bg-yellow-900/30' : 'border-red-900 bg-black/40 opacity-50'} transition-all cursor-pointer`;
                 
@@ -247,20 +234,13 @@ Object.assign(UI, {
                             <span class="text-[10px] text-yellow-700 truncate">Wert je: ${sellPrice} KK</span>
                         </div>
                     </div>
-                    
-                    <div class="flex items-center justify-center bg-yellow-900/40 text-yellow-400 font-bold text-xs h-full w-24 border-l border-yellow-700 ml-2">
-                        VERKAUFEN
-                    </div>
+                    <div class="flex items-center justify-center bg-yellow-900/40 text-yellow-400 font-bold text-xs h-full w-24 border-l border-yellow-700 ml-2">VERKAUFEN</div>
                 `;
-                
-                if(canSell) {
-                    div.onclick = () => Game.sellItem(index, this.shopQty);
-                }
+                if(canSell) { div.onclick = () => Game.sellItem(index, this.shopQty); }
                 container.appendChild(div);
             });
         }
         
-         // Back Button
         const backBtn = document.createElement('button');
         backBtn.className = "w-full py-3 mt-4 border border-yellow-400 text-yellow-400 font-bold hover:bg-yellow-400 hover:text-black transition-colors uppercase tracking-widest";
         backBtn.textContent = "<< Speichern & Zurück";
@@ -274,7 +254,6 @@ Object.assign(UI, {
              this.els.view.innerHTML = `<div class="p-4 flex flex-col items-center"><h2 class="text-2xl text-green-500 mb-4">DR. ZIMMERMANN</h2><div id="clinic-list" class="w-full max-w-md"></div></div>`;
              container = document.getElementById('clinic-list');
         }
-        
         container.innerHTML = '';
         const backBtn = document.createElement('button');
         backBtn.className = "action-button w-full mb-4 text-center border-yellow-400 text-yellow-400";
@@ -293,47 +272,92 @@ Object.assign(UI, {
         container.appendChild(healBtn);
     },
 
-    renderCrafting: function() {
+    // [v3.3] CRAFTING WITH TABS
+    renderCrafting: function(tab = 'create') {
         const container = document.getElementById('crafting-list');
         if(!container) return;
         container.innerHTML = '';
         
-        const recipes = Game.recipes || [];
-        const known = Game.state.knownRecipes || [];
-        let knownCount = 0; 
-
-        recipes.forEach(recipe => {
-            if(recipe.type === 'cooking') return;
-
-            if(!known.includes(recipe.id)) return; 
-            knownCount++;
-
-            const outItem = recipe.out === 'AMMO' ? {name: "15x Munition"} : Game.items[recipe.out];
-            const div = document.createElement('div');
-            div.className = "border border-green-900 bg-green-900/10 p-3 mb-2";
-            let reqHtml = '';
-            let canCraft = true;
-            for(let reqId in recipe.req) {
-                const countNeeded = recipe.req[reqId];
-                const invItem = Game.state.inventory.find(i => i.id === reqId);
-                const countHave = invItem ? invItem.count : 0;
-                let color = "text-green-500";
-                if (countHave < countNeeded) { canCraft = false; color = "text-red-500"; }
-                reqHtml += `<div class="${color} text-xs">• ${Game.items[reqId].name}: ${countHave}/${countNeeded}</div>`;
-            }
-            if(Game.state.lvl < recipe.lvl) { canCraft = false; reqHtml += `<div class="text-red-500 text-xs mt-1">Benötigt Level ${recipe.lvl}</div>`; }
-            div.innerHTML = `
-                <div class="flex justify-between items-start mb-2">
-                    <div class="font-bold text-yellow-400 text-lg">${outItem.name}</div>
-                    <button class="action-button text-sm px-3" onclick="Game.craftItem('${recipe.id}')" ${canCraft ? '' : 'disabled'}>FERTIGEN</button>
-                </div>
-                <div class="pl-2 border-l-2 border-green-900">${reqHtml}</div>
-            `;
-            container.appendChild(div);
-        });
+        // TABS
+        const tabs = document.createElement('div');
+        tabs.className = "flex w-full mb-4 border-b border-green-700";
         
-        if(knownCount === 0) {
-            container.innerHTML += '<div class="text-gray-500 italic mt-10 text-center border-t border-gray-800 pt-4">Du hast noch keine Baupläne gelernt.<br><span class="text-xs text-green-700">Suche in Dungeons oder der Wildnis nach Blueprints!</span></div>';
+        const btnCreate = document.createElement('button');
+        btnCreate.className = `flex-1 py-2 font-bold ${tab==='create' ? 'bg-green-900/40 text-green-400 border-b-2 border-green-400' : 'text-gray-500 hover:text-green-300'}`;
+        btnCreate.textContent = "HERSTELLEN";
+        btnCreate.onclick = () => this.renderCrafting('create');
+        
+        const btnScrap = document.createElement('button');
+        btnScrap.className = `flex-1 py-2 font-bold ${tab==='scrap' ? 'bg-orange-900/40 text-orange-400 border-b-2 border-orange-400' : 'text-gray-500 hover:text-orange-300'}`;
+        btnScrap.textContent = "ZERLEGEN";
+        btnScrap.onclick = () => this.renderCrafting('scrap');
+
+        tabs.appendChild(btnCreate);
+        tabs.appendChild(btnScrap);
+        container.appendChild(tabs);
+
+        if (tab === 'create') {
+            const recipes = Game.recipes || [];
+            const known = Game.state.knownRecipes || [];
+            let knownCount = 0; 
+
+            recipes.forEach(recipe => {
+                if(recipe.type === 'cooking') return;
+                if(!known.includes(recipe.id)) return; 
+                knownCount++;
+
+                const outItem = recipe.out === 'AMMO' ? {name: "15x Munition"} : Game.items[recipe.out];
+                const div = document.createElement('div');
+                div.className = "border border-green-900 bg-green-900/10 p-3 mb-2";
+                let reqHtml = '';
+                let canCraft = true;
+                for(let reqId in recipe.req) {
+                    const countNeeded = recipe.req[reqId];
+                    const invItem = Game.state.inventory.find(i => i.id === reqId);
+                    const countHave = invItem ? invItem.count : 0;
+                    let color = "text-green-500";
+                    if (countHave < countNeeded) { canCraft = false; color = "text-red-500"; }
+                    reqHtml += `<div class="${color} text-xs">• ${Game.items[reqId].name}: ${countHave}/${countNeeded}</div>`;
+                }
+                if(Game.state.lvl < recipe.lvl) { canCraft = false; reqHtml += `<div class="text-red-500 text-xs mt-1">Benötigt Level ${recipe.lvl}</div>`; }
+                div.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-bold text-yellow-400 text-lg">${outItem.name}</div>
+                        <button class="action-button text-sm px-3" onclick="Game.craftItem('${recipe.id}')" ${canCraft ? '' : 'disabled'}>FERTIGEN</button>
+                    </div>
+                    <div class="pl-2 border-l-2 border-green-900">${reqHtml}</div>
+                `;
+                container.appendChild(div);
+            });
+            
+            if(knownCount === 0) {
+                container.innerHTML += '<div class="text-gray-500 italic mt-10 text-center border-t border-gray-800 pt-4">Du hast noch keine Baupläne gelernt.<br><span class="text-xs text-green-700">Suche in Dungeons oder der Wildnis nach Blueprints!</span></div>';
+            }
+        } 
+        else {
+            // SCRAP TAB
+            let scrappables = [];
+            Game.state.inventory.forEach((item, idx) => {
+                const def = Game.items[item.id];
+                if (['weapon','body','head','legs','feet','arms'].includes(def.type)) {
+                    scrappables.push({idx, item, def});
+                }
+            });
+
+            if(scrappables.length === 0) {
+                container.innerHTML += '<div class="text-gray-500 italic mt-10 text-center">Keine zerlegbaren Gegenstände (Waffen/Rüstung) im Inventar.</div>';
+            } else {
+                scrappables.forEach(entry => {
+                    const name = entry.item.props ? entry.item.props.name : entry.def.name;
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center p-3 mb-2 border border-orange-900 bg-orange-900/10";
+                    div.innerHTML = `
+                        <div class="font-bold text-orange-300">${name}</div>
+                        <button class="border border-orange-500 text-orange-500 hover:bg-orange-900 px-3 py-1 text-xs font-bold" onclick="Game.scrapItem(${entry.idx})">ZERLEGEN</button>
+                    `;
+                    container.appendChild(div);
+                });
+            }
         }
     }
 });
