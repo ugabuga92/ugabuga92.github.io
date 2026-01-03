@@ -1,7 +1,7 @@
-[v3.3a] - 2026-01-03 04:20am (Survival & UI Polish)
+[v3.3b] - 2026-01-03 04:45am (Survival & UI Polish)
 - SURVIVAL: Ungeschütztes Schlafen im Freien gibt nun +10 RADS Strahlung.
-- SURVIVAL: Schlafen im Zelt (Basis oder Komfort) schützt weiterhin vor Strahlung.
-- UI: "Quest Erfüllt"-Overlay zentriert (war vorher zu weit oben).
+- SURVIVAL: Schlafen im Zelt gibt +5 RADS (Teilweiser Schutz).
+- UI: "Quest Erfüllt"-Overlay nun garantiert mittig zentriert.
 
 [v3.3] - 2026-01-03 04:00am (World Graphics)
 - VISUAL: Die Raiderfestung ("R") auf der Weltkarte hat nun eine Grafik.
