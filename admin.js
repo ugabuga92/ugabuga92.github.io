@@ -1,28 +1,14 @@
-// [v3.8] - 2026-01-03 08:00am (Admin System Update)
-// - Security: Added strict login check.
-// - Compatibility: Uses Game.items for dynamic list.
-// - Cleanup: Removed obsolete functions.
+// [v3.9] - 2026-01-03 09:45am (Admin Logic Classic)
+// Features: Login, Player List, Stats Edit, Item Spawner, No Hazards.
 
 const Admin = {
-    
-    selectedPlayerId: null,
+    selectedId: null,
     players: {},
 
     init: function() {
-        console.log("[Admin] Initializing v3.8...");
-        
-        // Check Auth
-        const session = localStorage.getItem('admin_session');
-        if(session === 'active') {
+        // Auto-Login Check
+        if(localStorage.getItem('admin_session') === 'active') {
             this.showDashboard();
-        }
-
-        // Initialize Firebase Listeners (only if needed/after login)
-        if(typeof Network !== 'undefined' && Network.db) {
-            this.startListeners();
-        } else {
-            // Wait for Firebase to be ready if loaded async
-            setTimeout(() => this.init(), 500);
         }
     },
 
@@ -31,15 +17,14 @@ const Admin = {
         const p = document.getElementById('adm-pass').value;
         const msg = document.getElementById('login-msg');
 
-        // [SECURE CREDENTIALS]
         if(u === 'admin@pipboy-system.com' && p === 'zintel1992') {
             localStorage.setItem('admin_session', 'active');
-            msg.textContent = "ACCESS GRANTED.";
-            msg.className = "text-green-500 font-bold mt-2";
-            setTimeout(() => this.showDashboard(), 1000);
+            msg.textContent = "ZUGRIFF ERLAUBT.";
+            msg.className = "mt-4 text-green-500 font-bold";
+            setTimeout(() => this.showDashboard(), 800);
         } else {
-            msg.textContent = "ACCESS DENIED. INCIDENT LOGGED.";
-            msg.className = "text-red-500 font-bold mt-2 blink-red";
+            msg.textContent = "ZUGRIFF VERWEIGERT.";
+            msg.className = "mt-4 text-red-500 font-bold animate-pulse";
         }
     },
 
@@ -49,214 +34,168 @@ const Admin = {
     },
 
     showDashboard: function() {
-        document.getElementById('admin-login').classList.add('hidden');
-        document.getElementById('admin-dashboard').classList.remove('hidden');
-        document.getElementById('admin-dashboard').classList.add('flex');
+        document.getElementById('login-overlay').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('dashboard').classList.add('flex');
         
-        this.log("Session started. Welcome, Overseer.");
-        this.startListeners();
-        this.populateItemSelect();
+        this.populateItems();
+        this.startListener();
     },
 
-    startListeners: function() {
-        if(!Network.db) return;
+    startListener: function() {
+        if(!Network.db) { setTimeout(() => this.startListener(), 500); return; }
         
-        // Listen to ALL players
-        Network.db.ref('players').on('value', (snap) => {
+        Network.db.ref('players').on('value', snap => {
             this.players = snap.val() || {};
-            this.renderPlayerList();
+            this.renderList();
+            if(this.selectedId && this.players[this.selectedId]) {
+                this.updateDetailView(this.players[this.selectedId]);
+            }
         });
     },
 
-    renderPlayerList: function() {
+    renderList: function() {
         const list = document.getElementById('player-list');
         list.innerHTML = '';
 
-        if(Object.keys(this.players).length === 0) {
-            list.innerHTML = '<div class="p-2 text-gray-500">No signals detected.</div>';
+        const ids = Object.keys(this.players);
+        if(ids.length === 0) {
+            list.innerHTML = '<div class="p-4 text-gray-500 text-center">Keine Spieler online.</div>';
             return;
         }
 
-        for(let pid in this.players) {
+        ids.forEach(pid => {
             const p = this.players[pid];
-            const isDead = p.hp <= 0;
             const div = document.createElement('div');
-            div.className = `p-2 border-b border-green-900 cursor-pointer hover:bg-green-900/30 ${this.selectedPlayerId === pid ? 'bg-green-900/50 border-l-4 border-yellow-400' : ''}`;
+            div.className = `player-item flex justify-between items-center ${this.selectedId === pid ? 'active' : ''}`;
             div.onclick = () => this.selectPlayer(pid);
             
+            const isDead = p.hp <= 0;
+            const statusIcon = isDead ? '💀' : '👤';
+            
             div.innerHTML = `
-                <div class="flex justify-between font-bold">
-                    <span class="${isDead ? 'text-red-500 line-through' : 'text-white'}">${p.name || 'Unknown'}</span>
-                    <span class="text-yellow-400">LVL ${p.lvl || 1}</span>
+                <div class="flex flex-col">
+                    <span class="font-bold text-lg">${statusIcon} ${p.name}</span>
+                    <span class="text-xs opacity-70 font-mono">${pid.substr(0,6)}...</span>
                 </div>
-                <div class="text-xs text-gray-400 font-mono">
-                    ID: ${pid.substr(0,8)}... | SEC: [${p.sector ? p.sector.x : '?'},${p.sector ? p.sector.y : '?'}] | HP: ${p.hp}/${p.maxHp}
+                <div class="text-right">
+                    <div class="font-bold">Lvl ${p.lvl || 1}</div>
+                    <div class="text-xs opacity-70">Sektor [${p.sector?.x || 0},${p.sector?.y || 0}]</div>
                 </div>
             `;
             list.appendChild(div);
-        }
+        });
     },
 
     selectPlayer: function(pid) {
-        this.selectedPlayerId = pid;
-        const p = this.players[pid];
+        this.selectedId = pid;
+        this.renderList(); // Highlight update
         
+        const panel = document.getElementById('control-panel');
+        const overlay = document.getElementById('no-selection-msg');
+        
+        panel.classList.remove('opacity-50', 'pointer-events-none');
+        overlay.classList.add('hidden');
+
+        if(this.players[pid]) this.updateDetailView(this.players[pid]);
+    },
+
+    updateDetailView: function(p) {
         document.getElementById('target-name').textContent = p.name;
-        document.getElementById('target-id').textContent = pid;
+        document.getElementById('target-id').textContent = `ID: ${this.selectedId}`;
+        document.getElementById('target-lvl').textContent = p.lvl || 1;
+        document.getElementById('target-hp').textContent = `${Math.round(p.hp)}/${p.maxHp}`;
         
-        // Fill Edit Fields
-        document.getElementById('edit-lvl').value = p.lvl || 1;
-        document.getElementById('edit-caps').value = p.caps || 0;
-        
-        this.renderPlayerList(); // Update highlight
-        this.log(`Target acquired: ${p.name}`);
+        // Farbe bei Low HP
+        const hpEl = document.getElementById('target-hp');
+        hpEl.className = p.hp < (p.maxHp * 0.3) ? 'text-red-500 font-bold blink-red' : 'text-green-400';
     },
 
-    switchTab: function(tabName) {
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-        document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-    },
-
-    populateItemSelect: function() {
+    populateItems: function() {
         const sel = document.getElementById('item-select');
-        if(!Game || !Game.items) {
-            console.error("Game.items missing. Make sure data_items.js is loaded.");
-            return;
-        }
-        
-        // Clear old options (keep first)
-        while(sel.options.length > 1) sel.remove(1);
+        if(!Game || !Game.items) return;
 
-        const sortedKeys = Object.keys(Game.items).sort();
-        sortedKeys.forEach(key => {
-            const item = Game.items[key];
+        // Sortierte Liste
+        const keys = Object.keys(Game.items).sort();
+        keys.forEach(k => {
+            const item = Game.items[k];
             const opt = document.createElement('option');
-            opt.value = key;
-            opt.textContent = `${item.name} (${key})`;
+            opt.value = k;
+            opt.textContent = `${item.name} (${k})`;
             sel.appendChild(opt);
         });
     },
 
     // --- ACTIONS ---
 
-    modStat: function(stat, amount) {
-        if(!this.selectedPlayerId) return;
-        const p = this.players[this.selectedPlayerId];
-        let newVal = (p[stat] || 0) + amount;
-        if(newVal < 0) newVal = 0;
-
-        Network.db.ref(`players/${this.selectedPlayerId}/${stat}`).set(newVal);
-        this.log(`Modified ${stat} for ${p.name}: ${newVal}`);
+    modStat: function(stat, val) {
+        if(!this.selectedId) return;
+        const p = this.players[this.selectedId];
+        let current = p[stat] || 0;
+        let next = current + val;
+        if(next < 0) next = 0;
+        
+        Network.db.ref(`players/${this.selectedId}/${stat}`).set(next);
     },
 
     fullHeal: function() {
-        if(!this.selectedPlayerId) return;
-        const p = this.players[this.selectedPlayerId];
-        Network.db.ref(`players/${this.selectedPlayerId}/hp`).set(p.maxHp);
-        Network.db.ref(`players/${this.selectedPlayerId}/rads`).set(0);
-        this.log(`Fully restored ${p.name}.`);
+        if(!this.selectedId) return;
+        const p = this.players[this.selectedId];
+        Network.db.ref(`players/${this.selectedId}/hp`).set(p.maxHp);
+        Network.db.ref(`players/${this.selectedId}/rads`).set(0);
+        Network.db.ref(`players/${this.selectedId}/isGameOver`).set(false); // Revive flag just in case
     },
 
     killTarget: function() {
-        if(!this.selectedPlayerId) return;
-        if(!confirm("TERMINATE SUBJECT? THIS CANNOT BE UNDONE.")) return;
-        
-        Network.db.ref(`players/${this.selectedPlayerId}/hp`).set(0);
-        this.log(`Target terminated.`);
+        if(!this.selectedId) return;
+        if(confirm("Diesen Spieler wirklich töten? (HP auf 0)")) {
+            Network.db.ref(`players/${this.selectedId}/hp`).set(0);
+        }
     },
 
     giveItem: function() {
-        if(!this.selectedPlayerId) { alert("Select a player first!"); return; }
-        const itemId = document.getElementById('item-select').value;
+        if(!this.selectedId) return;
+        const item = document.getElementById('item-select').value;
         const count = parseInt(document.getElementById('item-count').value) || 1;
+        
+        if(!item) { alert("Bitte Item wählen!"); return; }
 
-        if(!itemId) return;
-
-        // Fetch current inventory
-        Network.db.ref(`players/${this.selectedPlayerId}/inventory`).once('value', snap => {
-            let inv = snap.val() || [];
-            
-            // Add Item Logic (Simplified version of game_actions.js)
-            let added = false;
-            // Check stack
-            for(let item of inv) {
-                if(item.id === itemId && !item.props) {
-                    item.count += count;
-                    added = true;
-                    break;
-                }
-            }
-            // New slot
-            if(!added) {
-                inv.push({ id: itemId, count: count, isNew: true });
-            }
-
-            Network.db.ref(`players/${this.selectedPlayerId}/inventory`).set(inv);
-            this.log(`Sent ${count}x ${itemId} to target.`);
-        });
+        this.sendToInv(this.selectedId, [{id: item, count: count}]);
     },
 
     giveKit: function(type) {
-        if(!this.selectedPlayerId) return;
+        if(!this.selectedId) return;
         
         const kits = {
-            'starter': [
-                {id: 'knife', count: 1}, 
-                {id: 'stimpack', count: 3}, 
-                {id: 'water', count: 2}
-            ],
-            'camp': [
-                {id: 'camp_kit', count: 1}, 
-                {id: 'meat', count: 5}, 
-                {id: 'wood', count: 10}
-            ],
-            'god': [
-                {id: 'plasma_rifle', count: 1}, 
-                {id: 'power_armor', count: 1}, 
-                {id: 'ammo', count: 500},
-                {id: 'stimpack', count: 50}
-            ]
+            'starter': [{id:'knife',count:1}, {id:'stimpack',count:3}, {id:'water',count:2}],
+            'camp': [{id:'camp_kit',count:1}, {id:'wood',count:10}, {id:'meat',count:5}],
+            'god': [{id:'plasma_rifle',count:1}, {id:'power_armor',count:1}, {id:'ammo',count:500}, {id:'stimpack',count:50}]
         };
 
-        const itemsToAdd = kits[type];
-        if(!itemsToAdd) return;
+        if(kits[type]) this.sendToInv(this.selectedId, kits[type]);
+    },
 
-        Network.db.ref(`players/${this.selectedPlayerId}/inventory`).once('value', snap => {
+    sendToInv: function(pid, itemsToAdd) {
+        Network.db.ref(`players/${pid}/inventory`).once('value', snap => {
             let inv = snap.val() || [];
+            
             itemsToAdd.forEach(newItem => {
                 let added = false;
-                for(let item of inv) {
-                    if(item.id === newItem.id) { item.count += newItem.count; added = true; break; }
+                // Stack check
+                for(let i of inv) {
+                    if(i.id === newItem.id && !i.props) {
+                        i.count += newItem.count;
+                        added = true;
+                        break;
+                    }
                 }
-                if(!added) inv.push(newItem);
+                if(!added) inv.push({ id: newItem.id, count: newItem.count, isNew: true });
             });
-            Network.db.ref(`players/${this.selectedPlayerId}/inventory`).set(inv);
-            this.log(`Deployed KIT: ${type.toUpperCase()}`);
+
+            Network.db.ref(`players/${pid}/inventory`).set(inv);
+            alert(`${itemsToAdd.length} Items gesendet.`);
         });
-    },
-
-    sendBroadcast: function(type) {
-        const txt = document.getElementById('broadcast-msg').value;
-        if(!txt) return;
-        
-        // Wir schreiben in einen globalen "broadcast" Pfad, auf den Clients hören könnten
-        // (Müsste im Client noch implementiert werden, hier nur als Admin-Action vorbereitet)
-        // Alternativ: Wir manipulieren den Chat oder Logs.
-        // Vorerst: Nur Log.
-        this.log(`BROADCAST SENT: [${type.toUpperCase()}] ${txt}`);
-        alert("Broadcast Feature: Client-Side Listener required (Future Update).");
-    },
-
-    log: function(msg) {
-        const box = document.getElementById('admin-log');
-        const entry = document.createElement('div');
-        entry.className = "log-entry";
-        entry.textContent = `> ${msg}`;
-        box.insertBefore(entry, box.firstChild);
     }
 };
 
-// Auto-Init on Load
-window.onload = function() {
-    Admin.init();
-};
+window.onload = function() { Admin.init(); };
