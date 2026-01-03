@@ -1,3 +1,8 @@
+[v3.5a] - 2026-01-03 05:00am (Inventory Trash Feature)
+- FEATURE: Items können nun im Inventar zerstört werden (Mülleimer-Funktion).
+- UI: Item-Dialog um "WEGWERFEN"-Button erweitert.
+- LOGIC: Neue Funktion 'destroyItem' für endgültiges Löschen implementiert.
+
 [v3.4a] - 2026-01-03 (UI Polish & Logic Update)
 - UI: "HP" in "TP" umbenannt.
 - TP-Anzeige: Nutzt nun die volle Höhe der Leiste für bessere Lesbarkeit.
