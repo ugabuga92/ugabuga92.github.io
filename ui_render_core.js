@@ -1,4 +1,4 @@
-// [v3.0] - 2026-01-03 00:15am (UI & Map Link) - Sector Display with Map Logic
+// [v3.4a] - 2026-01-03 (UI & Logic) - TP Update
 Object.assign(UI, {
     
     // Updates HUD and Button States
@@ -10,20 +10,26 @@ Object.assign(UI, {
         if(!this.els.caps) this.els.caps = document.getElementById('val-caps');
         if(!this.els.hp) this.els.hp = document.getElementById('bar-hp');
         if(!this.els.hpText) this.els.hpText = document.getElementById('val-hp-text');
-        
+        if(!this.els.headerCharInfo) this.els.headerCharInfo = document.getElementById('header-char-info');
+
         const sectorDisplay = document.getElementById('val-sector-display');
         
-        // Global Level-Up Check
-        const hasPoints = Game.state.statPoints > 0;
+        // Global Level-Up Check (Stats or Perks)
+        const hasPoints = (Game.state.statPoints > 0) || (Game.state.perkPoints > 0);
 
         // 1. NAME UPDATE
         const displayName = Game.state.playerName || (typeof Network !== 'undefined' ? Network.myDisplayName : "SURVIVOR");
         
         if(this.els.name) {
             this.els.name.textContent = displayName;
-            if(hasPoints) this.els.name.classList.add('lvl-ready-glow');
-            else this.els.name.classList.remove('lvl-ready-glow');
         }
+        
+        // Apply Glow to the whole container if any points available
+        if(this.els.headerCharInfo) {
+            if(hasPoints) this.els.headerCharInfo.classList.add('lvl-ready-glow');
+            else this.els.headerCharInfo.classList.remove('lvl-ready-glow');
+        }
+
         const dtName = document.querySelector('.desktop-name-target');
         if(dtName) dtName.textContent = displayName;
 
@@ -31,20 +37,13 @@ Object.assign(UI, {
         if(sectorDisplay) {
             const sx = Game.state.sector ? Game.state.sector.x : 0;
             const sy = Game.state.sector ? Game.state.sector.y : 0;
-            
-            // [v3.0] Update: Weltkugel Icon & Sektor-Koordinaten statt "WELTKARTE" Text
-            // Der Button ist durch 'switchView' bereits mit onclick="UI.switchView('worldmap')" verknüpft.
             sectorDisplay.innerHTML = `🌍 SEKTOR [${sx},${sy}]`;
-            
-            // Wir entfernen die harte gelbe Umrandung, die vorher aktiv war, damit der CSS-Hover-Effekt (Grün -> Gelb) besser wirkt.
             sectorDisplay.classList.remove('border-yellow-500');
         }
 
         // 3. LEVEL UPDATE
         if(this.els.lvl) { 
             this.els.lvl.textContent = Game.state.lvl;
-            if(hasPoints) this.els.lvl.classList.add('lvl-ready-glow');
-            else this.els.lvl.classList.remove('lvl-ready-glow');
         }
         const dtLvl = document.querySelector('.desktop-lvl-target');
         if(dtLvl) dtLvl.textContent = Game.state.lvl;
@@ -53,22 +52,24 @@ Object.assign(UI, {
         const maxHp = Game.state.maxHp;
         const hp = Game.state.hp;
         const rads = Game.state.rads || 0;
+        // Effektiv verfügbar (Max - Rads)
+        const effectiveMax = Math.max(1, maxHp - rads);
+        
         const hpPct = Math.min(100, Math.max(0, (hp / maxHp) * 100));
         const radPct = Math.min(100, (rads / maxHp) * 100);
-        const hpText = `${Math.round(hp)}/${maxHp}`;
         
-        // Desktop
-        if(this.els.hp) this.els.hp.textContent = hpText;
-        if(this.els.hpBar) this.els.hpBar.style.width = `${hpPct}%`;
-        const radBar = document.getElementById('bar-rads');
-        if(radBar) radBar.style.width = `${radPct}%`;
+        // [v3.4a] Display: Current / Effective Max (after Rads)
+        const hpText = `${Math.round(hp)}/${Math.round(effectiveMax)}`;
+        
+        // Desktop / Header Bar
+        if(this.els.hp) {
+             this.els.hp.textContent = hpText; // Not visible in bar-hp div usually, but safety
+             // The actual text is in #val-hp now
+             const valHpEl = document.getElementById('val-hp');
+             if(valHpEl) valHpEl.textContent = hpText;
+        }
 
-        // Mobile Bars (Full Width)
-        const mobHp = document.getElementById('bar-hp-mobile');
-        const mobRad = document.getElementById('bar-rads-mobile');
-        const mobText = document.getElementById('val-hp-mobile-text');
-        
-        // HP Bar Color Logic (Red < 25%, Yellow < 50%, Green > 50%)
+        // Bar Colors
         let barColor = "bg-green-500";
         if(hpPct < 25) barColor = "bg-red-500 animate-pulse";
         else if(hpPct < 50) barColor = "bg-yellow-500";
@@ -78,6 +79,14 @@ Object.assign(UI, {
              this.els.hp.style.width = `${hpPct}%`;
         }
 
+        const radBar = document.getElementById('bar-rads');
+        if(radBar) radBar.style.width = `${radPct}%`;
+
+        // Mobile Bars (Legacy support if elements exist)
+        const mobHp = document.getElementById('bar-hp-mobile');
+        const mobRad = document.getElementById('bar-rads-mobile');
+        const mobText = document.getElementById('val-hp-mobile-text');
+        
         if(mobHp) {
             mobHp.className = `h-full transition-all duration-300 ${barColor}`;
             mobHp.style.width = `${hpPct}%`;
@@ -91,12 +100,11 @@ Object.assign(UI, {
         
         if(this.els.xpTxt) this.els.xpTxt.textContent = expPct;
         if(this.els.expBarTop) this.els.expBarTop.style.width = `${expPct}%`;
-        if(this.els.expBarMobile) this.els.expBarMobile.style.width = `${expPct}%`;
         
         // Misc
         if(this.els.caps) this.els.caps.textContent = `${Game.state.caps}`;
         
-        // Ammo (Count inventory item)
+        // Ammo
         const ammoItem = Game.state.inventory ? Game.state.inventory.find(i => i.id === 'ammo') : null;
         if(this.els.ammo) this.els.ammo.textContent = ammoItem ? ammoItem.count : 0;
 
@@ -114,10 +122,10 @@ Object.assign(UI, {
             }
         }
 
-        // Glow Alerts
+        // Glow Alerts (Button specific)
         let hasAlert = false;
         if(this.els.btnChar) {
-            if(Game.state.statPoints > 0) { this.els.btnChar.classList.add('alert-glow-yellow'); hasAlert = true; } 
+            if(hasPoints) { this.els.btnChar.classList.add('alert-glow-yellow'); hasAlert = true; } 
             else { this.els.btnChar.classList.remove('alert-glow-yellow'); }
         } 
         
@@ -135,7 +143,7 @@ Object.assign(UI, {
 
         // Disable Buttons in Combat
         const inCombat = Game.state.view === 'combat';
-        [this.els.btnWiki, this.els.btnMap, this.els.btnChar, this.els.btnQuests, this.els.btnSave, this.els.btnLogout, this.els.btnInv].forEach(btn => {
+        [this.els.btnWiki, this.els.btnMap, this.els.btnChar, this.els.btnQuests, this.els.btnLogout, this.els.btnInv].forEach(btn => {
             if(btn) {
                 btn.disabled = inCombat;
             }
