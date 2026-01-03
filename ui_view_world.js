@@ -1,6 +1,6 @@
-// [v3.7] - 2026-01-03 07:15am (World & Camp Renderer)
-// - Map Logic: Zeigt Sektoren und POIs.
-// - Camp Renderer: Zeichnet das Zelt-Menü direkt via JS (ohne HTML-Datei).
+// [v3.7b] - 2026-01-03 07:45am (World View Cleanup)
+// - CLEANUP: Camp-Funktionen entfernt (jetzt in ui_view_camp.js).
+// - LOGIC: Nur noch für die renderWorldMap zuständig.
 
 Object.assign(UI, {
 
@@ -135,7 +135,7 @@ Object.assign(UI, {
                     }
                 }
 
-                // Zelt-Icon auf Karte
+                // Zelt-Icon auf Karte (WICHTIG: Das bleibt hier!)
                 if(Game.state.camp && Game.state.camp.sector && Game.state.camp.sector.x === x && Game.state.camp.sector.y === y) {
                     ctx.font = "bold 20px monospace";
                     ctx.fillStyle = "#ffffff";
@@ -174,198 +174,6 @@ Object.assign(UI, {
         // Loop
         if(Game.state.view === 'worldmap') {
             requestAnimationFrame(() => this.renderWorldMap());
-        }
-    },
-
-    // --- HIER IST DIE FUNKTION, DIE DIR FEHLT ---
-    renderCamp: function() {
-        const camp = Game.state.camp;
-        
-        // Sicherheitscheck: Wenn kein Camp existiert, zurück zur Map
-        if(!camp) { 
-            console.warn("RenderCamp called but no camp exists.");
-            this.switchView('map'); 
-            return; 
-        }
-        
-        let statusText = "Basis-Zelt (Lvl 1). Heilung 50%.";
-        let upgradeText = "LAGER VERBESSERN";
-        let upgradeSub = "Kosten: 10x Schrott";
-        let upgradeDisabled = false;
-        
-        if(camp.level >= 2) {
-            statusText = "Komfort-Zelt (Lvl 2). Heilung 100%.";
-            upgradeText = "LAGER MAXIMIERT";
-            upgradeSub = "Maximum erreicht";
-            upgradeDisabled = true;
-        }
-
-        // Wir bauen das UI komplett in JS zusammen
-        this.els.view.innerHTML = `
-            <div class="flex flex-col h-full w-full max-w-lg mx-auto p-4 gap-4">
-                
-                <div class="border-b-2 border-green-500 pb-2 flex justify-between items-end">
-                    <h1 class="text-3xl font-bold text-yellow-400">⛺ LAGER</h1>
-                    <span class="text-green-500 font-mono">LEVEL ${camp.level}</span>
-                </div>
-                
-                <div class="bg-green-900/20 border border-green-900 p-4 text-center">
-                    <p class="text-green-300">${statusText}</p>
-                </div>
-
-                <button class="flex flex-col items-center justify-center border ${upgradeDisabled ? 'border-gray-700 text-gray-500 cursor-not-allowed' : 'border-yellow-500 text-yellow-400 hover:bg-yellow-900/30'} p-3 transition-all w-full"
-                    onclick="Game.upgradeCamp()" ${upgradeDisabled ? 'disabled' : ''}>
-                    <span class="font-bold text-lg">${upgradeText}</span>
-                    <span class="text-xs opacity-70">${upgradeSub}</span>
-                </button>
-
-                <div class="grid grid-cols-2 gap-4 flex-grow max-h-[60%]">
-                    
-                    <button class="flex flex-col items-center justify-center border border-blue-500 text-blue-400 hover:bg-blue-900/30 p-4 transition-all h-full"
-                        onclick="Game.restInCamp()">
-                        <span class="text-3xl mb-1">💤</span>
-                        <span class="font-bold">SCHLAFEN</span>
-                        <span class="text-xs opacity-70">HP heilen</span>
-                    </button>
-
-                    <button class="flex flex-col items-center justify-center border border-orange-500 text-orange-400 hover:bg-orange-900/30 p-4 transition-all h-full"
-                        onclick="UI.renderCampCooking()">
-                        <span class="text-3xl mb-1">🍖</span>
-                        <span class="font-bold">KOCHEN</span>
-                        <span class="text-xs opacity-70">Essen</span>
-                    </button>
-
-                    <button class="flex flex-col items-center justify-center border border-red-500 text-red-400 hover:bg-red-900/30 p-4 transition-all h-full"
-                        onclick="Game.packCamp()">
-                        <span class="text-3xl mb-1">🎒</span>
-                        <span class="font-bold">ABBAUEN</span>
-                        <span class="text-xs opacity-70">Einpacken</span>
-                    </button>
-
-                    <button class="flex flex-col items-center justify-center border border-green-500 text-green-500 hover:bg-green-900/30 p-4 transition-all h-full"
-                        onclick="UI.switchView('map')">
-                        <span class="text-3xl mb-1">🗺️</span>
-                        <span class="font-bold">ZURÜCK</span>
-                        <span class="text-xs opacity-70">Karte</span>
-                    </button>
-                
-                </div>
-            </div>
-        `;
-    },
-
-    renderCampCooking: function() {
-        const view = this.els.view;
-        view.innerHTML = `
-            <div class="p-4 w-full max-w-2xl mx-auto flex flex-col h-full">
-                <h2 class="text-3xl font-bold text-yellow-500 mb-4 border-b-2 border-yellow-900 pb-2 flex items-center gap-2">
-                    <span>🔥</span> LAGERFEUER
-                </h2>
-                <div id="cooking-list" class="flex-grow overflow-y-auto pr-2 custom-scrollbar"></div>
-                <button onclick="UI.renderCamp()" class="mt-4 border border-yellow-500 text-yellow-500 py-3 font-bold hover:bg-yellow-900/40 uppercase tracking-widest">
-                    << Zurück zum Zelt
-                </button>
-            </div>
-        `;
-        
-        const list = document.getElementById('cooking-list');
-        const recipes = Game.recipes || [];
-        const cookingRecipes = recipes.filter(r => r.type === 'cooking');
-
-        if(cookingRecipes.length === 0) {
-            list.innerHTML = '<div class="text-gray-500 italic text-center mt-10">Du kennst noch keine Rezepte.</div>';
-            return;
-        }
-
-        cookingRecipes.forEach(recipe => {
-            const outItem = Game.items[recipe.out];
-            const div = document.createElement('div');
-            div.className = "border border-yellow-900 bg-yellow-900/10 p-3 mb-2 flex justify-between items-center";
-            
-            let reqHtml = '';
-            let canCraft = true;
-            for(let reqId in recipe.req) {
-                const countNeeded = recipe.req[reqId];
-                const invItem = Game.state.inventory.find(i => i.id === reqId);
-                const countHave = invItem ? invItem.count : 0;
-                let color = "text-yellow-500";
-                if (countHave < countNeeded) { canCraft = false; color = "text-red-500"; }
-                const ingredientName = Game.items[reqId] ? Game.items[reqId].name : reqId;
-                reqHtml += `<span class="${color} text-xs mr-2">• ${ingredientName}: ${countHave}/${countNeeded}</span>`;
-            }
-
-            div.innerHTML = `
-                <div class="flex flex-col">
-                    <span class="font-bold text-yellow-400 text-lg">${outItem.name}</span>
-                    <span class="text-xs text-yellow-600 italic">${outItem.desc}</span>
-                    <div class="mt-1">${reqHtml}</div>
-                </div>
-                <button class="border border-yellow-500 text-yellow-500 px-4 py-2 font-bold hover:bg-yellow-500 hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                    onclick="Game.craftItem('${recipe.id}')" ${canCraft ? '' : 'disabled'}>
-                    BRATEN
-                </button>
-            `;
-            list.appendChild(div);
-        });
-    },
-
-    renderRadio: function() {
-        const btnToggle = document.getElementById('btn-radio-toggle');
-        const stationName = document.getElementById('radio-station-name');
-        const status = document.getElementById('radio-status');
-        const hz = document.getElementById('radio-hz');
-        const track = document.getElementById('radio-track');
-        const waves = document.getElementById('radio-waves');
-
-        if(!btnToggle) return;
-
-        const isOn = Game.state.radio.on;
-        
-        if(isOn) {
-            btnToggle.textContent = "AUSSCHALTEN";
-            btnToggle.classList.replace('text-green-500', 'text-red-500');
-            btnToggle.classList.replace('border-green-500', 'border-red-500');
-            
-            const currentStation = Game.radioStations[Game.state.radio.station];
-            if(stationName) stationName.textContent = currentStation.name;
-            if(status) status.textContent = "SIGNAL STABLE - STEREO";
-            if(hz) hz.textContent = currentStation.freq;
-            
-            const trackList = currentStation.tracks;
-            const now = Math.floor(Date.now() / 10000); 
-            const tIndex = now % trackList.length;
-            if(track) track.textContent = "♪ " + trackList[tIndex] + " ♪";
-            
-            if(waves && Game.Audio && Game.Audio.analyser) {
-                waves.innerHTML = '';
-                const data = Game.Audio.getVisualData(); 
-                const step = Math.floor(data.length / 20);
-                
-                for(let i=0; i<20; i++) {
-                    const val = data[i * step];
-                    const h = Math.max(10, (val / 255) * 100);
-                    const bar = document.createElement('div');
-                    bar.className = "w-1 bg-green-500 transition-all duration-75";
-                    bar.style.height = `${h}%`;
-                    bar.style.opacity = 0.5 + (val/500);
-                    waves.appendChild(bar);
-                }
-            }
-
-        } else {
-            btnToggle.textContent = "EINSCHALTEN";
-            btnToggle.classList.replace('text-red-500', 'text-green-500');
-            btnToggle.classList.replace('border-red-500', 'border-green-500');
-            
-            if(stationName) stationName.textContent = "OFFLINE";
-            if(status) status.textContent = "NO SIGNAL";
-            if(hz) hz.textContent = "00.0";
-            if(track) track.textContent = "...";
-            if(waves) waves.innerHTML = '';
-        }
-        
-        if(isOn && Game.state.view === 'radio') {
-            requestAnimationFrame(() => this.renderRadio());
         }
     }
 });
