@@ -1,12 +1,32 @@
-// [v3.9] - 2026-01-03 09:45am (Admin Logic Classic)
-// Features: Login, Player List, Stats Edit, Item Spawner, No Hazards.
+// [v3.9a] - 2026-01-03 10:00am (Admin Network Fix)
+// - BUGFIX: Network.init() wird nun explizit aufgerufen.
+// - LOGIC: Wartet auf Firebase-Verbindung vor dem Rendern.
 
 const Admin = {
     selectedId: null,
     players: {},
 
     init: function() {
-        // Auto-Login Check
+        console.log("[Admin] System start...");
+
+        // 1. NETZWERK STARTEN (WICHTIG!)
+        if(typeof Network !== 'undefined') {
+            if(!Network.db) {
+                console.log("[Admin] Initializing Network connection...");
+                // Versuche die Standard-Init Funktion zu nutzen
+                if(typeof Network.init === 'function') {
+                    Network.init();
+                } else {
+                    // Fallback: Manuelle Firebase Init, falls Network.init UI-abhängig ist
+                    if(typeof firebase !== 'undefined' && !firebase.apps.length) {
+                         // Config muss in network.js vorhanden sein, wir nutzen die Instanz dort
+                         console.error("Network.init nicht gefunden. Prüfe network.js");
+                    }
+                }
+            }
+        }
+
+        // 2. Auto-Login Check
         if(localStorage.getItem('admin_session') === 'active') {
             this.showDashboard();
         }
@@ -39,11 +59,19 @@ const Admin = {
         document.getElementById('dashboard').classList.add('flex');
         
         this.populateItems();
-        this.startListener();
+        // Kurze Verzögerung, damit Firebase Zeit hat zu verbinden
+        setTimeout(() => this.startListener(), 500);
     },
 
     startListener: function() {
-        if(!Network.db) { setTimeout(() => this.startListener(), 500); return; }
+        // Warten bis DB bereit ist
+        if(!Network.db) { 
+            console.log("[Admin] Warte auf Datenbank...");
+            setTimeout(() => this.startListener(), 500); 
+            return; 
+        }
+        
+        console.log("[Admin] Datenbank verbunden. Lade Spieler...");
         
         Network.db.ref('players').on('value', snap => {
             this.players = snap.val() || {};
@@ -73,14 +101,18 @@ const Admin = {
             const isDead = p.hp <= 0;
             const statusIcon = isDead ? '💀' : '👤';
             
+            // Safe Access für Sektor
+            const secX = p.sector ? p.sector.x : '?';
+            const secY = p.sector ? p.sector.y : '?';
+
             div.innerHTML = `
                 <div class="flex flex-col">
-                    <span class="font-bold text-lg">${statusIcon} ${p.name}</span>
+                    <span class="font-bold text-lg ${isDead ? 'text-red-500' : ''}">${statusIcon} ${p.name || 'Unknown'}</span>
                     <span class="text-xs opacity-70 font-mono">${pid.substr(0,6)}...</span>
                 </div>
                 <div class="text-right">
                     <div class="font-bold">Lvl ${p.lvl || 1}</div>
-                    <div class="text-xs opacity-70">Sektor [${p.sector?.x || 0},${p.sector?.y || 0}]</div>
+                    <div class="text-xs opacity-70">Sektor [${secX},${secY}]</div>
                 </div>
             `;
             list.appendChild(div);
@@ -101,7 +133,7 @@ const Admin = {
     },
 
     updateDetailView: function(p) {
-        document.getElementById('target-name').textContent = p.name;
+        document.getElementById('target-name').textContent = p.name || 'Unknown';
         document.getElementById('target-id').textContent = `ID: ${this.selectedId}`;
         document.getElementById('target-lvl').textContent = p.lvl || 1;
         document.getElementById('target-hp').textContent = `${Math.round(p.hp)}/${p.maxHp}`;
@@ -113,7 +145,13 @@ const Admin = {
 
     populateItems: function() {
         const sel = document.getElementById('item-select');
-        if(!Game || !Game.items) return;
+        if(!Game || !Game.items) {
+            console.warn("Game.items nicht gefunden. Lade data_items.js?");
+            return;
+        }
+
+        // Leere alte Einträge (außer dem ersten)
+        while(sel.options.length > 1) sel.remove(1);
 
         // Sortierte Liste
         const keys = Object.keys(Game.items).sort();
@@ -143,7 +181,7 @@ const Admin = {
         const p = this.players[this.selectedId];
         Network.db.ref(`players/${this.selectedId}/hp`).set(p.maxHp);
         Network.db.ref(`players/${this.selectedId}/rads`).set(0);
-        Network.db.ref(`players/${this.selectedId}/isGameOver`).set(false); // Revive flag just in case
+        Network.db.ref(`players/${this.selectedId}/isGameOver`).set(false); 
     },
 
     killTarget: function() {
@@ -193,7 +231,13 @@ const Admin = {
             });
 
             Network.db.ref(`players/${pid}/inventory`).set(inv);
-            alert(`${itemsToAdd.length} Items gesendet.`);
+            // Kleines Feedback
+            const btn = document.activeElement;
+            if(btn) {
+                const oldText = btn.innerText;
+                btn.innerText = "GESENDET!";
+                setTimeout(() => btn.innerText = oldText, 1000);
+            }
         });
     }
 };
