@@ -1,6 +1,7 @@
-// [v3.1b] - 2026-01-03 02:00am (Economy Update)
-// - Feature: Merchant has limited caps (Budget).
-// - Logic: Added 'merchantCaps' to shop state.
+// [v3.2] - 2026-01-03 06:00pm (Atmosphere & Economy Update)
+// - Feature: Tag/Nacht-Zyklus & Wetter-System integriert.
+// - Logic: 'tickWorld()' berechnet Zeit und Wetter.
+// - Logic: 'getAmbientLight()' steuert die Helligkeit der Grafik-Engine.
 
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
@@ -12,6 +13,10 @@ window.Game = {
     recipes: (typeof window.GameData !== 'undefined') ? window.GameData.recipes : [],
     perkDefs: (typeof window.GameData !== 'undefined') ? window.GameData.perks : [],
     questDefs: (typeof window.GameData !== 'undefined') ? window.GameData.questDefs : [],
+
+    // [v3.2] ATMOSPHERE SETTINGS
+    DAY_LENGTH: 1440, // Minuten pro Tag (24h)
+    weatherTypes: ['clear', 'clear', 'clear', 'cloudy', 'rain', 'fog', 'storm'],
 
     // [v2.0] Radio Data
     radioStations: [
@@ -138,6 +143,61 @@ window.Game = {
     saveTimer: null,
     isDirty: false,
 
+    // [v3.2] TIME & WEATHER LOGIC
+    initWorldState: function() {
+        if(!this.state) return;
+        if(typeof this.state.worldTime === 'undefined') this.state.worldTime = 8 * 60; // Start 08:00
+        if(!this.state.weather) this.state.weather = 'clear';
+        if(!this.state.weatherTimer) this.state.weatherTimer = Date.now();
+    },
+
+    tickWorld: function(minutes = 5) {
+        if(!this.state) return;
+        this.initWorldState();
+
+        // Zeit Fortschritt
+        this.state.worldTime += minutes;
+        if(this.state.worldTime >= this.DAY_LENGTH) {
+            this.state.worldTime = 0; // Neuer Tag
+            // Daily Reset Logic hier möglich
+        }
+
+        // Wetter Wechsel Chance (alle 5 Min Realtime ca.)
+        if(Date.now() - this.state.weatherTimer > 300000) { 
+            this.changeWeather();
+            this.state.weatherTimer = Date.now();
+        }
+    },
+
+    changeWeather: function() {
+        const r = Math.floor(Math.random() * this.weatherTypes.length);
+        const newWeather = this.weatherTypes[r];
+        
+        if(newWeather !== this.state.weather) {
+            this.state.weather = newWeather;
+            UI.log(`Wetter ändert sich: ${newWeather.toUpperCase()}`, "text-blue-300 italic");
+        }
+    },
+
+    getAmbientLight: function() {
+        if(!this.state || typeof this.state.worldTime === 'undefined') return 1.0;
+        
+        const t = this.state.worldTime;
+        // Nacht: 22:00 (1320) bis 04:00 (240) -> 0.15 Dunkelheit
+        if(t < 240) return 0.15; // Tiefe Nacht
+        if(t < 360) return 0.15 + ((t-240)/120) * 0.85; // Sonnenaufgang (04:00-06:00)
+        if(t < 1080) return 1.0; // Tag (06:00-18:00)
+        if(t < 1320) return 1.0 - ((t-1080)/240) * 0.85; // Sonnenuntergang (18:00-22:00)
+        return 0.15; // Nacht ab 22:00
+    },
+
+    getTimeString: function() {
+        if(!this.state) return "00:00";
+        const h = Math.floor(this.state.worldTime / 60);
+        const m = this.state.worldTime % 60;
+        return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+    },
+
     initCache: function() { 
         this.cacheCanvas = document.createElement('canvas'); 
         this.cacheCanvas.width = this.MAP_W * this.TILE; 
@@ -225,6 +285,9 @@ window.Game = {
 
             if (saveData) {
                 this.state = saveData;
+                // Init missing state props
+                this.initWorldState(); // Time/Weather Init
+
                 if(!this.state.explored) this.state.explored = {};
                 if(!this.state.view) this.state.view = 'map';
                 if(!this.state.radio) this.state.radio = { on: false, station: 0, trackIndex: 0 };
@@ -297,6 +360,9 @@ window.Game = {
                     startTime: Date.now()
                 };
                 
+                // Init World for new game
+                this.initWorldState();
+
                 this.addToInventory('stimpack', 1);
                 this.addToInventory('ammo', 10); 
 
