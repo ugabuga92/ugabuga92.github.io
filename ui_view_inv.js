@@ -1,4 +1,8 @@
-// [v2.9.6] - 2026-01-02 20:10pm (Smart Interactions)
+// [v3.2.1] - 2026-01-03 03:10am (Inventory Sort & UI Fixes)
+// - Feature: Inventory split (Unequipped / Equipped).
+// - Fix: Robust 'isEquipped' check.
+// - UI: Larger Unequip-Button in Char Menu.
+
 Object.assign(UI, {
 
     renderInventory: function() {
@@ -42,15 +46,41 @@ Object.assign(UI, {
             }
         };
 
-        Game.state.inventory.forEach((entry, index) => {
-            if(entry.count <= 0) return;
+        // Helper to check if item is equipped
+        const checkIfEquipped = (entry, itemDef) => {
+            let isEquipped = false;
+            let label = "AUSGERÜSTET";
+            
+            // Check Equipment Slots
+            for(let key in Game.state.equip) {
+                const equippedItem = Game.state.equip[key];
+                if(equippedItem) {
+                    // Match by Name (Display Name)
+                    const invName = entry.props ? entry.props.name : itemDef.name;
+                    const equipName = equippedItem.props ? equippedItem.props.name : equippedItem.name;
+                    
+                    if(invName === equipName) isEquipped = true;
+                }
+            }
+            
+            // Check Camp
+            if(entry.id === 'camp_kit' && Game.state.camp) { 
+                isEquipped = true; 
+                label = "AUFGESTELLT"; 
+            }
+
+            return { isEquipped, label };
+        };
+
+        // Render Function for a single item button
+        const createItemBtn = (entry, index, isEquipped, label) => {
             const item = Game.items[entry.id];
-            if(!item) return;
+            if(!item) return null;
 
             const btn = document.createElement('div');
             btn.className = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center cursor-pointer hover:bg-green-500 hover:text-black transition-colors group";
             
-            if(entry.isNew) {
+            if(entry.isNew && !isEquipped) {
                 btn.style.boxShadow = "0 0 20px rgba(57, 255, 20, 1.0)"; 
                 btn.style.zIndex = "10";
                 btn.classList.replace('border-green-500', 'border-green-300'); 
@@ -79,14 +109,6 @@ Object.assign(UI, {
                 <div class="text-[10px] truncate max-w-full px-1 font-bold ${extraClass}">${displayName}</div>
                 <div class="absolute top-0 right-0 bg-green-900 text-white text-[10px] px-1 font-mono">${entry.count}</div>
             `;
-            
-            let isEquipped = false;
-            let label = "AUSGERÜSTET";
-            
-            for(let key in Game.state.equip) {
-                if(Game.state.equip[key] && Game.state.equip[key].name === displayName) isEquipped = true;
-            }
-            if(entry.id === 'camp_kit' && Game.state.camp) { isEquipped = true; label = "AUFGESTELLT"; }
 
             if(isEquipped) {
                 const overlay = document.createElement('div');
@@ -96,23 +118,51 @@ Object.assign(UI, {
                 btn.style.borderColor = "#39ff14"; 
             }
             
-            // [MOD] Smarter Click Logic
             btn.onclick = () => { 
-                // Items die man nicht "benutzen" oder "ausrüsten" kann, zeigen nur Info
                 const nonInteractive = ['junk', 'component', 'misc', 'ammo', 'rare'];
-                
                 if(nonInteractive.includes(item.type)) {
                     UI.log(`INFO: ${displayName}`, "text-cyan-400 font-bold");
                     UI.log(`${item.desc}`, "text-gray-400 italic text-sm");
                 } else {
-                    // Alles andere (Waffen, Essen, Blueprints, Tools) öffnet das Menü
                     UI.showItemConfirm(index); 
                 }
             };
             
-            list.appendChild(btn);
+            return btn;
+        };
+
+        // SPLIT INVENTORY LOGIC
+        const unequippedList = [];
+        const equippedList = [];
+
+        Game.state.inventory.forEach((entry, index) => {
+            if(entry.count <= 0) return;
+            const itemDef = Game.items[entry.id];
+            if(!itemDef) return;
+
+            const { isEquipped, label } = checkIfEquipped(entry, itemDef);
+            const btn = createItemBtn(entry, index, isEquipped, label);
+
+            if(btn) {
+                if(isEquipped) equippedList.push(btn);
+                else unequippedList.push(btn);
+            }
         });
-        
+
+        // 1. Render Unequipped
+        unequippedList.forEach(btn => list.appendChild(btn));
+
+        // 2. Render Separator if needed
+        if(equippedList.length > 0) {
+            const sep = document.createElement('div');
+            sep.className = "col-span-4 flex items-center justify-center text-[10px] text-green-900 font-bold tracking-widest my-2";
+            sep.innerHTML = "<span class='bg-black px-2 border-b border-green-900 w-full text-center'>--- AUSGERÜSTET ---</span>";
+            list.appendChild(sep);
+            
+            // 3. Render Equipped
+            equippedList.forEach(btn => list.appendChild(btn));
+        }
+
         if(Game.state.inventory.length === 0) list.innerHTML = '<div class="col-span-4 text-center text-gray-500 italic mt-10">Leerer Rucksack...</div>';
     },
 
@@ -200,25 +250,24 @@ Object.assign(UI, {
                 }
 
                 const div = document.createElement('div');
-                div.className = "border-b border-green-900/30 pb-1 mb-1";
+                div.className = "border-b border-green-900/30 pb-1 mb-1 relative"; // relative for absolute positioning of btn
                 div.innerHTML = `
                     <div class="text-[10px] text-green-600 font-mono tracking-widest mb-0.5 flex items-center gap-1">
                         <span>${slot.icon}</span> ${slot.label}
                     </div>
-                    <div class="flex justify-between items-center">
-                        <div class="font-bold ${item && item.props && item.props.color ? item.props.color : 'text-yellow-400'} text-sm">${name}</div>
-                        <div class="text-xs font-mono text-green-400 text-right">${statsText}</div>
+                    <div class="flex justify-between items-center pr-8"> <div class="font-bold ${item && item.props && item.props.color ? item.props.color : 'text-yellow-400'} text-sm truncate">${name}</div>
+                        <div class="text-xs font-mono text-green-400 text-right whitespace-nowrap">${statsText}</div>
                     </div>
                 `;
                 
                 if(canUnequip) {
                     const btn = document.createElement('button');
-                    btn.innerHTML = "×";
-                    btn.className = "absolute right-0 top-0 text-red-500 hover:text-white px-2 font-bold";
-                    btn.style.position = "relative"; 
-                    btn.style.marginLeft = "10px";
+                    btn.innerHTML = "✖"; // Thick Cross
+                    // [MOD] Larger, better unequip button
+                    btn.className = "absolute right-0 top-1/2 -translate-y-1/2 text-red-500 hover:text-white hover:bg-red-900/50 h-full w-8 flex items-center justify-center font-bold text-lg transition-colors rounded-sm";
+                    btn.title = "Ausziehen";
                     btn.onclick = (e) => { e.stopPropagation(); Game.unequipItem(slot.key); };
-                    div.querySelector('.flex').appendChild(btn);
+                    div.appendChild(btn);
                 }
 
                 equipContainer.appendChild(div);
