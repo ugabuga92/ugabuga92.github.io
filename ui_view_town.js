@@ -1,4 +1,7 @@
-// [v2.2] - Modularized Town Views (City, Shop, Clinic, Crafting)
+// [v3.1b] - 2026-01-03 02:00am (Shop UI Update)
+// - Feature: Shop Tabs (Buy/Sell).
+// - UI: Added renderShopSell view.
+
 Object.assign(UI, {
 
     renderCity: function() {
@@ -57,22 +60,39 @@ Object.assign(UI, {
     },
     
     renderShop: function(container) {
-        if(!container) container = document.getElementById('shop-list');
+        // Wrapper for Buy View (Default)
+        this.renderShopBuy();
+    },
+
+    renderShopTabs: function(container, activeTab) {
+        const tabs = document.createElement('div');
+        tabs.className = "flex w-full mb-4 border-b border-green-700";
+        
+        const btnBuy = document.createElement('button');
+        btnBuy.className = `flex-1 py-2 font-bold ${activeTab==='buy' ? 'bg-green-900/40 text-green-400 border-b-2 border-green-400' : 'text-gray-500 hover:text-green-300'}`;
+        btnBuy.textContent = "KAUFEN";
+        btnBuy.onclick = () => this.renderShopBuy();
+        
+        const btnSell = document.createElement('button');
+        btnSell.className = `flex-1 py-2 font-bold ${activeTab==='sell' ? 'bg-yellow-900/40 text-yellow-400 border-b-2 border-yellow-400' : 'text-gray-500 hover:text-yellow-300'}`;
+        btnSell.textContent = "VERKAUFEN";
+        btnSell.onclick = () => this.renderShopSell();
+
+        tabs.appendChild(btnBuy);
+        tabs.appendChild(btnSell);
+        container.appendChild(tabs);
+    },
+
+    renderShopBuy: function() {
+        const container = document.getElementById('shop-list');
         if(!container) return;
         
         Game.checkShopRestock();
-
         container.innerHTML = '';
-        const backBtn = document.createElement('button');
-        backBtn.className = "w-full py-3 mb-4 border border-yellow-400 text-yellow-400 font-bold hover:bg-yellow-400 hover:text-black transition-colors uppercase tracking-widest";
-        backBtn.textContent = "<< Speichern & Zurück";
-        backBtn.onclick = () => { Game.saveGame(); this.switchView('city'); };
-        container.appendChild(backBtn);
-
-        const capsDisplay = document.createElement('div');
-        capsDisplay.className = "sticky top-0 bg-black/90 border-b border-yellow-500 text-yellow-400 font-bold text-right p-2 mb-4 z-10 font-mono";
-        capsDisplay.innerHTML = `VERMÖGEN: ${Game.state.caps} KK`;
-        container.appendChild(capsDisplay);
+        
+        // Header & Tabs
+        this.renderShopHeader(container);
+        this.renderShopTabs(container, 'buy');
 
         const categories = {
             'consumable': { title: 'HILFSMITTEL', items: [] },
@@ -92,62 +112,46 @@ Object.assign(UI, {
             }
         });
 
-        const renderCategory = (catKey) => {
-            const cat = categories[catKey];
-            if(cat.items.length === 0) return;
-            const header = document.createElement('h3');
-            header.className = "text-green-500 font-bold border-b border-green-700 mt-4 mb-2 pb-1 pl-2 text-sm uppercase tracking-widest bg-green-900/20";
-            header.textContent = cat.title;
-            container.appendChild(header);
+        for(let catKey in categories) {
+             const cat = categories[catKey];
+             if(cat.items.length > 0) {
+                 const header = document.createElement('h3');
+                 header.className = "text-green-500 font-bold border-b border-green-700 mt-4 mb-2 pb-1 pl-2 text-sm uppercase tracking-widest bg-green-900/20";
+                 header.textContent = cat.title;
+                 container.appendChild(header);
 
-            cat.items.forEach(data => {
-                const canAfford = Game.state.caps >= data.cost;
-                const stock = Game.state.shop.stock[data.key];
-                
-                let isOwned = false;
-                if(Game.state.equip[data.slot] && Game.state.equip[data.slot].name === data.name) isOwned = true;
-                if(data.type === 'tool' || data.type === 'blueprint') { if(Game.state.inventory.some(i => i.id === data.key)) isOwned = true; }
-                
-                const div = document.createElement('div');
-                div.className = `flex justify-between items-center p-2 mb-2 border h-16 w-full ${canAfford ? 'border-green-500 bg-green-900/20 hover:bg-green-900/40' : 'border-red-900 bg-black/40 opacity-70'} transition-all cursor-pointer group`;
-                let icon = "📦";
-                if(data.type === 'weapon') icon = "🔫"; if(data.type === 'body') icon = "🛡️"; if(data.type === 'consumable') icon = "💊"; if(data.type === 'junk') icon = "⚙️";
+                 cat.items.forEach(data => {
+                    const canAfford = Game.state.caps >= data.cost;
+                    const stock = Game.state.shop.stock[data.key];
+                    
+                    const div = document.createElement('div');
+                    div.className = `flex justify-between items-center p-2 mb-2 border h-16 w-full ${canAfford ? 'border-green-500 bg-green-900/20 hover:bg-green-900/40' : 'border-red-900 bg-black/40 opacity-70'} transition-all cursor-pointer group`;
+                    
+                    let icon = "📦";
+                    if(data.type === 'weapon') icon = "🔫"; if(data.type === 'body') icon = "🛡️"; if(data.type === 'consumable') icon = "💊";
 
-                div.innerHTML = `
-                    <div class="flex items-center gap-3 overflow-hidden flex-1">
-                        <span class="text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">${icon}</span>
-                        <div class="flex flex-col overflow-hidden">
-                            <span class="font-bold truncate ${canAfford ? 'text-green-400 group-hover:text-yellow-400' : 'text-gray-500'} text-sm">${data.name}</span>
-                            <span class="text-[10px] text-green-600 truncate">Vorrat: ${stock} Stk</span>
+                    div.innerHTML = `
+                        <div class="flex items-center gap-3 overflow-hidden flex-1">
+                            <span class="text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">${icon}</span>
+                            <div class="flex flex-col overflow-hidden">
+                                <span class="font-bold truncate ${canAfford ? 'text-green-400 group-hover:text-yellow-400' : 'text-gray-500'} text-sm">${data.name}</span>
+                                <span class="text-[10px] text-green-600 truncate">Vorrat: ${stock} Stk</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex flex-col items-end flex-shrink-0 ml-2 min-w-[60px]">
-                        <span class="font-mono ${canAfford ? 'text-yellow-400' : 'text-red-500'} font-bold text-sm">${data.cost} KK</span>
-                    </div>
-                `;
-                
-                if(isOwned) {
-                    div.innerHTML += `<div class="absolute inset-0 flex justify-center items-center bg-black/60 text-green-500 font-bold border border-green-500 pointer-events-none text-xs tracking-widest">IM BESITZ</div>`;
-                    div.style.position = 'relative';
-                } 
-                div.onclick = () => UI.showShopConfirm(data.key);
-                container.appendChild(div);
-            });
-        };
-
-        renderCategory('consumable');
-        renderCategory('weapon');
-        renderCategory('body');
-        renderCategory('misc');
-
-        const header = document.createElement('h3');
-        header.className = "text-blue-400 font-bold border-b border-blue-700 mt-4 mb-2 pb-1 pl-2 text-sm uppercase tracking-widest bg-blue-900/20";
-        header.textContent = "MUNITION & SPECIALS";
-        container.appendChild(header);
-
+                        <div class="flex flex-col items-end flex-shrink-0 ml-2 min-w-[60px]">
+                            <span class="font-mono ${canAfford ? 'text-yellow-400' : 'text-red-500'} font-bold text-sm">${data.cost} KK</span>
+                        </div>
+                    `;
+                    div.onclick = () => UI.showShopConfirm(data.key);
+                    container.appendChild(div);
+                 });
+             }
+        }
+        
+        // Ammo
         const ammoStock = Game.state.shop.ammoStock || 0;
         const ammoDiv = document.createElement('div');
-        ammoDiv.className = "flex justify-between items-center p-2 mb-4 border border-blue-500 bg-blue-900/20 cursor-pointer hover:bg-blue-900/40 h-16 w-full";
+        ammoDiv.className = "flex justify-between items-center p-2 mb-4 border border-blue-500 bg-blue-900/20 cursor-pointer hover:bg-blue-900/40 h-16 w-full mt-4";
         const canBuyAmmo = Game.state.caps >= 10 && ammoStock > 0;
         ammoDiv.innerHTML = `
              <div class="flex items-center gap-3 overflow-hidden flex-1">
@@ -162,6 +166,80 @@ Object.assign(UI, {
         if(!canBuyAmmo) { ammoDiv.style.opacity = 0.5; if(ammoStock<=0) ammoDiv.innerHTML += `<div class="absolute inset-0 flex justify-center items-center bg-black/60 text-red-500 font-bold text-xs">AUSVERKAUFT</div>`; ammoDiv.style.position='relative'; }
         else { ammoDiv.onclick = () => Game.buyAmmo(); }
         container.appendChild(ammoDiv);
+
+        // Back Button
+        const backBtn = document.createElement('button');
+        backBtn.className = "w-full py-3 mt-4 border border-yellow-400 text-yellow-400 font-bold hover:bg-yellow-400 hover:text-black transition-colors uppercase tracking-widest";
+        backBtn.textContent = "<< Speichern & Zurück";
+        backBtn.onclick = () => { Game.saveGame(); this.switchView('city'); };
+        container.appendChild(backBtn);
+    },
+
+    renderShopSell: function() {
+        const container = document.getElementById('shop-list');
+        if(!container) return;
+        container.innerHTML = '';
+        
+        this.renderShopHeader(container);
+        this.renderShopTabs(container, 'sell');
+
+        if(Game.state.inventory.length === 0) {
+            container.innerHTML += '<div class="text-center text-gray-500 mt-10 italic">Dein Inventar ist leer.</div>';
+        } else {
+            Game.state.inventory.forEach((item, index) => {
+                const def = Game.items[item.id];
+                if(!def) return;
+                
+                // Sell Price Calculation
+                let valMult = 1;
+                if(item.props && item.props.valMult) valMult = item.props.valMult;
+                let sellPrice = Math.floor((def.cost * 0.25) * valMult);
+                if(sellPrice < 1) sellPrice = 1;
+                
+                const canSell = Game.state.shop.merchantCaps >= sellPrice;
+
+                const div = document.createElement('div');
+                div.className = `flex justify-between items-center p-2 mb-2 border h-16 w-full ${canSell ? 'border-yellow-600 bg-yellow-900/10 hover:bg-yellow-900/30' : 'border-red-900 bg-black/40 opacity-50'} transition-all cursor-pointer`;
+                
+                const name = item.props ? item.props.name : def.name;
+                const countText = item.count > 1 ? `x${item.count}` : '';
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden flex-1">
+                        <span class="text-xl flex-shrink-0">💰</span>
+                        <div class="flex flex-col overflow-hidden">
+                            <span class="font-bold text-yellow-500 text-sm truncate">${name} ${countText}</span>
+                            <span class="text-[10px] text-yellow-700 truncate">Wert: ${sellPrice} KK</span>
+                        </div>
+                    </div>
+                    <button class="bg-yellow-900/50 text-yellow-400 border border-yellow-600 px-3 py-1 text-xs font-bold hover:bg-yellow-500 hover:text-black">
+                        VERKAUFEN
+                    </button>
+                `;
+                
+                if(canSell) {
+                    div.onclick = () => Game.sellItem(index);
+                }
+                container.appendChild(div);
+            });
+        }
+        
+         // Back Button (Duplicate needed for bottom navigation)
+        const backBtn = document.createElement('button');
+        backBtn.className = "w-full py-3 mt-4 border border-yellow-400 text-yellow-400 font-bold hover:bg-yellow-400 hover:text-black transition-colors uppercase tracking-widest";
+        backBtn.textContent = "<< Speichern & Zurück";
+        backBtn.onclick = () => { Game.saveGame(); this.switchView('city'); };
+        container.appendChild(backBtn);
+    },
+
+    renderShopHeader: function(container) {
+        const capsDisplay = document.createElement('div');
+        capsDisplay.className = "sticky top-0 bg-black/95 border-b border-yellow-500 flex justify-between p-2 mb-2 z-10 font-mono text-xs sm:text-sm shadow-md shadow-black";
+        capsDisplay.innerHTML = `
+            <span class="text-yellow-400">DU: ${Game.state.caps} KK</span>
+            <span class="text-green-400">HÄNDLER: ${Game.state.shop.merchantCaps || 0} KK</span>
+        `;
+        container.appendChild(capsDisplay);
     },
 
     renderClinic: function() {
