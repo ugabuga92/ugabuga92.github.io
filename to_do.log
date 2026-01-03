@@ -1,10 +1,7 @@
 
-######################################################
 🐛 Aktuelle Bugs & Anpassungen:
-- Vault Legens Fenster begrenzen auf Höhe des Spieles & Scrollbalken einführen. Fenster kann auch wieder durch daneben klicken geschlossen werde. egal ob spielfeld oder log.
-- Admin Panel muss scrollbar sein und für Portrai Modus optimiert werden
-- Items muss man aus dem Inventar schmeißen können. bzw zerstören, muss auch für "Schrott" funktionieren, aktuell nur Ausrüstungsgegenstände.
-- Würfelspiele ab und an nach Legendary? Hatte bissher nie glück, rate minimal erhöhen? Oder ist es gar nicht mehr eingebaut?
+-TP Balken hat keine Zahlen, man erkennt nicht wie viel leben noch da ist?
+- Ausruhen bzw schlafen soll NUR im Zelt RAD geben, aber nicht in der Vault!
 - Neue und mehr Quest implemntieren, gerne 5 neue Quest. eine Anfänger quest z.b noch. Das erste mal Zelt aubauen, was braten + übernachten
 - Waffen / Rüstung etc kann bei der Werkbank zerlegt werden.
 - Tutorial einbauen um alle funktionen kennen zu lernen? Gerne eine abfolge von Anfängerquests o.ä?
