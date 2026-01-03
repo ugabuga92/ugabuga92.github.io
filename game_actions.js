@@ -1,6 +1,5 @@
-// [v3.8] - 2026-01-04 01:15am (Scrapping Update)
-// - Feature: scrapItem implementiert (Zerlegen von Ausrüstung in Ressourcen).
-// - Logic: Gibt Junk Metal, Schrauben und Plastik basierend auf Item-Wert.
+// [v3.9] - 2026-01-04 01:50am (Workbench Update Logic)
+// - Feature: scrapItem refreshes Workbench UI ('crafting') view dynamically.
 
 Object.assign(Game, {
     
@@ -306,7 +305,7 @@ Object.assign(Game, {
         this.saveGame();
     },
 
-    // [NEU v3.8] - ZERLEGEN FUNKTION
+    // [NEU v3.9] - ZERLEGEN FUNKTION + UI UPDATE
     scrapItem: function(invIndex) {
         if(!this.state.inventory || !this.state.inventory[invIndex]) return;
         const item = this.state.inventory[invIndex];
@@ -320,12 +319,11 @@ Object.assign(Game, {
         this.state.inventory.splice(invIndex, 1);
 
         // Yield Logic
-        let scrapAmount = Math.max(1, Math.floor(value / 25)); // 1 Scrap per 25 Caps value
+        let scrapAmount = Math.max(1, Math.floor(value / 25)); 
         this.addToInventory('junk_metal', scrapAmount);
         
         let msg = `Zerlegt: ${name} -> ${scrapAmount}x Schrott`;
 
-        // Rare Components for high value
         if(value >= 100 && Math.random() < 0.5) {
             let screws = Math.max(1, Math.floor(value / 100));
             this.addToInventory('screws', screws);
@@ -339,7 +337,14 @@ Object.assign(Game, {
         UI.log(msg, "text-orange-400 font-bold");
         
         UI.update();
-        if(this.state.view === 'inventory') UI.renderInventory();
+        
+        // Refresh Workbench View if open
+        if(this.state.view === 'crafting' && typeof UI.renderCrafting === 'function') {
+            UI.renderCrafting('scrap');
+        } else if(this.state.view === 'inventory') {
+            UI.renderInventory();
+        }
+        
         this.saveGame();
     },
 
