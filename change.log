@@ -1,3 +1,8 @@
+[v3.3a] - 2026-01-03 04:20am (Survival & UI Polish)
+- SURVIVAL: Ungeschütztes Schlafen im Freien gibt nun +10 RADS Strahlung.
+- SURVIVAL: Schlafen im Zelt (Basis oder Komfort) schützt weiterhin vor Strahlung.
+- UI: "Quest Erfüllt"-Overlay zentriert (war vorher zu weit oben).
+
 [v3.3] - 2026-01-03 04:00am (World Graphics)
 - VISUAL: Die Raiderfestung ("R") auf der Weltkarte hat nun eine Grafik.
 - VISUAL: Icon ist ein roter Einkaufswagen (🛒) mit dem Label "SUPER-MART".
