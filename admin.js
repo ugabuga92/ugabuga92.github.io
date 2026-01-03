@@ -1,282 +1,410 @@
-// [v3.9d] - 2026-01-03 11:30am (Admin Savegame Access)
-// - FIX: Reads from 'saves' instead of 'players' to show ALL characters (offline included).
-// - LOGIC: Flattens the UID -> Slot structure for the list.
+// [v4.0] - 2026-01-03 (Admin System Overhaul)
+// - Gatekeeper: "bimbo123" protects the UI.
+// - Auto-Auth: Uses 'admin@pipboy-system.com' internally.
+// - Full Management: Inventory, Stats, Location, Raw Data.
 
 const Admin = {
-    selectedPath: null, // Stores path like 'saves/USER_ID/0'
-    allSaves: [], // Flat list for display
+    // Config
+    gatePass: "bimbo123",
+    adminUser: "admin@pipboy-system.com",
+    adminPass: "zintel1992",
 
-    init: function() {
-        console.log("[Admin v3.9d] Initializing...");
+    // State
+    dbData: {}, // Full snapshot of 'saves'
+    currentPath: null, // e.g., 'saves/UID/0'
+    currentUserData: null, // Local copy of selected save
+    itemsList: [], // Loaded from data_items.js
 
-        // 1. Force Network Init
-        if (typeof Network !== 'undefined') {
-            if (!Network.db) {
-                try {
-                    if (typeof Network.init === 'function') Network.init();
-                } catch (e) {
-                    console.warn("[Admin] Network init fallback:", e);
-                }
-            }
-        }
-
-        // 2. Auto Login Check
-        if(localStorage.getItem('admin_session') === 'active') {
-            this.showDashboard();
+    // --- 1. GATEKEEPER & INIT ---
+    
+    unlock: function() {
+        const input = document.getElementById('gate-pass').value;
+        const msg = document.getElementById('gate-msg');
+        
+        if(input === this.gatePass) {
+            msg.className = "mt-4 h-6 text-green-500 font-bold";
+            msg.textContent = "ACCESS GRANTED. ESTABLISHING UPLINK...";
+            this.connectFirebase();
+        } else {
+            msg.textContent = "ACCESS DENIED.";
+            document.getElementById('gate-pass').value = '';
         }
     },
 
-    login: async function() {
-        const u = document.getElementById('adm-user').value;
-        const p = document.getElementById('adm-pass').value;
-        const msg = document.getElementById('login-msg');
-
-        msg.textContent = "VERBINDE...";
-        msg.className = "mt-4 text-yellow-400 animate-pulse";
+    connectFirebase: async function() {
+        // Init Network if not ready
+        if (typeof Network !== 'undefined' && !Network.db) {
+            try { if(typeof Network.init === 'function') Network.init(); } catch(e) {}
+        }
 
         try {
-            await Network.login(u, p);
-            localStorage.setItem('admin_session', 'active');
+            // Real Auth
+            await Network.login(this.adminUser, this.adminPass);
             
-            msg.textContent = "ZUGRIFF ERLAUBT.";
-            msg.className = "mt-4 text-green-500 font-bold";
-            setTimeout(() => this.showDashboard(), 500);
+            // Switch UI
+            document.getElementById('gate-screen').classList.add('hidden');
+            const app = document.getElementById('app-ui');
+            app.classList.remove('hidden');
+            // Fade In
+            setTimeout(() => app.classList.remove('opacity-0'), 50);
+            
+            // Start Data Flow
+            document.getElementById('conn-dot').classList.replace('bg-red-500', 'bg-green-500');
+            document.getElementById('conn-dot').classList.remove('animate-pulse');
+            
+            this.initData();
 
-        } catch (e) {
-            console.error("Admin Login Error:", e);
-            msg.textContent = "LOGIN FEHLGESCHLAGEN: " + e.code;
-            msg.className = "mt-4 text-red-500 font-bold blink-red";
+        } catch(e) {
+            document.getElementById('gate-msg').textContent = "UPLINK FAILED: " + e.code;
+            console.error(e);
         }
     },
 
-    logout: function() {
-        localStorage.removeItem('admin_session');
-        if(Network.auth) Network.auth.signOut();
-        location.reload();
-    },
-
-    showDashboard: function() {
-        document.getElementById('login-overlay').classList.add('hidden');
-        document.getElementById('dashboard').classList.remove('hidden');
-        document.getElementById('dashboard').classList.add('flex');
-        
-        this.populateItems();
-        this.checkDbConnection();
-    },
-
-    checkDbConnection: function() {
-        if(Network.db) {
-            console.log("[Admin] DB Connected. Reading Saves...");
-            this.startListener();
-        } else {
-            setTimeout(() => this.checkDbConnection(), 500);
+    initData: function() {
+        // Load Game Items for Dropdown
+        if(typeof Game !== 'undefined' && Game.items) {
+            this.itemsList = Object.keys(Game.items).sort().map(k => ({id: k, name: Game.items[k].name}));
+            const sel = document.getElementById('inv-add-select');
+            sel.innerHTML = '';
+            this.itemsList.forEach(i => {
+                const opt = document.createElement('option');
+                opt.value = i.id;
+                opt.textContent = `${i.name} (${i.id})`;
+                sel.appendChild(opt);
+            });
         }
-    },
 
-    startListener: function() {
-        // [WICHTIG] Wir hören jetzt auf 'saves', nicht mehr auf 'players'
+        // Start Firebase Listener on 'saves' (The Master Record)
         Network.db.ref('saves').on('value', snap => {
-            const rawData = snap.val() || {};
-            this.processData(rawData);
+            this.dbData = snap.val() || {};
+            this.renderUserList();
+            // Auto-refresh selected view if active
+            if(this.currentPath) {
+                const parts = this.currentPath.split('/'); // saves, uid, slot
+                if(this.dbData[parts[1]] && this.dbData[parts[1]][parts[2]]) {
+                    this.selectUser(this.currentPath, true); // true = silent update
+                }
+            }
         });
     },
 
-    processData: function(data) {
-        this.allSaves = [];
-        
-        // Iteriere über User-IDs
-        for (let uid in data) {
-            const userSlots = data[uid];
-            // Iteriere über Slots (0, 1, 2...)
-            for (let slotIndex in userSlots) {
-                const charData = userSlots[slotIndex];
-                
-                if(charData) {
-                    this.allSaves.push({
-                        uid: uid,
-                        slot: slotIndex,
-                        path: `saves/${uid}/${slotIndex}`, // Pfad für Updates
-                        name: charData.playerName || "Unbenannt",
-                        lvl: charData.lvl || 1,
-                        hp: charData.hp || 0,
-                        maxHp: charData.maxHp || 10,
-                        sector: charData.sector || {x:0, y:0},
-                        email: charData._userEmail || "Unbekannt", // E-Mail aus v2.7 Update
-                        isDead: (charData.hp <= 0)
-                    });
-                }
-            }
-        }
-        
-        this.renderList();
-        
-        // Update Detailansicht falls offen
-        if(this.selectedPath) {
-            const current = this.allSaves.find(s => s.path === this.selectedPath);
-            if(current) this.updateDetailView(current);
-        }
+    refresh: function() {
+        location.reload(); // Hard refresh to clear memory/cache
     },
 
-    renderList: function() {
-        const list = document.getElementById('player-list');
-        list.innerHTML = '';
+    // --- 2. USER LIST ---
 
-        if(this.allSaves.length === 0) {
-            list.innerHTML = `<div class="p-4 text-gray-500 text-center">Datenbank leer.<br>Keine Spielstände gefunden.</div>`;
+    renderUserList: function() {
+        const list = document.getElementById('user-list');
+        const filter = document.getElementById('search-player').value.toLowerCase();
+        list.innerHTML = '';
+        
+        let count = 0;
+        
+        for(let uid in this.dbData) {
+            const slots = this.dbData[uid];
+            for(let slotIdx in slots) {
+                const save = slots[slotIdx];
+                const name = (save.playerName || "Unknown").toLowerCase();
+                const path = `saves/${uid}/${slotIdx}`;
+                
+                // Filter
+                if(filter && !name.includes(filter) && !uid.includes(filter)) continue;
+
+                const div = document.createElement('div');
+                const isSelected = this.currentPath === path;
+                const isDead = (save.hp <= 0);
+                
+                div.className = `p-2 cursor-pointer border-b border-[#1a331a] flex justify-between items-center hover:bg-[#39ff14] hover:text-black transition-colors ${isSelected ? 'bg-[#39ff14] text-black font-bold' : 'text-[#39ff14]'}`;
+                div.onclick = () => this.selectUser(path);
+                
+                div.innerHTML = `
+                    <div class="flex flex-col overflow-hidden">
+                        <span class="truncate uppercase">${isDead ? '💀 ' : ''}${save.playerName || 'NO_NAME'}</span>
+                        <span class="text-[10px] opacity-60 font-mono">${save._userEmail || uid.substr(0,8)}</span>
+                    </div>
+                    <div class="text-right text-xs">
+                        <div>LVL ${save.lvl || 1}</div>
+                        <div>SEC ${save.sector ? `${save.sector.x},${save.sector.y}` : '?,?'}</div>
+                    </div>
+                `;
+                list.appendChild(div);
+                count++;
+            }
+        }
+        document.getElementById('user-count').textContent = count;
+    },
+
+    selectUser: function(path, silent = false) {
+        this.currentPath = path;
+        
+        // Extract Data
+        const parts = path.split('/');
+        const uid = parts[1];
+        const slot = parts[2];
+        this.currentUserData = this.dbData[uid][slot];
+        const d = this.currentUserData;
+
+        // UI Update
+        if(!silent) {
+            document.querySelectorAll('.active-tab').forEach(el => {
+                el.classList.remove('active-tab');
+                el.classList.add('inactive-tab');
+            });
+            document.getElementById('tab-btn-general').classList.add('active-tab');
+            document.getElementById('tab-btn-general').classList.remove('inactive-tab');
+            this.tab('general');
+        }
+
+        // Header Info
+        document.getElementById('no-selection').classList.add('hidden');
+        document.getElementById('editor-content').classList.remove('hidden');
+        
+        document.getElementById('edit-name').textContent = d.playerName || "Unknown";
+        document.getElementById('edit-uid').textContent = uid;
+        document.getElementById('edit-slot').textContent = slot;
+        document.getElementById('edit-email').textContent = d._userEmail || "No Email";
+        
+        document.getElementById('quick-lvl').value = d.lvl || 1;
+        document.getElementById('quick-xp').value = d.xp || 0;
+
+        // Fill Tabs
+        this.fillGeneral(d);
+        this.fillStats(d);
+        this.fillInv(d);
+        this.fillWorld(d);
+        this.fillRaw(d);
+        
+        // Refresh List Highlight
+        if(!silent) this.renderUserList(); 
+    },
+
+    // --- 3. EDITOR FILLERS ---
+
+    fillGeneral: function(d) {
+        document.getElementById('inp-hp').value = Math.round(d.hp || 0);
+        document.getElementById('inp-maxhp').value = d.maxHp || 10;
+        document.getElementById('inp-rads').value = d.rads || 0;
+        document.getElementById('inp-caps').value = d.caps || 0;
+    },
+
+    fillStats: function(d) {
+        const container = document.getElementById('special-container');
+        container.innerHTML = '';
+        
+        const stats = d.stats || { STR:1, PER:1, END:1, CHA:1, INT:1, AGI:1, LUC:1 };
+        
+        for(let key in stats) {
+            const val = stats[key];
+            const div = document.createElement('div');
+            div.className = "panel-box p-2 flex justify-between items-center";
+            div.innerHTML = `
+                <span class="font-bold text-xl w-12">${key}</span>
+                <input type="range" min="1" max="10" value="${val}" class="flex-grow mx-2 accent-[#39ff14]" 
+                    onchange="document.getElementById('val-${key}').textContent=this.value; Admin.saveStat('${key}', this.value)">
+                <span id="val-${key}" class="font-bold text-xl w-6 text-right">${val}</span>
+            `;
+            container.appendChild(div);
+        }
+
+        document.getElementById('inp-statPoints').value = d.statPoints || 0;
+        document.getElementById('inp-perkPoints').value = d.perkPoints || 0;
+    },
+
+    fillInv: function(d) {
+        const tbody = document.getElementById('inv-table-body');
+        tbody.innerHTML = '';
+        
+        const inv = d.inventory || [];
+        inv.forEach((item, idx) => {
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-[#1a551a] hover:bg-[#002200]";
+            
+            // Name resolve
+            let name = item.id;
+            if(Game.items[item.id]) name = Game.items[item.id].name;
+            if(item.props && item.props.name) name = item.props.name + "*"; // Custom item
+
+            tr.innerHTML = `
+                <td class="p-2">${name}</td>
+                <td class="p-2 font-mono text-xs opacity-50">${item.id}</td>
+                <td class="p-2">
+                    <input type="number" class="w-16 bg-black border border-[#1a551a] text-center" 
+                        value="${item.count}" onchange="Admin.invUpdate(${idx}, this.value)">
+                </td>
+                <td class="p-2 text-right">
+                    <button onclick="Admin.invDelete(${idx})" class="text-red-500 font-bold hover:text-white px-2">X</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    },
+
+    fillWorld: function(d) {
+        const sx = d.sector ? d.sector.x : 0;
+        const sy = d.sector ? d.sector.y : 0;
+        document.getElementById('view-sector').textContent = `${sx},${sy}`;
+        document.getElementById('tele-x').value = sx;
+        document.getElementById('tele-y').value = sy;
+
+        // Quests
+        const qList = document.getElementById('quest-list');
+        qList.innerHTML = '';
+        const quests = d.quests || [];
+        
+        if(quests.length === 0) qList.innerHTML = '<div class="text-gray-500 italic">No active quests.</div>';
+        
+        quests.forEach((q, idx) => {
+            const div = document.createElement('div');
+            div.className = "flex justify-between border-b border-[#1a331a] p-1 text-sm";
+            div.innerHTML = `
+                <span>${q.id} <span class="text-xs opacity-50">(${q.stage})</span></span>
+                <span class="${q.completed ? 'text-green-500' : 'text-yellow-500'}">${q.completed ? 'DONE' : 'ACTIVE'}</span>
+            `;
+            qList.appendChild(div);
+        });
+    },
+
+    fillRaw: function(d) {
+        document.getElementById('raw-json').value = JSON.stringify(d, null, 2);
+    },
+
+    // --- 4. ACTIONS & SAVING ---
+
+    tab: function(id) {
+        document.querySelectorAll('[id^="tab-btn-"]').forEach(b => {
+            b.classList.replace('active-tab', 'inactive-tab');
+        });
+        document.getElementById('tab-btn-' + id).classList.replace('inactive-tab', 'active-tab');
+        
+        document.getElementById('tab-general').classList.add('hidden');
+        document.getElementById('tab-stats').classList.add('hidden');
+        document.getElementById('tab-inv').classList.add('hidden');
+        document.getElementById('tab-world').classList.add('hidden');
+        document.getElementById('tab-raw').classList.add('hidden');
+        
+        document.getElementById('tab-' + id).classList.remove('hidden');
+    },
+
+    saveVal: function(key, val) {
+        if(!this.currentPath) return;
+        // Convert numbers
+        if(!isNaN(val) && val !== "") val = Number(val);
+        Network.db.ref(this.currentPath + '/' + key).set(val);
+    },
+
+    modVal: function(key, amount) {
+        if(!this.currentUserData) return;
+        let current = this.currentUserData[key] || 0;
+        this.saveVal(key, current + amount);
+    },
+
+    saveStat: function(stat, val) {
+        if(!this.currentPath) return;
+        Network.db.ref(this.currentPath + '/stats/' + stat).set(Number(val));
+    },
+
+    action: function(type) {
+        if(!this.currentPath) return;
+        
+        const updates = {};
+        const p = this.currentPath;
+
+        if (type === 'heal') {
+            updates['hp'] = this.currentUserData.maxHp || 100;
+            updates['rads'] = 0;
+            updates['isGameOver'] = false;
+        }
+        else if (type === 'de-rad') {
+            updates['rads'] = 0;
+        }
+        else if (type === 'kill') {
+            if(!confirm("KILL PLAYER?")) return;
+            updates['hp'] = 0;
+            updates['isGameOver'] = true;
+        }
+        else if (type === 'revive') {
+            updates['hp'] = 10;
+            updates['isGameOver'] = false;
+        }
+        else if (type === 'delete') {
+            if(!confirm("DELETE SAVEGAME PERMANENTLY?")) return;
+            Network.db.ref(p).remove();
+            this.currentPath = null;
+            document.getElementById('editor-content').classList.add('hidden');
+            document.getElementById('no-selection').classList.remove('hidden');
             return;
         }
-
-        this.allSaves.forEach(char => {
-            const div = document.createElement('div');
-            const isActive = (this.selectedPath === char.path);
+        else if (type === 'reset-vault') {
+            if(!confirm("RESET CHARACTER TO VAULT 101 (SECTOR 4,4)?")) return;
+            updates['sector'] = {x: 4, y: 4};
+            updates['player'] = {x: 100, y: 100}; // Safe Pixel Coords
             
-            div.className = `player-item flex justify-between items-center ${isActive ? 'active' : ''}`;
-            div.onclick = () => this.selectPlayer(char.path);
-            
-            const statusIcon = char.isDead ? '💀' : '💾';
-            const location = `[${char.sector.x},${char.sector.y}]`;
+            // Optional: Reset local view flags
+            updates['view'] = 'map';
+        }
 
-            div.innerHTML = `
-                <div class="flex flex-col overflow-hidden">
-                    <span class="font-bold text-lg truncate ${char.isDead ? 'text-red-500 line-through' : 'text-green-300'}">
-                        ${statusIcon} ${char.name}
-                    </span>
-                    <span class="text-xs opacity-50 font-mono truncate">${char.email}</span>
-                </div>
-                <div class="text-right flex-shrink-0 ml-2">
-                    <div class="font-bold text-yellow-500">Lvl ${char.lvl}</div>
-                    <div class="text-xs opacity-70 text-blue-300">${location}</div>
-                </div>
-            `;
-            list.appendChild(div);
-        });
+        Network.db.ref(p).update(updates);
     },
 
-    selectPlayer: function(path) {
-        this.selectedPath = path;
-        this.renderList(); // Refresh Highlight
+    teleport: function() {
+        const x = Number(document.getElementById('tele-x').value);
+        const y = Number(document.getElementById('tele-y').value);
         
-        const panel = document.getElementById('control-panel');
-        const overlay = document.getElementById('no-selection-msg');
-        
-        panel.classList.remove('opacity-50', 'pointer-events-none');
-        overlay.classList.add('hidden');
-
-        const char = this.allSaves.find(s => s.path === path);
-        if(char) this.updateDetailView(char);
+        Network.db.ref(this.currentPath + '/sector').set({x:x, y:y});
+        // Reset player pixel pos to center to avoid getting stuck in walls in new sector
+        Network.db.ref(this.currentPath + '/player').set({x:300, y:200}); 
     },
 
-    updateDetailView: function(char) {
-        document.getElementById('target-name').textContent = char.name;
-        document.getElementById('target-id').textContent = char.email; // ID Feld zeigt jetzt Email
-        document.getElementById('target-lvl').textContent = char.lvl;
-        document.getElementById('target-hp').textContent = `${Math.round(char.hp)}/${char.maxHp}`;
-        
-        const hpEl = document.getElementById('target-hp');
-        hpEl.className = char.isDead ? 'text-red-500 font-bold blink-red' : 'text-green-400';
-    },
-
-    populateItems: function() {
-        const sel = document.getElementById('item-select');
-        if(!Game || !Game.items) return;
-
-        while(sel.options.length > 1) sel.remove(1);
-
-        const keys = Object.keys(Game.items).sort();
-        keys.forEach(k => {
-            const item = Game.items[k];
-            const opt = document.createElement('option');
-            opt.value = k;
-            opt.textContent = `${item.name} (${k})`;
-            sel.appendChild(opt);
-        });
-    },
-
-    // --- ACTIONS (Direct Database Writes) ---
-
-    // Hilfsfunktion: Liest aktuellen Wert, addiert und schreibt zurück
-    modStat: function(stat, val) {
-        if(!this.selectedPath) return;
-        
-        Network.db.ref(this.selectedPath + '/' + stat).once('value', snap => {
-            let current = snap.val() || 0;
-            let next = current + val;
-            if(next < 0) next = 0;
-            Network.db.ref(this.selectedPath + '/' + stat).set(next);
-        });
-    },
-
-    fullHeal: function() {
-        if(!this.selectedPath) return;
-        // Wir müssen MaxHP lesen um zu heilen
-        Network.db.ref(this.selectedPath).once('value', snap => {
-            const data = snap.val();
-            if(!data) return;
-            
-            const updates = {};
-            updates['hp'] = data.maxHp || 10;
-            updates['rads'] = 0;
-            updates['isGameOver'] = false; // Wiederbeleben falls tot
-            
-            Network.db.ref(this.selectedPath).update(updates);
-        });
-    },
-
-    killTarget: function() {
-        if(!this.selectedPath) return;
-        if(confirm("Diesen Charakter (Savegame) auf 0 HP setzen?")) {
-            Network.db.ref(this.selectedPath + '/hp').set(0);
+    // Inventory Logic
+    invUpdate: function(idx, val) {
+        val = Number(val);
+        if(val <= 0) {
+            this.invDelete(idx);
+        } else {
+            Network.db.ref(`${this.currentPath}/inventory/${idx}/count`).set(val);
         }
     },
 
-    giveItem: function() {
-        if(!this.selectedPath) return;
-        const item = document.getElementById('item-select').value;
-        const count = parseInt(document.getElementById('item-count').value) || 1;
-        if(!item) { alert("Bitte Item wählen!"); return; }
-
-        this.sendToInv([{id: item, count: count}]);
+    invDelete: function(idx) {
+        if(!confirm("Remove Item?")) return;
+        // Firebase arrays are tricky. We fetch, splice, set.
+        const inv = [...(this.currentUserData.inventory || [])];
+        inv.splice(idx, 1);
+        Network.db.ref(this.currentPath + '/inventory').set(inv);
     },
 
-    giveKit: function(type) {
-        if(!this.selectedPath) return;
-        const kits = {
-            'starter': [{id:'knife',count:1}, {id:'stimpack',count:3}, {id:'water',count:2}],
-            'camp': [{id:'camp_kit',count:1}, {id:'wood',count:10}, {id:'meat',count:5}],
-            'god': [{id:'plasma_rifle',count:1}, {id:'power_armor',count:1}, {id:'ammo',count:500}, {id:'stimpack',count:50}]
-        };
-        if(kits[type]) this.sendToInv(kits[type]);
-    },
+    invAdd: function() {
+        const id = document.getElementById('inv-add-select').value;
+        const count = Number(document.getElementById('inv-add-qty').value);
+        if(!id || count < 1) return;
 
-    sendToInv: function(itemsToAdd) {
-        const invPath = this.selectedPath + '/inventory';
+        const inv = [...(this.currentUserData.inventory || [])];
         
-        Network.db.ref(invPath).once('value', snap => {
-            let inv = snap.val() || [];
-            
-            itemsToAdd.forEach(newItem => {
-                let added = false;
-                for(let i of inv) {
-                    if(i.id === newItem.id && !i.props) {
-                        i.count += newItem.count;
-                        added = true;
-                        break;
-                    }
-                }
-                if(!added) inv.push({ id: newItem.id, count: newItem.count, isNew: true });
-            });
-
-            Network.db.ref(invPath).set(inv);
-            
-            // UI Feedback
-            const btn = document.activeElement;
-            if(btn && btn.tagName === 'BUTTON') {
-                const old = btn.innerText;
-                btn.innerText = "✓";
-                setTimeout(() => btn.innerText = old, 500);
+        // Stack?
+        let found = false;
+        for(let item of inv) {
+            if(item.id === id && !item.props) {
+                item.count += count;
+                found = true;
+                break;
             }
-        });
+        }
+        if(!found) {
+            inv.push({id: id, count: count, isNew: true});
+        }
+        
+        Network.db.ref(this.currentPath + '/inventory').set(inv);
+    },
+
+    saveRaw: function() {
+        try {
+            const data = JSON.parse(document.getElementById('raw-json').value);
+            if(confirm("OVERWRITE DATABASE WITH RAW JSON? THIS IS DESTRUCTIVE.")) {
+                Network.db.ref(this.currentPath).set(data);
+            }
+        } catch(e) {
+            alert("INVALID JSON: " + e.message);
+        }
     }
 };
-
-window.onload = function() { Admin.init(); };
