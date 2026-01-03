@@ -2,145 +2,126 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
+    <title>Pip-Boy 3003 - ADMIN</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pip-Boy 3003 - ADMIN TERMINAL [v3.8]</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
     <style>
-        body { background-color: #050505; color: #39ff14; font-family: 'VT323', monospace; overflow: hidden; }
-        .crt::before { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); z-index: 2; background-size: 100% 2px, 3px 100%; pointer-events: none; }
-        .terminal-box { border: 2px solid #39ff14; box-shadow: 0 0 15px #39ff14; background: rgba(0, 20, 0, 0.9); padding: 20px; max-width: 800px; width: 100%; margin: 20px auto; }
-        .input-field { background: #000; border: 1px solid #39ff14; color: #39ff14; padding: 8px; width: 100%; margin-bottom: 10px; font-family: 'VT323', monospace; font-size: 1.2rem; }
-        .btn { border: 1px solid #39ff14; background: #001100; color: #39ff14; padding: 8px 16px; cursor: pointer; text-transform: uppercase; font-weight: bold; transition: all 0.2s; }
-        .btn:hover { background: #39ff14; color: #000; box-shadow: 0 0 10px #39ff14; }
-        .btn-danger { border-color: #ff3333; color: #ff3333; }
-        .btn-danger:hover { background: #ff3333; color: #000; box-shadow: 0 0 10px #ff3333; }
-        .hidden { display: none !important; }
-        .log-entry { border-bottom: 1px solid #1a3300; padding: 2px 0; font-size: 0.9rem; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #001100; }
-        ::-webkit-scrollbar-thumb { background: #39ff14; }
+        body { background-color: #050505; color: #39ff14; font-family: 'VT323', monospace; }
+        .admin-box { border: 2px solid #39ff14; background: rgba(0, 20, 0, 0.95); box-shadow: 0 0 10px #39ff14; }
+        .player-item { cursor: pointer; border-bottom: 1px solid #1a3300; padding: 8px; transition: all 0.2s; }
+        .player-item:hover { background: rgba(57, 255, 20, 0.2); }
+        .player-item.active { background: #39ff14; color: black; font-weight: bold; }
+        .btn-admin { border: 1px solid #39ff14; background: #001100; color: #39ff14; padding: 5px 10px; text-transform: uppercase; cursor: pointer; }
+        .btn-admin:hover { background: #39ff14; color: black; }
+        .btn-danger { border-color: red; color: red; }
+        .btn-danger:hover { background: red; color: white; }
     </style>
 </head>
-<body class="crt flex flex-col h-screen p-4">
+<body class="h-screen w-full flex flex-col p-4 overflow-hidden bg-black">
 
-    <div id="admin-login" class="flex flex-col items-center justify-center h-full">
-        <div class="terminal-box text-center">
-            <h1 class="text-4xl mb-4 font-bold border-b border-[#39ff14] pb-2">ROBCO INDUSTRIES ADMIN</h1>
-            <p class="mb-4 text-red-500 animate-pulse">RESTRICTED ACCESS ONLY</p>
-            <form onsubmit="event.preventDefault(); Admin.login();" class="flex flex-col gap-2 max-w-sm mx-auto">
-                <input type="email" id="adm-user" class="input-field" placeholder="ADMIN ID" value="admin@pipboy-system.com">
-                <input type="password" id="adm-pass" class="input-field" placeholder="PASSWORD">
-                <button type="submit" class="btn w-full text-xl py-2">INITIALIZE SESSION</button>
+    <div id="login-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-black/95">
+        <div class="admin-box p-8 text-center max-w-md w-full">
+            <h1 class="text-4xl font-bold mb-4 border-b border-green-500 pb-2">ADMIN TERMINAL</h1>
+            <p class="text-red-500 mb-4 animate-pulse">🔒 ZUGRIFF GESCHÜTZT</p>
+            <form onsubmit="event.preventDefault(); Admin.login();" class="flex flex-col gap-3">
+                <input type="email" id="adm-user" class="bg-black border border-green-500 text-green-500 p-2 text-xl" placeholder="ADMIN ID">
+                <input type="password" id="adm-pass" class="bg-black border border-green-500 text-green-500 p-2 text-xl" placeholder="PASSWORT">
+                <button type="submit" class="btn-admin py-3 text-xl font-bold">LOGIN</button>
             </form>
-            <div id="login-msg" class="mt-2 text-red-500 font-bold min-h-[1.5em]"></div>
-            <a href="index.html" class="block mt-4 text-gray-500 hover:text-[#39ff14] text-sm">[ RETURN TO USER TERMINAL ]</a>
+            <div id="login-msg" class="mt-4 min-h-[1.5em] text-red-500"></div>
+            <a href="index.html" class="block mt-6 text-gray-600 hover:text-green-500 text-sm">Zurück zum Spiel</a>
         </div>
     </div>
 
-    <div id="admin-dashboard" class="hidden flex-col h-full gap-4 max-w-6xl mx-auto w-full">
+    <div id="dashboard" class="hidden flex-col h-full gap-4 max-w-7xl mx-auto w-full">
         
-        <header class="flex justify-between items-center border-b-2 border-[#39ff14] pb-2 shrink-0">
+        <header class="flex justify-between items-center bg-[#001100] border-b-2 border-green-500 pb-2 p-2">
             <div>
-                <h1 class="text-2xl font-bold">OVERSEER TERMINAL v3.8</h1>
-                <span class="text-xs text-green-400">CONNECTED: <span id="adm-status" class="text-white">ONLINE</span></span>
+                <h1 class="text-3xl font-bold text-yellow-400">ÜBERSEHER-KONSOLE</h1>
+                <span class="text-xs text-green-600">SYSTEM STATUS: <span class="text-green-400">ONLINE</span></span>
             </div>
             <div class="flex gap-2">
-                <button onclick="Admin.refreshData()" class="btn text-sm">REFRESH DATA</button>
-                <button onclick="Admin.logout()" class="btn btn-danger text-sm">LOGOUT</button>
+                <button onclick="location.reload()" class="btn-admin">REFRESH</button>
+                <button onclick="Admin.logout()" class="btn-admin btn-danger">LOGOUT</button>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-grow overflow-hidden">
+        <div class="flex-grow grid grid-cols-1 md:grid-cols-12 gap-4 overflow-hidden">
             
-            <div class="border border-[#39ff14] p-2 flex flex-col bg-black/80">
-                <h2 class="text-xl font-bold bg-[#39ff14] text-black px-2 mb-2">ACTIVE RESIDENTS</h2>
-                <div id="player-list" class="flex-grow overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-                    <div class="text-gray-500 italic p-2">Scanning for bio-signs...</div>
+            <div class="md:col-span-4 flex flex-col admin-box p-2">
+                <h2 class="text-xl font-bold bg-green-900/50 p-2 mb-2 text-center text-yellow-400">BEWOHNER LISTE</h2>
+                <div id="player-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-1">
+                    <div class="p-4 text-gray-500 text-center">Scanne Netzwerk...</div>
                 </div>
             </div>
 
-            <div class="border border-[#39ff14] p-2 flex flex-col bg-black/80 md:col-span-2">
+            <div id="control-panel" class="md:col-span-8 flex flex-col admin-box p-4 relative opacity-50 pointer-events-none">
                 
-                <div id="target-info" class="mb-4 border-b border-green-900 pb-2 min-h-[60px]">
-                    <h2 class="text-xl font-bold text-yellow-400">TARGET: <span id="target-name" class="text-white">NONE</span></h2>
-                    <div class="text-xs text-gray-400 font-mono" id="target-id">SELECT A RESIDENT</div>
+                <div id="no-selection-msg" class="absolute inset-0 flex items-center justify-center bg-black/80 z-10 text-2xl text-gray-500 font-bold">
+                    < WÄHLE EINEN SPIELER >
                 </div>
 
-                <div class="flex gap-2 mb-2">
-                    <button onclick="Admin.switchTab('stats')" class="btn flex-1 text-sm">STATS EDITOR</button>
-                    <button onclick="Admin.switchTab('items')" class="btn flex-1 text-sm">ITEM SPAWNER</button>
-                    <button onclick="Admin.switchTab('broadcast')" class="btn flex-1 text-sm">BROADCAST</button>
-                </div>
-
-                <div id="tab-stats" class="tab-content flex-grow flex flex-col gap-2">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-xs text-green-500">LEVEL</label>
-                            <div class="flex gap-1">
-                                <input type="number" id="edit-lvl" class="input-field text-center" value="1">
-                                <button onclick="Admin.modStat('lvl', 1)" class="btn px-2">+</button>
-                                <button onclick="Admin.modStat('lvl', -1)" class="btn px-2">-</button>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-xs text-green-500">CAPS (KK)</label>
-                            <div class="flex gap-1">
-                                <input type="number" id="edit-caps" class="input-field text-center" value="0">
-                                <button onclick="Admin.modStat('caps', 100)" class="btn px-2">+100</button>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-xs text-green-500">HP (HEAL)</label>
-                            <button onclick="Admin.fullHeal()" class="btn w-full py-2 text-green-300 border-green-300">FULL RESTORE</button>
-                        </div>
-                        <div>
-                            <label class="text-xs text-red-500">DANGER</label>
-                            <button onclick="Admin.killTarget()" class="btn w-full py-2 btn-danger">EXECUTE (KILL)</button>
-                        </div>
+                <div class="flex justify-between items-end border-b border-green-700 pb-2 mb-4">
+                    <div>
+                        <h2 id="target-name" class="text-4xl font-bold text-white">UNKNOWN</h2>
+                        <span id="target-id" class="text-xs text-gray-500 font-mono">ID: ---</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold text-yellow-400">LVL <span id="target-lvl">0</span></div>
+                        <div class="text-green-400"><span id="target-hp">0</span> HP</div>
                     </div>
                 </div>
 
-                <div id="tab-items" class="tab-content hidden flex-grow flex flex-col gap-2">
-                    <div class="flex gap-2">
-                        <select id="item-select" class="input-field flex-grow">
-                            <option value="">-- SELECT ITEM --</option>
-                        </select>
-                        <input type="number" id="item-count" class="input-field w-20 text-center" value="1">
-                    </div>
-                    <button onclick="Admin.giveItem()" class="btn w-full py-3 text-lg">TRANSMIT ITEM</button>
-                    <div class="mt-4 border-t border-green-900 pt-2">
-                        <h3 class="font-bold text-yellow-400 mb-2">QUICK KITS</h3>
+                <div class="grid grid-cols-2 gap-6 overflow-y-auto pr-2">
+                    
+                    <div class="border border-green-900 p-3 bg-green-900/10">
+                        <h3 class="font-bold text-yellow-400 mb-3 border-b border-green-900">STATS MODIFIER</h3>
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <button onclick="Admin.modStat('lvl', 1)" class="btn-admin">+1 LEVEL</button>
+                            <button onclick="Admin.modStat('caps', 100)" class="btn-admin">+100 KK</button>
+                        </div>
                         <div class="grid grid-cols-2 gap-2">
-                            <button onclick="Admin.giveKit('starter')" class="btn text-xs">STARTER KIT</button>
-                            <button onclick="Admin.giveKit('camp')" class="btn text-xs">CAMPING KIT</button>
-                            <button onclick="Admin.giveKit('god')" class="btn text-xs btn-danger">GOD MODE KIT</button>
+                            <button onclick="Admin.fullHeal()" class="btn-admin text-green-300 border-green-300">VOLL HEILEN</button>
+                            <button onclick="Admin.modStat('rads', -1000)" class="btn-admin text-blue-300">RADS ENTFERNEN</button>
+                        </div>
+                        <button onclick="Admin.killTarget()" class="btn-admin btn-danger w-full mt-4 py-2 font-bold">⚠️ SPIELER TÖTEN</button>
+                    </div>
+
+                    <div class="border border-green-900 p-3 bg-green-900/10">
+                        <h3 class="font-bold text-yellow-400 mb-3 border-b border-green-900">ITEM SPAWNER</h3>
+                        
+                        <div class="flex flex-col gap-2 mb-4">
+                            <select id="item-select" class="bg-black border border-green-500 text-green-400 p-2 text-sm">
+                                <option value="">-- ITEM WÄHLEN --</option>
+                            </select>
+                            <div class="flex gap-2">
+                                <input type="number" id="item-count" value="1" class="bg-black border border-green-500 w-16 text-center text-white font-bold">
+                                <button onclick="Admin.giveItem()" class="btn-admin flex-grow font-bold text-yellow-400">SENDEN</button>
+                            </div>
+                        </div>
+
+                        <div class="text-xs text-gray-400 mb-1">SCHNELL-PAKETE:</div>
+                        <div class="flex gap-1">
+                            <button onclick="Admin.giveKit('starter')" class="btn-admin flex-1 text-xs">STARTER</button>
+                            <button onclick="Admin.giveKit('camp')" class="btn-admin flex-1 text-xs">CAMP</button>
+                            <button onclick="Admin.giveKit('god')" class="btn-admin flex-1 text-xs text-red-400 border-red-400">GOD</button>
                         </div>
                     </div>
-                </div>
 
-                <div id="tab-broadcast" class="tab-content hidden flex-grow flex flex-col gap-2">
-                    <textarea id="broadcast-msg" class="input-field h-32 resize-none" placeholder="ENTER GLOBAL MESSAGE..."></textarea>
-                    <div class="flex gap-2">
-                        <button onclick="Admin.sendBroadcast('info')" class="btn flex-1 border-blue-400 text-blue-400">INFO</button>
-                        <button onclick="Admin.sendBroadcast('alert')" class="btn flex-1 border-red-500 text-red-500">ALERT</button>
-                    </div>
                 </div>
 
             </div>
-        </div>
-
-        <div class="h-32 border border-[#39ff14] bg-black p-2 font-mono text-xs overflow-y-auto" id="admin-log">
-            <div class="log-entry">> SYSTEM INITIALIZED...</div>
         </div>
     </div>
 
     <script src="data_core.js"></script>
     <script src="data_items.js"></script>
     <script src="network.js"></script>
-    <script src="admin.js?v=3.8"></script>
+    <script src="admin.js?v=3.9"></script>
 </body>
 </html>
