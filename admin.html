@@ -9,7 +9,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    
+    <script>document.write('<link rel="stylesheet" href="style.css?v=' + Date.now() + '">');</script>
+
     <style>
         body { background-color: #050505; color: #39ff14; font-family: 'VT323', monospace; }
         .admin-box { border: 2px solid #39ff14; background: rgba(0, 20, 0, 0.95); box-shadow: 0 0 10px #39ff14; }
@@ -56,7 +58,7 @@
             <div class="md:col-span-4 flex flex-col admin-box p-2">
                 <h2 class="text-xl font-bold bg-green-900/50 p-2 mb-2 text-center text-yellow-400">BEWOHNER LISTE</h2>
                 <div id="player-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-1">
-                    <div class="p-4 text-gray-500 text-center">Scanne Netzwerk...</div>
+                    <div class="p-4 text-gray-500 text-center">Warte auf Verbindung...</div>
                 </div>
             </div>
 
@@ -78,7 +80,6 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-6 overflow-y-auto pr-2">
-                    
                     <div class="border border-green-900 p-3 bg-green-900/10">
                         <h3 class="font-bold text-yellow-400 mb-3 border-b border-green-900">STATS MODIFIER</h3>
                         <div class="grid grid-cols-2 gap-2 mb-2">
@@ -94,7 +95,6 @@
 
                     <div class="border border-green-900 p-3 bg-green-900/10">
                         <h3 class="font-bold text-yellow-400 mb-3 border-b border-green-900">ITEM SPAWNER</h3>
-                        
                         <div class="flex flex-col gap-2 mb-4">
                             <select id="item-select" class="bg-black border border-green-500 text-green-400 p-2 text-sm">
                                 <option value="">-- ITEM WÄHLEN --</option>
@@ -104,7 +104,6 @@
                                 <button onclick="Admin.giveItem()" class="btn-admin flex-grow font-bold text-yellow-400">SENDEN</button>
                             </div>
                         </div>
-
                         <div class="text-xs text-gray-400 mb-1">SCHNELL-PAKETE:</div>
                         <div class="flex gap-1">
                             <button onclick="Admin.giveKit('starter')" class="btn-admin flex-1 text-xs">STARTER</button>
@@ -112,16 +111,37 @@
                             <button onclick="Admin.giveKit('god')" class="btn-admin flex-1 text-xs text-red-400 border-red-400">GOD</button>
                         </div>
                     </div>
-
                 </div>
-
             </div>
         </div>
     </div>
 
-    <script src="data_core.js"></script>
-    <script src="data_items.js"></script>
-    <script src="network.js"></script>
-    <script src="admin.js?v=3.9"></script>
+    <script>
+        const devVer = Date.now();
+        console.log("[Admin] Loading scripts with ID:", devVer);
+        
+        function load(src) {
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = src + '?v=' + devVer;
+                s.onload = resolve;
+                s.onerror = reject;
+                document.body.appendChild(s);
+            });
+        }
+
+        load('data_core.js')
+            .then(() => load('data_items.js'))
+            .then(() => load('network.js'))
+            .then(() => load('admin.js'))
+            .then(() => {
+                console.log("[Admin] Ready.");
+                if(window.Admin && Admin.init) Admin.init();
+            })
+            .catch(e => {
+                console.error("Load Error:", e);
+                document.body.innerHTML += "<div style='color:red'>SCRIPT LOAD ERROR - SEE CONSOLE</div>";
+            });
+    </script>
 </body>
 </html>
