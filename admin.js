@@ -1,7 +1,7 @@
-// [v5.7] - 2026-01-03 (Admin System Fix)
-// - Fix: Inventar/Quests werden sicher als Array geladen (Fix für "forEach" Crash).
-// - Fix: Game.items Check verhindert Absturz bei fehlenden Item-Daten.
-// - Update: Kompatibel mit HTML v5.0 Layout.
+// [v4.0] - 2026-01-03 (Admin System Overhaul)
+// - Gatekeeper: "bimbo123" protects the UI.
+// - Auto-Auth: Uses 'admin@pipboy-system.com' internally.
+// - Full Management: Inventory, Stats, Location, Raw Data.
 
 const Admin = {
     // Config
@@ -10,10 +10,10 @@ const Admin = {
     adminPass: "zintel1992",
 
     // State
-    dbData: {}, 
-    currentPath: null,
-    currentUserData: null,
-    itemsList: [], 
+    dbData: {}, // Full snapshot of 'saves'
+    currentPath: null, // e.g., 'saves/UID/0'
+    currentUserData: null, // Local copy of selected save
+    itemsList: [], // Loaded from data_items.js
 
     // --- 1. GATEKEEPER & INIT ---
     
@@ -38,76 +38,65 @@ const Admin = {
         }
 
         try {
+            // Real Auth
             await Network.login(this.adminUser, this.adminPass);
             
             // Switch UI
             document.getElementById('gate-screen').classList.add('hidden');
             const app = document.getElementById('app-ui');
-            if(app) {
-                app.classList.remove('hidden');
-                setTimeout(() => app.classList.remove('opacity-0'), 50);
-            }
+            app.classList.remove('hidden');
+            // Fade In
+            setTimeout(() => app.classList.remove('opacity-0'), 50);
             
-            const connDot = document.getElementById('conn-dot');
-            if(connDot) {
-                connDot.classList.replace('bg-red-500', 'bg-green-500');
-                connDot.classList.remove('animate-pulse');
-            }
+            // Start Data Flow
+            document.getElementById('conn-dot').classList.replace('bg-red-500', 'bg-green-500');
+            document.getElementById('conn-dot').classList.remove('animate-pulse');
             
             this.initData();
 
         } catch(e) {
-            const msgEl = document.getElementById('gate-msg');
-            if(msgEl) msgEl.textContent = "UPLINK FAILED: " + e.code;
+            document.getElementById('gate-msg').textContent = "UPLINK FAILED: " + e.code;
             console.error(e);
         }
     },
 
     initData: function() {
-        // Load Game Items for Dropdown safe check
-        const sel = document.getElementById('inv-add-select');
-        if(typeof Game !== 'undefined' && Game.items && sel) {
+        // Load Game Items for Dropdown
+        if(typeof Game !== 'undefined' && Game.items) {
             this.itemsList = Object.keys(Game.items).sort().map(k => ({id: k, name: Game.items[k].name}));
-            sel.innerHTML = '<option value="">-- SELECT ITEM --</option>';
+            const sel = document.getElementById('inv-add-select');
+            sel.innerHTML = '';
             this.itemsList.forEach(i => {
                 const opt = document.createElement('option');
                 opt.value = i.id;
                 opt.textContent = `${i.name} (${i.id})`;
                 sel.appendChild(opt);
             });
-        } else {
-            console.warn("Admin: Game.items not loaded yet or UI missing.");
         }
 
-        // Listener
-        if(Network.db) {
-            Network.db.ref('saves').on('value', snap => {
-                this.dbData = snap.val() || {};
-                this.renderUserList();
-                
-                // Refresh selection if active
-                if(this.currentPath) {
-                    const parts = this.currentPath.split('/');
-                    if(this.dbData[parts[1]] && this.dbData[parts[1]][parts[2]]) {
-                        this.selectUser(this.currentPath, true);
-                    }
+        // Start Firebase Listener on 'saves' (The Master Record)
+        Network.db.ref('saves').on('value', snap => {
+            this.dbData = snap.val() || {};
+            this.renderUserList();
+            // Auto-refresh selected view if active
+            if(this.currentPath) {
+                const parts = this.currentPath.split('/'); // saves, uid, slot
+                if(this.dbData[parts[1]] && this.dbData[parts[1]][parts[2]]) {
+                    this.selectUser(this.currentPath, true); // true = silent update
                 }
-            });
-        }
+            }
+        });
     },
 
     refresh: function() {
-        location.reload(); 
+        location.reload(); // Hard refresh to clear memory/cache
     },
 
     // --- 2. USER LIST ---
 
     renderUserList: function() {
         const list = document.getElementById('user-list');
-        const searchInput = document.getElementById('search-player');
-        if(!list) return;
-
-        const filter = searchInput ? searchInput.value.toLowerCase() : "";
+        const filter = document.getElementById('search-player').value.toLowerCase();
         list.innerHTML = '';
         
         let count = 0;
@@ -119,6 +108,7 @@ const Admin = {
                 const name = (save.playerName || "Unknown").toLowerCase();
                 const path = `saves/${uid}/${slotIdx}`;
                 
+                // Filter
                 if(filter && !name.includes(filter) && !uid.includes(filter)) continue;
 
                 const div = document.createElement('div');
@@ -142,76 +132,64 @@ const Admin = {
                 count++;
             }
         }
-        const countEl = document.getElementById('user-count');
-        if(countEl) countEl.textContent = count;
+        document.getElementById('user-count').textContent = count;
     },
 
     selectUser: function(path, silent = false) {
         this.currentPath = path;
         
+        // Extract Data
         const parts = path.split('/');
         const uid = parts[1];
         const slot = parts[2];
-        
-        if(!this.dbData[uid] || !this.dbData[uid][slot]) return; 
-
         this.currentUserData = this.dbData[uid][slot];
         const d = this.currentUserData;
 
-        // UI Reset Tabs if not silent
+        // UI Update
         if(!silent) {
             document.querySelectorAll('.active-tab').forEach(el => {
                 el.classList.remove('active-tab');
                 el.classList.add('inactive-tab');
             });
-            const tabGen = document.getElementById('tab-btn-general');
-            if(tabGen) {
-                tabGen.classList.add('active-tab');
-                tabGen.classList.remove('inactive-tab');
-            }
+            document.getElementById('tab-btn-general').classList.add('active-tab');
+            document.getElementById('tab-btn-general').classList.remove('inactive-tab');
             this.tab('general');
         }
 
         // Header Info
-        const noSel = document.getElementById('no-selection');
-        const editContent = document.getElementById('editor-content');
-        if(noSel) noSel.classList.add('hidden');
-        if(editContent) editContent.classList.remove('hidden');
+        document.getElementById('no-selection').classList.add('hidden');
+        document.getElementById('editor-content').classList.remove('hidden');
         
-        const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
-        const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+        document.getElementById('edit-name').textContent = d.playerName || "Unknown";
+        document.getElementById('edit-uid').textContent = uid;
+        document.getElementById('edit-slot').textContent = slot;
+        document.getElementById('edit-email').textContent = d._userEmail || "No Email";
+        
+        document.getElementById('quick-lvl').value = d.lvl || 1;
+        document.getElementById('quick-xp').value = d.xp || 0;
 
-        setTxt('edit-name', d.playerName || "Unknown");
-        setTxt('edit-uid', uid);
-        setTxt('edit-slot', slot);
-        setTxt('edit-email', d._userEmail || "No Email");
+        // Fill Tabs
+        this.fillGeneral(d);
+        this.fillStats(d);
+        this.fillInv(d);
+        this.fillWorld(d);
+        this.fillRaw(d);
         
-        setVal('quick-lvl', d.lvl || 1);
-        setVal('quick-xp', d.xp || 0);
-
-        // Fill Tabs (Safely with try-catch)
-        try { this.fillGeneral(d); } catch(e) { console.error("Fill General Error", e); }
-        try { this.fillStats(d); } catch(e) { console.error("Fill Stats Error", e); }
-        try { this.fillInv(d); } catch(e) { console.error("Fill Inv Error", e); }
-        try { this.fillWorld(d); } catch(e) { console.error("Fill World Error", e); }
-        try { this.fillRaw(d); } catch(e) { console.error("Fill Raw Error", e); }
-        
+        // Refresh List Highlight
         if(!silent) this.renderUserList(); 
     },
 
     // --- 3. EDITOR FILLERS ---
 
     fillGeneral: function(d) {
-        const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
-        setVal('inp-hp', Math.round(d.hp || 0));
-        setVal('inp-maxhp', d.maxHp || 10);
-        setVal('inp-rads', d.rads || 0);
-        setVal('inp-caps', d.caps || 0);
+        document.getElementById('inp-hp').value = Math.round(d.hp || 0);
+        document.getElementById('inp-maxhp').value = d.maxHp || 10;
+        document.getElementById('inp-rads').value = d.rads || 0;
+        document.getElementById('inp-caps').value = d.caps || 0;
     },
 
     fillStats: function(d) {
         const container = document.getElementById('special-container');
-        if(!container) return;
         container.innerHTML = '';
         
         const stats = d.stats || { STR:1, PER:1, END:1, CHA:1, INT:1, AGI:1, LUC:1 };
@@ -229,43 +207,32 @@ const Admin = {
             container.appendChild(div);
         }
 
-        const statP = document.getElementById('inp-statPoints');
-        if(statP) statP.value = d.statPoints || 0;
-        const perkP = document.getElementById('inp-perkPoints');
-        if(perkP) perkP.value = d.perkPoints || 0;
+        document.getElementById('inp-statPoints').value = d.statPoints || 0;
+        document.getElementById('inp-perkPoints').value = d.perkPoints || 0;
     },
 
     fillInv: function(d) {
         const tbody = document.getElementById('inv-table-body');
-        if(!tbody) return;
         tbody.innerHTML = '';
         
-        // [FIX] Convert Object to Array if necessary (Firebase quirk)
-        let inv = [];
-        if(d.inventory) {
-            inv = Array.isArray(d.inventory) ? d.inventory : Object.values(d.inventory);
-        }
-
+        const inv = d.inventory || [];
         inv.forEach((item, idx) => {
-            if(!item) return;
             const tr = document.createElement('tr');
             tr.className = "border-b border-[#1a551a] hover:bg-[#002200]";
             
-            // Name resolve (Safe Check)
+            // Name resolve
             let name = item.id;
-            if(typeof Game !== 'undefined' && Game.items && Game.items[item.id]) {
-                name = Game.items[item.id].name;
-            }
-            if(item.props && item.props.name) name = item.props.name + "*";
+            if(Game.items[item.id]) name = Game.items[item.id].name;
+            if(item.props && item.props.name) name = item.props.name + "*"; // Custom item
 
             tr.innerHTML = `
-                <td class="p-2 truncate max-w-[120px]">${name}</td>
-                <td class="p-2 font-mono text-xs opacity-50 hidden md:table-cell">${item.id}</td>
-                <td class="p-2 text-center">
-                    <input type="number" class="w-12 bg-black border border-[#1a551a] text-center" 
+                <td class="p-2">${name}</td>
+                <td class="p-2 font-mono text-xs opacity-50">${item.id}</td>
+                <td class="p-2">
+                    <input type="number" class="w-16 bg-black border border-[#1a551a] text-center" 
                         value="${item.count}" onchange="Admin.invUpdate(${idx}, this.value)">
                 </td>
-                <td class="p-2 text-center">
+                <td class="p-2 text-right">
                     <button onclick="Admin.invDelete(${idx})" class="text-red-500 font-bold hover:text-white px-2">X</button>
                 </td>
             `;
@@ -276,28 +243,18 @@ const Admin = {
     fillWorld: function(d) {
         const sx = d.sector ? d.sector.x : 0;
         const sy = d.sector ? d.sector.y : 0;
-        
-        const viewSec = document.getElementById('view-sector');
-        if(viewSec) viewSec.textContent = `${sx},${sy}`;
-        
-        const tX = document.getElementById('tele-x');
-        if(tX) tX.value = sx;
-        const tY = document.getElementById('tele-y');
-        if(tY) tY.value = sy;
+        document.getElementById('view-sector').textContent = `${sx},${sy}`;
+        document.getElementById('tele-x').value = sx;
+        document.getElementById('tele-y').value = sy;
 
+        // Quests
         const qList = document.getElementById('quest-list');
-        if(!qList) return;
         qList.innerHTML = '';
-        
-        // [FIX] Array check for quests too
-        let quests = [];
-        if(d.quests) {
-            quests = Array.isArray(d.quests) ? d.quests : Object.values(d.quests);
-        }
+        const quests = d.quests || [];
         
         if(quests.length === 0) qList.innerHTML = '<div class="text-gray-500 italic">No active quests.</div>';
         
-        quests.forEach((q) => {
+        quests.forEach((q, idx) => {
             const div = document.createElement('div');
             div.className = "flex justify-between border-b border-[#1a331a] p-1 text-sm";
             div.innerHTML = `
@@ -309,8 +266,7 @@ const Admin = {
     },
 
     fillRaw: function(d) {
-        const raw = document.getElementById('raw-json');
-        if(raw) raw.value = JSON.stringify(d, null, 2);
+        document.getElementById('raw-json').value = JSON.stringify(d, null, 2);
     },
 
     // --- 4. ACTIONS & SAVING ---
@@ -319,20 +275,20 @@ const Admin = {
         document.querySelectorAll('[id^="tab-btn-"]').forEach(b => {
             b.classList.replace('active-tab', 'inactive-tab');
         });
-        const btn = document.getElementById('tab-btn-' + id);
-        if(btn) btn.classList.replace('inactive-tab', 'active-tab');
+        document.getElementById('tab-btn-' + id).classList.replace('inactive-tab', 'active-tab');
         
-        ['general', 'stats', 'inv', 'world', 'raw'].forEach(t => {
-            const el = document.getElementById('tab-' + t);
-            if(el) el.classList.add('hidden');
-        });
+        document.getElementById('tab-general').classList.add('hidden');
+        document.getElementById('tab-stats').classList.add('hidden');
+        document.getElementById('tab-inv').classList.add('hidden');
+        document.getElementById('tab-world').classList.add('hidden');
+        document.getElementById('tab-raw').classList.add('hidden');
         
-        const target = document.getElementById('tab-' + id);
-        if(target) target.classList.remove('hidden');
+        document.getElementById('tab-' + id).classList.remove('hidden');
     },
 
     saveVal: function(key, val) {
         if(!this.currentPath) return;
+        // Convert numbers
         if(!isNaN(val) && val !== "") val = Number(val);
         Network.db.ref(this.currentPath + '/' + key).set(val);
     },
@@ -350,6 +306,7 @@ const Admin = {
 
     action: function(type) {
         if(!this.currentPath) return;
+        
         const updates = {};
         const p = this.currentPath;
 
@@ -381,26 +338,25 @@ const Admin = {
         else if (type === 'reset-vault') {
             if(!confirm("RESET CHARACTER TO VAULT 101 (SECTOR 4,4)?")) return;
             updates['sector'] = {x: 4, y: 4};
-            updates['player'] = {x: 300, y: 200}; 
+            updates['player'] = {x: 100, y: 100}; // Safe Pixel Coords
+            
+            // Optional: Reset local view flags
+            updates['view'] = 'map';
         }
 
         Network.db.ref(p).update(updates);
     },
 
     teleport: function() {
-        const tX = document.getElementById('tele-x');
-        const tY = document.getElementById('tele-y');
-        if(!tX || !tY) return;
-
-        const x = Number(tX.value);
-        const y = Number(tY.value);
+        const x = Number(document.getElementById('tele-x').value);
+        const y = Number(document.getElementById('tele-y').value);
         
-        if(!this.currentPath) return;
-
         Network.db.ref(this.currentPath + '/sector').set({x:x, y:y});
+        // Reset player pixel pos to center to avoid getting stuck in walls in new sector
         Network.db.ref(this.currentPath + '/player').set({x:300, y:200}); 
     },
 
+    // Inventory Logic
     invUpdate: function(idx, val) {
         val = Number(val);
         if(val <= 0) {
@@ -412,35 +368,20 @@ const Admin = {
 
     invDelete: function(idx) {
         if(!confirm("Remove Item?")) return;
-        // Fix for array splice
-        let inv = this.currentUserData.inventory;
-        if (!Array.isArray(inv)) inv = Object.values(inv || {});
-        
+        // Firebase arrays are tricky. We fetch, splice, set.
+        const inv = [...(this.currentUserData.inventory || [])];
         inv.splice(idx, 1);
         Network.db.ref(this.currentPath + '/inventory').set(inv);
     },
 
     invAdd: function() {
-        const sel = document.getElementById('inv-add-select');
-        const qtyEl = document.getElementById('inv-add-qty');
+        const id = document.getElementById('inv-add-select').value;
+        const count = Number(document.getElementById('inv-add-qty').value);
+        if(!id || count < 1) return;
 
-        if(!sel || !qtyEl) return;
-
-        const id = sel.value;
-        const count = Number(qtyEl.value);
+        const inv = [...(this.currentUserData.inventory || [])];
         
-        if(!id) {
-            alert("Bitte wähle ein Item aus der Liste!");
-            return;
-        }
-        if(isNaN(count) || count < 1) {
-            alert("Menge muss mindestens 1 sein.");
-            return;
-        }
-
-        let inv = this.currentUserData.inventory;
-        if (!Array.isArray(inv)) inv = Object.values(inv || {});
-        
+        // Stack?
         let found = false;
         for(let item of inv) {
             if(item.id === id && !item.props) {
@@ -458,10 +399,8 @@ const Admin = {
 
     saveRaw: function() {
         try {
-            const el = document.getElementById('raw-json');
-            if(!el) return;
-            const data = JSON.parse(el.value);
-            if(confirm("OVERWRITE DATABASE WITH RAW JSON?")) {
+            const data = JSON.parse(document.getElementById('raw-json').value);
+            if(confirm("OVERWRITE DATABASE WITH RAW JSON? THIS IS DESTRUCTIVE.")) {
                 Network.db.ref(this.currentPath).set(data);
             }
         } catch(e) {
