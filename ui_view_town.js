@@ -1,8 +1,11 @@
-// [v3.1b] - 2026-01-03 02:00am (Shop UI Update)
-// - Feature: Shop Tabs (Buy/Sell).
-// - UI: Added renderShopSell view.
+// [v3.2] - 2026-01-03 02:45am (Shop UI Overhaul)
+// - UI: Added Quantity Toggles (1x, 5x, MAX).
+// - Layout: Buying info field widened.
+// - Selling: Replaced small button with large text area; whole row clickable.
 
 Object.assign(UI, {
+    
+    shopQty: 1, // Default quantity
 
     renderCity: function() {
         const con = document.getElementById('city-options');
@@ -60,13 +63,22 @@ Object.assign(UI, {
     },
     
     renderShop: function(container) {
-        // Wrapper for Buy View (Default)
         this.renderShopBuy();
+    },
+
+    renderShopHeader: function(container) {
+        const capsDisplay = document.createElement('div');
+        capsDisplay.className = "sticky top-0 bg-black/95 border-b border-yellow-500 flex justify-between p-2 mb-2 z-10 font-mono text-xs sm:text-sm shadow-md shadow-black";
+        capsDisplay.innerHTML = `
+            <span class="text-yellow-400">DU: ${Game.state.caps} KK</span>
+            <span class="text-green-400">HÄNDLER: ${Game.state.shop.merchantCaps || 0} KK</span>
+        `;
+        container.appendChild(capsDisplay);
     },
 
     renderShopTabs: function(container, activeTab) {
         const tabs = document.createElement('div');
-        tabs.className = "flex w-full mb-4 border-b border-green-700";
+        tabs.className = "flex w-full mb-2 border-b border-green-700";
         
         const btnBuy = document.createElement('button');
         btnBuy.className = `flex-1 py-2 font-bold ${activeTab==='buy' ? 'bg-green-900/40 text-green-400 border-b-2 border-green-400' : 'text-gray-500 hover:text-green-300'}`;
@@ -81,6 +93,29 @@ Object.assign(UI, {
         tabs.appendChild(btnBuy);
         tabs.appendChild(btnSell);
         container.appendChild(tabs);
+        
+        // Quantity Toggles
+        const qtyContainer = document.createElement('div');
+        qtyContainer.className = "flex justify-center gap-2 mb-4";
+        
+        const makeQtyBtn = (label, val) => {
+            const b = document.createElement('button');
+            const isActive = (this.shopQty === val);
+            b.className = `px-4 py-1 text-xs font-bold border ${isActive ? 'bg-green-500 text-black border-green-500' : 'bg-black text-green-500 border-green-500 hover:bg-green-900'}`;
+            b.textContent = label;
+            b.onclick = () => {
+                this.shopQty = val;
+                if(activeTab === 'buy') this.renderShopBuy();
+                else this.renderShopSell();
+            };
+            qtyContainer.appendChild(b);
+        };
+        
+        makeQtyBtn("1x", 1);
+        makeQtyBtn("5x", 5);
+        makeQtyBtn("MAX", 'max');
+        
+        container.appendChild(qtyContainer);
     },
 
     renderShopBuy: function() {
@@ -90,7 +125,6 @@ Object.assign(UI, {
         Game.checkShopRestock();
         container.innerHTML = '';
         
-        // Header & Tabs
         this.renderShopHeader(container);
         this.renderShopTabs(container, 'buy');
 
@@ -125,6 +159,7 @@ Object.assign(UI, {
                     const stock = Game.state.shop.stock[data.key];
                     
                     const div = document.createElement('div');
+                    // [v3.2] CSS Adjustment: Reduced right column width/padding to widen text area
                     div.className = `flex justify-between items-center p-2 mb-2 border h-16 w-full ${canAfford ? 'border-green-500 bg-green-900/20 hover:bg-green-900/40' : 'border-red-900 bg-black/40 opacity-70'} transition-all cursor-pointer group`;
                     
                     let icon = "📦";
@@ -133,16 +168,16 @@ Object.assign(UI, {
                     div.innerHTML = `
                         <div class="flex items-center gap-3 overflow-hidden flex-1">
                             <span class="text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">${icon}</span>
-                            <div class="flex flex-col overflow-hidden">
+                            <div class="flex flex-col overflow-hidden w-full"> 
                                 <span class="font-bold truncate ${canAfford ? 'text-green-400 group-hover:text-yellow-400' : 'text-gray-500'} text-sm">${data.name}</span>
                                 <span class="text-[10px] text-green-600 truncate">Vorrat: ${stock} Stk</span>
                             </div>
                         </div>
-                        <div class="flex flex-col items-end flex-shrink-0 ml-2 min-w-[60px]">
+                        <div class="flex flex-col items-end flex-shrink-0 ml-1 min-w-[50px]"> 
                             <span class="font-mono ${canAfford ? 'text-yellow-400' : 'text-red-500'} font-bold text-sm">${data.cost} KK</span>
                         </div>
                     `;
-                    div.onclick = () => UI.showShopConfirm(data.key);
+                    div.onclick = () => Game.buyItem(data.key, this.shopQty);
                     container.appendChild(div);
                  });
              }
@@ -156,15 +191,15 @@ Object.assign(UI, {
         ammoDiv.innerHTML = `
              <div class="flex items-center gap-3 overflow-hidden flex-1">
                 <span class="text-2xl flex-shrink-0">🧨</span>
-                <div class="flex flex-col overflow-hidden">
+                <div class="flex flex-col overflow-hidden w-full">
                     <span class="font-bold text-blue-300 text-sm">10x Munition</span>
                     <span class="text-[10px] text-blue-500 truncate">Vorrat: ${ammoStock} Pakete</span>
                 </div>
             </div>
-            <span class="font-mono text-yellow-400 font-bold text-sm ml-2">10 KK</span>
+            <span class="font-mono text-yellow-400 font-bold text-sm ml-1 min-w-[50px] text-right">10 KK</span>
         `;
         if(!canBuyAmmo) { ammoDiv.style.opacity = 0.5; if(ammoStock<=0) ammoDiv.innerHTML += `<div class="absolute inset-0 flex justify-center items-center bg-black/60 text-red-500 font-bold text-xs">AUSVERKAUFT</div>`; ammoDiv.style.position='relative'; }
-        else { ammoDiv.onclick = () => Game.buyAmmo(); }
+        else { ammoDiv.onclick = () => Game.buyAmmo(this.shopQty); }
         container.appendChild(ammoDiv);
 
         // Back Button
@@ -207,39 +242,30 @@ Object.assign(UI, {
                 div.innerHTML = `
                     <div class="flex items-center gap-3 overflow-hidden flex-1">
                         <span class="text-xl flex-shrink-0">💰</span>
-                        <div class="flex flex-col overflow-hidden">
+                        <div class="flex flex-col overflow-hidden w-full">
                             <span class="font-bold text-yellow-500 text-sm truncate">${name} ${countText}</span>
-                            <span class="text-[10px] text-yellow-700 truncate">Wert: ${sellPrice} KK</span>
+                            <span class="text-[10px] text-yellow-700 truncate">Wert je: ${sellPrice} KK</span>
                         </div>
                     </div>
-                    <button class="bg-yellow-900/50 text-yellow-400 border border-yellow-600 px-3 py-1 text-xs font-bold hover:bg-yellow-500 hover:text-black">
+                    
+                    <div class="flex items-center justify-center bg-yellow-900/40 text-yellow-400 font-bold text-xs h-full w-24 border-l border-yellow-700 ml-2">
                         VERKAUFEN
-                    </button>
+                    </div>
                 `;
                 
                 if(canSell) {
-                    div.onclick = () => Game.sellItem(index);
+                    div.onclick = () => Game.sellItem(index, this.shopQty);
                 }
                 container.appendChild(div);
             });
         }
         
-         // Back Button (Duplicate needed for bottom navigation)
+         // Back Button
         const backBtn = document.createElement('button');
         backBtn.className = "w-full py-3 mt-4 border border-yellow-400 text-yellow-400 font-bold hover:bg-yellow-400 hover:text-black transition-colors uppercase tracking-widest";
         backBtn.textContent = "<< Speichern & Zurück";
         backBtn.onclick = () => { Game.saveGame(); this.switchView('city'); };
         container.appendChild(backBtn);
-    },
-
-    renderShopHeader: function(container) {
-        const capsDisplay = document.createElement('div');
-        capsDisplay.className = "sticky top-0 bg-black/95 border-b border-yellow-500 flex justify-between p-2 mb-2 z-10 font-mono text-xs sm:text-sm shadow-md shadow-black";
-        capsDisplay.innerHTML = `
-            <span class="text-yellow-400">DU: ${Game.state.caps} KK</span>
-            <span class="text-green-400">HÄNDLER: ${Game.state.shop.merchantCaps || 0} KK</span>
-        `;
-        container.appendChild(capsDisplay);
     },
 
     renderClinic: function() {
