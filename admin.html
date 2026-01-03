@@ -51,7 +51,6 @@
             <form onsubmit="event.preventDefault(); Admin.unlock();">
                 <input type="password" id="gate-pass" class="w-full text-center text-xl py-3 tracking-widest mb-4 border-[#39ff14]" placeholder="ENTER PASSCODE" autofocus>
                 <button type="submit" class="btn w-full py-3 font-bold text-lg">INITIALIZE LINK</button>
-                <button onclick="location.href='https://pipboy3003.github.io'" class="btn w-full py-3 font-bold text-lg">LOGIN SCREEN</button>
             </form>
             <div id="gate-msg" class="mt-4 h-6 text-red-500 font-bold"></div>
         </div>
@@ -73,9 +72,9 @@
             </div>
         </header>
 
-        <div class="flex flex-grow overflow-hidden">
+        <div class="flex flex-col md:flex-row flex-grow overflow-hidden">
             
-            <div class="w-80 border-r border-[#1a551a] bg-black/50 flex flex-col shrink-0">
+            <div class="w-full md:w-80 h-56 md:h-auto border-r-0 md:border-r border-b md:border-b-0 border-[#1a551a] bg-black/50 flex flex-col shrink-0">
                 <div class="p-2 border-b border-[#1a551a] bg-[#001100]">
                     <input type="text" id="search-player" class="w-full text-sm" placeholder="SEARCH ID/NAME..." onkeyup="Admin.filterList()">
                 </div>
@@ -87,7 +86,7 @@
                 </div>
             </div>
 
-            <div id="editor-panel" class="flex-grow bg-black/20 flex flex-col relative">
+            <div id="editor-panel" class="flex-grow bg-black/20 flex flex-col relative w-full overflow-hidden">
                 
                 <div id="no-selection" class="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
                     <div class="text-4xl text-[#1a331a] font-bold tracking-widest opacity-50">SELECT A RESIDENT</div>
@@ -95,7 +94,7 @@
 
                 <div id="editor-content" class="hidden flex-col h-full z-10 bg-black/80 backdrop-blur-sm">
                     
-                    <div class="flex justify-between items-end p-6 border-b border-[#39ff14] bg-[#001100]">
+                    <div class="flex justify-between items-end p-6 border-b border-[#39ff14] bg-[#001100] shrink-0">
                         <div>
                             <h2 id="edit-name" class="text-4xl font-bold text-white mb-1">PLAYER_NAME</h2>
                             <div class="text-xs font-mono text-[#1a551a]">UID: <span id="edit-uid">---</span> | SLOT: <span id="edit-slot">0</span></div>
@@ -107,18 +106,18 @@
                         </div>
                     </div>
 
-                    <div class="flex border-b border-[#1a551a]">
-                        <button onclick="Admin.tab('general')" id="tab-btn-general" class="flex-1 py-3 hover:bg-[#002200] active-tab">GENERAL</button>
-                        <button onclick="Admin.tab('stats')" id="tab-btn-stats" class="flex-1 py-3 hover:bg-[#002200] inactive-tab">S.P.E.C.I.A.L.</button>
-                        <button onclick="Admin.tab('inv')" id="tab-btn-inv" class="flex-1 py-3 hover:bg-[#002200] inactive-tab">INVENTORY</button>
-                        <button onclick="Admin.tab('world')" id="tab-btn-world" class="flex-1 py-3 hover:bg-[#002200] inactive-tab">WORLD & QUESTS</button>
-                        <button onclick="Admin.tab('raw')" id="tab-btn-raw" class="flex-1 py-3 hover:bg-[#002200] inactive-tab">RAW DATA</button>
+                    <div class="flex border-b border-[#1a551a] overflow-x-auto shrink-0 whitespace-nowrap">
+                        <button onclick="Admin.tab('general')" id="tab-btn-general" class="flex-1 py-3 px-4 min-w-[100px] hover:bg-[#002200] active-tab">GENERAL</button>
+                        <button onclick="Admin.tab('stats')" id="tab-btn-stats" class="flex-1 py-3 px-4 min-w-[100px] hover:bg-[#002200] inactive-tab">S.P.E.C.I.A.L.</button>
+                        <button onclick="Admin.tab('inv')" id="tab-btn-inv" class="flex-1 py-3 px-4 min-w-[100px] hover:bg-[#002200] inactive-tab">INVENTORY</button>
+                        <button onclick="Admin.tab('world')" id="tab-btn-world" class="flex-1 py-3 px-4 min-w-[120px] hover:bg-[#002200] inactive-tab">WORLD & QUESTS</button>
+                        <button onclick="Admin.tab('raw')" id="tab-btn-raw" class="flex-1 py-3 px-4 min-w-[100px] hover:bg-[#002200] inactive-tab">RAW DATA</button>
                     </div>
 
                     <div class="flex-grow overflow-y-auto p-6 relative">
                         
                         <div id="tab-general" class="space-y-6">
-                            <div class="grid grid-cols-3 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="panel-box p-4">
                                     <label class="block text-xs text-green-600 mb-1">HEALTH POINTS</label>
                                     <div class="flex items-center gap-2">
@@ -145,7 +144,7 @@
 
                             <div class="panel-box p-4 border-red-900 bg-red-900/10">
                                 <h3 class="text-red-500 font-bold mb-2 border-b border-red-900">DANGER ZONE</h3>
-                                <div class="flex gap-4">
+                                <div class="flex flex-col md:flex-row gap-4">
                                     <button onclick="Admin.action('kill')" class="btn btn-danger flex-1">KILL PLAYER</button>
                                     <button onclick="Admin.action('revive')" class="btn border-blue-500 text-blue-500 flex-1">REVIVE (RESET FLAGS)</button>
                                     <button onclick="Admin.action('delete')" class="btn btn-danger flex-1 border-2">DELETE SAVEGAME</button>
@@ -172,16 +171,16 @@
                         </div>
 
                         <div id="tab-inv" class="hidden flex flex-col h-full">
-                            <div class="flex gap-2 mb-4 p-4 panel-box items-end">
-                                <div class="flex-grow">
+                            <div class="flex flex-col md:flex-row gap-2 mb-4 p-4 panel-box items-end">
+                                <div class="w-full md:flex-grow">
                                     <label class="text-xs text-gray-500">ADD ITEM</label>
                                     <select id="inv-add-select" class="w-full text-lg h-10"></select>
                                 </div>
-                                <div class="w-24">
+                                <div class="w-full md:w-24">
                                     <label class="text-xs text-gray-500">QTY</label>
                                     <input type="number" id="inv-add-qty" value="1" class="w-full text-lg h-10 text-center">
                                 </div>
-                                <button onclick="Admin.invAdd()" class="btn h-10 font-bold bg-[#39ff14] text-black hover:bg-white">ADD</button>
+                                <button onclick="Admin.invAdd()" class="btn w-full md:w-auto h-10 font-bold bg-[#39ff14] text-black hover:bg-white">ADD</button>
                             </div>
                             
                             <div class="flex-grow overflow-y-auto panel-box">
@@ -203,7 +202,7 @@
                         <div id="tab-world" class="hidden space-y-6">
                             <div class="panel-box p-6 border-yellow-600">
                                 <h3 class="text-2xl font-bold text-yellow-400 mb-4">TELEPORTATION</h3>
-                                <div class="grid grid-cols-2 gap-8">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div>
                                         <div class="mb-2">CURRENT SECTOR: <span id="view-sector" class="font-bold text-white">0,0</span></div>
                                         <div class="flex gap-2 items-center">
