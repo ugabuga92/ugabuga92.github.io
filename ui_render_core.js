@@ -1,4 +1,4 @@
-// [v3.4a] - 2026-01-03 (UI & Logic) - TP Update
+// [v3.6] - 2026-01-03 (Camp UI & Logic)
 Object.assign(UI, {
     
     // Updates HUD and Button States
@@ -58,13 +58,12 @@ Object.assign(UI, {
         const hpPct = Math.min(100, Math.max(0, (hp / maxHp) * 100));
         const radPct = Math.min(100, (rads / maxHp) * 100);
         
-        // [v3.4a] Display: Current / Effective Max (after Rads)
+        // Display: Current / Effective Max (after Rads)
         const hpText = `${Math.round(hp)}/${Math.round(effectiveMax)}`;
         
         // Desktop / Header Bar
         if(this.els.hp) {
-             this.els.hp.textContent = hpText; // Not visible in bar-hp div usually, but safety
-             // The actual text is in #val-hp now
+             this.els.hp.textContent = hpText; 
              const valHpEl = document.getElementById('val-hp');
              if(valHpEl) valHpEl.textContent = hpText;
         }
@@ -82,18 +81,6 @@ Object.assign(UI, {
         const radBar = document.getElementById('bar-rads');
         if(radBar) radBar.style.width = `${radPct}%`;
 
-        // Mobile Bars (Legacy support if elements exist)
-        const mobHp = document.getElementById('bar-hp-mobile');
-        const mobRad = document.getElementById('bar-rads-mobile');
-        const mobText = document.getElementById('val-hp-mobile-text');
-        
-        if(mobHp) {
-            mobHp.className = `h-full transition-all duration-300 ${barColor}`;
-            mobHp.style.width = `${hpPct}%`;
-        }
-        if(mobRad) mobRad.style.width = `${radPct}%`;
-        if(mobText) mobText.textContent = hpText;
-
         // 5. XP UPDATE
         const nextXp = Game.expToNextLevel(Game.state.lvl);
         const expPct = Math.min(100, Math.floor((Game.state.xp / nextXp) * 100));
@@ -108,17 +95,40 @@ Object.assign(UI, {
         const ammoItem = Game.state.inventory ? Game.state.inventory.find(i => i.id === 'ammo') : null;
         if(this.els.ammo) this.els.ammo.textContent = ammoItem ? ammoItem.count : 0;
 
-        // Camp Button Visibility Logic
-        const campBtn = document.getElementById('btn-enter-camp');
+        // [v3.6] CAMP BUTTON LOGIC
+        const campBtn = document.getElementById('btn-camp-overlay');
         if(campBtn) {
-            const hasCampHere = Game.state.camp && 
-                                Game.state.camp.sector.x === Game.state.sector.x && 
-                                Game.state.camp.sector.y === Game.state.sector.y;
-            
-            if(hasCampHere) {
-                campBtn.classList.remove('hidden');
+            const hasKit = Game.state.inventory && Game.state.inventory.some(i => i.id === 'camp_kit');
+            const campDeployed = !!Game.state.camp;
+            // Check if player is in the same sector as the deployed camp
+            const inCampSector = campDeployed && 
+                                 Game.state.camp.sector.x === Game.state.sector.x && 
+                                 Game.state.camp.sector.y === Game.state.sector.y;
+
+            if (campDeployed) {
+                // CASE 1: Camp is deployed
+                if (inCampSector) {
+                    // Player is AT the camp -> Show "ENTER" with Glow
+                    campBtn.classList.remove('hidden');
+                    campBtn.className = "absolute top-4 left-4 flex flex-col items-center justify-center p-2 rounded-lg border-2 z-20 shadow-[0_0_15px_#ffd700] cursor-pointer bg-black/80 animate-pulse border-yellow-400 text-yellow-400";
+                    campBtn.innerHTML = '<span class="text-2xl">⛺</span><span class="text-xs font-bold">LAGER</span>';
+                    campBtn.onclick = () => UI.switchView('camp');
+                } else {
+                    // Player is somewhere else -> Hide button
+                    campBtn.classList.add('hidden');
+                }
             } else {
-                campBtn.classList.add('hidden');
+                // CASE 2: Camp is NOT deployed
+                if (hasKit) {
+                    // Player has kit -> Show "BUILD" (Green, no pulse)
+                    campBtn.classList.remove('hidden');
+                    campBtn.className = "absolute top-4 left-4 flex flex-col items-center justify-center p-2 rounded-lg border-2 z-20 shadow-[0_0_10px_#39ff14] cursor-pointer bg-black/80 border-green-500 text-green-500 hover:bg-green-900 transition-colors";
+                    campBtn.innerHTML = '<span class="text-2xl">⛺</span><span class="text-xs font-bold">BAUEN</span>';
+                    campBtn.onclick = () => Game.deployCamp();
+                } else {
+                    // No kit, no camp -> Hide
+                    campBtn.classList.add('hidden');
+                }
             }
         }
 
@@ -207,9 +217,9 @@ Object.assign(UI, {
                         🌍 SEKTOR [?,?]
                     </div>
 
-                    <button id="btn-enter-camp" onclick="UI.switchView('camp')" class="absolute top-4 left-4 hidden bg-black/80 border-2 border-yellow-500 text-yellow-500 p-2 rounded-lg hover:bg-yellow-900 hover:text-white transition-all z-20 shadow-[0_0_15px_#ffd700] cursor-pointer flex flex-col items-center">
+                    <button id="btn-camp-overlay" class="hidden absolute top-4 left-4 bg-black/80 border-2 border-green-500 text-green-500 p-2 rounded-lg hover:bg-green-900 transition-all z-20 shadow-[0_0_15px_#39ff14] cursor-pointer flex flex-col items-center">
                         <span class="text-2xl">⛺</span>
-                        <span class="text-xs font-bold">Lager</span>
+                        <span class="text-xs font-bold">BAUEN</span>
                     </button>
                 </div>`;
             Game.state.view = name;
