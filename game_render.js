@@ -1,5 +1,7 @@
-// [v2.9.8] - 2026-01-02 20:50pm (Visual Fix) - Vault Tile Static (No Pulse)
-// Canvas Rendering Logic
+// [v3.3] - 2026-01-03 04:00am (World Graphics)
+// - Feature: Added 'R' (Raider Fortress / Super-Mart) tile graphics.
+// - Visual: Red glow and Shopping Cart icon for the Supermarket.
+
 Object.assign(Game, {
     renderStaticMap: function() { 
         if(!this.cacheCtx) this.initCache();
@@ -64,7 +66,8 @@ Object.assign(Game, {
                     if(!this.state.currentMap[y]) continue; 
 
                     const t = this.state.currentMap[y][x]; 
-                    if(['V', 'S', 'C', 'G', 'H', '^', 'v', '<', '>', '$', '&', 'P', 'E', 'F', 'X'].includes(t)) { 
+                    // [v3.3] Added 'R' to special render list
+                    if(['V', 'S', 'C', 'G', 'H', 'R', '^', 'v', '<', '>', '$', '&', 'P', 'E', 'F', 'X'].includes(t)) { 
                         this.drawTile(ctx, x, y, t, pulse); 
                     } 
                     
@@ -154,20 +157,17 @@ Object.assign(Game, {
             case '=': ctx.strokeStyle = "#5d4037"; ctx.lineWidth = 2; ctx.moveTo(px, py+5); ctx.lineTo(px+ts, py+5); ctx.moveTo(px, py+25); ctx.lineTo(px+ts, py+25); ctx.stroke(); break;
             case 'U': ctx.fillStyle = "#000"; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI, true); ctx.fill(); break;
             
-            // [MOD] FIXED VAULT TILE (Emoji + Label, No Pulse)
+            // VAULT 101
             case 'V': 
-                ctx.globalAlpha = 1; // STATIC OPACITY (No Pulse)
+                ctx.globalAlpha = 1; 
                 ctx.shadowBlur = 10;
                 ctx.shadowColor = "#ffff00";
-                
-                // Emoji Icon (BIG)
                 ctx.fillStyle = "#ffff00"; 
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.font = "35px monospace"; 
                 ctx.fillText("⚙️", px + ts/2, py + ts/2);
                 
-                // Text Label (Below)
                 ctx.font = "bold 10px monospace";
                 ctx.fillStyle = "#ffffff";
                 ctx.shadowColor = "#000";
@@ -178,6 +178,31 @@ Object.assign(Game, {
                 ctx.textAlign = "start";
                 ctx.textBaseline = "alphabetic";
                 break; 
+
+            // [v3.3] SUPER-MART (Raider Fortress)
+            case 'R':
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = "#ff0000"; // Red danger glow
+                
+                // Icon: Shopping Cart
+                ctx.fillStyle = "#ff3333"; 
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.font = "30px monospace"; 
+                ctx.fillText("🛒", px + ts/2, py + ts/2);
+                
+                // Label
+                ctx.shadowBlur = 2;
+                ctx.shadowColor = "black";
+                ctx.font = "bold 9px monospace";
+                ctx.fillStyle = "#ffffff";
+                ctx.fillText("SUPER-MART", px + ts/2, py + ts - 2); 
+
+                ctx.shadowBlur = 0;
+                ctx.textAlign = "start";
+                ctx.textBaseline = "alphabetic";
+                break;
 
             case 'C': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['C']; ctx.fillRect(px+6, py+14, 18, 12); ctx.beginPath(); ctx.moveTo(px+4, py+14); ctx.lineTo(px+15, py+4); ctx.lineTo(px+26, py+14); ctx.fill(); break; 
             case 'S': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['S']; ctx.arc(px+ts/2, py+12, 6, 0, Math.PI*2); ctx.fill(); ctx.fillRect(px+10, py+18, 10, 6); break; 
