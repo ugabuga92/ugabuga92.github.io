@@ -1,0 +1,53 @@
+<div class="h-full w-full flex flex-col items-center p-4 bg-gray-900 text-green-500 font-mono gap-4 overflow-hidden relative">
+    
+    <div class="w-full flex justify-between items-end border-b-2 border-green-500 pb-2">
+        <h1 class="text-3xl font-bold text-yellow-400">⛺ LAGER</h1>
+        <span id="camp-level-display" class="text-green-500 font-mono text-xl">LEVEL ?</span>
+    </div>
+
+    <div id="camp-status-box" class="w-full bg-green-900/20 border border-green-900 p-4 text-center text-green-300">
+        Lade Lager-Daten...
+    </div>
+
+    <div id="camp-upgrade-container" class="w-full">
+        </div>
+
+    <div id="camp-main-actions" class="grid grid-cols-2 gap-4 w-full flex-grow">
+        
+        <button class="flex flex-col items-center justify-center border border-blue-500 text-blue-400 hover:bg-blue-900/30 p-4 transition-all" onclick="Game.restInCamp()">
+            <span class="text-3xl mb-1">💤</span>
+            <span class="font-bold">SCHLAFEN</span>
+            <span class="text-xs opacity-70">HP heilen</span>
+        </button>
+
+        <button class="flex flex-col items-center justify-center border border-orange-500 text-orange-400 hover:bg-orange-900/30 p-4 transition-all" onclick="UI.renderCampCooking()">
+            <span class="text-3xl mb-1">🍖</span>
+            <span class="font-bold">KOCHEN</span>
+            <span class="text-xs opacity-70">Essen zubereiten</span>
+        </button>
+
+        <button class="flex flex-col items-center justify-center border border-red-500 text-red-400 hover:bg-red-900/30 p-4 transition-all" onclick="Game.packCamp()">
+            <span class="text-3xl mb-1">🎒</span>
+            <span class="font-bold">ABBAUEN</span>
+            <span class="text-xs opacity-70">Zelt einpacken</span>
+        </button>
+
+        <button class="flex flex-col items-center justify-center border border-green-500 text-green-500 hover:bg-green-900/30 p-4 transition-all" onclick="UI.switchView('map')">
+            <span class="text-3xl mb-1">🗺️</span>
+            <span class="font-bold">ZURÜCK</span>
+            <span class="text-xs opacity-70">Zur Karte</span>
+        </button>
+    </div>
+
+    <div id="camp-cooking-view" class="hidden absolute inset-0 bg-gray-900 z-50 flex flex-col p-4">
+        <h2 class="text-3xl font-bold text-yellow-500 mb-4 border-b-2 border-yellow-900 pb-2 flex items-center gap-2">
+            <span>🔥</span> LAGERFEUER
+        </h2>
+        <div id="cooking-list" class="flex-grow overflow-y-auto pr-2 custom-scrollbar">
+            </div>
+        <button onclick="UI.renderCamp()" class="mt-4 border border-yellow-500 text-yellow-500 py-3 font-bold hover:bg-yellow-900/40 uppercase tracking-widest">
+            << Zurück zum Zelt
+        </button>
+    </div>
+
+</div>
