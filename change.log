@@ -1,3 +1,11 @@
+[v3.6] - 2026-01-03 06:00am (Camp System 2.0)
+- FEATURE: Permanentes Zelt-Icon (⛺) auf dem Spielfeld hinzugefügt.
+  - Wenn Bausatz im Inventar: Button zeigt "BAUEN".
+  - Wenn Zelt steht (im Sektor): Button zeigt "LAGER" (leuchtend).
+  - Wenn Zelt woanders steht: Button ist ausgeblendet.
+- UI: Camp-Menü erweitert um "KOCHEN"-Button.
+- LOGIC: Zelt-Aufbau und Interaktion jetzt direkt über das HUD möglich.
+
 [v3.5a] - 2026-01-03 05:00am (Inventory Trash Feature)
 - FEATURE: Items können nun im Inventar zerstört werden (Mülleimer-Funktion).
 - UI: Item-Dialog um "WEGWERFEN"-Button erweitert.
