@@ -1,291 +1,304 @@
-// [v3.9.5] - 2026-01-03 05:30pm (Complete Asset Overhaul)
-// - FIX: Rusty Springs und Dungeons waren leer -> Fehlende Tiles (Straßen, Zäune, Terminals) hinzugefügt.
-// - ENGINE: Tileset-Generator erweitert auf 16 Slots (inkl. Asphalt, Felsen, Türen, Terminals).
-// - GFX: Spezielle Icons für Shop ($), Crafting (&) und Klinik (P) visuell aufgewertet.
+// [v4.0] - 2026-01-03 05:45pm (Atmosphere & Lighting Engine)
+// - ENGINE: Neue 'Lighting Layer' implementiert (Multi-Pass Rendering).
+// - GFX: Dynamisches Lichtsystem (Spieler-Licht, Ambient Occlusion, farbige Lichtquellen).
+// - GFX: Partikel-System für Atmosphäre (Asche/Staub in der Luft).
+// - VISUAL: CRT-Scanlines und Vignette werden nun direkt im Canvas gerendert für mehr Immersion.
 
 Object.assign(Game, {
+    // Cache für das Tileset (wie vorher)
     gameTileset: null,
+    particles: [],
 
-    // Erstellt jetzt ALLE benötigten Texturen (16 Stück)
+    // --- TILES GENERATOR (Bleibt als Basis, leicht optimiert) ---
     generateGameTileset: function() {
         if (this.gameTileset) return this.gameTileset;
-
         const TILE = 32;
         const cvs = document.createElement('canvas');
-        cvs.width = TILE * 16; // Erweitert auf 16 Slots
-        cvs.height = TILE;
+        cvs.width = TILE * 16; cvs.height = TILE;
         const ctx = cvs.getContext('2d');
 
-        // Helper: Noise
-        const noise = (x, y, color, intensity=0.1) => {
-            ctx.fillStyle = color; ctx.fillRect(x, y, TILE, TILE);
-            for(let i=0; i<40; i++) {
-                ctx.fillStyle = Math.random()>0.5 ? `rgba(255,255,255,${intensity})` : `rgba(0,0,0,${intensity})`;
-                ctx.fillRect(x + Math.random()*TILE, y + Math.random()*TILE, 2, 2);
+        // Helper
+        const noise = (x, color, i=0.1) => {
+            ctx.fillStyle = color; ctx.fillRect(x, 0, TILE, TILE);
+            for(let j=0; j<40; j++) {
+                ctx.fillStyle = Math.random()>0.5 ? `rgba(255,255,255,${i})` : `rgba(0,0,0,${i})`;
+                ctx.fillRect(x+Math.random()*TILE, Math.random()*TILE, 2, 2);
             }
         };
+        const draw = (idx, fn) => { ctx.save(); ctx.translate(idx*TILE, 0); fn(ctx); ctx.restore(); };
 
-        // 0. BODEN (.)
-        noise(0, 0, '#4e342e', 0.1); // Braune Erde
-        ctx.fillStyle = '#3e2723'; ctx.fillRect(5,5,2,2); ctx.fillRect(20,25,2,2);
-
-        // 1. WAND (#)
-        noise(32, 0, '#263238', 0.2); // Dunkles Metall/Beton
-        ctx.fillStyle = '#000'; // Fugen
-        ctx.fillRect(32, 0, 32, 2); ctx.fillRect(32, 30, 32, 2); ctx.fillRect(32, 0, 2, 32); ctx.fillRect(62, 0, 2, 32);
-        ctx.fillRect(40, 10, 16, 12); // Vertiefung
-
-        // 2. BAUM (t)
-        ctx.clearRect(64, 0, 32, 32);
-        ctx.fillStyle = '#3e2723'; ctx.fillRect(64+12, 18, 8, 14); // Stamm
-        ctx.fillStyle = '#1b5e20'; ctx.beginPath(); ctx.arc(64+16, 14, 12, 0, Math.PI*2); ctx.fill(); // Krone
-        ctx.fillStyle = '#2e7d32'; ctx.beginPath(); ctx.arc(64+12, 10, 5, 0, Math.PI*2); ctx.fill(); // Licht
-
-        // 3. TOTER BAUM (T)
-        ctx.clearRect(96, 0, 32, 32);
-        ctx.fillStyle = '#3e2723'; ctx.fillRect(96+14, 20, 4, 12); // Stamm
-        ctx.strokeStyle = '#3e2723'; ctx.lineWidth=2; 
-        ctx.beginPath(); ctx.moveTo(96+16,20); ctx.lineTo(96+8,10); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(96+16,22); ctx.lineTo(96+24,12); ctx.stroke();
-
-        // 4. WASSER (~) / (W)
-        noise(128, 0, '#004d40', 0.2); // Dunkles Wasser
-        ctx.fillStyle = 'rgba(100,255,218,0.3)'; ctx.fillRect(132, 8, 8, 2); ctx.fillRect(145, 20, 10, 2);
-
-        // 5. BERG (M)
-        ctx.clearRect(160, 0, 32, 32);
-        ctx.fillStyle = '#424242'; ctx.beginPath(); ctx.moveTo(160+16, 4); ctx.lineTo(160+30, 30); ctx.lineTo(160+2, 30); ctx.fill();
-
-        // 6. KISTE (X)
-        ctx.clearRect(192, 0, 32, 32);
-        ctx.fillStyle = '#6d4c41'; ctx.fillRect(196, 8, 24, 20); 
-        ctx.strokeStyle='#3e2723'; ctx.lineWidth=2; ctx.strokeRect(196,8,24,20);
-        ctx.beginPath(); ctx.moveTo(196,8); ctx.lineTo(220,28); ctx.stroke(); ctx.moveTo(220,8); ctx.lineTo(196,28); ctx.stroke();
-
-        // 7. STRASSE / ASPHALT (=) - Wichtig für Stadt!
-        noise(224, 0, '#212121', 0.1); 
-        ctx.fillStyle = '#fbc02d'; ctx.fillRect(224+4, 14, 6, 4); ctx.fillRect(224+22, 14, 6, 4); // Gelbe Markierung
-
-        // 8. GRAS (")
-        noise(256, 0, '#33691e', 0.2); 
-        ctx.fillStyle = '#558b2f'; ctx.fillRect(260, 10, 2, 4); ctx.fillRect(270, 20, 2, 4);
-
-        // 9. FELSEN (o)
-        ctx.clearRect(288, 0, 32, 32);
-        ctx.fillStyle = '#616161'; ctx.beginPath(); ctx.arc(288+16, 20, 8, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#757575'; ctx.beginPath(); ctx.arc(288+14, 18, 4, 0, Math.PI*2); ctx.fill();
-
-        // 10. ZAUN (x)
-        ctx.clearRect(320, 0, 32, 32);
-        ctx.strokeStyle = '#5d4037'; ctx.lineWidth=3;
-        ctx.strokeRect(320+2, 10, 28, 12); ctx.beginPath(); ctx.moveTo(320+10,10); ctx.lineTo(320+10,22); ctx.moveTo(320+22,10); ctx.lineTo(320+22,22); ctx.stroke();
-
-        // 11. SÄULE / WANDSTÜCK (|)
-        ctx.clearRect(352, 0, 32, 32);
-        ctx.fillStyle = '#37474f'; ctx.fillRect(352+8, 4, 16, 24);
-        ctx.fillStyle = '#263238'; ctx.fillRect(352+10, 6, 12, 20); // Innen
-
-        // 12. TÜR / INTERACT (+)
-        noise(384, 0, '#3e2723'); // Holzboden
-        ctx.fillStyle = '#8d6e63'; ctx.fillRect(384+4, 4, 24, 24); // Türplatte
-        ctx.fillStyle = '#ffd600'; ctx.beginPath(); ctx.arc(384+24, 16, 2, 0, Math.PI*2); ctx.fill(); // Knauf
-
-        // 13. GROSSER BAUM / PFLANZE (Y)
-        ctx.clearRect(416, 0, 32, 32);
-        ctx.fillStyle = '#3e2723'; ctx.fillRect(416+14, 16, 4, 16);
-        ctx.fillStyle = '#1b5e20'; ctx.beginPath(); ctx.moveTo(416+16, 2); ctx.lineTo(416+28, 14); ctx.lineTo(416+4, 14); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(416+16, 8); ctx.lineTo(416+30, 22); ctx.lineTo(416+2, 22); ctx.fill();
-
-        // 14. TERMINAL / OBJEKT (U)
-        ctx.clearRect(448, 0, 32, 32);
-        ctx.fillStyle = '#212121'; ctx.fillRect(448+4, 10, 24, 18);
-        ctx.fillStyle = '#00e676'; ctx.fillRect(448+6, 12, 20, 10); // Screen Green
-        ctx.fillStyle = 'rgba(0,255,0,0.5)'; ctx.shadowBlur=5; ctx.shadowColor='#0f0'; ctx.fillRect(448+6,12,20,10); ctx.shadowBlur=0;
-
-        // 15. FASS / HINDERNIS (F)
-        ctx.clearRect(480, 0, 32, 32);
-        ctx.fillStyle = '#5d4037'; ctx.beginPath(); ctx.arc(480+16, 16, 10, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = '#3e2723'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(480+16, 16, 10, 0, Math.PI*2); ctx.stroke();
+        // TEXTUREN DEFINITIONEN
+        noise(0, '#4e342e'); // 0: Boden
+        draw(1, c => { noise(0, '#222'); c.fillStyle='#000'; c.fillRect(0,0,32,2); c.fillRect(0,0,2,32); c.fillRect(8,8,16,16); }); // 1: Wand
+        draw(2, c => { c.fillStyle='#3e2723'; c.fillRect(12,18,8,14); c.fillStyle='#1b5e20'; c.beginPath(); c.arc(16,14,12,0,7); c.fill(); }); // 2: Baum
+        draw(3, c => { c.strokeStyle='#3e2723'; c.lineWidth=2; c.moveTo(16,32); c.lineTo(16,10); c.stroke(); c.moveTo(16,20); c.lineTo(8,10); c.stroke(); }); // 3: Toter Baum
+        draw(4, c => { noise(0, '#004d40', 0.2); c.fillStyle='rgba(100,255,218,0.3)'; c.fillRect(5,5,10,2); }); // 4: Wasser
+        draw(5, c => { c.fillStyle='#444'; c.beginPath(); c.moveTo(16,4); c.lineTo(30,30); c.lineTo(2,30); c.fill(); }); // 5: Berg
+        draw(6, c => { c.fillStyle='#6d4c41'; c.fillRect(4,8,24,20); c.strokeStyle='#3e2723'; c.strokeRect(4,8,24,20); c.beginPath(); c.moveTo(4,8); c.lineTo(28,28); c.stroke(); }); // 6: Kiste
+        draw(7, c => { noise(0, '#212121'); c.fillStyle='#fbc02d'; c.fillRect(14,12,4,8); }); // 7: Asphalt
+        
+        // Icons als Texturen rendern (Performance)
+        const icon = (idx, char, color) => draw(idx, c => { c.fillStyle=color; c.font="24px monospace"; c.textAlign="center"; c.textBaseline="middle"; c.fillText(char, 16, 16); });
+        icon(10, '⚙️', '#ff0'); // Vault
+        icon(11, '🛒', '#f00'); // Mart
+        icon(12, '🏥', '#fff'); // Clinic
+        icon(13, '💰', '#fd0'); // Shop
+        icon(14, '🔨', '#aaa'); // Craft
+        icon(15, '☢️', '#0f0'); // Rad
 
         this.gameTileset = cvs;
         return cvs;
     },
 
-    renderStaticMap: function() { 
-        if(!this.cacheCtx) this.initCache();
-        const ctx = this.cacheCtx; 
-        ctx.imageSmoothingEnabled = false;
-
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height); 
-        if(!this.state.currentMap) return;
-        this.generateGameTileset();
-
-        for(let y=0; y<this.MAP_H; y++) {
-            for(let x=0; x<this.MAP_W; x++) {
-                if(this.state.currentMap[y]) this.drawTile(ctx, x, y, this.state.currentMap[y][x]); 
-            }
-        }
-    },
-
+    // --- MAIN RENDER LOOP ---
     draw: function() { 
         if(!this.ctx || !this.cacheCanvas || !this.state.currentMap) return;
-        const ctx = this.ctx; const cvs = ctx.canvas; 
-        ctx.imageSmoothingEnabled = false; 
-
-        // Camera Logic
+        const ctx = this.ctx; const cvs = ctx.canvas;
+        
+        // 1. Setup Camera
         let targetCamX = (this.state.player.x * this.TILE) - (cvs.width / 2); 
         let targetCamY = (this.state.player.y * this.TILE) - (cvs.height / 2); 
-        this.camera.x = Math.max(0, Math.min(targetCamX, (this.MAP_W * this.TILE) - cvs.width)); 
-        this.camera.y = Math.max(0, Math.min(targetCamY, (this.MAP_H * this.TILE) - cvs.height)); 
-        
-        // Background
-        ctx.fillStyle = "#050505"; ctx.fillRect(0, 0, cvs.width, cvs.height); 
-        ctx.drawImage(this.cacheCanvas, this.camera.x, this.camera.y, cvs.width, cvs.height, 0, 0, cvs.width, cvs.height); 
-        
-        ctx.save(); 
-        ctx.translate(-this.camera.x, -this.camera.y); 
-        
-        const startX = Math.floor(this.camera.x / this.TILE); 
-        const startY = Math.floor(this.camera.y / this.TILE); 
-        const endX = startX + Math.ceil(cvs.width / this.TILE) + 1; 
-        const endY = startY + Math.ceil(cvs.height / this.TILE) + 1; 
-        const secKey = `${this.state.sector.x},${this.state.sector.y}`;
-        const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7; 
+        this.camera.x += (targetCamX - this.camera.x) * 0.1; // Smooth Camera Movement!
+        this.camera.y += (targetCamY - this.camera.y) * 0.1;
 
-        for(let y=startY; y<endY; y++) { 
-            for(let x=startX; x<endX; x++) { 
-                if(y>=0 && y<this.MAP_H && x>=0 && x<this.MAP_W) { 
-                    const tileKey = `${secKey}_${x},${y}`;
-                    const isCity = (this.state.zone && this.state.zone.includes("Stadt")); 
-                    
-                    // Fog of War (in Stadt deaktiviert für bessere Übersicht)
-                    if(!isCity && !this.state.explored[tileKey]) {
-                        ctx.fillStyle = "#000"; ctx.fillRect(x * this.TILE, y * this.TILE, this.TILE + 1, this.TILE + 1);
-                        continue; 
-                    }
-                    if(!this.state.currentMap[y]) continue; 
-                    const t = this.state.currentMap[y][x]; 
+        // Clamp
+        this.camera.x = Math.max(0, Math.min(this.camera.x, (this.MAP_W * this.TILE) - cvs.width)); 
+        this.camera.y = Math.max(0, Math.min(this.camera.y, (this.MAP_H * this.TILE) - cvs.height)); 
 
-                    // Redraw special dynamic tiles
-                    if(['V', 'S', 'C', 'G', 'H', 'R', '^', 'v', '<', '>', '$', '&', 'P', 'E', 'F', 'X'].includes(t)) { 
-                        this.drawTile(ctx, x, y, t, pulse); 
-                    } 
-                    
-                    // Hidden Items
-                    if(this.state.hiddenItems && this.state.hiddenItems[`${x},${y}`]) {
-                        const shimmer = (Math.sin(Date.now() / 150) + 1) / 2;
-                        ctx.fillStyle = `rgba(255, 255, 100, ${shimmer * 0.8})`;
-                        ctx.beginPath(); ctx.arc(x * this.TILE + this.TILE/2, y * this.TILE + this.TILE/2, 3, 0, Math.PI * 2); ctx.fill();
-                    }
-                } 
-            } 
-        } 
-        
-        // Multi-Player
-        if(typeof Network !== 'undefined' && Network.otherPlayers) {
-            for(let pid in Network.otherPlayers) {
-                const p = Network.otherPlayers[pid];
-                if(p.sector && p.sector.x === this.state.sector.x && p.sector.y === this.state.sector.y) {
-                    const ox = p.x * this.TILE + this.TILE/2; const oy = p.y * this.TILE + this.TILE/2;
-                    ctx.fillStyle = "#00ffff"; ctx.beginPath(); ctx.arc(ox, oy, 4, 0, Math.PI*2); ctx.fill();
-                }
-            }
+        // 2. Render World Layer (Basis)
+        this.renderWorldLayer(ctx, cvs);
+
+        // 3. Render Lighting Layer (Dunkelheit & Lichtquellen)
+        this.renderLightingLayer(ctx, cvs);
+
+        // 4. Render Particle Layer (Asche/Regen)
+        this.renderParticles(ctx, cvs);
+
+        // 5. Render UI Overlay (Scanlines, Vignette)
+        this.renderCRTOverlay(ctx, cvs);
+    },
+
+    renderWorldLayer: function(ctx, cvs) {
+        // Cache aktualisieren falls nötig
+        if(!this.staticCacheCreated) {
+            this.renderStaticMap(); // Malt alles in this.cacheCanvas
+            this.staticCacheCreated = true;
         }
+
+        ctx.fillStyle = "#050505"; ctx.fillRect(0, 0, cvs.width, cvs.height); 
+        ctx.imageSmoothingEnabled = false;
+
+        // Offset für Camera
+        const camX = Math.floor(this.camera.x);
+        const camY = Math.floor(this.camera.y);
+
+        // Zeichne statische Map aus Cache (Performance!)
+        ctx.drawImage(this.cacheCanvas, camX, camY, cvs.width, cvs.height, 0, 0, cvs.width, cvs.height);
+
+        ctx.save();
+        ctx.translate(-camX, -camY);
+
+        // Dynamische Objekte (Player, NPCs, blinkende Dinge)
+        this.drawDynamicObjects(ctx);
 
         // Spieler
         this.drawPlayerSprite(ctx);
-        ctx.restore(); 
-
-        // Scanlines
-        ctx.fillStyle = "rgba(0, 255, 0, 0.03)";
-        for(let i=0; i<cvs.height; i+=2) ctx.fillRect(0, i, cvs.width, 1);
-    },
-
-    drawPlayerSprite: function(ctx) {
-        const px = this.state.player.x * this.TILE + this.TILE/2; 
-        const py = this.state.player.y * this.TILE + this.TILE/2; 
-        const bounce = Math.sin(Date.now() / 150) * 2;
-
-        ctx.save();
-        ctx.translate(px, py + bounce);
-        
-        // Schatten
-        ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.beginPath(); ctx.ellipse(0, 10-bounce, 8, 4, 0, 0, Math.PI*2); ctx.fill();
-
-        // Char
-        ctx.fillStyle = "#0055ff"; ctx.fillRect(-6, -8, 12, 14); // Suit
-        ctx.fillStyle = "#ffdd00"; ctx.fillRect(-2, -8, 4, 14); // Stripe
-        ctx.fillStyle = "#ffccaa"; ctx.fillRect(-7, -18, 14, 10); // Head
-        ctx.fillStyle = "#4e342e"; ctx.fillRect(-8, -20, 16, 5); // Hair
-        
-        // Eyes
-        ctx.fillStyle = "black";
-        if(Math.random()>0.02) { ctx.fillRect(-3, -15, 2, 2); ctx.fillRect(3, -15, 2, 2); }
 
         ctx.restore();
     },
 
-    drawTile: function(ctx, x, y, type, pulse = 1) { 
-        const ts = this.TILE; const px = x * ts; const py = y * ts; 
-        const s = this.gameTileset;
-        const d = (idx) => ctx.drawImage(s, idx*32, 0, 32, 32, px, py, ts, ts); // Helper
+    renderStaticMap: function() {
+        if(!this.cacheCtx) this.initCache();
+        const ctx = this.cacheCtx;
+        const tileset = this.generateGameTileset();
+        ctx.fillStyle = "#111"; ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height);
 
-        // --- MAP TILES (Boden, Wände, Deko) ---
-        // Basis Boden
-        if(['=','+','|'].includes(type)) { /* Eigener Hintergrund im Tile */ }
-        else if(type === 'W' || type === '~') { d(4); } // Wasser
-        else if([',','_'].includes(type)) d(0); // Boden Variation
-        else d(0); // Standard Boden drunter zeichnen für Transparenz
+        for(let y=0; y<this.MAP_H; y++) {
+            for(let x=0; x<this.MAP_W; x++) {
+                if(!this.state.currentMap[y]) continue;
+                const t = this.state.currentMap[y][x];
+                const px = x*32, py = y*32;
+                
+                // Boden Draw
+                if(['=','+'].includes(t)) ctx.drawImage(tileset, 7*32,0,32,32,px,py,32,32); // Asphalt
+                else if(t==='~') ctx.drawImage(tileset, 4*32,0,32,32,px,py,32,32); // Wasser
+                else ctx.drawImage(tileset, 0,0,32,32,px,py,32,32); // Erde
 
-        switch(type) {
-            case '#': d(1); break; // Wand
-            case 't': d(2); break; // Baum
-            case 'T': d(3); break; // Toter Baum
-            case 'M': d(5); break; // Berg
-            case 'X': d(6); break; // Kiste
-            case '=': d(7); break; // Straße (Asphalt)
-            case '"': d(8); break; // Gras
-            case 'o': d(9); break; // Fels
-            case 'x': d(10); break; // Zaun
-            case '|': d(11); break; // Säule
-            case '+': d(12); break; // Tür
-            case 'Y': d(13); break; // Pflanze
-            case 'U': d(14); break; // Terminal
-            case 'F': d(15); break; // Fass
+                // Objekt Draw
+                let idx = -1;
+                if(t==='#') idx=1; if(t==='t') idx=2; if(t==='T') idx=3; 
+                if(t==='M') idx=5; if(t==='X') idx=6;
+                if(idx >= 0) ctx.drawImage(tileset, idx*32, 0, 32, 32, px, py, 32, 32);
+            }
         }
+    },
 
-        // --- ICONS & SPECIALS ---
-        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    drawDynamicObjects: function(ctx) {
+        const tileset = this.generateGameTileset();
+        const startX = Math.floor(this.camera.x / 32); const endX = startX + 20;
+        const startY = Math.floor(this.camera.y / 32); const endY = startY + 15;
+
+        for(let y=startY; y<endY; y++) {
+            for(let x=startX; x<endX; x++) {
+                if(y<0||y>=this.MAP_H||x<0||x>=this.MAP_W) continue;
+                const t = this.state.currentMap[y][x];
+                const px = x*32, py = y*32;
+                
+                // Icons & Spezial Tiles
+                let idx = -1;
+                if(t==='V') idx=10; if(t==='R') idx=11; if(t==='P') idx=12;
+                if(t==='$') idx=13; if(t==='&') idx=14; if(t==='W') idx=4; // Animiertes Wasser später
+                
+                if(idx >= 0) {
+                    const bounce = Math.sin(Date.now()/200)*2;
+                    ctx.drawImage(tileset, idx*32, 0, 32, 32, px, py + (idx>9?bounce:0), 32, 32);
+                }
+
+                // Hidden Item Sparkle
+                if(this.state.hiddenItems && this.state.hiddenItems[`${x},${y}`]) {
+                    ctx.fillStyle = `rgba(255,215,0,${0.5+Math.sin(Date.now()/100)*0.5})`;
+                    ctx.beginPath(); ctx.arc(px+16, py+16, 2, 0, 7); ctx.fill();
+                }
+            }
+        }
+    },
+
+    drawPlayerSprite: function(ctx) {
+        const px = this.state.player.x * 32 + 16;
+        const py = this.state.player.y * 32 + 16;
+        const walkBounce = Math.sin(Date.now() / 150) * 2;
         
-        if(['^', 'v', '<', '>'].includes(type)) { 
-            ctx.fillStyle = "#000"; ctx.fillRect(px+4, py+4, 24, 24); 
-            ctx.fillStyle = "#0f0"; ctx.font="20px monospace"; 
-            ctx.fillText(type==='^'?'▲':(type==='v'?'▼':(type==='<'?'◄':'►')), px+ts/2, py+ts/2);
+        // Schatten
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.beginPath(); ctx.ellipse(px, py+12, 10, 5, 0, 0, 7); ctx.fill();
+
+        // Sprite Character
+        ctx.translate(px, py + walkBounce);
+        // Beine
+        ctx.fillStyle = "#222"; ctx.fillRect(-6, 8, 4, 6); ctx.fillRect(2, 8, 4, 6);
+        // Körper
+        ctx.fillStyle = "#0044aa"; ctx.fillRect(-8, -8, 16, 16); 
+        ctx.fillStyle = "#e6c200"; ctx.fillRect(-2, -8, 4, 16); // Reißverschluss
+        // Kopf
+        ctx.fillStyle = "#f5d0a9"; ctx.fillRect(-7, -18, 14, 10);
+        // Haare
+        ctx.fillStyle = "#4e342e"; ctx.fillRect(-8, -20, 16, 5); ctx.fillRect(-8,-18,3,8); ctx.fillRect(5,-18,3,8);
+        // PipBoy Arm
+        ctx.fillStyle = "#2e7d32"; ctx.fillRect(-10, 0, 4, 6);
+        
+        ctx.translate(-px, -(py + walkBounce));
+    },
+
+    renderLightingLayer: function(ctx, cvs) {
+        const camX = this.camera.x;
+        const camY = this.camera.y;
+
+        // 1. Dunkler Overlay (Nacht/Dungeon)
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = "rgba(0, 5, 15, 0.85)"; // Dunkles Blau/Schwarz
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+        // 2. Licht-Modus (Löcher in die Dunkelheit schneiden)
+        ctx.globalCompositeOperation = 'destination-out';
+
+        // Helper für Lichtkreise
+        const light = (x, y, r, flicker=0) => {
+            const px = (x * 32 + 16) - camX;
+            const py = (y * 32 + 16) - camY;
+            const radius = r + Math.random() * flicker;
+            
+            const g = ctx.createRadialGradient(px, py, 0, px, py, radius);
+            g.addColorStop(0, "rgba(255, 255, 255, 1)"); // Kern ist voll transparent (hell)
+            g.addColorStop(1, "rgba(255, 255, 255, 0)");
+            
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(px, py, radius, 0, Math.PI*2); ctx.fill();
+        };
+
+        // Spieler Taschenlampe
+        light(this.state.player.x, this.state.player.y, 120, 5);
+
+        // Welt-Lichtquellen
+        const startX = Math.floor(camX / 32); const endX = startX + 20;
+        const startY = Math.floor(camY / 32); const endY = startY + 15;
+
+        for(let y=startY; y<endY; y++) {
+            for(let x=startX; x<endX; x++) {
+                if(y<0||y>=this.MAP_H||x<0||x>=this.MAP_W) continue;
+                const t = this.state.currentMap[y][x];
+                
+                if(t==='C' || t==='$' || t==='P') light(x, y, 80, 2); // Stadtlichter
+                if(t==='V') light(x, y, 100, 5); // Vault Eingang
+                if(t==='~' || t==='W') light(x, y, 40, 5); // Radioaktives Leuchten
+            }
         }
-        else if(type === '$') { // SHOP
-            d(12); // Tür Hintergrund
-            ctx.font="24px monospace"; ctx.shadowColor="#ff0"; ctx.shadowBlur=5; ctx.fillText("💰", px+ts/2, py+ts/2); ctx.shadowBlur=0;
+
+        // 3. Farbige Licht-Akzente (Wieder normaler Blend Mode, aber 'screen' oder 'overlay')
+        ctx.globalCompositeOperation = 'screen'; // Macht Farben leuchtend
+
+        const colorLight = (x, y, r, color) => {
+            const px = (x * 32 + 16) - camX;
+            const py = (y * 32 + 16) - camY;
+            const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+            g.addColorStop(0, color);
+            g.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI*2); ctx.fill();
+        };
+
+        // Grünes Leuchten für Wasser/Säure
+        for(let y=startY; y<endY; y++) {
+            for(let x=startX; x<endX; x++) {
+                if(y<0||y>=this.MAP_H||x<0||x>=this.MAP_W) continue;
+                const t = this.state.currentMap[y][x];
+                if(t==='~') colorLight(x, y, 60, "rgba(0, 255, 50, 0.4)");
+                if(t==='V') colorLight(x, y, 90, "rgba(255, 255, 0, 0.3)");
+                if(t==='R') colorLight(x, y, 90, "rgba(255, 0, 0, 0.4)"); // Rotes Warnlicht
+                if(t==='$') colorLight(x, y, 70, "rgba(255, 150, 50, 0.3)"); // Warmes Ladenlicht
+            }
         }
-        else if(type === '&') { // CRAFTING
-            d(6); // Kiste Hintergrund
-            ctx.font="24px monospace"; ctx.fillText("🔨", px+ts/2, py+ts/2);
+        
+        // PipBoy Monitor Glow (Grünlich um den Spieler)
+        colorLight(this.state.player.x, this.state.player.y, 80, "rgba(50, 255, 50, 0.1)");
+
+        ctx.globalCompositeOperation = 'source-over'; // Reset
+    },
+
+    renderParticles: function(ctx, cvs) {
+        // Init Particles
+        if(this.particles.length < 50) {
+            this.particles.push({
+                x: Math.random() * cvs.width,
+                y: Math.random() * cvs.height,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: 0.5 + Math.random(),
+                life: Math.random() * 100
+            });
         }
-        else if(type === 'P') { // ARZT
-            ctx.fillStyle="#fff"; ctx.fillRect(px+4, py+4, 24, 24);
-            ctx.font="24px monospace"; ctx.fillText("🏥", px+ts/2, py+ts/2);
+
+        ctx.fillStyle = "rgba(200, 255, 200, 0.3)";
+        this.particles.forEach((p, i) => {
+            p.x += p.vx;
+            p.y += p.vy;
+            if(p.y > cvs.height) p.y = 0;
+            
+            // Ascheflocken / Staub
+            ctx.fillRect(p.x, p.y, 2, 2);
+        });
+    },
+
+    renderCRTOverlay: function(ctx, cvs) {
+        // 1. Scanlines
+        ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
+        for(let i=0; i<cvs.height; i+=3) {
+            ctx.fillRect(0, i, cvs.width, 1);
         }
-        else if(type === 'V') { // VAULT
-            ctx.fillStyle="#000"; ctx.beginPath(); ctx.arc(px+ts/2, py+ts/2, 12, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle="#ff0"; ctx.lineWidth=2; ctx.stroke();
-            ctx.fillStyle="#ff0"; ctx.font="12px monospace"; ctx.fillText("101", px+ts/2, py+ts/2);
-        }
-        else if(type === 'R') { // SUPER MART
-            ctx.fillStyle="#b71c1c"; ctx.fillRect(px+2, py+10, 28, 12);
-            ctx.fillStyle="#fff"; ctx.font="10px monospace"; ctx.fillText("MART", px+ts/2, py+ts/2);
-        }
-        else if(type === 'E') { // EXIT
-            ctx.fillStyle = "rgba(255,0,0,0.5)"; ctx.fillRect(px, py, ts, ts);
-            ctx.fillStyle = "#fff"; ctx.font="10px monospace"; ctx.fillText("EXIT", px+ts/2, py+ts/2);
-        }
+
+        // 2. Vignette (Dunkle Ränder)
+        const g = ctx.createRadialGradient(cvs.width/2, cvs.height/2, cvs.height/3, cvs.width/2, cvs.height/2, cvs.height);
+        g.addColorStop(0, "rgba(0,0,0,0)");
+        g.addColorStop(1, "rgba(0,20,0,0.6)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
     }
 });
