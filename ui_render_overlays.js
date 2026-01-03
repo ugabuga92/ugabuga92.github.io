@@ -323,22 +323,36 @@ Object.assign(UI, {
         box.innerHTML = `
             <h2 class="text-xl font-bold text-green-400 mb-2">${displayName}</h2>
             <div class="text-xs text-green-200 mb-4 border-t border-b border-green-900 py-2">Typ: ${item.type.toUpperCase()}<br>Wert: ${item.cost} KK<br><span class="text-yellow-400">${statsText}</span></div>
-            <p class="text-green-200 mb-4 text-sm">Gegenstand benutzen / ausrüsten?</p>
+            <p class="text-green-200 mb-4 text-sm">Gegenstand benutzen oder wegwerfen?</p>
         `;
-        const btnContainer = document.createElement('div');
-        btnContainer.className = "flex gap-2 justify-center w-full";
-        const btnYes = document.createElement('button');
-        btnYes.className = "border border-green-500 text-green-500 hover:bg-green-900 px-4 py-2 font-bold w-full";
-        btnYes.textContent = "BESTÄTIGEN";
         
+        const btnContainer = document.createElement('div');
+        btnContainer.className = "flex flex-col gap-2 w-full mt-2";
+        
+        const btnYes = document.createElement('button');
+        btnYes.className = "border border-green-500 text-green-500 hover:bg-green-900 px-4 py-3 font-bold w-full text-lg";
+        btnYes.textContent = "BENUTZEN / AUSRÜSTEN";
         btnYes.onclick = () => { Game.useItem(invIndex); this.leaveDialog(); };
         
+        const row = document.createElement('div');
+        row.className = "flex gap-2 w-full";
+        
+        const btnTrash = document.createElement('button');
+        btnTrash.className = "border border-red-500 text-red-500 hover:bg-red-900 px-4 py-2 font-bold flex-1";
+        btnTrash.innerHTML = "WEGWERFEN 🗑️";
+        btnTrash.onclick = () => { Game.destroyItem(invIndex); this.leaveDialog(); };
+        
         const btnNo = document.createElement('button');
-        btnNo.className = "border border-red-500 text-red-500 hover:bg-red-900 px-4 py-2 font-bold w-full";
+        btnNo.className = "border border-gray-600 text-gray-500 hover:bg-gray-800 px-4 py-2 font-bold flex-1";
         btnNo.textContent = "ABBRUCH";
         btnNo.onclick = () => { this.leaveDialog(); };
         
-        btnContainer.appendChild(btnYes); btnContainer.appendChild(btnNo);
+        row.appendChild(btnTrash);
+        row.appendChild(btnNo);
+        
+        btnContainer.appendChild(btnYes);
+        btnContainer.appendChild(row);
+        
         box.appendChild(btnContainer); this.els.dialog.appendChild(box);
         this.refreshFocusables();
     },
