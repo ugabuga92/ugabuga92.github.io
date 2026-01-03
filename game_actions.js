@@ -1,7 +1,7 @@
-// [v3.3b] - 2026-01-03 04:45am (Survival Fix)
-// - Balance: Sleeping outside gives +10 Rads.
-// - Balance: Sleeping in Tent gives +5 Rads (Tent offers partial protection).
-// - Logic: buyItem/sellItem supports quantities.
+// [v3.6] - 2026-01-03 06:10am (Camp & Actions Update)
+// - Feature: destroyItem (Mülleimer) hinzugefügt.
+// - Logic: Camp Aufbau verbraucht Bausatz nicht (Permanent-Item).
+// - Full Code Restore.
 
 Object.assign(Game, {
     
@@ -288,13 +288,13 @@ Object.assign(Game, {
         return remaining === 0;
     },
 
+    // [NEU v3.5a/v3.6] - Zerstört Items aus dem Inventar
     destroyItem: function(invIndex) {
         if(!this.state.inventory || !this.state.inventory[invIndex]) return;
         const item = this.state.inventory[invIndex];
         const def = this.items[item.id];
         
-        let name = def.name;
-        if(item.props && item.props.name) name = item.props.name;
+        let name = (item.props && item.props.name) ? item.props.name : def.name;
 
         // Item entfernen
         this.state.inventory.splice(invIndex, 1);
