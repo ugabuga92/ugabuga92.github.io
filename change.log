@@ -1,3 +1,11 @@
+[v3.1] - 2026-01-03 01:20am (Bugs & Balancing)
+- BALANCE: 'nuclear_mat' (selten) ist nun bis 20 stapelbar.
+- BALANCE: Munition wird im Kampf verbraucht! (1 Schuss pro Angriff).
+- LOGIC: Nahkampfwaffen (Messer, Fäuste, Schläger) verbrauchen KEINE Munition.
+- LOGIC: Angriff ohne Munition macht nur noch "Klick!" und schlägt fehl.
+- BALANCE: Dropraten von Monstern gesenkt, damit das Inventar sauberer bleibt.
+- VISUAL: Schadenszahlen im Kampf überlagern sich nicht mehr so stark (zufällige Position).
+
 [v3.0] - 2026-01-03 00:15am (UI & Map Link) 
 - UI: Sektoranzeige im Hauptbildschirm (Map View) integriert nun die Weltkugel (🌍).
 - UI: Text "WELTKARTE" entfernt; der Button zeigt nun immer den aktuellen Sektor "SEKTOR [X,Y]" an.
