@@ -1,6 +1,6 @@
-// [v3.0.2] - 2026-01-03 03:30am (Login Error Fix)
-// - Fix: Logout Reihenfolge korrigiert (Save -> Clear State -> Disconnect).
-// - Fix: Error Handling für Login verbessert (JSON Parsing).
+// [v3.4] - 2026-01-03 04:30am (UI Header Update)
+// - Click Listener für Name/Lvl Wrapper hinzugefügt.
+// - Save Button Init entfernt.
 
 const UI = {
     els: {},
@@ -85,6 +85,7 @@ const UI = {
             xpTxt: document.getElementById('val-xp-txt'),
             caps: document.getElementById('val-caps'),
             name: document.getElementById('val-name'),
+            headerCharInfo: document.getElementById('header-char-info'), // [v3.4] New clickable container
             version: document.getElementById('version-display'),
             joyBase: null, joyStick: null,
             dialog: document.getElementById('dialog-overlay'),
@@ -98,7 +99,7 @@ const UI = {
             btnQuests: document.getElementById('btn-quests'),
             btnRadio: document.getElementById('btn-radio'),
             
-            btnSave: document.getElementById('btn-save'),
+            // btnSave: document.getElementById('btn-save'), // [v3.4] Removed
             btnMenuSave: document.getElementById('btn-menu-save'),
             btnLogout: document.getElementById('btn-logout'),
             btnReset: document.getElementById('btn-reset'),
@@ -145,6 +146,13 @@ const UI = {
         
         if(this.els.btnInv) {
              this.els.btnInv.addEventListener('click', () => this.resetInventoryAlert());
+        }
+
+        // [v3.4] Header Info Click Event
+        if(this.els.headerCharInfo) {
+            this.els.headerCharInfo.addEventListener('click', () => {
+                this.toggleView('char');
+            });
         }
 
         window.Game = Game;
