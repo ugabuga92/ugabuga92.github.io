@@ -4,13 +4,6 @@
 html, body { width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; position: fixed; }
 body { background-color: #000; color: var(--pip-green); font-family: 'VT323', monospace; display: flex; justify-content: center; align-items: center; user-select: none; -webkit-user-select: none; cursor: crosshair; }
 
-/* [v3.5] Pixel Art Rendering Enforce */
-canvas { 
-    image-rendering: pixelated; 
-    image-rendering: -moz-crisp-edges; 
-    image-rendering: crisp-edges; 
-}
-
 #view-container > * { max-width: 100%; overflow-x: hidden; }
 
 /* [v0.9.2] Camp Fire Animation */
@@ -24,6 +17,7 @@ canvas {
     display: inline-block;
     animation: fireFlicker 0.8s infinite alternate ease-in-out;
 }
+/* Zufällige Verzögerung für organischeres Feuer */
 .fire-anim:nth-child(1) { animation-delay: 0s; }
 .fire-anim:nth-child(2) { animation-delay: 0.2s; }
 .fire-anim:nth-child(3) { animation-delay: 0.4s; }
@@ -134,6 +128,7 @@ canvas {
 .char-slot { border: 1px solid var(--pip-dim); background: rgba(0,20,0,0.5); padding: 10px; margin-bottom: 5px; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
 .char-slot:hover { border-color: var(--pip-green); background: rgba(0,40,0,0.8); }
 .char-slot.active-slot { border-color: var(--pip-green); background: var(--pip-green); color: black; font-weight: bold; }
+/* FIX: Kontrast für aktiven Slot erhöhen (Alles Schwarz) */
 .char-slot.active-slot * { color: #000 !important; text-shadow: none !important; }
 
 .char-slot.empty-slot { opacity: 0.5; font-style: italic; }
