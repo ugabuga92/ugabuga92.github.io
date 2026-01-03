@@ -1,30 +1,27 @@
-// [v5.0] - 2026-01-03 08:30pm (UI & Vault Legends Update)
-// - Vault Legends: Fensterhöhe auf Spielbereich begrenzt (max-height).
-// - Vault Legends: Scrollbalken verbessert und Close-by-Click auf Hintergrund eingebaut.
+// [v5.1] - 2026-01-03 09:00pm (Overlay Fixes)
+// - Vault Legends: Overlay-Container explizit positioniert (Fix für Click-Outside).
+// - Vault Legends: Box auf 80vh begrenzt, Scrollen repariert (flex-1/min-h-0).
+// - Vault Legends: ESC-Taste Event Listener hinzugefügt.
 
 Object.assign(UI, {
     
     // [v3.0] NEW QUEST HUD
     showQuestComplete: function(questDef) {
-        // Ensure container exists
         let container = document.getElementById('hud-quest-overlay');
         if(!container) {
              const view = document.getElementById('game-screen'); 
              if(!view) return;
              container = document.createElement('div');
              container.id = 'hud-quest-overlay';
-             // Positionierung: Oben mittig (Top 24 = ~96px, unter Header), z-index hoch
              container.className = "absolute top-24 left-1/2 transform -translate-x-1/2 flex flex-col items-center pointer-events-none z-[60] w-full max-w-md";
              view.appendChild(container);
         }
 
         const msg = document.createElement('div');
-        // Styling: Box ohne Bounce, Fade-In Animation
         msg.className = "bg-black/90 border border-yellow-400 p-3 shadow-[0_0_15px_rgba(255,215,0,0.5)] mb-2 text-center transition-opacity duration-500 opacity-0 transform translate-y-2";
         
         let rewardHtml = '';
         if(questDef.reward) {
-             // Gleiche Farben wie im alten Log
              if(questDef.reward.xp) rewardHtml += `<div class="text-yellow-400 font-bold">+${questDef.reward.xp} XP</div>`;
              if(questDef.reward.caps) rewardHtml += `<div class="text-yellow-200">+${questDef.reward.caps} Kronkorken</div>`;
              if(questDef.reward.items) rewardHtml += `<div class="text-blue-300 text-xs">+ Items erhalten</div>`;
@@ -37,29 +34,22 @@ Object.assign(UI, {
         `;
 
         container.appendChild(msg);
-        
-        // Animate in
-        requestAnimationFrame(() => {
-            msg.classList.remove('opacity-0', 'translate-y-2');
-        });
-
-        // Remove after time (4s)
-        setTimeout(() => {
-            msg.classList.add('opacity-0');
-            setTimeout(() => msg.remove(), 500);
-        }, 4000);
+        requestAnimationFrame(() => { msg.classList.remove('opacity-0', 'translate-y-2'); });
+        setTimeout(() => { msg.classList.add('opacity-0'); setTimeout(() => msg.remove(), 500); }, 4000);
     },
 
     showMapLegend: function() {
         if(!this.els.dialog) this.restoreOverlay();
         if(Game.state) Game.state.inDialog = true;
         
-        this.els.dialog.onclick = (e) => {
-            if(e.target === this.els.dialog) UI.leaveDialog();
-        };
+        const overlay = this.els.dialog;
+        // [v5.1] Overlay Styling erzwingen
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.style.display = 'flex';
+        
+        overlay.onclick = (e) => { if(e.target === overlay) UI.leaveDialog(); };
 
-        this.els.dialog.innerHTML = '';
-        this.els.dialog.style.display = 'flex';
+        overlay.innerHTML = '';
         
         const box = document.createElement('div');
         box.className = "bg-black border-4 border-green-500 p-6 shadow-[0_0_30px_green] max-w-sm w-full relative pointer-events-auto";
@@ -83,24 +73,36 @@ Object.assign(UI, {
             <button class="action-button w-full mt-6 border-green-500 text-green-500 font-bold hover:bg-green-900" onclick="UI.leaveDialog()">SCHLIESSEN</button>
         `;
         
-        this.els.dialog.appendChild(box);
+        overlay.appendChild(box);
     },
 
     showHighscoreBoard: async function() {
         if(!this.els.dialog) this.restoreOverlay();
+        const overlay = this.els.dialog;
+
+        // [v5.1] Overlay Fullscreen Styling erzwingen + Background
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.style.display = 'flex';
+        
         if(Game.state) Game.state.inDialog = true;
         
-        // [v5.0] Click-Outside Logic: Schließt Fenster bei Klick auf den Hintergrund
-        this.els.dialog.onclick = (e) => {
-            if(e.target === this.els.dialog) UI.leaveDialog();
+        // ESC Handler hinzufügen
+        const escHandler = (e) => { if(e.key === "Escape") UI.leaveDialog(); };
+        document.addEventListener('keydown', escHandler);
+        
+        // ESC Handler beim Schließen aufräumen
+        const originalLeave = this.leaveDialog.bind(this);
+        this.leaveDialog = function() {
+            document.removeEventListener('keydown', escHandler);
+            UI.leaveDialog = originalLeave; // Restore original
+            originalLeave();
         };
 
-        this.els.dialog.innerHTML = `
+        overlay.innerHTML = `
             <div class="flex flex-col items-center justify-center p-6 border-2 border-green-500 bg-black shadow-[0_0_20px_green] pointer-events-auto">
-                <div class="text-green-500 animate-pulse text-2xl mb-6">EMPFANGE DATEN VOM HUB...</div>
+                <div class="text-green-500 animate-pulse text-2xl mb-6">EMPFANGE DATEN...</div>
                 <button class="action-button border-red-500 text-red-500 w-full" onclick="UI.leaveDialog()">ABBRECHEN</button>
             </div>`;
-        this.els.dialog.style.display = 'flex';
 
         try {
             const scores = await Network.getHighscores();
@@ -109,8 +111,8 @@ Object.assign(UI, {
             scores.sort((a,b) => b.lvl - a.lvl || b.xp - a.xp);
 
             const box = document.createElement('div');
-            // [v5.0] Styles Update: max-h-[85%] für Begrenzung, min-h-0 für Flex-Scroll
-            box.className = "bg-black border-4 border-green-600 p-6 shadow-[0_0_30px_green] w-full max-w-2xl max-h-[85%] flex flex-col relative pointer-events-auto";
+            // [v5.1] Fixes: max-h-[80vh] (statt %), w-full, flex-col, pointer-events-auto
+            box.className = "bg-black border-4 border-green-600 p-4 shadow-[0_0_30px_green] w-full max-w-2xl max-h-[80vh] flex flex-col relative pointer-events-auto";
             
             const closeBtn = document.createElement('button');
             closeBtn.className = "absolute top-2 right-2 text-green-500 text-xl border border-green-500 px-3 hover:bg-green-900 font-bold z-50";
@@ -118,15 +120,16 @@ Object.assign(UI, {
             closeBtn.onclick = function() { UI.leaveDialog(); }; 
             
             box.innerHTML = `
-                <h2 class="text-4xl font-bold text-green-400 mb-4 text-center border-b-2 border-green-600 pb-2 tracking-widest">VAULT LEGENDS</h2>
-                <div class="flex justify-between mb-2 text-xs text-green-300 uppercase font-bold px-2 flex-shrink-0">
+                <h2 class="text-3xl font-bold text-green-400 mb-4 text-center border-b-2 border-green-600 pb-2 tracking-widest shrink-0">VAULT LEGENDS</h2>
+                <div class="flex justify-between mb-2 text-xs text-green-300 uppercase font-bold px-2 shrink-0">
                     <span class="w-8">#</span>
                     <span class="w-1/3 cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'name')">NAME</span>
                     <span class="w-16 text-right cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'lvl')">LVL</span>
                     <span class="w-16 text-right cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'kills')">KILLS</span>
                     <span class="w-24 text-right cursor-pointer hover:text-white" onclick="UI.renderHighscoreList(this.dataset.scores, 'xp')">EXP</span>
                 </div>
-                <div id="highscore-list" class="flex-grow overflow-y-auto pr-2 custom-scrollbar min-h-0"></div>
+                <div id="highscore-list" class="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0 border-b border-green-900/50 mb-2"></div>
+                <div class="text-[10px] text-center text-green-800 shrink-0">ESC / KLICK NEBEN FENSTER ZUM SCHLIESSEN</div>
             `;
             box.appendChild(closeBtn);
 
@@ -169,39 +172,44 @@ Object.assign(UI, {
                 });
             };
 
-            this.els.dialog.innerHTML = '';
-            this.els.dialog.appendChild(box);
+            overlay.innerHTML = '';
+            overlay.appendChild(box);
             this.renderHighscoreList('lvl');
+            
+            // [v5.1] Click Outside
+            overlay.onclick = (e) => {
+                if(e.target === overlay) UI.leaveDialog();
+            };
 
         } catch(e) {
             let msg = e.message;
             if(msg && msg.toLowerCase().includes("permission_denied")) {
                 msg = "ZUGRIFF VERWEIGERT: FIREBASE REGELN BLOCKIEREN 'leaderboard'.";
             }
-            this.els.dialog.innerHTML = `
+            overlay.innerHTML = `
                 <div class="border-2 border-red-500 bg-black p-6 text-center shadow-[0_0_20px_red] pointer-events-auto">
                     <div class="text-red-500 font-bold text-2xl mb-4 tracking-widest">NETZWERK FEHLER</div>
                     <div class="text-green-400 font-mono mb-6">${msg}</div>
                     <button class="action-button w-full border-red-500 text-red-500" onclick="UI.leaveDialog()">SCHLIESSEN</button>
                 </div>
             `;
+             overlay.onclick = (e) => { if(e.target === overlay) UI.leaveDialog(); };
         }
     },
 
     showShopConfirm: function(itemKey) {
         if(!this.els.dialog) this.restoreOverlay();
+        const overlay = this.els.dialog;
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.style.display = 'flex';
         
         const item = Game.items[itemKey];
         if(!item) return;
 
         if(Game.state) Game.state.inDialog = true;
-        
-        this.els.dialog.onclick = (e) => {
-            if(e.target === this.els.dialog) UI.leaveDialog();
-        };
+        overlay.onclick = (e) => { if(e.target === overlay) UI.leaveDialog(); };
 
-        this.els.dialog.innerHTML = '';
-        this.els.dialog.style.display = 'flex';
+        overlay.innerHTML = '';
         
         // Calculate Stats Text
         let statsText = "";
@@ -257,7 +265,7 @@ Object.assign(UI, {
             </div>
         `;
         
-        this.els.dialog.appendChild(box);
+        overlay.appendChild(box);
         
         const btnBuy = document.getElementById('btn-buy');
         if(canAfford) {
@@ -273,6 +281,9 @@ Object.assign(UI, {
 
     showItemConfirm: function(invIndex) {
         if(!this.els.dialog) this.restoreOverlay();
+        const overlay = this.els.dialog;
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.style.display = 'flex';
         
         if(!Game.state.inventory || !Game.state.inventory[invIndex]) return;
         const invItem = Game.state.inventory[invIndex];
@@ -282,12 +293,9 @@ Object.assign(UI, {
 
         if(Game.state) Game.state.inDialog = true;
         
-        this.els.dialog.onclick = (e) => {
-            if(e.target === this.els.dialog) UI.leaveDialog();
-        };
+        overlay.onclick = (e) => { if(e.target === overlay) UI.leaveDialog(); };
 
-        this.els.dialog.innerHTML = '';
-        this.els.dialog.style.display = 'flex';
+        overlay.innerHTML = '';
         
         const box = document.createElement('div');
         box.className = "bg-black border-2 border-green-500 p-4 shadow-[0_0_15px_green] max-w-sm text-center mb-4 w-full pointer-events-auto";
@@ -317,7 +325,7 @@ Object.assign(UI, {
                     </button>
                 </div>
             `;
-            this.els.dialog.appendChild(box);
+            overlay.appendChild(box);
             
             document.getElementById('btn-use-one').onclick = () => { Game.useItem(invIndex, 1); this.leaveDialog(); };
             document.getElementById('btn-use-max').onclick = () => { Game.useItem(invIndex, 'max'); this.leaveDialog(); };
@@ -372,20 +380,21 @@ Object.assign(UI, {
         btnContainer.appendChild(btnYes);
         btnContainer.appendChild(row);
         
-        box.appendChild(btnContainer); this.els.dialog.appendChild(box);
+        box.appendChild(btnContainer); overlay.appendChild(box);
         this.refreshFocusables();
     },
 
     showDungeonWarning: function(callback) {
         if(!this.els.dialog) this.restoreOverlay();
+        const overlay = this.els.dialog;
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.style.display = 'flex';
+        
         if(Game.state) Game.state.inDialog = true;
         
-        this.els.dialog.onclick = (e) => {
-            if(e.target === this.els.dialog) UI.leaveDialog();
-        };
+        overlay.onclick = (e) => { if(e.target === overlay) UI.leaveDialog(); };
 
-        this.els.dialog.innerHTML = '';
-        this.els.dialog.style.display = 'flex';
+        overlay.innerHTML = '';
         const box = document.createElement('div');
         box.className = "bg-black border-2 border-red-600 p-4 shadow-[0_0_20px_red] max-w-sm text-center animate-pulse mb-4 pointer-events-auto";
         box.innerHTML = `
@@ -403,18 +412,21 @@ Object.assign(UI, {
         btnNo.textContent = "FLUCHT";
         btnNo.onclick = () => { this.leaveDialog(); };
         btnContainer.appendChild(btnYes); btnContainer.appendChild(btnNo);
-        box.appendChild(btnContainer); this.els.dialog.appendChild(box);
+        box.appendChild(btnContainer); overlay.appendChild(box);
         this.refreshFocusables();
     },
 
     showWastelandGamble: function(callback) {
         if(!this.els.dialog) this.restoreOverlay();
+        const overlay = this.els.dialog;
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.style.display = 'flex';
+        
         if(Game.state) Game.state.inDialog = true;
-        this.els.dialog.innerHTML = '';
-        this.els.dialog.style.display = 'flex';
+        overlay.innerHTML = '';
         
         // Prevent accidental close during gamble
-        this.els.dialog.onclick = null;
+        overlay.onclick = null;
 
         const box = document.createElement('div');
         box.className = "bg-black border-4 border-yellow-500 p-6 shadow-[0_0_40px_gold] max-w-sm text-center relative overflow-hidden pointer-events-auto";
@@ -436,7 +448,7 @@ Object.assign(UI, {
             <button id="btn-roll" class="action-button w-full border-green-500 text-green-500 font-bold text-xl py-3 hover:bg-green-900 relative z-10">WÜRFELN!</button>
         `;
         
-        this.els.dialog.appendChild(box);
+        overlay.appendChild(box);
         
         const btnRoll = document.getElementById('btn-roll');
         btnRoll.onclick = () => {
@@ -473,14 +485,15 @@ Object.assign(UI, {
 
     showDungeonLocked: function(minutesLeft) {
         if(!this.els.dialog) this.restoreOverlay();
+        const overlay = this.els.dialog;
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.style.display = 'flex';
+        
         if(Game.state) Game.state.inDialog = true;
         
-        this.els.dialog.onclick = (e) => {
-            if(e.target === this.els.dialog) UI.leaveDialog();
-        };
+        overlay.onclick = (e) => { if(e.target === overlay) UI.leaveDialog(); };
 
-        this.els.dialog.innerHTML = '';
-        this.els.dialog.style.display = 'flex';
+        overlay.innerHTML = '';
         const box = document.createElement('div');
         box.className = "bg-black border-2 border-gray-600 p-4 shadow-[0_0_20px_gray] max-w-sm text-center mb-4 pointer-events-auto";
         box.innerHTML = `
@@ -491,7 +504,7 @@ Object.assign(UI, {
         btn.className = "border border-gray-500 text-gray-500 hover:bg-gray-900 px-4 py-2 font-bold w-full";
         btn.textContent = "VERSTANDEN";
         btn.onclick = () => this.leaveDialog();
-        box.appendChild(btn); this.els.dialog.appendChild(box);
+        box.appendChild(btn); overlay.appendChild(box);
         this.refreshFocusables();
     },
 
@@ -500,7 +513,6 @@ Object.assign(UI, {
         overlay.id = "victory-overlay";
         overlay.className = "fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 animate-fadeIn";
         
-        // [v0.9.14] REMOVED 'animate-bounce' class from container
         overlay.innerHTML = `
             <div class="bg-black border-4 border-yellow-400 p-6 shadow-[0_0_30px_gold] max-w-md text-center mb-4 relative">
                 <div class="text-6xl mb-2">👑⚔️</div>
@@ -530,12 +542,15 @@ Object.assign(UI, {
     
     showPermadeathWarning: function() {
         if(!this.els.dialog) this.restoreOverlay();
+        const overlay = this.els.dialog;
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.style.display = 'flex';
+        
         if(Game.state) Game.state.inDialog = true;
         
-        this.els.dialog.onclick = null; // Zwingende Bestätigung
+        overlay.onclick = null; // Zwingende Bestätigung
 
-        this.els.dialog.innerHTML = '';
-        this.els.dialog.style.display = 'flex';
+        overlay.innerHTML = '';
         const box = document.createElement('div');
         box.className = "bg-black border-4 border-red-600 p-6 shadow-[0_0_50px_red] max-w-lg text-center animate-pulse pointer-events-auto";
         box.innerHTML = `
@@ -544,7 +559,7 @@ Object.assign(UI, {
             <p class="text-red-400 font-mono text-lg mb-6 leading-relaxed">WARNUNG, BEWOHNER!<br>Das Ödland kennt keine Gnade.<br>Wenn deine HP auf 0 fallen, wird dieser Charakter<br><span class="font-bold text-white bg-red-900 px-1">DAUERHAFT GELÖSCHT</span>.</p>
             <button class="action-button w-full border-red-600 text-red-500 font-bold py-4 text-xl hover:bg-red-900" onclick="UI.leaveDialog()">ICH HABE VERSTANDEN</button>
         `;
-        this.els.dialog.appendChild(box);
+        overlay.appendChild(box);
     },
 
     showGameOver: function() {
@@ -590,13 +605,16 @@ Object.assign(UI, {
     },
 
     enterVault: function() { 
+        if(!this.els.dialog) this.restoreOverlay();
+        const overlay = this.els.dialog;
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.style.display = 'flex';
+
         if(Game.state) Game.state.inDialog = true; 
         
-        this.els.dialog.onclick = (e) => {
-            if(e.target === this.els.dialog) UI.leaveDialog();
-        };
+        overlay.onclick = (e) => { if(e.target === overlay) UI.leaveDialog(); };
 
-        this.els.dialog.innerHTML = ''; 
+        overlay.innerHTML = ''; 
         const restBtn = document.createElement('button'); 
         restBtn.className = "action-button w-full mb-1 border-blue-500 text-blue-300 pointer-events-auto"; 
         restBtn.textContent = "Ausruhen (Gratis)"; 
@@ -605,15 +623,16 @@ Object.assign(UI, {
         leaveBtn.className = "action-button w-full pointer-events-auto"; 
         leaveBtn.textContent = "Weiter geht's"; 
         leaveBtn.onclick = () => this.leaveDialog(); 
-        this.els.dialog.appendChild(restBtn); 
-        this.els.dialog.appendChild(leaveBtn); 
-        this.els.dialog.style.display = 'flex'; 
+        overlay.appendChild(restBtn); 
+        overlay.appendChild(leaveBtn); 
     },
     
     leaveDialog: function() { 
         if(Game.state) Game.state.inDialog = false; 
-        this.els.dialog.style.display = 'none'; 
-        this.els.dialog.onclick = null; // [v5.0] Listener aufräumen
+        if(this.els.dialog) {
+            this.els.dialog.style.display = 'none'; 
+            this.els.dialog.onclick = null; 
+        }
         if(typeof this.update === 'function') this.update(); 
     }
 });
