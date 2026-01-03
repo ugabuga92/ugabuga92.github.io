@@ -1,6 +1,6 @@
-// [v3.7] - 2026-01-04 12:05am (Gamble Balance Update)
-// - Balance: Wasteland Gamble Legendary Chance erhöht (Schwelle von >15 auf >14 gesenkt).
-// - Chance für Legendary Loot verdoppelt (ca. 9.2% statt 4.6%).
+// [v3.8] - 2026-01-04 01:15am (Scrapping Update)
+// - Feature: scrapItem implementiert (Zerlegen von Ausrüstung in Ressourcen).
+// - Logic: Gibt Junk Metal, Schrauben und Plastik basierend auf Item-Wert.
 
 Object.assign(Game, {
     
@@ -306,6 +306,43 @@ Object.assign(Game, {
         this.saveGame();
     },
 
+    // [NEU v3.8] - ZERLEGEN FUNKTION
+    scrapItem: function(invIndex) {
+        if(!this.state.inventory || !this.state.inventory[invIndex]) return;
+        const item = this.state.inventory[invIndex];
+        const def = this.items[item.id];
+        if(!def) return;
+
+        let name = (item.props && item.props.name) ? item.props.name : def.name;
+        let value = def.cost || 10;
+        
+        // Remove Item
+        this.state.inventory.splice(invIndex, 1);
+
+        // Yield Logic
+        let scrapAmount = Math.max(1, Math.floor(value / 25)); // 1 Scrap per 25 Caps value
+        this.addToInventory('junk_metal', scrapAmount);
+        
+        let msg = `Zerlegt: ${name} -> ${scrapAmount}x Schrott`;
+
+        // Rare Components for high value
+        if(value >= 100 && Math.random() < 0.5) {
+            let screws = Math.max(1, Math.floor(value / 100));
+            this.addToInventory('screws', screws);
+            msg += `, ${screws}x Schrauben`;
+        }
+        if(value >= 200 && Math.random() < 0.3) {
+            this.addToInventory('plastic', 1);
+            msg += `, 1x Plastik`;
+        }
+
+        UI.log(msg, "text-orange-400 font-bold");
+        
+        UI.update();
+        if(this.state.view === 'inventory') UI.renderInventory();
+        this.saveGame();
+    },
+
     unequipItem: function(slot) {
         if(!this.state.equip[slot]) return;
         const item = this.state.equip[slot];
@@ -558,13 +595,13 @@ Object.assign(Game, {
             if(Math.random() < 0.5) { this.state.caps += 50; UI.log("Gewinn: 50 Kronkorken", "text-green-400"); } 
             else { this.addToInventory('ammo', 10); UI.log("Gewinn: 10x Munition", "text-green-400"); }
         }
-        else if(sum <= 14) { // [v3.7] Changed from <= 15 to <= 14
+        else if(sum <= 14) { 
             this.state.caps += 150;
             this.addToInventory('stimpack', 1);
             this.addToInventory('screws', 5);
             UI.log("Gewinn: 150 KK + Stimpack + Schrott", "text-blue-400");
         }
-        else { // Now wins on 15, 16, 17, 18
+        else {
             const rareId = this.items['plasma_rifle'] ? 'plasma_rifle' : 'hunting_rifle';
             const item = Game.generateLoot(rareId);
             item.props = { prefix: 'legendary', name: `Legendäres ${this.items[rareId].name}`, dmgMult: 1.5, valMult: 3.0, bonus: {LUC: 2}, color: 'text-yellow-400 font-bold' };
@@ -598,8 +635,8 @@ Object.assign(Game, {
                 this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
                 this.state.hp += 20;
             }
-            UI.renderChar();
-            UI.update();
+            UI.renderChar(); 
+            UI.update(); 
             this.saveGame();
         }
     },
