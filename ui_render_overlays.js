@@ -1,11 +1,10 @@
-// [v5.1] - 2026-01-03 09:00pm (Overlay Fixes)
-// - Vault Legends: Overlay-Container explizit positioniert (Fix für Click-Outside).
-// - Vault Legends: Box auf 80vh begrenzt, Scrollen repariert (flex-1/min-h-0).
-// - Vault Legends: ESC-Taste Event Listener hinzugefügt.
+// [v5.2] - 2026-01-03 10:25pm (UI Overlay Fixes)
+// - Vault Legends: Höhe auf 90% des Containers (statt Viewport) begrenzt -> Fix für Abschneiden.
+// - Vault Legends: Click-Outside Logik verbessert.
 
 Object.assign(UI, {
     
-    // [v3.0] NEW QUEST HUD
+    // [v3.0] NEW QUEST HUD (Unverändert)
     showQuestComplete: function(questDef) {
         let container = document.getElementById('hud-quest-overlay');
         if(!container) {
@@ -40,14 +39,14 @@ Object.assign(UI, {
 
     showMapLegend: function() {
         if(!this.els.dialog) this.restoreOverlay();
-        if(Game.state) Game.state.inDialog = true;
-        
         const overlay = this.els.dialog;
-        // [v5.1] Overlay Styling erzwingen
-        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto";
         overlay.style.display = 'flex';
         
-        overlay.onclick = (e) => { if(e.target === overlay) UI.leaveDialog(); };
+        // Direkter Click Handler auf Overlay
+        overlay.onclick = (e) => { 
+            if(e.target === overlay) UI.leaveDialog(); 
+        };
 
         overlay.innerHTML = '';
         
@@ -80,22 +79,27 @@ Object.assign(UI, {
         if(!this.els.dialog) this.restoreOverlay();
         const overlay = this.els.dialog;
 
-        // [v5.1] Overlay Fullscreen Styling erzwingen + Background
-        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        // [v5.2] pointer-events-auto sicherstellen
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto";
         overlay.style.display = 'flex';
         
         if(Game.state) Game.state.inDialog = true;
         
-        // ESC Handler hinzufügen
+        // ESC Handler
         const escHandler = (e) => { if(e.key === "Escape") UI.leaveDialog(); };
         document.addEventListener('keydown', escHandler);
         
-        // ESC Handler beim Schließen aufräumen
+        // Cleanup beim Schließen
         const originalLeave = this.leaveDialog.bind(this);
         this.leaveDialog = function() {
             document.removeEventListener('keydown', escHandler);
-            UI.leaveDialog = originalLeave; // Restore original
+            UI.leaveDialog = originalLeave;
             originalLeave();
+        };
+
+        // Click Outside Handler
+        overlay.onclick = (e) => {
+            if(e.target === overlay) UI.leaveDialog();
         };
 
         overlay.innerHTML = `
@@ -111,8 +115,8 @@ Object.assign(UI, {
             scores.sort((a,b) => b.lvl - a.lvl || b.xp - a.xp);
 
             const box = document.createElement('div');
-            // [v5.1] Fixes: max-h-[80vh] (statt %), w-full, flex-col, pointer-events-auto
-            box.className = "bg-black border-4 border-green-600 p-4 shadow-[0_0_30px_green] w-full max-w-2xl max-h-[80vh] flex flex-col relative pointer-events-auto";
+            // [v5.2] FIX: max-h-[90%] (Prozent vom Container statt vh) verhindert Abschneiden.
+            box.className = "bg-black border-4 border-green-600 p-4 shadow-[0_0_30px_green] w-full max-w-2xl max-h-[90%] flex flex-col relative pointer-events-auto";
             
             const closeBtn = document.createElement('button');
             closeBtn.className = "absolute top-2 right-2 text-green-500 text-xl border border-green-500 px-3 hover:bg-green-900 font-bold z-50";
@@ -175,11 +179,6 @@ Object.assign(UI, {
             overlay.innerHTML = '';
             overlay.appendChild(box);
             this.renderHighscoreList('lvl');
-            
-            // [v5.1] Click Outside
-            overlay.onclick = (e) => {
-                if(e.target === overlay) UI.leaveDialog();
-            };
 
         } catch(e) {
             let msg = e.message;
@@ -193,20 +192,20 @@ Object.assign(UI, {
                     <button class="action-button w-full border-red-500 text-red-500" onclick="UI.leaveDialog()">SCHLIESSEN</button>
                 </div>
             `;
-             overlay.onclick = (e) => { if(e.target === overlay) UI.leaveDialog(); };
         }
     },
 
     showShopConfirm: function(itemKey) {
         if(!this.els.dialog) this.restoreOverlay();
         const overlay = this.els.dialog;
-        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto";
         overlay.style.display = 'flex';
         
         const item = Game.items[itemKey];
         if(!item) return;
 
         if(Game.state) Game.state.inDialog = true;
+        
         overlay.onclick = (e) => { if(e.target === overlay) UI.leaveDialog(); };
 
         overlay.innerHTML = '';
@@ -282,7 +281,7 @@ Object.assign(UI, {
     showItemConfirm: function(invIndex) {
         if(!this.els.dialog) this.restoreOverlay();
         const overlay = this.els.dialog;
-        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto";
         overlay.style.display = 'flex';
         
         if(!Game.state.inventory || !Game.state.inventory[invIndex]) return;
@@ -387,7 +386,7 @@ Object.assign(UI, {
     showDungeonWarning: function(callback) {
         if(!this.els.dialog) this.restoreOverlay();
         const overlay = this.els.dialog;
-        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto";
         overlay.style.display = 'flex';
         
         if(Game.state) Game.state.inDialog = true;
@@ -419,7 +418,7 @@ Object.assign(UI, {
     showWastelandGamble: function(callback) {
         if(!this.els.dialog) this.restoreOverlay();
         const overlay = this.els.dialog;
-        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto";
         overlay.style.display = 'flex';
         
         if(Game.state) Game.state.inDialog = true;
@@ -486,7 +485,7 @@ Object.assign(UI, {
     showDungeonLocked: function(minutesLeft) {
         if(!this.els.dialog) this.restoreOverlay();
         const overlay = this.els.dialog;
-        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto";
         overlay.style.display = 'flex';
         
         if(Game.state) Game.state.inDialog = true;
@@ -511,7 +510,7 @@ Object.assign(UI, {
     showDungeonVictory: function(caps, lvl) {
         const overlay = document.createElement('div');
         overlay.id = "victory-overlay";
-        overlay.className = "fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 animate-fadeIn";
+        overlay.className = "fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 animate-fadeIn pointer-events-auto";
         
         overlay.innerHTML = `
             <div class="bg-black border-4 border-yellow-400 p-6 shadow-[0_0_30px_gold] max-w-md text-center mb-4 relative">
@@ -543,7 +542,7 @@ Object.assign(UI, {
     showPermadeathWarning: function() {
         if(!this.els.dialog) this.restoreOverlay();
         const overlay = this.els.dialog;
-        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto";
         overlay.style.display = 'flex';
         
         if(Game.state) Game.state.inDialog = true;
@@ -607,7 +606,7 @@ Object.assign(UI, {
     enterVault: function() { 
         if(!this.els.dialog) this.restoreOverlay();
         const overlay = this.els.dialog;
-        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm";
+        overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto";
         overlay.style.display = 'flex';
 
         if(Game.state) Game.state.inDialog = true; 
