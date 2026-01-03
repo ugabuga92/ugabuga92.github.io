@@ -1,7 +1,7 @@
-// [v3.3a] - 2026-01-03 04:30am (Survival Update & Full Restore)
-// - Balance: Sleeping outside ('rest') now adds +10 Radiation.
+// [v3.3b] - 2026-01-03 04:45am (Survival Fix)
+// - Balance: Sleeping outside gives +10 Rads.
+// - Balance: Sleeping in Tent gives +5 Rads (Tent offers partial protection).
 // - Logic: buyItem/sellItem supports quantities.
-// - System: Full code integrity check.
 
 Object.assign(Game, {
     
@@ -23,7 +23,7 @@ Object.assign(Game, {
     rest: function() { 
         if(!this.state) return;
         
-        // [v3.3a] Penalty for sleeping on the ground
+        // [v3.3b] Full radiation penalty for sleeping on ground
         this.addRadiation(10);
         UI.log("Ungeschützt geschlafen: +10 RADS", "text-red-500 font-bold");
 
@@ -36,6 +36,11 @@ Object.assign(Game, {
     restInCamp: function() {
         if(!this.state || !this.state.camp) return;
         const lvl = this.state.camp.level || 1;
+        
+        // [v3.3b] Partial radiation penalty for tent sleeping
+        this.addRadiation(5);
+        UI.log("Im Zelt geschlafen: +5 RADS", "text-orange-400 font-bold");
+
         const effectiveMax = this.state.maxHp - (this.state.rads || 0);
         let healAmount = 0;
         if(lvl === 1) {
@@ -61,9 +66,6 @@ Object.assign(Game, {
     },
     
     buyAmmo: function(mode = 1) { 
-        // Simple wrapper for specific ammo button if needed, 
-        // but generally ammo is now treated as a normal item in buyItem if mapped correctly.
-        // Keeping legacy support or redirecting to buyItem('ammo', mode).
         this.buyItem('ammo', mode);
     },
     
@@ -74,11 +76,6 @@ Object.assign(Game, {
         let stock = 0;
         if(key === 'ammo') {
              stock = this.state.shop.ammoStock || 0;
-             // Special case: Ammo is sold in packs of 10 usually? 
-             // Logic in v3.1 was "10x Munition" for 10 Caps. 
-             // Let's standardize: buyItem buys UNITS. 
-             // If ammo logic in UI is "Pack", we treat 1 Pack as item.
-             // For simplicity here: key 'ammo' buys 10 rounds for 10 caps per unit action.
         } else {
              stock = (this.state.shop.stock && this.state.shop.stock[key]) ? this.state.shop.stock[key] : 0;
         }
@@ -88,9 +85,8 @@ Object.assign(Game, {
             return;
         }
 
-        // Calculate Amount
         let amount = 1;
-        let costPerUnit = (key === 'ammo') ? 10 : item.cost; // Ammo pack cost fix
+        let costPerUnit = (key === 'ammo') ? 10 : item.cost; 
 
         if (mode === 'max') {
             const maxAfford = Math.floor(this.state.caps / costPerUnit);
@@ -114,15 +110,8 @@ Object.assign(Game, {
         }
 
         if(this.state.caps >= totalCost) { 
-            // Add loop for multiple items
             let successCount = 0;
-            // For ammo, we add 10 rounds per "pack" purchased
-            let itemToAdd = key; 
             let countToAdd = (key === 'ammo') ? 10 : 1;
-            
-            // Optimization: Add in bulk if possible or loop
-            // Since inventory stacking logic is in addToInventory, we call it once with total count if stackable
-            // OR loop for equipment (non-stackable usually)
             
             const isStackable = (this.getStackLimit(key) > 1);
             
@@ -133,7 +122,7 @@ Object.assign(Game, {
             } else {
                 for(let i=0; i<amount; i++) {
                     if(this.addToInventory(key, 1)) successCount++;
-                    else break; // Inv full
+                    else break; 
                 }
             }
 
@@ -150,7 +139,6 @@ Object.assign(Game, {
                 UI.log(`Gekauft: ${successCount}x ${item.name} (-${finalCost} KK)`, "text-green-400");
                 
                 const con = document.getElementById('shop-list');
-                // Refresh appropriate view
                 if(con) {
                     if(typeof UI.renderShopBuy === 'function') UI.renderShopBuy();
                     else UI.renderShop(con);
@@ -166,13 +154,11 @@ Object.assign(Game, {
         const def = this.items[item.id];
         if(!def) return;
 
-        // Calculate Sell Price (25% of cost, min 1)
         let valMult = 1;
         if(item.props && item.props.valMult) valMult = item.props.valMult;
         let sellPrice = Math.floor((def.cost * 0.25) * valMult);
         if(sellPrice < 1) sellPrice = 1;
 
-        // Calculate Amount
         let amount = 1;
         if (mode === 'max') {
             const maxAfford = Math.floor(this.state.shop.merchantCaps / sellPrice);
@@ -187,23 +173,17 @@ Object.assign(Game, {
             UI.log("Händler: 'Ich habe nicht genug Kronkorken!'", "text-red-500");
             return;
         }
-        if(amount <= 0) return; // Should not happen unless 0 items
+        if(amount <= 0) return; 
 
         const totalEarned = amount * sellPrice;
 
         if(this.state.shop.merchantCaps < totalEarned) {
-             // Fallback: Sell as many as possible?
-             // For now just block
              UI.log("Händler: 'Ich habe nicht genug Kronkorken für diese Menge!'", "text-red-500");
              return;
         }
 
-        // Transaction
         this.state.caps += totalEarned;
         this.state.shop.merchantCaps -= totalEarned;
-        
-        // Remove Item logic
-        // Actually, let's do direct for the specific index to avoid removing from wrong stack
         
         item.count -= amount;
         if(item.count <= 0) {
@@ -213,7 +193,6 @@ Object.assign(Game, {
 
         UI.log(`Verkauft: ${amount}x ${def.name} (+${totalEarned} KK)`, "text-yellow-400");
         
-        // Re-Render Shop (Sell Tab)
         if(typeof UI !== 'undefined' && UI.renderShopSell) UI.renderShopSell();
         this.saveGame();
     },
@@ -280,7 +259,6 @@ Object.assign(Game, {
             
             if (itemId === 'ammo') this.syncAmmo();
             
-            // [v2.9] Alert for ANY equipable item
             if(itemDef && (['weapon','body','head','legs','feet','arms','back'].includes(itemDef.type))) {
                 if(typeof UI !== 'undefined' && UI.triggerInventoryAlert) UI.triggerInventoryAlert();
             }
@@ -314,7 +292,6 @@ Object.assign(Game, {
         if(!this.state.equip[slot]) return;
         const item = this.state.equip[slot];
 
-        // [v2.9] Prevent unequip of defaults
         if(item.name === "Fäuste" || item.name === "Vault-Anzug") {
              UI.log("Das kann nicht abgelegt werden.", "text-gray-500");
              return;
@@ -333,21 +310,17 @@ Object.assign(Game, {
 
         this.state.inventory.push(objToAdd);
         
-        // Reset Logic
         if(slot === 'weapon') this.state.equip.weapon = this.items.fists;
         else if(slot === 'body') {
             this.state.equip.body = this.items.vault_suit;
-            // Recalc HP if END changed
             this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
             if(this.state.hp > this.state.maxHp) this.state.hp = this.state.maxHp;
         }
         else {
-            this.state.equip[slot] = null; // Head, legs etc can be empty
+            this.state.equip[slot] = null; 
         }
 
         UI.log(`${item.name} abgelegt.`, "text-yellow-400");
-        
-        // [v3.1a] Only render Char if in Char View
         if(typeof UI !== 'undefined' && this.state.view === 'char') UI.renderChar(); 
         
         this.saveGame();
@@ -363,7 +336,6 @@ Object.assign(Game, {
         invItem = this.state.inventory[index];
         const itemDef = this.items[invItem.id];
         
-        // Backpack
         if (itemDef.type === 'back') {
             const slot = 'back';
             let oldEquip = this.state.equip[slot];
@@ -441,15 +413,12 @@ Object.assign(Game, {
             } 
         } 
         else {
-            // [v2.9] Generic Equip Logic for all types
             const validSlots = ['weapon', 'body', 'head', 'legs', 'feet', 'arms'];
             if(validSlots.includes(itemDef.type)) {
                 const slot = itemDef.slot || itemDef.type;
                 let oldEquip = this.state.equip[slot];
                 
-                // Save old item if it wasn't default (Fists/Suit)
                 if(oldEquip && oldEquip.name !== "Fäuste" && oldEquip.name !== "Vault-Anzug") {
-                    // Check if already in inv (stacking) or needs adding
                     const existsInInv = this.state.inventory.some(i => {
                         if(i.props) return i.props.name === oldEquip.name;
                         const def = this.items[i.id];
@@ -473,7 +442,6 @@ Object.assign(Game, {
                 const displayName = invItem.props ? invItem.props.name : itemDef.name;
                 UI.log(`Ausgerüstet: ${displayName}`, "text-yellow-400"); 
                 
-                // Recalc HP if Body/Head/Legs changed END
                 const oldMax = this.state.maxHp; 
                 this.state.maxHp = this.calculateMaxHP(this.getStat('END')); 
                 if(this.state.maxHp > oldMax) {
