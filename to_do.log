@@ -1,37 +1,7 @@
-Vault Legens Fenster begrenzen auf Höhe des Spieles & Scrollbalken einführen. Fenster kann auch wieder durch daneben klicken geschlossen werde. egal ob spielfeld oder log.
-
-
-skinning des aktuellen games in folgendem stil :
-
-Dieser Grafikstil wird allgemein als Top-Down Pixel Art bezeichnet.
-Hier ist eine genauere Aufschlüsselung der spezifischen Merkmale dieses Stils:
-1. Die Hauptbezeichnung: Pixel Art
-Das grundlegende Medium ist Pixel Art. Die Grafik ist so gestaltet, dass die einzelnen Bildpunkte (Pixel) sichtbar sind und bewusst als Stilmittel eingesetzt werden. Es erinnert stark an die 16-Bit-Ära (Super Nintendo, SEGA Mega Drive) oder frühe Game Boy Advance Spiele.
-2. Die Perspektive: Top-Down (oder 3/4-Ansicht)
-Obwohl man es oft einfach "Top-Down" nennt, ist es technisch gesehen meist eine orthografische Projektion oder eine 3/4-Perspektive.
- * Keine Fluchtpunkte: Parallele Linien bleiben parallel (anders als bei 3D).
- * Der Winkel: Die Kamera schaut nicht strikt im 90°-Winkel von oben (sonst würde man nur den Scheitel der Figur sehen), sondern eher schräg von vorne. Dadurch sieht man das Gesicht der Figur und die Vorderseite des Hauses, aber auch das Dach.
- * Unterschied zu Isometrisch: Es ist kein echtes Isometrisch (wie bei Diablo oder Habbo Hotel), da das Raster rechtwinklig (quadratisch) und nicht diagonal verläuft.
-3. Die Struktur: Tile-Based (Kachelbasiert)
-Das Bild zeigt ganz klar ein Tile-System (Kachelsystem).
- * Der Boden, das Wasser und die Klippen sind aus wiederholbaren quadratischen Blöcken (Tiles) zusammengesetzt.
- * Man erkennt gut, dass die Klippenkante und das Wasser exakt in ein Raster passen (Grid). Dies ist typisch für Engines wie den RPG Maker oder Tilemaps in Unity/Phaser.
-4. Visuelle Charakteristika
- * Chibi-Stil: Die Spielfigur hat einen überproportional großen Kopf im Vergleich zum Körper ("Big Head, Small Body"), was niedlich wirkt und die Mimik bei der geringen Auflösung lesbar macht.
- * Vibrant Colors: Die Farbpalette ist sehr hell, gesättigt und freundlich (hoher Kontrast zwischen dem hellen Grün und dem blauen Himmel).
- * Outline-less (teilweise): Die Landschaft (Gras, Klippen) hat kaum schwarze Außenlinien (Outlines), was den Stil weicher ("painterly") macht. Die Figur hingegen hat leichte Outlines zur Abgrenzung.
-Zusammenfassung für die Suche
-Wenn du nach Assets oder Tutorials für genau diesen Stil suchst, verwende folgende Begriffe:
- * Top-Down RPG Pixel Art
- * 16-bit Tilemap
- * Orthographic Pixel Art
- * Cute/Chibi Pixel Character
-Möglicher nächster Schritt:
-Möchtest du, dass ich dir CSS/JS-Code erstelle, um ein solches Raster (Grid) auf deiner GitHub-Seite darzustellen, oder brauchst du Hilfe beim Finden einer passenden Tilemap-Logik für dein Projekt?
-
 
 ######################################################
 🐛 Aktuelle Bugs & Anpassungen:
+- Vault Legens Fenster begrenzen auf Höhe des Spieles & Scrollbalken einführen. Fenster kann auch wieder durch daneben klicken geschlossen werde. egal ob spielfeld oder log.
 - Admin Panel muss scrollbar sein und für Portrai Modus optimiert werden
 - Items muss man aus dem Inventar schmeißen können. bzw zerstören, muss auch für "Schrott" funktionieren, aktuell nur Ausrüstungsgegenstände.
 - Würfelspiele ab und an nach Legendary? Hatte bissher nie glück, rate minimal erhöhen? Oder ist es gar nicht mehr eingebaut?
