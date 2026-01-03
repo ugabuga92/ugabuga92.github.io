@@ -1,6 +1,5 @@
-// [v3.4] - 2026-01-03 04:30am (UI Header Update)
-// - Click Listener für Name/Lvl Wrapper hinzugefügt.
-// - Save Button Init entfernt.
+// [v3.4a] - 2026-01-03 04:45am (Stats/Perk Logic)
+// - Click Logic for Stats/Perks priority.
 
 const UI = {
     els: {},
@@ -85,7 +84,7 @@ const UI = {
             xpTxt: document.getElementById('val-xp-txt'),
             caps: document.getElementById('val-caps'),
             name: document.getElementById('val-name'),
-            headerCharInfo: document.getElementById('header-char-info'), // [v3.4] New clickable container
+            headerCharInfo: document.getElementById('header-char-info'),
             version: document.getElementById('version-display'),
             joyBase: null, joyStick: null,
             dialog: document.getElementById('dialog-overlay'),
@@ -99,7 +98,6 @@ const UI = {
             btnQuests: document.getElementById('btn-quests'),
             btnRadio: document.getElementById('btn-radio'),
             
-            // btnSave: document.getElementById('btn-save'), // [v3.4] Removed
             btnMenuSave: document.getElementById('btn-menu-save'),
             btnLogout: document.getElementById('btn-logout'),
             btnReset: document.getElementById('btn-reset'),
@@ -148,10 +146,25 @@ const UI = {
              this.els.btnInv.addEventListener('click', () => this.resetInventoryAlert());
         }
 
-        // [v3.4] Header Info Click Event
+        // [v3.4a] Header Info Click Event - Smart Routing
         if(this.els.headerCharInfo) {
             this.els.headerCharInfo.addEventListener('click', () => {
-                this.toggleView('char');
+                const hasStats = Game.state.statPoints > 0;
+                const hasPerks = Game.state.perkPoints > 0; // Assuming perkPoints key
+                
+                if(hasStats) {
+                    // Prio 1: Stats
+                    this.switchView('char'); 
+                    // ToDo: Force Stat Tab if needed
+                } else if (hasPerks) {
+                    // Prio 2: Perks
+                    this.switchView('char');
+                    // ToDo: Force Perk Tab switch here if possible
+                    // setTimeout(() => document.getElementById('tab-perks')?.click(), 100);
+                } else {
+                    // Default
+                    this.switchView('char');
+                }
             });
         }
 
@@ -192,18 +205,15 @@ const UI = {
         if(typeof Network !== 'undefined') Network.startPresence();
     },
 
-    // [v3.0.1] LOGOUT FIX
     logout: function(msg) {
         this.loginBusy = false;
         this.selectedSlot = -1; 
         
-        // 1. Erst Speichern (Force Save), solange Verbindung da ist
         if(Game.state) {
             Game.saveGame(true); 
             Game.state = null;
         }
 
-        // 2. Dann trennen
         if(typeof Network !== 'undefined') Network.disconnect();
         
         this.els.gameScreen.classList.add('hidden');
@@ -243,8 +253,6 @@ const UI = {
             
         } catch(e) {
             let msg = e.message;
-            
-            // [v3.0.2] Error Parsing für saubere Ausgabe
             if(msg && (msg.includes("INVALID_LOGIN_CREDENTIALS") || msg.includes("INVALID_EMAIL"))) {
                 msg = "E-Mail oder Passwort falsch!";
             }
@@ -257,7 +265,6 @@ const UI = {
             else if (e.code === "auth/wrong-password") msg = "Falsches Passwort!";
             else if (e.code === "auth/user-not-found") msg = "Benutzer nicht gefunden!";
             else if (e.code === "auth/internal-error") {
-                 // Fallback: Wenn internal-error trotzdem CREDENTIALS enthält
                  if(msg.includes("INVALID_LOGIN_CREDENTIALS")) msg = "E-Mail oder Passwort falsch!";
             }
 
