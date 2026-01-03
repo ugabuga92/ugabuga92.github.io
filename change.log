@@ -1,3 +1,8 @@
+[v3.1a] - 2026-01-03 01:45am (Combat QoL)
+- COMBAT: Wenn Munition leer ist, wird die Waffe automatisch abgelegt.
+- COMBAT: Der Angriff wird sofort mit Fäusten fortgesetzt (kein Zugverlust).
+- FIX: 'unequipItem' verhindert Grafikfehler im Kampf, indem es das Char-Menü nur rendert, wenn es offen ist.
+
 [v3.1] - 2026-01-03 01:20am (Bugs & Balancing)
 - BALANCE: 'nuclear_mat' (selten) ist nun bis 20 stapelbar.
 - BALANCE: Munition wird im Kampf verbraucht! (1 Schuss pro Angriff).
