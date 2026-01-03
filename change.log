@@ -1,11 +1,3 @@
-[v3.4b] - 2026-01-03 (TP-Bar & Tab-Logic)
-- TP-Leiste: Text massiv vergrößert, zentriert und zeigt "Aktuell / Max (Effektiv)".
-- Header-Interaktion: Klick auf Name/Level öffnet intelligent den richtigen Tab:
-  1. Stat-Punkte verfügbar -> Öffnet Stats-Tab.
-  2. Keine Stat-Punkte, aber Perk-Punkte -> Öffnet Perks-Tab.
-  3. Sonst -> Standard (Stats).
-- Core: 'renderChar' implementiert, um Stats und Perks zu rendern und Tabs zu wechseln.
-
 [v3.4a] - 2026-01-03 (UI Polish & Logic Update)
 - UI: "HP" in "TP" umbenannt.
 - TP-Anzeige: Nutzt nun die volle Höhe der Leiste für bessere Lesbarkeit.
