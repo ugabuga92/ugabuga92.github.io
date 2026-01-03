@@ -1,5 +1,6 @@
-// [v3.1a] - 2026-01-03 01:45am (Smart Unequip)
-// - Fix: unequipItem renders UI only if inside char view.
+// [v3.1b] - 2026-01-03 02:00am (Economy Update)
+// - Feature: Sell Items to Merchant.
+// - Logic: sellItem checks merchant budget.
 
 Object.assign(Game, {
     
@@ -95,6 +96,42 @@ Object.assign(Game, {
                 UI.update(); 
             }
         } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); } 
+    },
+
+    sellItem: function(invIndex) {
+        if(!this.state.inventory[invIndex]) return;
+        const item = this.state.inventory[invIndex];
+        const def = this.items[item.id];
+        if(!def) return;
+
+        // Calculate Sell Price (25% of cost, min 1)
+        let valMult = 1;
+        if(item.props && item.props.valMult) valMult = item.props.valMult;
+        
+        let sellPrice = Math.floor((def.cost * 0.25) * valMult);
+        if(sellPrice < 1) sellPrice = 1;
+
+        if(this.state.shop.merchantCaps < sellPrice) {
+            UI.log("Händler: 'Ich habe nicht genug Kronkorken!'", "text-red-500");
+            return;
+        }
+
+        // Transaction
+        this.state.caps += sellPrice;
+        this.state.shop.merchantCaps -= sellPrice;
+        
+        // Remove Item
+        if(item.count > 1) {
+            item.count--;
+        } else {
+            this.state.inventory.splice(invIndex, 1);
+        }
+
+        UI.log(`Verkauft: ${def.name} (+${sellPrice} KK)`, "text-yellow-400");
+        
+        // Re-Render Shop (Sell Tab)
+        if(typeof UI !== 'undefined' && UI.renderShopSell) UI.renderShopSell();
+        this.saveGame();
     },
 
     addToInventory: function(idOrItem, count=1) { 
