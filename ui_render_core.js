@@ -1,6 +1,7 @@
-// [v3.7a] - 2026-01-03 (Core Renderer Update)
+// [v3.7b] - 2026-01-04 (Core Renderer Update - HP Bar Fix)
 // - FIX: 'switchView' lädt Camp wieder als HTML.
 // - LOGIC: 'renderCamp()' wird nach dem Laden aufgerufen.
+// - UI: HP Text Rendering korrigiert.
 
 Object.assign(UI, {
     
@@ -49,11 +50,9 @@ Object.assign(UI, {
         const radPct = Math.min(100, (rads / maxHp) * 100);
         const hpText = `${Math.round(hp)}/${Math.round(effectiveMax)}`;
         
-        if(this.els.hp) {
-             this.els.hp.textContent = hpText; 
-             const valHpEl = document.getElementById('val-hp');
-             if(valHpEl) valHpEl.textContent = hpText;
-        }
+        // [FIX] Removed redundant textContent assignment to this.els.hp
+        const valHpEl = document.getElementById('val-hp');
+        if(valHpEl) valHpEl.textContent = hpText;
 
         let barColor = "bg-green-500";
         if(hpPct < 25) barColor = "bg-red-500 animate-pulse";
