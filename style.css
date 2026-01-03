@@ -1,8 +1,18 @@
-/* [v3.4] - Added .lvl-ready-glow adjustments */
+/* [v3.5] - 2026-01-03 04:45pm (Pixel Art Crispness) */
+/* - GFX: 'image-rendering: pixelated' hinzugefügt, damit der Canvas scharf bleibt. */
+/* - UI: .lvl-ready-glow adjustments retained. */
+
 :root { --pip-green: #1aff1a; --pip-glow: #2bff2b; --pip-dim: #0d330d; --pip-bg: #051105; }
 
 html, body { width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; position: fixed; }
 body { background-color: #000; color: var(--pip-green); font-family: 'VT323', monospace; display: flex; justify-content: center; align-items: center; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+
+/* WICHTIG FÜR PIXEL ART: Verhindert Weichzeichnen des Canvas */
+canvas {
+    image-rendering: pixelated; /* Chrome/Standard */
+    image-rendering: crisp-edges; /* Firefox */
+    image-rendering: -moz-crisp-edges;
+}
 
 #view-container > * { max-width: 100%; overflow-x: hidden; }
 
@@ -17,7 +27,6 @@ body { background-color: #000; color: var(--pip-green); font-family: 'VT323', mo
     display: inline-block;
     animation: fireFlicker 0.8s infinite alternate ease-in-out;
 }
-/* Zufällige Verzögerung für organischeres Feuer */
 .fire-anim:nth-child(1) { animation-delay: 0s; }
 .fire-anim:nth-child(2) { animation-delay: 0.2s; }
 .fire-anim:nth-child(3) { animation-delay: 0.4s; }
@@ -76,7 +85,6 @@ body { background-color: #000; color: var(--pip-green); font-family: 'VT323', mo
     color: #ffd700 !important;
     text-shadow: 0 0 5px #b8860b;
 }
-/* Ensure child elements also inherit the glow effect or similar */
 .lvl-ready-glow * {
     color: #ffd700 !important;
     text-shadow: 0 0 5px #b8860b;
@@ -128,7 +136,6 @@ body { background-color: #000; color: var(--pip-green); font-family: 'VT323', mo
 .char-slot { border: 1px solid var(--pip-dim); background: rgba(0,20,0,0.5); padding: 10px; margin-bottom: 5px; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
 .char-slot:hover { border-color: var(--pip-green); background: rgba(0,40,0,0.8); }
 .char-slot.active-slot { border-color: var(--pip-green); background: var(--pip-green); color: black; font-weight: bold; }
-/* FIX: Kontrast für aktiven Slot erhöhen (Alles Schwarz) */
 .char-slot.active-slot * { color: #000 !important; text-shadow: none !important; }
 
 .char-slot.empty-slot { opacity: 0.5; font-style: italic; }
