@@ -1,11 +1,8 @@
-// [v5.9] - 2026-01-04 01:20am (Workbench Integration)
-// - UI: "Zerlegen" Button im Item-Dialog hinzugefügt (wenn im Camp/Stadt/Vault).
-// - Logic: Prüft Game.state.camp oder Zone für Werkbank-Zugriff.
+// [v5.9] - 2026-01-04 01:30am (Workbench Integration)
+// - Feature: "Zerlegen" Button in showItemConfirm integriert.
+// - Logic: Prüft auf Werkbank-Umgebung (Camp/Stadt/Vault) für Scrapping.
 
 Object.assign(UI, {
-    
-    // ... [Show Quest, Legend, Highscore etc. UNVERÄNDERT LASSEN] ...
-    // (Behalte den Code für showQuestComplete, showMapLegend, showHighscoreBoard, showShopConfirm aus v5.8 bei)
     
     // [v3.0] NEW QUEST HUD
     showQuestComplete: function(questDef) {
@@ -207,6 +204,7 @@ Object.assign(UI, {
 
         overlay.innerHTML = '';
         
+        // Calculate Stats Text
         let statsText = "";
         let typeLabel = item.type.toUpperCase();
         
@@ -406,7 +404,6 @@ Object.assign(UI, {
         this.refreshFocusables();
     },
 
-    // ... (restliche Funktionen bleiben unverändert)
     showDungeonWarning: function(callback) {
         if(!this.els.dialog) this.restoreOverlay();
         const overlay = this.els.dialog;
