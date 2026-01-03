@@ -1,7 +1,8 @@
-// [v4.0] - 2026-01-03 (Admin System Overhaul)
+// [v5.5] - 2026-01-03 (Admin System Overhaul & Fixes)
 // - Gatekeeper: "bimbo123" protects the UI.
 // - Auto-Auth: Uses 'admin@pipboy-system.com' internally.
 // - Full Management: Inventory, Stats, Location, Raw Data.
+// - Fixes: Inventory Adding robust check, Teleport safety.
 
 const Admin = {
     // Config
@@ -49,29 +50,42 @@ const Admin = {
             setTimeout(() => app.classList.remove('opacity-0'), 50);
             
             // Start Data Flow
-            document.getElementById('conn-dot').classList.replace('bg-red-500', 'bg-green-500');
-            document.getElementById('conn-dot').classList.remove('animate-pulse');
+            const connDot = document.getElementById('conn-dot');
+            if(connDot) {
+                connDot.classList.replace('bg-red-500', 'bg-green-500');
+                connDot.classList.remove('animate-pulse');
+            }
             
             this.initData();
 
         } catch(e) {
-            document.getElementById('gate-msg').textContent = "UPLINK FAILED: " + e.code;
+            const msgEl = document.getElementById('gate-msg');
+            if(msgEl) msgEl.textContent = "UPLINK FAILED: " + e.code;
             console.error(e);
         }
     },
 
     initData: function() {
         // Load Game Items for Dropdown
-        if(typeof Game !== 'undefined' && Game.items) {
+        const sel = document.getElementById('inv-add-select');
+        if(typeof Game !== 'undefined' && Game.items && sel) {
             this.itemsList = Object.keys(Game.items).sort().map(k => ({id: k, name: Game.items[k].name}));
-            const sel = document.getElementById('inv-add-select');
             sel.innerHTML = '';
+            
+            // Placeholder option
+            const placeholder = document.createElement('option');
+            placeholder.value = "";
+            placeholder.textContent = "-- SELECT ITEM --";
+            sel.appendChild(placeholder);
+
             this.itemsList.forEach(i => {
                 const opt = document.createElement('option');
                 opt.value = i.id;
                 opt.textContent = `${i.name} (${i.id})`;
                 sel.appendChild(opt);
             });
+        } else {
+            console.warn("Admin: Game.items not loaded or UI missing.");
         }
 
         // Start Firebase Listener on 'saves' (The Master Record)
@@ -96,7 +110,10 @@ const Admin = {
 
     renderUserList: function() {
         const list = document.getElementById('user-list');
-        const filter = document.getElementById('search-player').value.toLowerCase();
+        const searchInput = document.getElementById('search-player');
+        if(!list || !searchInput) return;
+
+        const filter = searchInput.value.toLowerCase();
         list.innerHTML = '';
         
         let count = 0;
@@ -132,7 +149,8 @@ const Admin = {
                 count++;
             }
         }
-        document.getElementById('user-count').textContent = count;
+        const countEl = document.getElementById('user-count');
+        if(countEl) countEl.textContent = count;
     },
 
     selectUser: function(path, silent = false) {
@@ -142,6 +160,9 @@ const Admin = {
         const parts = path.split('/');
         const uid = parts[1];
         const slot = parts[2];
+        
+        if(!this.dbData[uid] || !this.dbData[uid][slot]) return; // Safety check
+
         this.currentUserData = this.dbData[uid][slot];
         const d = this.currentUserData;
 
@@ -151,8 +172,11 @@ const Admin = {
                 el.classList.remove('active-tab');
                 el.classList.add('inactive-tab');
             });
-            document.getElementById('tab-btn-general').classList.add('active-tab');
-            document.getElementById('tab-btn-general').classList.remove('inactive-tab');
+            const tabGeneral = document.getElementById('tab-btn-general');
+            if(tabGeneral) {
+                tabGeneral.classList.add('active-tab');
+                tabGeneral.classList.remove('inactive-tab');
+            }
             this.tab('general');
         }
 
@@ -190,6 +214,7 @@ const Admin = {
 
     fillStats: function(d) {
         const container = document.getElementById('special-container');
+        if(!container) return;
         container.innerHTML = '';
         
         const stats = d.stats || { STR:1, PER:1, END:1, CHA:1, INT:1, AGI:1, LUC:1 };
@@ -213,6 +238,7 @@ const Admin = {
 
     fillInv: function(d) {
         const tbody = document.getElementById('inv-table-body');
+        if(!tbody) return;
         tbody.innerHTML = '';
         
         const inv = d.inventory || [];
@@ -222,17 +248,17 @@ const Admin = {
             
             // Name resolve
             let name = item.id;
-            if(Game.items[item.id]) name = Game.items[item.id].name;
+            if(Game.items && Game.items[item.id]) name = Game.items[item.id].name;
             if(item.props && item.props.name) name = item.props.name + "*"; // Custom item
 
             tr.innerHTML = `
-                <td class="p-2">${name}</td>
-                <td class="p-2 font-mono text-xs opacity-50">${item.id}</td>
-                <td class="p-2">
-                    <input type="number" class="w-16 bg-black border border-[#1a551a] text-center" 
+                <td class="p-2 truncate max-w-[120px]">${name}</td>
+                <td class="p-2 font-mono text-xs opacity-50 hidden md:table-cell">${item.id}</td>
+                <td class="p-2 text-center">
+                    <input type="number" class="w-12 bg-black border border-[#1a551a] text-center" 
                         value="${item.count}" onchange="Admin.invUpdate(${idx}, this.value)">
                 </td>
-                <td class="p-2 text-right">
+                <td class="p-2 text-center">
                     <button onclick="Admin.invDelete(${idx})" class="text-red-500 font-bold hover:text-white px-2">X</button>
                 </td>
             `;
@@ -249,6 +275,7 @@ const Admin = {
 
         // Quests
         const qList = document.getElementById('quest-list');
+        if(!qList) return;
         qList.innerHTML = '';
         const quests = d.quests || [];
         
@@ -275,15 +302,16 @@ const Admin = {
         document.querySelectorAll('[id^="tab-btn-"]').forEach(b => {
             b.classList.replace('active-tab', 'inactive-tab');
         });
-        document.getElementById('tab-btn-' + id).classList.replace('inactive-tab', 'active-tab');
+        const btn = document.getElementById('tab-btn-' + id);
+        if(btn) btn.classList.replace('inactive-tab', 'active-tab');
         
-        document.getElementById('tab-general').classList.add('hidden');
-        document.getElementById('tab-stats').classList.add('hidden');
-        document.getElementById('tab-inv').classList.add('hidden');
-        document.getElementById('tab-world').classList.add('hidden');
-        document.getElementById('tab-raw').classList.add('hidden');
+        ['general', 'stats', 'inv', 'world', 'raw'].forEach(t => {
+            const el = document.getElementById('tab-' + t);
+            if(el) el.classList.add('hidden');
+        });
         
-        document.getElementById('tab-' + id).classList.remove('hidden');
+        const target = document.getElementById('tab-' + id);
+        if(target) target.classList.remove('hidden');
     },
 
     saveVal: function(key, val) {
@@ -338,10 +366,8 @@ const Admin = {
         else if (type === 'reset-vault') {
             if(!confirm("RESET CHARACTER TO VAULT 101 (SECTOR 4,4)?")) return;
             updates['sector'] = {x: 4, y: 4};
-            updates['player'] = {x: 100, y: 100}; // Safe Pixel Coords
-            
-            // Optional: Reset local view flags
-            updates['view'] = 'map';
+            updates['player'] = {x: 300, y: 200}; // Safe Pixel Coords (Center)
+            updates['view'] = 'map'; // Force map view
         }
 
         Network.db.ref(p).update(updates);
@@ -351,6 +377,8 @@ const Admin = {
         const x = Number(document.getElementById('tele-x').value);
         const y = Number(document.getElementById('tele-y').value);
         
+        if(!this.currentPath) return;
+
         Network.db.ref(this.currentPath + '/sector').set({x:x, y:y});
         // Reset player pixel pos to center to avoid getting stuck in walls in new sector
         Network.db.ref(this.currentPath + '/player').set({x:300, y:200}); 
@@ -375,13 +403,26 @@ const Admin = {
     },
 
     invAdd: function() {
-        const id = document.getElementById('inv-add-select').value;
-        const count = Number(document.getElementById('inv-add-qty').value);
-        if(!id || count < 1) return;
+        const sel = document.getElementById('inv-add-select');
+        const qtyEl = document.getElementById('inv-add-qty');
+
+        if(!sel || !qtyEl) return; // UI Error
+
+        const id = sel.value;
+        const count = Number(qtyEl.value);
+        
+        if(!id) {
+            alert("Bitte wähle ein Item aus der Liste!");
+            return;
+        }
+        if(isNaN(count) || count < 1) {
+            alert("Menge muss mindestens 1 sein.");
+            return;
+        }
 
         const inv = [...(this.currentUserData.inventory || [])];
         
-        // Stack?
+        // Stack Logic
         let found = false;
         for(let item of inv) {
             if(item.id === id && !item.props) {
@@ -394,7 +435,9 @@ const Admin = {
             inv.push({id: id, count: count, isNew: true});
         }
         
-        Network.db.ref(this.currentPath + '/inventory').set(inv);
+        Network.db.ref(this.currentPath + '/inventory').set(inv)
+            .then(() => console.log(`Added ${count}x ${id}`))
+            .catch(e => alert("Error saving inventory: " + e.message));
     },
 
     saveRaw: function() {
