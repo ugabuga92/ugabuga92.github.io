@@ -1,11 +1,6 @@
 
 🐛 Aktuelle Bugs & Anpassungen:
-- Logik fehler. beim level up wird die HP immer sufgefüll suf maximal, ohnr beschgung des RAD zustandes, heißt bei sonst 230 max tp - 30 hp durxh rad, was logicherweiße 200 max wären, wird bri LvL up auf 230/200 sufgefüllt. macht kein sinn. 
 - Perk logik neu gedacht. es gibt eine msx Punktezal con 5 pro Perk, effekt steigt somit langsam an und nicht direkt 100%, sonst hat man zu viele Punkte zu schnell übrig. 
-- beim HP verlieren erscheint ein Hellgrüner Balken zwichen aktueller TP und falls vorhanden RAD, das soll "duechsichtig" ider entfernt werden. also nur den Akuellen TP Balken jnd RAD Balken anzeigen. 
-- abfrage vor dem Lager aufbauen ob sicher, da 100 kronkorken teuer. 
-- Lager soll bis lvl 10 logisch aufwertbar sein, mir anfsngs material bis high endlegendary. in diesem zuhe fängt man an beim ersten schlafen 30% gesundheit zu regenerieren und dsnn bis lv 10 max 100%TP.- Im lager, nach dem Braten, soll man nicht rausgeschmissen werden (man hat ja meist mehr sls 1 fleisch zum braten)
-- Alle Popup fenster die es gibt sind meistens Irgendwo abgwschnitten. wie könnten wir das behebn? einfsach als "wichtig" über alles legen?
 - Der Rucksack soll sich automatisch sortieren, aktuell gibt es unten ausgerüstet, jetzt soll oben die gesammelten Sachen nach Kategorien sortiert werden ausrüstung, eilung und Essen Schrott
 
 - zurück button char auswahl ohne funktion. 
