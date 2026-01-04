@@ -400,7 +400,10 @@ window.Game = {
                 UI.log("🌟 NEUER PERK PUNKT VERFÜGBAR! 🌟", "text-yellow-400 font-bold animate-pulse text-lg");
             }
             this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
-            this.state.hp = this.state.maxHp;
+            
+            // [v1.0.1] Fix: Fill HP to effective max (Max - Rads)
+            this.state.hp = this.state.maxHp - (this.state.rads || 0);
+            
             UI.log(`LEVEL UP! Du bist jetzt Level ${this.state.lvl}`, "text-yellow-400 font-bold animate-pulse");
             this.checkNewQuests(); 
             this.saveGame(true); // Force Save on Level Up
