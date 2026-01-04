@@ -1,4 +1,4 @@
-// [v3.4] - 2026-01-05 01:45pm (Combat Perk V2 Upgrade)
+// [v2.0.2] - 2026-01-05 01:55pm (Combat Logic V2)
 // - Fix: Replaced .includes() checks with Game.getPerkRank() for Perk System 2.0.
 // - Logic: Integrated Perk Logic (Crit, Damage) from Game Actions.
 
@@ -144,8 +144,7 @@ window.Combat = {
             let isCrit = false;
             
             // [FIX V2.0] Critical Hit Calculation (Luck + Perks)
-            // Luck * 2% + Commando Perk * 5%
-            const commandoRank = Game.getPerkRank('commando'); // New Perk System Check
+            const commandoRank = Game.getPerkRank('commando'); 
             const critChance = (Game.getStat('LUC') * 0.02) + (commandoRank * 0.05);
 
             if(Math.random() < critChance) {
@@ -181,9 +180,6 @@ window.Combat = {
         // Armor reduction (Endurance * 0.5)
         let def = Game.getStat('END') * 0.5; 
         
-        // Perk: Toughness reduces incoming damage slightly? No, Toughness adds HP.
-        // Maybe Rad Resistant reduces Rad damage from attacks (if implemented later)
-        
         dmg = Math.max(1, Math.floor(dmg - def));
         
         if(roll < 0.8) { 
@@ -215,7 +211,7 @@ window.Combat = {
         this.log(`Erhalten: ${xp} XP`);
 
         if(enemy.loot > 0) {
-            // [FIX V2.0] Fortune Finder Logic
+            // [FIX V2.0] Fortune Finder Logic using getPerkRank
             const fortuneRank = Game.getPerkRank('fortune_finder');
             let lootAmount = enemy.loot;
             if (fortuneRank > 0) {
@@ -301,8 +297,8 @@ window.Combat = {
         // Strength Bonus
         dmg += (Game.getStat('STR') * 0.5);
         
-        // [FIX V2.0] Gun Nut Perk
-        if (['weapon'].includes(wpn.type)) { // Simple check, assuming all equipped weapons benefit
+        // [FIX V2.0] Gun Nut Perk using getPerkRank
+        if (['weapon'].includes(wpn.type)) { 
              const gunNutRank = Game.getPerkRank('gun_nut');
              if (gunNutRank > 0) {
                  dmg *= (1 + (gunNutRank * 0.1)); // +10% per Rank
