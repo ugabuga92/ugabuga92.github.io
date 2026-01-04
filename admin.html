@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>ROBCO OVERSEER V4.3</title>
+    <title>ROBCO OVERSEER V4.4</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -13,22 +13,31 @@
     
     <style>
         body { background-color: #050505; color: #39ff14; font-family: 'Share Tech Mono', monospace; overflow: hidden; }
+        
+        /* CRT Scanline Effect */
         .scanlines { background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 2px, 3px 100%; pointer-events: none; position: fixed; inset: 0; z-index: 50; }
+        
+        /* UI Elements */
         .panel-box { border: 1px solid #333; background: rgba(0, 20, 0, 0.9); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
         .active-tab { background-color: #39ff14; color: black; font-weight: bold; box-shadow: 0 0 10px #39ff14; }
         .inactive-tab { border: 1px solid #1a3300; color: #1a551a; }
         .inactive-tab:hover { color: #39ff14; border-color: #39ff14; }
+        
         input, select, textarea { background: #001100; border: 1px solid #1a551a; color: #39ff14; padding: 4px 8px; outline: none; transition: all 0.2s; }
         input:focus, select:focus, textarea:focus { border-color: #39ff14; box-shadow: 0 0 5px #1a551a; }
+        
         .btn { border: 1px solid #39ff14; padding: 5px 15px; text-transform: uppercase; cursor: pointer; transition: all 0.1s; background: rgba(0,20,0,0.5); }
         .btn:hover { background: #39ff14; color: black; box-shadow: 0 0 15px #39ff14; }
         .btn:active { transform: scale(0.98); }
         .btn-danger { border-color: #ff3333; color: #ff3333; }
         .btn-danger:hover { background: #ff3333; color: white; box-shadow: 0 0 15px #ff0000; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #001100; }
-        ::-webkit-scrollbar-thumb { background: #1a551a; }
-        ::-webkit-scrollbar-thumb:hover { background: #39ff14; }
+
+        /* Scrollbar Logic (Cross Browser) */
+        .custom-scroll { scrollbar-width: thin; scrollbar-color: #1a551a #001100; }
+        .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #001100; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #1a551a; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #39ff14; }
     </style>
 </head>
 <body class="flex flex-col h-screen">
@@ -38,7 +47,7 @@
     <div id="gate-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-black">
         <div class="panel-box p-8 w-full max-w-md text-center border-2 border-[#39ff14]">
             <h1 class="text-4xl font-bold mb-2 tracking-widest text-[#39ff14] drop-shadow-[0_0_10px_rgba(57,255,20,0.8)]">VAULT-TEC</h1>
-            <div class="text-xs mb-8 text-[#1a551a]">OVERSEER SYSTEM ACCESS V4.3</div>
+            <div class="text-xs mb-8 text-[#1a551a]">OVERSEER SYSTEM ACCESS V4.4</div>
             <form onsubmit="event.preventDefault(); Admin.unlock();">
                 <input type="password" id="gate-pass" class="w-full text-center text-xl py-3 tracking-widest mb-4 border-[#39ff14]" placeholder="ENTER PASSCODE" autofocus>
                 <button type="submit" class="btn w-full py-3 font-bold text-lg">INITIALIZE LINK</button>
@@ -51,6 +60,7 @@
     </div>
 
     <div id="app-ui" class="hidden flex-col h-full opacity-0 transition-opacity duration-1000">
+        
         <header class="flex justify-between items-center bg-black border-b border-[#1a551a] p-3 px-6 shrink-0 z-10">
             <div class="flex items-center gap-4">
                 <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_red]" id="conn-dot"></div>
@@ -66,11 +76,12 @@
         </header>
 
         <div class="flex flex-grow overflow-hidden">
+            
             <div class="w-80 border-r border-[#1a551a] bg-black/50 flex flex-col shrink-0">
                 <div class="p-2 border-b border-[#1a551a] bg-[#001100]">
                     <input type="text" id="search-player" class="w-full text-sm" placeholder="SEARCH ID/NAME..." onkeyup="Admin.filterList()">
                 </div>
-                <div id="user-list" class="flex-grow overflow-y-auto p-2 space-y-1">
+                <div id="user-list" class="flex-grow overflow-y-auto custom-scroll p-2 space-y-1">
                     <div class="text-center text-gray-500 mt-10">Waiting for Data...</div>
                 </div>
                 <div class="p-2 border-t border-[#1a551a] text-xs text-center text-[#1a551a]">
@@ -78,13 +89,15 @@
                 </div>
             </div>
 
-            <div id="editor-panel" class="flex-grow bg-black/20 flex flex-col relative">
+            <div id="editor-panel" class="flex-grow bg-black/20 flex flex-col relative min-h-0">
+                
                 <div id="no-selection" class="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
                     <div class="text-4xl text-[#1a331a] font-bold tracking-widest opacity-50">SELECT A RESIDENT</div>
                 </div>
 
                 <div id="editor-content" class="hidden flex-col h-full z-10 bg-black/80 backdrop-blur-sm">
-                    <div class="flex justify-between items-end p-6 border-b border-[#39ff14] bg-[#001100]">
+                    
+                    <div class="flex justify-between items-end p-6 border-b border-[#39ff14] bg-[#001100] shrink-0">
                         <div>
                             <h2 id="edit-name" class="text-4xl font-bold text-white mb-1">PLAYER_NAME</h2>
                             <div class="text-xs font-mono text-[#1a551a]">UID: <span id="edit-uid">---</span> | SLOT: <span id="edit-slot">0</span></div>
@@ -96,7 +109,7 @@
                         </div>
                     </div>
 
-                    <div class="flex border-b border-[#1a551a]">
+                    <div class="flex border-b border-[#1a551a] shrink-0">
                         <button onclick="Admin.tab('general')" id="tab-btn-general" class="flex-1 py-3 hover:bg-[#002200] active-tab">GENERAL</button>
                         <button onclick="Admin.tab('stats')" id="tab-btn-stats" class="flex-1 py-3 hover:bg-[#002200] inactive-tab">S.P.E.C.I.A.L.</button>
                         <button onclick="Admin.tab('inv')" id="tab-btn-inv" class="flex-1 py-3 hover:bg-[#002200] inactive-tab">INVENTORY</button>
@@ -105,9 +118,9 @@
                         <button onclick="Admin.tab('raw')" id="tab-btn-raw" class="flex-1 py-3 hover:bg-[#002200] inactive-tab">RAW DATA</button>
                     </div>
 
-                    <div class="flex-grow overflow-hidden relative flex flex-col">
+                    <div class="flex-1 overflow-hidden relative flex flex-col min-h-0">
                         
-                        <div id="tab-general" class="space-y-6 h-full overflow-y-auto p-6">
+                        <div id="tab-general" class="space-y-6 h-full overflow-y-auto custom-scroll p-6">
                             <div class="grid grid-cols-3 gap-4">
                                 <div class="panel-box p-4">
                                     <label class="block text-xs text-green-600 mb-1">HEALTH POINTS</label>
@@ -142,7 +155,7 @@
                             </div>
                         </div>
 
-                        <div id="tab-stats" class="hidden h-full overflow-y-auto p-6">
+                        <div id="tab-stats" class="hidden h-full overflow-y-auto custom-scroll p-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="special-container"></div>
                             <div class="mt-4 panel-box p-4">
                                 <label class="block text-xs text-green-600 mb-1">AVAILABLE POINTS</label>
@@ -159,17 +172,17 @@
                             </div>
                         </div>
 
-                        <div id="tab-inv" class="hidden flex flex-col h-full space-y-4 p-6">
-                            <div class="panel-box p-4">
+                        <div id="tab-inv" class="hidden flex flex-col h-full min-h-0 p-6 space-y-4">
+                            <div class="panel-box p-4 shrink-0">
                                 <h3 class="text-yellow-400 font-bold border-b border-[#1a551a] mb-2">CURRENTLY EQUIPPED</h3>
                                 <div id="equip-list" class="grid grid-cols-2 gap-2 text-sm">
                                     <div class="text-gray-500">Scanning equipment...</div>
                                 </div>
                             </div>
-                            <div class="flex gap-2 p-4 panel-box items-end">
+                            <div class="flex gap-2 p-4 panel-box items-end shrink-0">
                                 <div class="flex-grow">
                                     <label class="text-xs text-gray-500">ADD ITEM</label>
-                                    <select id="inv-add-select" class="w-full text-lg h-10"></select>
+                                    <select id="inv-add-select" class="w-full text-lg h-10 bg-[#002200]"></select>
                                 </div>
                                 <div class="w-24">
                                     <label class="text-xs text-gray-500">QTY</label>
@@ -177,9 +190,9 @@
                                 </div>
                                 <button onclick="Admin.invAdd()" class="btn h-10 font-bold bg-[#39ff14] text-black hover:bg-white">ADD</button>
                             </div>
-                            <div class="flex-grow overflow-y-auto panel-box">
+                            <div class="flex-1 overflow-y-auto custom-scroll panel-box min-h-0">
                                 <table class="w-full text-left border-collapse">
-                                    <thead class="bg-[#002200] text-xs text-gray-400 sticky top-0">
+                                    <thead class="bg-[#002200] text-xs text-gray-400 sticky top-0 z-10">
                                         <tr>
                                             <th class="p-2 border-b border-[#1a551a]">ITEM NAME</th>
                                             <th class="p-2 border-b border-[#1a551a]">ID</th>
@@ -192,14 +205,14 @@
                             </div>
                         </div>
 
-                        <div id="tab-camp" class="hidden space-y-6 h-full overflow-y-auto p-6">
+                        <div id="tab-camp" class="hidden space-y-6 h-full overflow-y-auto custom-scroll p-6">
                             <div class="panel-box p-6 border-yellow-600">
                                 <h3 class="text-2xl font-bold text-yellow-400 mb-4">DEPLOYMENT STATUS</h3>
                                 <div id="camp-data-content" class="text-gray-400 italic">No camp deployed.</div>
                             </div>
                         </div>
 
-                        <div id="tab-world" class="hidden space-y-6 h-full overflow-y-auto p-6">
+                        <div id="tab-world" class="hidden space-y-6 h-full overflow-y-auto custom-scroll p-6">
                             <div class="panel-box p-6 border-yellow-600">
                                 <h3 class="text-2xl font-bold text-yellow-400 mb-4">TELEPORTATION</h3>
                                 <div class="grid grid-cols-2 gap-8">
@@ -221,14 +234,14 @@
                             </div>
                             <div class="panel-box p-4">
                                 <h3 class="text-lg font-bold text-green-400 mb-2">QUEST LOG (Active & Completed)</h3>
-                                <div id="quest-list" class="flex flex-col gap-1 max-h-60 overflow-y-auto"></div>
+                                <div id="quest-list" class="flex flex-col gap-1"></div>
                             </div>
                         </div>
 
-                        <div id="tab-raw" class="hidden h-full flex flex-col p-6">
-                            <p class="text-xs text-red-500 mb-2">WARNING: DIRECT JSON EDITING. SYNTAX ERRORS WILL BREAK SAVEGAME.</p>
-                            <textarea id="raw-json" class="flex-grow font-mono text-xs bg-black p-4 border border-[#1a551a] text-green-300"></textarea>
-                            <button onclick="Admin.saveRaw()" class="btn mt-2 border-red-500 text-red-500">SAVE RAW JSON</button>
+                        <div id="tab-raw" class="hidden h-full flex flex-col p-6 min-h-0">
+                            <p class="text-xs text-red-500 mb-2 shrink-0">WARNING: DIRECT JSON EDITING. SYNTAX ERRORS WILL BREAK SAVEGAME.</p>
+                            <textarea id="raw-json" class="flex-1 font-mono text-xs bg-black p-4 border border-[#1a551a] text-green-300 custom-scroll min-h-0 resize-none"></textarea>
+                            <button onclick="Admin.saveRaw()" class="btn mt-2 border-red-500 text-red-500 shrink-0">SAVE RAW JSON</button>
                         </div>
 
                     </div>
@@ -238,11 +251,9 @@
     </div>
 
     <script>
-        // Pre-initialize Game object so data_items.js can populate it
         window.Game = { items: {}, recipes: [] };
         window.GameData = { items: {}, recipes: [] };
         
-        // Cache Buster
         const v = Date.now();
         const load = (src) => new Promise((res, rej) => {
             const s = document.createElement('script');
@@ -251,7 +262,6 @@
             document.body.appendChild(s);
         });
 
-        // Load Chain
         load('data_core.js')
         .then(() => load('data_items.js')) 
         .then(() => load('data_recipes.js'))
