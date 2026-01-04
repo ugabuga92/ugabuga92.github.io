@@ -1,3 +1,29 @@
+[v1.0.4] - 2026-01-04 08:00pm (Camp Safety Check)
+- Feature: Sicherheitsabfrage ("Wirklich bauen?") vor dem Errichten des Lagers hinzugefügt.
+- Visual: Bestätigungs-Dialog im PipBoy-Stil integriert.
+
+[v1.0.3] - 2026-01-04 03:20pm (UI Fixes: HP & Popups)
+- Visual: HP-Balken Hintergrund strikt auf Schwarz gesetzt (entfernt den hellgrünen "Geisterbalken" komplett).
+- Fix: Popups/Overlays an den Body verschoben, um das Abschneiden an Rändern zu verhindern.
+
+[v1.0.2] - 2026-01-04 03:05pm (UI Polish - HP Bar)
+- Fix: Hintergrund des HP-Containers auf dunkel/transparent gesetzt.
+- Fix: RAD-Balken wird explizit rechtsbündig (right-0) und rot fixiert.
+- Visual: Text-Anzeige bleibt bei "TP Aktuell/Max(effektiv)".
+
+[v1.0.1] - 2026-01-04 02:20pm (HP Logic Fix)
+- Fix: Level-Up füllt HP jetzt nur noch bis zum effektiven Maximum (MaxHP - Rads) auf.
+- Fix: Beim Ausrüsten/Ablegen von Rüstung wird die HP ebenfalls korrekt durch Rads begrenzt.
+
+[v1.0.0] - 2026-01-04 01:40pm (Ammo Logic Refactor)
+- Logic: Munitionsverbrauch basiert jetzt auf der Eigenschaft usesAmmo in data_items.js anstatt auf Waffennamen.
+- Data: Flag usesAmmo für Schusswaffen in data_items.js hinzugefügt.
+- Code: combat.js Logik für Munitionsverbrauch und Auto-Unequip aktualisiert.
+
+########################################
+##### Versions neustart auf v1.0.0 #####
+########################################
+
 [v5.3] - 2026-01-03 10:45pm (Admin Panel Mobile Fix)
 - Layout: Mobile-Optimized (Portrait Mode) -> Sidebar stacked on top, Editor below.
 - UX: Tabsleiste horizontal scrollbar gemacht für kleine Screens.
