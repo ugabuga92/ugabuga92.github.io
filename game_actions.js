@@ -1,5 +1,6 @@
-// [v3.9] - 2026-01-04 01:50am (Workbench Update Logic)
+// [v3.9a] - 2026-01-04 11:30am (Safe Zone Rest Fix)
 // - Feature: scrapItem refreshes Workbench UI ('crafting') view dynamically.
+// - Fix: No RADS when sleeping in Safe Zones.
 
 Object.assign(Game, {
     
@@ -21,9 +22,18 @@ Object.assign(Game, {
     rest: function() { 
         if(!this.state) return;
         
-        // [v3.3b] Full radiation penalty for sleeping on ground
-        this.addRadiation(10);
-        UI.log("Ungeschützt geschlafen: +10 RADS", "text-red-500 font-bold");
+        // [v3.9a] Safety Check: No Rads in Vault/City
+        // Prüft ob View 'vault'/'city' ist ODER ob der Zonen-Name 'Vault'/'Stadt'/'City' enthält.
+        const isSafe = (this.state.view === 'vault' || this.state.view === 'city' || this.state.view === 'clinic' ||
+                        (this.state.zone && (this.state.zone.includes("Vault") || this.state.zone.includes("Stadt") || this.state.zone.includes("City"))));
+
+        if(!isSafe) {
+            // [v3.3b] Full radiation penalty for sleeping on ground (Wilderness)
+            this.addRadiation(10);
+            UI.log("Ungeschützt geschlafen: +10 RADS", "text-red-500 font-bold");
+        } else {
+            UI.log("Sicher geschlafen. Kein RAD Zuwachs.", "text-green-400");
+        }
 
         const effectiveMax = this.state.maxHp - (this.state.rads || 0);
         this.state.hp = effectiveMax; 
@@ -36,6 +46,7 @@ Object.assign(Game, {
         const lvl = this.state.camp.level || 1;
         
         // [v3.3b] Partial radiation penalty for tent sleeping
+        // User-Wunsch: Im Zelt gibt es Strahlung (da draußen), aber weniger als auf dem Boden.
         this.addRadiation(5);
         UI.log("Im Zelt geschlafen: +5 RADS", "text-orange-400 font-bold");
 
