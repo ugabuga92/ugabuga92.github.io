@@ -1,6 +1,6 @@
-// [v1.3.1] - 2026-01-04 (Admin Stable)
-// - Fix: Selector-independent Tab Switching.
-// - Fix: Error Trap in selectUser.
+// [v1.4.0] - 2026-01-05 (Mobile Portrait Support)
+// - Feature: Sidebar Toggle for Mobile.
+// - Fix: selectUser error trap.
 
 const Admin = {
     gatePass: "bimbo123",
@@ -37,6 +37,8 @@ const Admin = {
             const app = document.getElementById('app-ui');
             app.classList.remove('hidden');
             setTimeout(() => app.classList.remove('opacity-0'), 50);
+            document.getElementById('conn-dot').classList.replace('bg-red-500', 'bg-green-500');
+            document.getElementById('conn-dot').classList.remove('animate-pulse');
             this.initData();
         } catch(e) {
             document.getElementById('gate-msg').textContent = "UPLINK FAILED: " + e.code;
@@ -45,7 +47,6 @@ const Admin = {
     },
 
     initData: function() {
-        // Safe item loading
         const items = (typeof Game !== 'undefined' && Game.items) ? Game.items : (window.GameData ? window.GameData.items : {});
         
         this.itemsList = Object.keys(items).sort().map(k => ({id: k, name: items[k].name}));
@@ -72,6 +73,22 @@ const Admin = {
 
     refresh: function() { location.reload(); },
 
+    // [v1.4.0] New Toggle Function for Mobile Sidebar
+    toggleSidebar: function() {
+        const sb = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        
+        if (sb.classList.contains('-translate-x-full')) {
+            // Open
+            sb.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+        } else {
+            // Close
+            sb.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+        }
+    },
+
     renderUserList: function() {
         const list = document.getElementById('user-list');
         const filter = document.getElementById('search-player').value.toLowerCase();
@@ -92,7 +109,15 @@ const Admin = {
                 const isDead = (save.hp <= 0);
                 
                 div.className = `p-2 cursor-pointer border-b border-[#1a331a] flex justify-between items-center hover:bg-[#39ff14] hover:text-black transition-colors ${isSelected ? 'bg-[#39ff14] text-black font-bold' : 'text-[#39ff14]'}`;
-                div.onclick = () => this.selectUser(path);
+                
+                // [v1.4.0] Auto-close sidebar on selection (Mobile UX)
+                div.onclick = () => {
+                    this.selectUser(path);
+                    const sb = document.getElementById('sidebar');
+                    if(!sb.classList.contains('-translate-x-full')) {
+                        this.toggleSidebar();
+                    }
+                };
                 
                 div.innerHTML = `
                     <div class="flex flex-col overflow-hidden">
@@ -126,7 +151,7 @@ const Admin = {
 
             document.getElementById('no-selection').classList.add('hidden');
             document.getElementById('editor-content').classList.remove('hidden');
-            document.getElementById('editor-error').classList.add('hidden'); // clear errors
+            document.getElementById('editor-error').classList.add('hidden'); 
             
             document.getElementById('edit-name').textContent = d.playerName || "Unknown";
             document.getElementById('edit-uid').textContent = uid;
@@ -214,11 +239,7 @@ const Admin = {
 
             tr.innerHTML = `
                 <td class="p-2 truncate max-w-[150px]" title="${name}">${name}</td>
-                <td class="p-2 font-mono text-xs opacity-50">${item.id}</td>
-                <td class="p-2">
-                    <input type="number" class="w-16 bg-black border border-[#1a551a] text-center" 
-                        value="${item.count}" onchange="Admin.invUpdate(${idx}, this.value)">
-                </td>
+                <td class="p-2 font-mono text-xs opacity-50 text-center">${item.count}</td>
                 <td class="p-2 text-right">
                     <button onclick="Admin.invDelete(${idx})" class="text-red-500 font-bold hover:text-white px-2">X</button>
                 </td>
@@ -301,20 +322,17 @@ const Admin = {
     },
 
     tab: function(id) {
-        // [v1.3.1] Robust ID-based switching
         document.querySelectorAll('[id^="tab-btn-"]').forEach(b => {
             b.classList.replace('active-tab', 'inactive-tab');
         });
         const btn = document.getElementById('tab-btn-' + id);
         if(btn) btn.classList.replace('inactive-tab', 'active-tab');
         
-        // Hide all tabs by default
         ['general', 'stats', 'inv', 'camp', 'world', 'raw'].forEach(t => {
             const el = document.getElementById('tab-' + t);
             if(el) el.classList.add('hidden');
         });
         
-        // Show target
         const target = document.getElementById('tab-' + id);
         if(target) target.classList.remove('hidden');
     },
