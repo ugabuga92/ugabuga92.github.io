@@ -1,8 +1,25 @@
-// [v3.9a] - 2026-01-04 11:30am (Safe Zone Rest Fix)
-// - Feature: scrapItem refreshes Workbench UI ('crafting') view dynamically.
-// - Fix: No RADS when sleeping in Safe Zones.
+// [v1.1.0] - 2026-01-04 08:35pm (Full Integration)
+// - Feature: Lager-Upgrades bis Level 10 mit Materialkosten.
+// - Logic: Schlaf-Regeneration gestaffelt (30% -> 100%).
+// - Fix: HP-Cap Logik (v1.0.1) und Deploy-Check (v1.0.4) integriert.
 
 Object.assign(Game, {
+
+    // Helper: Definiert die Kosten für das NÄCHSTE Level
+    getCampUpgradeCost: function(currentLevel) {
+        switch(currentLevel) {
+            case 1: return { id: 'junk_metal', count: 25, name: 'Schrott' };
+            case 2: return { id: 'cloth', count: 10, name: 'Stoff' };
+            case 3: return { id: 'duct_tape', count: 5, name: 'Klebeband' };
+            case 4: return { id: 'screws', count: 10, name: 'Schrauben' };
+            case 5: return { id: 'gears', count: 10, name: 'Zahnräder' };
+            case 6: return { id: 'adhesive', count: 5, name: 'Kleber' };
+            case 7: return { id: 'springs', count: 5, name: 'Federn' };
+            case 8: return { id: 'circuit', count: 5, name: 'Schaltkreise' };
+            case 9: return { id: 'nuclear_mat', count: 3, name: 'Nukleares Material' };
+            default: return null;
+        }
+    },
     
     addRadiation: function(amount) {
         if(!this.state) return;
@@ -22,19 +39,19 @@ Object.assign(Game, {
     rest: function() { 
         if(!this.state) return;
         
-        // [v3.9a] Safety Check: No Rads in Vault/City
         // Prüft ob View 'vault'/'city' ist ODER ob der Zonen-Name 'Vault'/'Stadt'/'City' enthält.
         const isSafe = (this.state.view === 'vault' || this.state.view === 'city' || this.state.view === 'clinic' ||
                         (this.state.zone && (this.state.zone.includes("Vault") || this.state.zone.includes("Stadt") || this.state.zone.includes("City"))));
 
         if(!isSafe) {
-            // [v3.3b] Full radiation penalty for sleeping on ground (Wilderness)
+            // Full radiation penalty for sleeping on ground (Wilderness)
             this.addRadiation(10);
             UI.log("Ungeschützt geschlafen: +10 RADS", "text-red-500 font-bold");
         } else {
             UI.log("Sicher geschlafen. Kein RAD Zuwachs.", "text-green-400");
         }
 
+        // [v1.0.1] Fix: HP Cap
         const effectiveMax = this.state.maxHp - (this.state.rads || 0);
         this.state.hp = effectiveMax; 
         UI.log("Ausgeruht. HP voll (soweit möglich).", "text-blue-400"); 
@@ -45,21 +62,28 @@ Object.assign(Game, {
         if(!this.state || !this.state.camp) return;
         const lvl = this.state.camp.level || 1;
         
-        // [v3.3b] Partial radiation penalty for tent sleeping
-        // User-Wunsch: Im Zelt gibt es Strahlung (da draußen), aber weniger als auf dem Boden.
-        this.addRadiation(5);
-        UI.log("Im Zelt geschlafen: +5 RADS", "text-orange-400 font-bold");
+        // [v1.1.0] Zelt bietet keinen Schutz vor Hintergrundstrahlung
+        this.addRadiation(5); 
 
         const effectiveMax = this.state.maxHp - (this.state.rads || 0);
-        let healAmount = 0;
-        if(lvl === 1) {
-            healAmount = Math.floor(effectiveMax * 0.5);
-            this.state.hp = Math.min(effectiveMax, this.state.hp + healAmount);
-            UI.log("Ausgeruht (Basis-Zelt). +50% HP.", "text-blue-400");
-        } else {
-            this.state.hp = effectiveMax;
-            UI.log("Ausgeruht (Komfort-Zelt). HP voll.", "text-green-400 font-bold");
-        }
+        
+        // [v1.1.0] Heilung basierend auf Lager-Level
+        // Lvl 1 = 30%, Lvl 10 = 100%. Dazwischen linearer Anstieg (~7.7% pro Level)
+        let healPct = 30 + ((lvl - 1) * 8); 
+        if(lvl >= 10) healPct = 100;
+        
+        // Begrenzen auf 100% falls Formel abweicht
+        if(healPct > 100) healPct = 100;
+
+        const healAmount = Math.floor(effectiveMax * (healPct / 100));
+        const oldHp = this.state.hp;
+        
+        this.state.hp = Math.min(effectiveMax, this.state.hp + healAmount);
+        const healed = Math.floor(this.state.hp - oldHp);
+
+        UI.log(`Geschlafen (Lager Stufe ${lvl}).`, "text-blue-300");
+        UI.log(`Regeneration: ${healPct}% (+${healed} TP) / +5 RADS`, "text-green-400 font-bold");
+
         UI.update();
         if(typeof UI.renderCamp === 'function') UI.renderCamp();
     },
@@ -710,15 +734,38 @@ Object.assign(Game, {
     upgradeCamp: function() {
         if(!this.state.camp) return;
         const lvl = this.state.camp.level;
-        let costScrap = (lvl === 1) ? 10 : 25;
-        const scrapItem = this.state.inventory.find(i => i.id === 'junk_metal');
-        if(!scrapItem || scrapItem.count < costScrap) { UI.log(`Benötigt ${costScrap}x Schrott.`, "text-red-500"); return; }
-        scrapItem.count -= costScrap;
-        if(scrapItem.count <= 0) this.state.inventory = this.state.inventory.filter(i => i.id !== 'junk_metal');
+        
+        // [v1.1.0] Max Level Check
+        if(lvl >= 10) {
+            UI.log("Lager ist bereits auf Maximalstufe (10)!", "text-yellow-400");
+            return;
+        }
+
+        // [v1.1.0] Get Cost for NEXT level
+        const cost = this.getCampUpgradeCost(lvl);
+        if(!cost) {
+            UI.log("Kein weiteres Upgrade verfügbar.", "text-gray-500");
+            return;
+        }
+
+        const scrapItem = this.state.inventory.find(i => i.id === cost.id);
+        if(!scrapItem || scrapItem.count < cost.count) {
+             UI.log(`Upgrade benötigt: ${cost.count}x ${cost.name}`, "text-red-500");
+             return;
+        }
+
+        scrapItem.count -= cost.count;
+        if(scrapItem.count <= 0) {
+             this.state.inventory = this.state.inventory.filter(i => i.id !== cost.id);
+        }
+
         this.state.camp.level++;
-        UI.log(`Lager verbessert (Level ${this.state.camp.level})!`, "text-yellow-400 font-bold");
+        UI.log(`Lager verbessert auf Stufe ${this.state.camp.level}!`, "text-green-400 font-bold animate-pulse");
+        
         this.saveGame();
-        UI.renderCamp();
+        
+        // UI Refresh
+        if(typeof UI.renderCamp === 'function') UI.renderCamp();
     },
 
     toggleRadio: function() { 
