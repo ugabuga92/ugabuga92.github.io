@@ -385,7 +385,10 @@ Object.assign(Game, {
         else if(slot === 'body') {
             this.state.equip.body = this.items.vault_suit;
             this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
-            if(this.state.hp > this.state.maxHp) this.state.hp = this.state.maxHp;
+            
+            // [v1.0.1] Fix: Cap HP at effective max
+            const effectiveMax = this.state.maxHp - (this.state.rads || 0);
+            if(this.state.hp > effectiveMax) this.state.hp = effectiveMax;
         }
         else {
             this.state.equip[slot] = null; 
@@ -518,7 +521,10 @@ Object.assign(Game, {
                 if(this.state.maxHp > oldMax) {
                      this.state.hp += (this.state.maxHp - oldMax); 
                 }
-                if(this.state.hp > this.state.maxHp) this.state.hp = this.state.maxHp;
+                
+                // [v1.0.1] Fix: Cap HP at effective max
+                const effectiveMax = this.state.maxHp - (this.state.rads || 0);
+                if(this.state.hp > effectiveMax) this.state.hp = effectiveMax;
             }
         } 
         
