@@ -1,7 +1,7 @@
-// [v4.0] - 2026-01-03 (Admin System Overhaul)
-// - Gatekeeper: "bimbo123" protects the UI.
-// - Auto-Auth: Uses 'admin@pipboy-system.com' internally.
-// - Full Management: Inventory, Stats, Location, Raw Data.
+// [v1.2.0] - 2026-01-04 (Admin System Upgrade)
+// - Feature: Added 'CAMP' Tab for level management.
+// - Fix: Inventory now shows Equipped items correctly.
+// - Fix: Quest list reads 'activeQuests' and 'completedQuests' properly.
 
 const Admin = {
     // Config
@@ -173,6 +173,7 @@ const Admin = {
         this.fillStats(d);
         this.fillInv(d);
         this.fillWorld(d);
+        this.fillCamp(d); // [v1.2.0] New
         this.fillRaw(d);
         
         // Refresh List Highlight
@@ -212,6 +213,25 @@ const Admin = {
     },
 
     fillInv: function(d) {
+        // 1. EQUIPPED ITEMS
+        const equipList = document.getElementById('equip-list');
+        equipList.innerHTML = '';
+        if(d.equip) {
+            for(let slot in d.equip) {
+                const item = d.equip[slot];
+                if(item) {
+                    const div = document.createElement('div');
+                    div.className = "border border-[#1a551a] p-1 bg-[#001100] flex justify-between items-center";
+                    div.innerHTML = `
+                        <div><span class="text-xs text-gray-400 uppercase">${slot}:</span> <span class="text-green-300">${item.name}</span></div>
+                        <button onclick="Admin.forceUnequip('${slot}')" class="text-red-500 text-xs hover:text-white px-1">UNEQUIP</button>
+                    `;
+                    equipList.appendChild(div);
+                }
+            }
+        }
+
+        // 2. INVENTORY BAG
         const tbody = document.getElementById('inv-table-body');
         tbody.innerHTML = '';
         
@@ -240,6 +260,31 @@ const Admin = {
         });
     },
 
+    // [v1.2.0] New Camp Filler
+    fillCamp: function(d) {
+        const container = document.getElementById('camp-data-content');
+        if(!d.camp) {
+            container.innerHTML = '<span class="text-gray-500 italic">No camp deployed.</span>';
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-green-600 mb-1">LEVEL</label>
+                    <input type="number" value="${d.camp.level || 1}" class="text-2xl font-bold w-20 text-center"
+                        onchange="Admin.saveVal('camp/level', this.value)">
+                </div>
+                <div>
+                    <label class="block text-xs text-green-600 mb-1">LOCATION (Local)</label>
+                    <div class="text-sm font-mono">X: ${Math.round(d.camp.x || 0)}, Y: ${Math.round(d.camp.y || 0)}</div>
+                    <div class="text-xs text-gray-500">Sector: ${d.camp.sector.x},${d.camp.sector.y}</div>
+                </div>
+            </div>
+            <button onclick="Admin.action('destroy-camp')" class="btn btn-danger w-full mt-4">DESTROY CAMP</button>
+        `;
+    },
+
     fillWorld: function(d) {
         const sx = d.sector ? d.sector.x : 0;
         const sy = d.sector ? d.sector.y : 0;
@@ -247,19 +292,38 @@ const Admin = {
         document.getElementById('tele-x').value = sx;
         document.getElementById('tele-y').value = sy;
 
-        // Quests
+        // Quests Logic [FIXED]
         const qList = document.getElementById('quest-list');
         qList.innerHTML = '';
-        const quests = d.quests || [];
         
-        if(quests.length === 0) qList.innerHTML = '<div class="text-gray-500 italic">No active quests.</div>';
+        const active = d.activeQuests || [];
+        const completed = d.completedQuests || [];
         
-        quests.forEach((q, idx) => {
+        if(active.length === 0 && completed.length === 0) {
+            qList.innerHTML = '<div class="text-gray-500 italic">No quest data found.</div>';
+        }
+        
+        // Active
+        active.forEach(q => {
             const div = document.createElement('div');
-            div.className = "flex justify-between border-b border-[#1a331a] p-1 text-sm";
+            div.className = "flex justify-between border-b border-[#1a331a] p-2 text-sm bg-yellow-900/20";
             div.innerHTML = `
-                <span>${q.id} <span class="text-xs opacity-50">(${q.stage})</span></span>
-                <span class="${q.completed ? 'text-green-500' : 'text-yellow-500'}">${q.completed ? 'DONE' : 'ACTIVE'}</span>
+                <div>
+                    <span class="font-bold text-yellow-400">${q.id}</span>
+                    <div class="text-xs opacity-70">Progress: ${q.progress}/${q.max}</div>
+                </div>
+                <span class="text-yellow-500 text-xs">ACTIVE</span>
+            `;
+            qList.appendChild(div);
+        });
+
+        // Completed
+        completed.forEach(qid => {
+            const div = document.createElement('div');
+            div.className = "flex justify-between border-b border-[#1a331a] p-2 text-sm opacity-60";
+            div.innerHTML = `
+                <span class="text-gray-400">${qid}</span>
+                <span class="text-green-500 text-xs">DONE</span>
             `;
             qList.appendChild(div);
         });
@@ -277,18 +341,12 @@ const Admin = {
         });
         document.getElementById('tab-btn-' + id).classList.replace('inactive-tab', 'active-tab');
         
-        document.getElementById('tab-general').classList.add('hidden');
-        document.getElementById('tab-stats').classList.add('hidden');
-        document.getElementById('tab-inv').classList.add('hidden');
-        document.getElementById('tab-world').classList.add('hidden');
-        document.getElementById('tab-raw').classList.add('hidden');
-        
+        document.querySelectorAll('#editor-content > div.flex-grow > div').forEach(el => el.classList.add('hidden'));
         document.getElementById('tab-' + id).classList.remove('hidden');
     },
 
     saveVal: function(key, val) {
         if(!this.currentPath) return;
-        // Convert numbers
         if(!isNaN(val) && val !== "") val = Number(val);
         Network.db.ref(this.currentPath + '/' + key).set(val);
     },
@@ -306,7 +364,6 @@ const Admin = {
 
     action: function(type) {
         if(!this.currentPath) return;
-        
         const updates = {};
         const p = this.currentPath;
 
@@ -338,10 +395,13 @@ const Admin = {
         else if (type === 'reset-vault') {
             if(!confirm("RESET CHARACTER TO VAULT 101 (SECTOR 4,4)?")) return;
             updates['sector'] = {x: 4, y: 4};
-            updates['player'] = {x: 100, y: 100}; // Safe Pixel Coords
-            
-            // Optional: Reset local view flags
+            updates['player'] = {x: 100, y: 100}; 
             updates['view'] = 'map';
+        }
+        else if (type === 'destroy-camp') {
+            if(!confirm("Destroy Camp?")) return;
+            Network.db.ref(p + '/camp').remove();
+            return;
         }
 
         Network.db.ref(p).update(updates);
@@ -350,9 +410,7 @@ const Admin = {
     teleport: function() {
         const x = Number(document.getElementById('tele-x').value);
         const y = Number(document.getElementById('tele-y').value);
-        
         Network.db.ref(this.currentPath + '/sector').set({x:x, y:y});
-        // Reset player pixel pos to center to avoid getting stuck in walls in new sector
         Network.db.ref(this.currentPath + '/player').set({x:300, y:200}); 
     },
 
@@ -368,7 +426,6 @@ const Admin = {
 
     invDelete: function(idx) {
         if(!confirm("Remove Item?")) return;
-        // Firebase arrays are tricky. We fetch, splice, set.
         const inv = [...(this.currentUserData.inventory || [])];
         inv.splice(idx, 1);
         Network.db.ref(this.currentPath + '/inventory').set(inv);
@@ -380,8 +437,6 @@ const Admin = {
         if(!id || count < 1) return;
 
         const inv = [...(this.currentUserData.inventory || [])];
-        
-        // Stack?
         let found = false;
         for(let item of inv) {
             if(item.id === id && !item.props) {
@@ -393,8 +448,25 @@ const Admin = {
         if(!found) {
             inv.push({id: id, count: count, isNew: true});
         }
+        Network.db.ref(this.currentPath + '/inventory').set(inv);
+    },
+    
+    // [v1.2.0] Force Unequip from Admin
+    forceUnequip: function(slot) {
+        if(!confirm(`Unequip ${slot}? This moves item to inventory.`)) return;
+        const item = this.currentUserData.equip[slot];
+        if(!item) return;
+        
+        // 1. Add to Inv
+        const inv = [...(this.currentUserData.inventory || [])];
+        // Simplified Logic: Just push as new item, stack logic complex here
+        // Ideally should check for duplicates but for Admin tool simplistic push is safer
+        inv.push({id: item.id, count: 1, props: item.props});
         
         Network.db.ref(this.currentPath + '/inventory').set(inv);
+        
+        // 2. Clear Slot
+        Network.db.ref(this.currentPath + '/equip/' + slot).remove();
     },
 
     saveRaw: function() {
