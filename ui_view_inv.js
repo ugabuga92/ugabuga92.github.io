@@ -1,6 +1,6 @@
-// [v3.3] - 2026-01-03 11:35pm (Inventory Interaction Update)
-// - Feature: Alle Items (auch Schrott/Ammo) sind jetzt anklickbar.
-// - Ziel: Ermöglicht das Wegwerfen von Junk über den Detail-Dialog.
+// [v1.6.1] - 2026-01-05 10:15am (Inventory Merge Fix)
+// - Fix: Integriert StopPropagation in das bestehende Design.
+// - Logic: Nutzt openItemPopup für sichere Interaktion.
 
 Object.assign(UI, {
 
@@ -9,10 +9,11 @@ Object.assign(UI, {
         const countDisplay = document.getElementById('inv-count');
         const capsDisplay = document.getElementById('inv-caps');
         
-        if(!list || !Game.state.inventory) return;
+        // Fallback falls View noch nicht geladen (HTML Struktur prüfen)
+        if(!list) return;
         
         list.innerHTML = '';
-        capsDisplay.textContent = Game.state.caps;
+        if(capsDisplay) capsDisplay.textContent = Game.state.caps;
         
         const usedSlots = Game.getUsedSlots();
         const maxSlots = Game.getMaxSlots();
@@ -45,7 +46,7 @@ Object.assign(UI, {
             }
         };
 
-        // --- BUTTON GENERATOR ---
+        // --- BUTTON GENERATOR (MIT FIX) ---
         const createBtn = (itemDef, count, props, isNew, isEquipped, label, onClick) => {
             const btn = document.createElement('div');
             let cssClass = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center transition-colors group";
@@ -86,8 +87,12 @@ Object.assign(UI, {
                 btn.style.borderColor = "#39ff14"; 
             }
             
+            // [FIX] Event Stop Propagation
             if(onClick) {
-                btn.onclick = onClick;
+                btn.onclick = (e) => {
+                    e.stopPropagation(); // WICHTIG: Verhindert Schließen des Menüs
+                    onClick();
+                };
             }
             
             return btn;
@@ -108,9 +113,9 @@ Object.assign(UI, {
                  return;
             }
 
-            // [v3.3] Click Action for ALL items (removed filter)
+            // Click Action -> Öffnet neues Popup
             const onClick = () => {
-                UI.showItemConfirm(index);
+                this.openItemPopup(entry, index);
             };
 
             const btn = createBtn(item, entry.count, entry.props, entry.isNew, false, null, onClick);
@@ -130,6 +135,13 @@ Object.assign(UI, {
             }
             if(!baseDef) return; 
 
+            // Click Action für Equipped -> Ablegen via Popup
+            const onClick = () => {
+                // Wir bauen ein temporäres Item-Objekt für das Popup
+                const tempItem = { id: baseDef.id, count: 1, props: equippedItem.props };
+                this.openItemPopup(tempItem, -1, slot); // -1 index signalisiert equipment, slot übergeben
+            };
+
             const btn = createBtn(
                 baseDef, 
                 1, 
@@ -137,7 +149,7 @@ Object.assign(UI, {
                 false, 
                 true, 
                 "AUSGERÜSTET", 
-                null 
+                onClick 
             );
             equippedList.push(btn);
         });
@@ -157,7 +169,99 @@ Object.assign(UI, {
         }
     },
 
-    // ... (Rest bleibt unverändert - renderChar etc.)
+    // [NEU] Sicheres Popup Handling
+    openItemPopup: function(item, index, equipSlot = null) {
+        const def = Game.items[item.id];
+        if(!def) return;
+
+        const name = item.props && item.props.name ? item.props.name : def.name;
+        const desc = item.props && item.props.desc ? item.props.desc : (def.desc || "Keine Beschreibung.");
+        
+        let actionsHtml = '';
+        
+        // Logik: Ist es ausgerüstet (equipSlot gesetzt) oder im Inventar (index >= 0)?
+        if (equipSlot) {
+            // Ablegen Button
+            actionsHtml += `
+                <button onclick="Game.unequipItem('${equipSlot}'); UI.closeDialog(); event.stopPropagation();" 
+                    class="w-full border border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black py-2 mb-2 font-bold tracking-widest transition-colors">
+                    ABLEGEN
+                </button>`;
+        } else if (index >= 0) {
+            // Inventar Aktionen
+            if (def.type === 'consumable' || def.type === 'blueprint' || def.id === 'camp_kit') {
+                actionsHtml += `
+                    <button onclick="Game.useItem(${index}); UI.closeDialog(); event.stopPropagation();" 
+                        class="w-full border border-green-500 text-green-500 hover:bg-green-500 hover:text-black py-2 mb-2 font-bold tracking-widest transition-colors">
+                        BENUTZEN
+                    </button>`;
+            } else if (['weapon','body','head','legs','feet','arms','back'].includes(def.type)) {
+                actionsHtml += `
+                    <button onclick="Game.useItem(${index}); UI.closeDialog(); event.stopPropagation();" 
+                        class="w-full border border-green-500 text-green-500 hover:bg-green-500 hover:text-black py-2 mb-2 font-bold tracking-widest transition-colors">
+                        AUSRÜSTEN
+                    </button>`;
+            }
+
+            // Wegwerfen / Zerlegen
+            actionsHtml += `
+                <button onclick="Game.destroyItem(${index}); UI.closeDialog(); event.stopPropagation();" 
+                    class="w-full border border-red-500 text-red-500 hover:bg-red-500 hover:text-black py-2 mb-2 font-bold tracking-widest transition-colors text-xs">
+                    WEGWERFEN
+                </button>
+            `;
+        }
+
+        // Abbruch Button (Sicher!)
+        actionsHtml += `
+            <button onclick="UI.closeDialog(); event.stopPropagation();" 
+                class="w-full border border-gray-600 text-gray-500 hover:border-gray-400 hover:text-gray-300 py-2 font-bold text-xs mt-2">
+                ABBRUCH
+            </button>
+        `;
+
+        // Stats Display
+        let statsHtml = '';
+        if(def.val) statsHtml += `<div class="flex justify-between"><span>WERT:</span> <span class="text-yellow-400">${def.cost || 0} KK</span></div>`;
+        if(def.dmg) statsHtml += `<div class="flex justify-between"><span>DMG:</span> <span class="text-red-400">${def.dmg}</span></div>`;
+        if(def.def) statsHtml += `<div class="flex justify-between"><span>SCHUTZ:</span> <span class="text-blue-400">${def.def}</span></div>`;
+        if(def.rad) statsHtml += `<div class="flex justify-between"><span>RADS:</span> <span class="text-red-500">${def.rad}</span></div>`;
+
+        const html = `
+            <div class="bg-black border-2 border-green-500 p-6 max-w-sm w-full shadow-[0_0_50px_rgba(0,255,0,0.2)] relative" onclick="event.stopPropagation()">
+                <h3 class="text-2xl font-bold text-green-400 mb-1 border-b border-green-900 pb-2">${name}</h3>
+                <div class="text-sm text-gray-400 italic mb-4">${def.type.toUpperCase()}</div>
+                
+                <p class="text-green-300 text-sm leading-relaxed mb-4 min-h-[3rem]">${desc}</p>
+                
+                <div class="bg-green-900/20 p-3 mb-4 text-xs font-mono text-green-200 space-y-1 border border-green-900">
+                    ${statsHtml}
+                    <div class="flex justify-between border-t border-green-900 pt-1 mt-1"><span>GEWICHT:</span> <span>${def.weight || 0.5}</span></div>
+                </div>
+
+                <div class="flex flex-col">
+                    ${actionsHtml}
+                </div>
+            </div>
+        `;
+
+        // Öffnen
+        if(UI.els.dialog) {
+            UI.els.dialog.innerHTML = html;
+            UI.els.dialog.style.display = 'flex';
+        }
+    },
+
+    // Helper zum Schließen
+    closeDialog: function() {
+        const d = document.getElementById('dialog-overlay');
+        if(d) {
+            d.style.display = 'none';
+            d.innerHTML = '';
+        }
+    },
+
+    // Render Char bleibt unverändert (Code aus deiner Vorlage)
     renderChar: function(mode = 'stats') {
         const grid = document.getElementById('stat-grid');
         const perksContainer = document.getElementById('perk-container');
@@ -292,7 +396,7 @@ Object.assign(UI, {
                 const btn = Game.state.statPoints > 0 ? `<button class="w-12 h-12 border-2 border-green-500 bg-green-900/50 text-green-400 font-bold ml-2 flex items-center justify-center hover:bg-green-500 hover:text-black transition-colors" onclick="Game.upgradeStat('${k}', event)" style="font-size: 1.5rem;">+</button>` : '';
                 const label = (typeof window.GameData !== 'undefined' && window.GameData.statLabels && window.GameData.statLabels[k]) ? window.GameData.statLabels[k] : k;
                 return `<div class="flex justify-between items-center border-b border-green-900/30 py-1 h-14"><span>${label}</span> <div class="flex items-center"><span class="text-yellow-400 font-bold mr-4 text-xl">${val}</span>${btn}</div></div>`;
-            }).join('');
+             }).join('');
 
         } else {
              grid.style.display = 'none';
