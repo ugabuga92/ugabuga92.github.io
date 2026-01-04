@@ -36,19 +36,20 @@ Object.assign(window.GameData.items, {
     cooked_lurk: { name: "Mirelurk-Kuchen", type: "consumable", effect: "heal_rad", val: 35, rad: 4, cost: 45, desc: "Fast wie Krabbe. +35 HP, +4 RAD" },
 
     // --- WAFFEN ---
+    // [v3.2] Added usesAmmo: true to ranged weapons
     fists: { name: "Fäuste", type: "weapon", slot: "weapon", baseDmg: 2, cost: 0, desc: "Deine bloßen Hände." },
     rusty_knife: { name: "Rostiges Messer", type: "weapon", slot: "weapon", baseDmg: 4, cost: 10, desc: "Alt, aber spitz." },
-    rusty_pistol: { name: "Rostige Pistole", type: "weapon", slot: "weapon", baseDmg: 6, cost: 25, desc: "Klemmt manchmal." },
-    rusty_rifle: { name: "Rostiges Gewehr", type: "weapon", slot: "weapon", baseDmg: 8, cost: 40, desc: "Ungenau, aber laut." },
+    rusty_pistol: { name: "Rostige Pistole", type: "weapon", slot: "weapon", baseDmg: 6, cost: 25, desc: "Klemmt manchmal.", usesAmmo: true },
+    rusty_rifle: { name: "Rostiges Gewehr", type: "weapon", slot: "weapon", baseDmg: 8, cost: 40, desc: "Ungenau, aber laut.", usesAmmo: true },
     machete: { name: "Machete", type: "weapon", slot: "weapon", baseDmg: 12, cost: 80, desc: "Rostige Klinge." },
 
     knife: { name: "Kampfmesser", type: "weapon", slot: "weapon", baseDmg: 8, cost: 50, desc: "Militärstandard." },
     baseball_bat: { name: "Baseballschläger", type: "weapon", slot: "weapon", baseDmg: 10, cost: 60, desc: "Homerun!" },
-    pistol_10mm: { name: "10mm Pistole", type: "weapon", slot: "weapon", baseDmg: 12, cost: 120, desc: "Verlässlich." },
-    hunting_rifle: { name: "Jagdgewehr", type: "weapon", slot: "weapon", baseDmg: 18, cost: 200, desc: "Hohe Reichweite." },
-    shotgun: { name: "Schrotflinte", type: "weapon", slot: "weapon", baseDmg: 25, cost: 350, desc: "Für den Nahkampf." },
-    laser_pistol: { name: "Laserpistole", type: "weapon", slot: "weapon", baseDmg: 22, cost: 400, desc: "Energiewaffe." },
-    plasma_rifle: { name: "Plasmagewehr", type: "weapon", slot: "weapon", baseDmg: 35, cost: 800, desc: "Schmilzt Gesichter." },
+    pistol_10mm: { name: "10mm Pistole", type: "weapon", slot: "weapon", baseDmg: 12, cost: 120, desc: "Verlässlich.", usesAmmo: true },
+    hunting_rifle: { name: "Jagdgewehr", type: "weapon", slot: "weapon", baseDmg: 18, cost: 200, desc: "Hohe Reichweite.", usesAmmo: true },
+    shotgun: { name: "Schrotflinte", type: "weapon", slot: "weapon", baseDmg: 25, cost: 350, desc: "Für den Nahkampf.", usesAmmo: true },
+    laser_pistol: { name: "Laserpistole", type: "weapon", slot: "weapon", baseDmg: 22, cost: 400, desc: "Energiewaffe.", usesAmmo: true },
+    plasma_rifle: { name: "Plasmagewehr", type: "weapon", slot: "weapon", baseDmg: 35, cost: 800, desc: "Schmilzt Gesichter.", usesAmmo: true },
     
     // --- RÜSTUNG (BODY) ---
     vault_suit: { name: "Vault-Anzug", type: "body", slot: "body", cost: 0, bonus: {END: 1}, desc: "Blau und eng." },
