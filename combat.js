@@ -1,7 +1,6 @@
-// [v3.1a] - 2026-01-03 01:45am (Combat Flow & Ammo Fix)
-// - Feature: Range weapons consume 'ammo'.
-// - UX: Auto-Unequip if ammo runs out -> Switch to Fists instantly.
-// - Visual: Floating text position randomized (X/Y) to reduce clutter.
+// [v3.2] - 2026-01-04 13:30pm (Ammo Logic Refactor)
+// - Fix: Munitionsverbrauch basiert auf 'usesAmmo: true' Property.
+// - Cleanup: isMelee Funktion entfernt.
 
 window.Combat = {
     loopId: null,
@@ -109,19 +108,14 @@ window.Combat = {
         setTimeout(() => { el.remove(); }, 1000);
     },
 
-    isMelee: function(weaponName) {
-        const meleeNames = ["Fäuste", "Messer", "Machete", "Schläger", "Axt", "Faust"];
-        return meleeNames.some(m => weaponName.includes(m));
-    },
-
     // ACTIONS
     attack: function(partIndex) {
         if(this.turn !== 'player') return;
 
         let wpn = Game.state.equip.weapon || {name: "Fäuste"}; // Use let to allow update
         
-        // [v3.1a] Auto-Unequip Logic
-        if(!this.isMelee(wpn.name)) {
+        // [v3.2] CHECK AMMO PROPERTY
+        if(wpn.usesAmmo) {
             const hasAmmo = Game.removeFromInventory('ammo', 1);
             if(!hasAmmo) {
                 this.log("Klick! Munition leer.", "text-red-500");
@@ -129,14 +123,16 @@ window.Combat = {
                 // Try to unequip
                 Game.unequipItem('weapon');
                 
-                // Check if unequip worked (weapon should now be fists)
-                const newWpn = Game.state.equip.weapon;
-                if(this.isMelee(newWpn.name)) {
+                // Check if unequip worked (weapon should now be fists or no ammo weapon)
+                const newWpn = Game.state.equip.weapon || {name: "Fäuste"};
+                
+                // If the new weapon does NOT use ammo (e.g. Fists), we can attack
+                if(!newWpn.usesAmmo) {
                     this.log("Waffe abgelegt - Nahkampf!", "text-yellow-400 font-bold");
                     wpn = newWpn; // Update weapon reference for calculation
                     // Continue attack flow with fists immediately
                 } else {
-                    // Unequip failed (Inventory full?)
+                    // Unequip failed (Inventory full?) or switched to another gun
                     this.log("Kein Platz zum Ablegen!", "text-red-500 font-bold");
                     this.triggerFeedback('miss');
                     return; // Stop attack
