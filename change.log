@@ -1,3 +1,7 @@
+[v1.1.3] - 2026-01-04 09:45pm (Camp Info Feature) 
+- Feature: Info-Button (?) im Lager-Menü hinzugefügt. 
+- Visual: Popup-Fenster zeigt detaillierte Tabelle aller Lager-Stufen (Heilung & Kosten).
+
 [v1.1.1] - 2026-01-04 09:15pm (Camp UI Dynamic) 
 - UI: Camp-Menü zeigt jetzt dynamische Heilungswerte und korrekte Upgrade-Materialien an. 
 - Logic: Maximale Ausbaustufe (10) wird im Menü erkannt und deaktiviert den Upgrade-Button.
