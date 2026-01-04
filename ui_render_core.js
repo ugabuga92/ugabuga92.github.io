@@ -1,7 +1,7 @@
-// [v3.7b] - 2026-01-04 (Core Renderer Update - HP Bar Fix)
+// [v3.7c] - 2026-01-04 (UI Hotfix - HP Display)
 // - FIX: 'switchView' lädt Camp wieder als HTML.
 // - LOGIC: 'renderCamp()' wird nach dem Laden aufgerufen.
-// - UI: HP Text Rendering korrigiert.
+// - UI: HP Text Rendering & Positionierung korrigiert.
 
 Object.assign(UI, {
     
@@ -50,7 +50,7 @@ Object.assign(UI, {
         const radPct = Math.min(100, (rads / maxHp) * 100);
         const hpText = `${Math.round(hp)}/${Math.round(effectiveMax)}`;
         
-        // [FIX] Removed redundant textContent assignment to this.els.hp
+        // [FIX] Update Text ONLY in the overlay element
         const valHpEl = document.getElementById('val-hp');
         if(valHpEl) valHpEl.textContent = hpText;
 
@@ -59,8 +59,10 @@ Object.assign(UI, {
         else if(hpPct < 50) barColor = "bg-yellow-500";
 
         if(this.els.hp) {
-             this.els.hp.className = `h-full transition-all duration-300 ${barColor}`;
+             // [FIX] Added 'absolute top-0 left-0' so the bar doesn't lose position
+             this.els.hp.className = `absolute top-0 left-0 h-full transition-all duration-300 ${barColor}`;
              this.els.hp.style.width = `${hpPct}%`;
+             // REMOVED: this.els.hp.textContent = ... (This was causing issues)
         }
         const radBar = document.getElementById('bar-rads');
         if(radBar) radBar.style.width = `${radPct}%`;
@@ -197,7 +199,6 @@ Object.assign(UI, {
         if(name === 'lockpicking') { this.renderLockpicking(true); Game.state.view = name; return; }
 
         // --- Standard Views (Fetch HTML) ---
-        // Das schließt jetzt auch 'camp' wieder mit ein!
         
         const path = `views/${name}.html?v=${ver}`;
         try {
