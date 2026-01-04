@@ -1,7 +1,6 @@
-// [v1.1.0] - 2026-01-04 08:35pm (Full Integration)
-// - Feature: Lager-Upgrades bis Level 10 mit Materialkosten.
-// - Logic: Schlaf-Regeneration gestaffelt (30% -> 100%).
-// - Fix: HP-Cap Logik (v1.0.1) und Deploy-Check (v1.0.4) integriert.
+// [v1.2.0] - 2026-01-04 (Fixes & Integration)
+// - Fix: craftItem ruft explizit renderCampCooking auf.
+// - Feature: Camp Upgrade & Rest Logic integriert.
 
 Object.assign(Game, {
 
@@ -39,19 +38,16 @@ Object.assign(Game, {
     rest: function() { 
         if(!this.state) return;
         
-        // Prüft ob View 'vault'/'city' ist ODER ob der Zonen-Name 'Vault'/'Stadt'/'City' enthält.
         const isSafe = (this.state.view === 'vault' || this.state.view === 'city' || this.state.view === 'clinic' ||
                         (this.state.zone && (this.state.zone.includes("Vault") || this.state.zone.includes("Stadt") || this.state.zone.includes("City"))));
 
         if(!isSafe) {
-            // Full radiation penalty for sleeping on ground (Wilderness)
             this.addRadiation(10);
             UI.log("Ungeschützt geschlafen: +10 RADS", "text-red-500 font-bold");
         } else {
             UI.log("Sicher geschlafen. Kein RAD Zuwachs.", "text-green-400");
         }
 
-        // [v1.0.1] Fix: HP Cap
         const effectiveMax = this.state.maxHp - (this.state.rads || 0);
         this.state.hp = effectiveMax; 
         UI.log("Ausgeruht. HP voll (soweit möglich).", "text-blue-400"); 
@@ -62,17 +58,13 @@ Object.assign(Game, {
         if(!this.state || !this.state.camp) return;
         const lvl = this.state.camp.level || 1;
         
-        // [v1.1.0] Zelt bietet keinen Schutz vor Hintergrundstrahlung
         this.addRadiation(5); 
 
         const effectiveMax = this.state.maxHp - (this.state.rads || 0);
         
-        // [v1.1.0] Heilung basierend auf Lager-Level
-        // Lvl 1 = 30%, Lvl 10 = 100%. Dazwischen linearer Anstieg (~7.7% pro Level)
+        // Lvl 1 = 30%, Lvl 10 = 100%.
         let healPct = 30 + ((lvl - 1) * 8); 
         if(lvl >= 10) healPct = 100;
-        
-        // Begrenzen auf 100% falls Formel abweicht
         if(healPct > 100) healPct = 100;
 
         const healAmount = Math.floor(effectiveMax * (healPct / 100));
@@ -340,7 +332,6 @@ Object.assign(Game, {
         this.saveGame();
     },
 
-    // [NEU v3.9] - ZERLEGEN FUNKTION + UI UPDATE
     scrapItem: function(invIndex) {
         if(!this.state.inventory || !this.state.inventory[invIndex]) return;
         const item = this.state.inventory[invIndex];
@@ -350,10 +341,8 @@ Object.assign(Game, {
         let name = (item.props && item.props.name) ? item.props.name : def.name;
         let value = def.cost || 10;
         
-        // Remove Item
         this.state.inventory.splice(invIndex, 1);
 
-        // Yield Logic
         let scrapAmount = Math.max(1, Math.floor(value / 25)); 
         this.addToInventory('junk_metal', scrapAmount);
         
@@ -373,7 +362,6 @@ Object.assign(Game, {
         
         UI.update();
         
-        // Refresh Workbench View if open
         if(this.state.view === 'crafting' && typeof UI.renderCrafting === 'function') {
             UI.renderCrafting('scrap');
         } else if(this.state.view === 'inventory') {
@@ -410,7 +398,6 @@ Object.assign(Game, {
             this.state.equip.body = this.items.vault_suit;
             this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
             
-            // [v1.0.1] Fix: Cap HP at effective max
             const effectiveMax = this.state.maxHp - (this.state.rads || 0);
             if(this.state.hp > effectiveMax) this.state.hp = effectiveMax;
         }
@@ -582,8 +569,11 @@ Object.assign(Game, {
         
         UI.log(`Hergestellt: ${recipe.count}x ${recipe.out === "AMMO" ? "Munition" : this.items[recipe.out].name}`, "text-green-400 font-bold");
 
+        // [v1.2.0 FIX] - Cooking UI Logic
         if(recipe.type === 'cooking') {
-            if(typeof UI.renderCampCooking === 'function') UI.renderCampCooking();
+            if(typeof UI.renderCampCooking === 'function') {
+                UI.renderCampCooking();
+            }
         } else {
             if(typeof UI !== 'undefined') UI.renderCrafting(); 
         }
@@ -687,7 +677,6 @@ Object.assign(Game, {
         }
     },
 
-    // [v1.0.4] - 2026-01-04 (Camp Build Confirmation)
     deployCamp: function(invIndex, confirmed=false) {
         if(this.state.camp) { UI.log("Lager existiert bereits!", "text-red-500"); return; }
         if(this.state.zone.includes("Stadt") || this.state.dungeonLevel > 0) { UI.log("Hier nicht möglich!", "text-red-500"); return; }
@@ -735,13 +724,11 @@ Object.assign(Game, {
         if(!this.state.camp) return;
         const lvl = this.state.camp.level;
         
-        // [v1.1.0] Max Level Check
         if(lvl >= 10) {
             UI.log("Lager ist bereits auf Maximalstufe (10)!", "text-yellow-400");
             return;
         }
 
-        // [v1.1.0] Get Cost for NEXT level
         const cost = this.getCampUpgradeCost(lvl);
         if(!cost) {
             UI.log("Kein weiteres Upgrade verfügbar.", "text-gray-500");
