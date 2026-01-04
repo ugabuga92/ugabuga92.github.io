@@ -1,3 +1,8 @@
+[v1.1.0] - 2026-01-04 08:30pm (Camp Upgrade & Sleep System) 
+- Feature: Lager-Upgrades bis Level 10 implementiert mit steigenden Materialkosten. 
+- Logic: Schlaf-Regeneration im Lager ist nun gestaffelt (Lvl 1 = 30% Heilung -> Lvl 10 = 100% Heilung). 
+- Data: Neue Hilfsfunktion getCampUpgradeCost für dynamische Kosten.
+
 [v1.0.4] - 2026-01-04 08:00pm (Camp Safety Check)
 - Feature: Sicherheitsabfrage ("Wirklich bauen?") vor dem Errichten des Lagers hinzugefügt.
 - Visual: Bestätigungs-Dialog im PipBoy-Stil integriert.
