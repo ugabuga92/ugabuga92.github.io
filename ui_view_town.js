@@ -1,6 +1,6 @@
-// [v3.3] - 2026-01-04 01:45am (Workbench Scrapping Tab)
-// - Feature: Added Tab system to renderCrafting (Create / Scrap).
-// - UI: Scrap view lists scrappable items with direct action button.
+// [v3.3.1] - 2026-01-05 12:15pm (Workbench Crash Fix)
+// - Fix: Added safety checks for undefined items in renderCrafting (both Create and Scrap tabs).
+// - Fix: Prevents "Cannot read properties of undefined (reading 'type')" error.
 
 Object.assign(UI, {
     
@@ -42,7 +42,7 @@ Object.assign(UI, {
         
         addBtn("🏥", "KLINIK", healSub, () => UI.switchView('clinic'), !canHeal);
         addBtn("🛒", "MARKTPLATZ", "Waffen, Rüstung & Munition", () => UI.switchView('shop').then(() => UI.renderShop()));
-        addBtn("🛠️", "WERKBANK", "Gegenstände herstellen & zerlegen", () => this.toggleView('crafting'));
+        addBtn("🛠️", "WERKBANK", "Gegenstände herstellen & zerlegen", () => this.renderCrafting('create')); // Changed to call renderCrafting directly or via toggle
         
         addBtn("🎯", "TRAININGSGELÄNDE", "Hacking & Schlossknacken üben", () => {
              con.innerHTML = '';
@@ -272,8 +272,24 @@ Object.assign(UI, {
         container.appendChild(healBtn);
     },
 
-    // [v3.3] CRAFTING WITH TABS
+    // [v3.3.1] SAFE CRAFTING
     renderCrafting: function(tab = 'create') {
+        // Ensure UI container exists
+        if (!document.getElementById('crafting-list')) {
+             const view = document.getElementById('view-container') || this.els.view;
+             if(view) {
+                 view.innerHTML = `
+                    <div id="crafting-view" class="w-full h-full p-4 flex flex-col gap-4 text-green-500 font-mono">
+                        <div class="border-b-2 border-orange-500 pb-2 mb-2 flex justify-between items-end">
+                            <h2 class="text-2xl font-bold text-orange-400">🛠️ WERKBANK</h2>
+                        </div>
+                        <div id="crafting-list" class="flex-grow overflow-y-auto custom-scrollbar pr-2 space-y-2"></div>
+                        <button onclick="UI.switchView('city')" class="p-3 border border-green-700 text-green-700 hover:bg-green-900/30 mt-2">ZURÜCK</button>
+                    </div>
+                 `;
+             }
+        }
+
         const container = document.getElementById('crafting-list');
         if(!container) return;
         container.innerHTML = '';
@@ -306,7 +322,9 @@ Object.assign(UI, {
                 if(!known.includes(recipe.id)) return; 
                 knownCount++;
 
-                const outItem = recipe.out === 'AMMO' ? {name: "15x Munition"} : Game.items[recipe.out];
+                // [FIX] Safe check for undefined items in recipes
+                const outItem = (recipe.out === 'AMMO' ? {name: "15x Munition"} : Game.items[recipe.out]) || {name: "Unbekanntes Item"};
+                
                 const div = document.createElement('div');
                 div.className = "border border-green-900 bg-green-900/10 p-3 mb-2";
                 let reqHtml = '';
@@ -315,9 +333,13 @@ Object.assign(UI, {
                     const countNeeded = recipe.req[reqId];
                     const invItem = Game.state.inventory.find(i => i.id === reqId);
                     const countHave = invItem ? invItem.count : 0;
+                    
+                    const reqDef = Game.items[reqId];
+                    const reqName = reqDef ? reqDef.name : reqId;
+
                     let color = "text-green-500";
                     if (countHave < countNeeded) { canCraft = false; color = "text-red-500"; }
-                    reqHtml += `<div class="${color} text-xs">• ${Game.items[reqId].name}: ${countHave}/${countNeeded}</div>`;
+                    reqHtml += `<div class="${color} text-xs">• ${reqName}: ${countHave}/${countNeeded}</div>`;
                 }
                 if(Game.state.lvl < recipe.lvl) { canCraft = false; reqHtml += `<div class="text-red-500 text-xs mt-1">Benötigt Level ${recipe.lvl}</div>`; }
                 div.innerHTML = `
@@ -339,13 +361,17 @@ Object.assign(UI, {
             let scrappables = [];
             Game.state.inventory.forEach((item, idx) => {
                 const def = Game.items[item.id];
-                if (['weapon','body','head','legs','feet','arms'].includes(def.type)) {
+                
+                // [FIX] SAFETY CHECK - Prevents crash on ghost items
+                if(!def) return;
+
+                if (['weapon','body','head','legs','feet','arms','junk'].includes(def.type)) {
                     scrappables.push({idx, item, def});
                 }
             });
 
             if(scrappables.length === 0) {
-                container.innerHTML += '<div class="text-gray-500 italic mt-10 text-center">Keine zerlegbaren Gegenstände (Waffen/Rüstung) im Inventar.</div>';
+                container.innerHTML += '<div class="text-gray-500 italic mt-10 text-center">Keine zerlegbaren Gegenstände (Waffen/Rüstung/Schrott) im Inventar.</div>';
             } else {
                 scrappables.forEach(entry => {
                     const name = entry.item.props ? entry.item.props.name : entry.def.name;
