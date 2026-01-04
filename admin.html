@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ROBCO OVERSEER V5.0</title>
+    <title>ROBCO OVERSEER V5.1</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -14,7 +14,6 @@
     <script>document.write('<link rel="stylesheet" href="style.css?v=' + Date.now() + '">');</script>
 
     <style>
-        /* Admin Specific Overrides inside the Case */
         .admin-font { font-family: 'Share Tech Mono', monospace; }
         .panel-box { border: 1px solid #333; background: rgba(0, 20, 0, 0.9); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
         .active-tab { background-color: #39ff14; color: black; font-weight: bold; box-shadow: 0 0 10px #39ff14; }
@@ -30,7 +29,6 @@
         .btn-danger { border-color: #ff3333; color: #ff3333; }
         .btn-danger:hover { background: #ff3333; color: white; box-shadow: 0 0 15px #ff0000; }
         
-        /* Force Scrollbar inside Panels */
         .custom-scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #1a551a #001100; }
         .custom-scroll::-webkit-scrollbar { width: 8px; }
         .custom-scroll::-webkit-scrollbar-track { background: #001100; }
@@ -46,7 +44,7 @@
     <div id="gate-screen" class="absolute inset-0 z-[100] flex items-center justify-center bg-black admin-font">
         <div class="panel-box p-8 w-full max-w-md text-center border-2 border-[#39ff14]">
             <h1 class="text-4xl font-bold mb-2 tracking-widest text-[#39ff14] drop-shadow-[0_0_10px_rgba(57,255,20,0.8)]">VAULT-TEC</h1>
-            <div class="text-xs mb-8 text-[#1a551a]">OVERSEER SYSTEM ACCESS V5.0</div>
+            <div class="text-xs mb-8 text-[#1a551a]">OVERSEER SYSTEM ACCESS V5.1</div>
             <form onsubmit="event.preventDefault(); Admin.unlock();">
                 <input type="password" id="gate-pass" class="w-full text-center text-xl py-3 tracking-widest mb-4 border-[#39ff14]" placeholder="ENTER PASSCODE" autofocus>
                 <button type="submit" class="btn w-full py-3 font-bold text-lg">INITIALIZE LINK</button>
@@ -93,6 +91,8 @@
                 <div id="no-selection" class="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
                     <div class="text-4xl text-[#1a331a] font-bold tracking-widest opacity-50">SELECT A RESIDENT</div>
                 </div>
+
+                <div id="editor-error" class="hidden absolute top-4 right-4 bg-red-900/90 border border-red-500 p-4 text-white z-50 max-w-sm"></div>
 
                 <div id="editor-content" class="hidden absolute inset-0 z-10 bg-black/90 backdrop-blur-md flex flex-col">
                     
