@@ -1,7 +1,7 @@
-// [v3.7c] - 2026-01-04 (UI Hotfix - HP Display)
+// [v3.7d] - 2026-01-04 (UI Style Update - HP Display)
 // - FIX: 'switchView' lädt Camp wieder als HTML.
 // - LOGIC: 'renderCamp()' wird nach dem Laden aufgerufen.
-// - UI: HP Text Rendering & Positionierung korrigiert.
+// - UI: HP Text Formatierung auf "TP XXX/XXX" geändert.
 
 Object.assign(UI, {
     
@@ -48,9 +48,10 @@ Object.assign(UI, {
         
         const hpPct = Math.min(100, Math.max(0, (hp / maxHp) * 100));
         const radPct = Math.min(100, (rads / maxHp) * 100);
-        const hpText = `${Math.round(hp)}/${Math.round(effectiveMax)}`;
         
-        // [FIX] Update Text ONLY in the overlay element
+        // [STYLE UPDATE] Format: "TP 100/100"
+        const hpText = `TP ${Math.round(hp)}/${Math.round(effectiveMax)}`;
+        
         const valHpEl = document.getElementById('val-hp');
         if(valHpEl) valHpEl.textContent = hpText;
 
@@ -59,10 +60,8 @@ Object.assign(UI, {
         else if(hpPct < 50) barColor = "bg-yellow-500";
 
         if(this.els.hp) {
-             // [FIX] Added 'absolute top-0 left-0' so the bar doesn't lose position
              this.els.hp.className = `absolute top-0 left-0 h-full transition-all duration-300 ${barColor}`;
              this.els.hp.style.width = `${hpPct}%`;
-             // REMOVED: this.els.hp.textContent = ... (This was causing issues)
         }
         const radBar = document.getElementById('bar-rads');
         if(radBar) radBar.style.width = `${radPct}%`;
