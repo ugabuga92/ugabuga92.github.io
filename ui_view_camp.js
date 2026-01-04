@@ -1,21 +1,18 @@
-// [v1.1.4] - 2026-01-04 09:55pm (Camp Code Cleanup)
-// - Refactor: Info-Button Code entfernt (jetzt HTML).
-// - Logic: Kochen-Menü und Info-Popup Logik.
+// [v1.1.5] - 2026-01-04 10:30pm (Camp View State Fix)
+// - Fix: Kochen-View bleibt offen, außer man klickt explizit auf "Zurück".
 
 Object.assign(UI, {
 
-    // Helper für das Info-Popup
+    // Helper für das Info-Popup (bleibt unverändert)
     showCampInfo: function() {
         if(!this.els.dialog) return;
 
         let rows = '';
         for(let l=1; l<=10; l++) {
-            // Heilung berechnen
             let healPct = 30 + ((l - 1) * 8); 
             if(l >= 10) healPct = 100;
             if(healPct > 100) healPct = 100;
 
-            // Kosten holen
             let costStr = '<span class="text-gray-600">-</span>';
             if (l === 1) {
                 costStr = '<span class="text-gray-500">Start (100 KK)</span>';
@@ -26,7 +23,6 @@ Object.assign(UI, {
                 }
             }
 
-            // Style für aktuelles Level
             const currentLvl = (Game.state.camp && Game.state.camp.level) ? Game.state.camp.level : 1;
             const isCurrent = (l === currentLvl);
             const bgClass = isCurrent ? "bg-yellow-900/40 border border-yellow-600" : "border-b border-gray-800";
@@ -66,14 +62,13 @@ Object.assign(UI, {
         `;
     },
 
-    renderCamp: function() {
+    // [Fix] Parameter reset=false ist Standard
+    renderCamp: function(reset = false) {
         const cookingView = document.getElementById('camp-cooking-view');
         const mainActions = document.getElementById('camp-main-actions');
         
-        // Reset View NUR wenn wir NICHT gerade im Kochen-Modus sind
-        if(cookingView && mainActions && !cookingView.classList.contains('hidden')) {
-             // Do nothing (User is cooking)
-        } else if(cookingView && mainActions) {
+        // RESET LOGIC: Nur ausführen, wenn wir es explizit wollen (Button Klick)
+        if(reset && cookingView && mainActions) {
             cookingView.classList.add('hidden');
             mainActions.classList.remove('hidden');
         }
@@ -150,6 +145,7 @@ Object.assign(UI, {
         
         if(!cookingView) return;
 
+        // Force Show Cooking
         if(mainActions) mainActions.classList.add('hidden');
         cookingView.classList.remove('hidden');
 
