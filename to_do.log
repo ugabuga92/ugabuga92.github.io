@@ -2,5 +2,7 @@
 🐛 Aktuelle Bugs & Anpassungen:
 - Logik fehler. beim level up wird die HP immer sufgefüll suf maximal, ohnr beschgung des RAD zustandes, heißt bei sonst 230 max tp - 30 hp durxh rad, was logicherweiße 200 max wären, wird bri LvL up auf 230/200 sufgefüllt. macht kein sinn. 
 - Perk logik neu gedacht. es gibt eine msx Punktezal con 5 pro Perk, effekt steigt somit langsam an und nicht direkt 100%, sonst hat man zu viele Punkte zu schnell übrig. 
+- beim HP verlieren erscheint ein Hellgrüner Balken zwichen aktueller TP und falls vorhanden RAD, das soll "duechsichtig" ider entfernt werden. also nur den Akuellen TP Balken jnd RAD Balken anzeigen. 
+
 - Neue und mehr Quest implemntieren, gerne 5 neue Quest. eine Anfänger quest z.b noch. Das erste mal Zelt aubauen, was braten + übernachten
 - Tutorial einbauen um alle funktionen kennen zu lernen? Gerne eine abfolge von Anfängerquests o.ä?
