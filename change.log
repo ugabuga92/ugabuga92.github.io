@@ -1,3 +1,9 @@
+[v1.2.0] - 2026-01-04 10:15pm (Admin Tool Upgrade) 
+- Feature: Neuer Tab "CAMP" im Admin-Panel zur Verwaltung von Lager-Level und Position. 
+- Fix: Quest-Anzeige liest nun korrekt activeQuests und completedQuests aus. 
+- Fix: Ausgerüstete Gegenstände (Equipment) werden nun im Inventar-Tab angezeigt. 
+- UI: "Return to Mainframe" Button zum Login-Screen hinzugefügt.
+
 [v1.1.3] - 2026-01-04 09:45pm (Camp Info Feature) 
 - Feature: Info-Button (?) im Lager-Menü hinzugefügt. 
 - Visual: Popup-Fenster zeigt detaillierte Tabelle aller Lager-Stufen (Heilung & Kosten).
