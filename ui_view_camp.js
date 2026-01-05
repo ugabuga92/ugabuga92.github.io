@@ -1,6 +1,6 @@
 Object.assign(UI, {
 
-    // [v0.5.1 FIX] Nutzt jetzt zentrales Overlay via showInfoDialog
+    // Helper für das Info-Popup
     showCampInfo: function() {
         let rows = '';
         for(let l=1; l<=10; l++) {
@@ -46,7 +46,6 @@ Object.assign(UI, {
             </div>
         `;
 
-        // Ruft das zentrale Overlay auf (ui_render_overlays.js)
         this.showInfoDialog("LAGER INFO", content);
     },
 
@@ -172,6 +171,7 @@ Object.assign(UI, {
                 reqHtml += `<span class="${color} text-xs mr-2 block">• ${ingredientName}: ${countHave}/${countNeeded}</span>`;
             }
 
+            // AUTO-REFRESH FIX: Nach Crafting neu rendern
             div.innerHTML = `
                 <div class="flex flex-col">
                     <span class="font-bold text-yellow-400 text-lg">${outItem.name}</span>
@@ -179,7 +179,7 @@ Object.assign(UI, {
                     <div class="mt-1 bg-black/50 p-1 rounded">${reqHtml}</div>
                 </div>
                 <button class="border border-yellow-500 text-yellow-500 px-4 py-2 font-bold hover:bg-yellow-500 hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed h-full ml-2" 
-                    onclick="Game.craftItem('${recipe.id}')" ${canCraft ? '' : 'disabled'}>
+                    onclick="Game.craftItem('${recipe.id}'); setTimeout(() => UI.renderCampCooking(), 100)" ${canCraft ? '' : 'disabled'}>
                     BRATEN
                 </button>
             `;
