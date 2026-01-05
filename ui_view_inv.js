@@ -1,7 +1,3 @@
-// [v1.6.1] - 2026-01-05 10:15am (Inventory Merge Fix)
-// - Fix: Integriert StopPropagation in das bestehende Design.
-// - Logic: Nutzt openItemPopup für sichere Interaktion.
-
 Object.assign(UI, {
 
     renderInventory: function() {
