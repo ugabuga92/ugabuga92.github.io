@@ -1,4 +1,3 @@
-
 🐛 Aktuelle Bugs & Anpassungen:
 - Perk logik neu gedacht. es gibt eine msx Punktezal con 5 pro Perk, effekt steigt somit langsam an und nicht direkt 100%, sonst hat man zu viele Punkte zu schnell übrig. 
 - Der Rucksack soll sich automatisch sortieren, aktuell gibt es unten ausgerüstet, jetzt soll oben die gesammelten Sachen nach Kategorien sortiert werden ausrüstung, eilung und Essen Schrott
