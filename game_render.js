@@ -1,7 +1,3 @@
-// [v3.3] - 2026-01-03 04:00am (World Graphics)
-// - Feature: Added 'R' (Raider Fortress / Super-Mart) tile graphics.
-// - Visual: Red glow and Shopping Cart icon for the Supermarket.
-
 Object.assign(Game, {
     renderStaticMap: function() { 
         if(!this.cacheCtx) this.initCache();
