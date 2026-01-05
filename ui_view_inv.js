@@ -63,7 +63,6 @@ Object.assign(UI, {
             return btn;
         };
 
-        // --- SORTIERUNG & KATEGORIEN ---
         const cats = {
             equip: { label: "🛡️ AUSRÜSTUNG", items: [] },
             aid:   { label: "💉 HILFSMITTEL", items: [] },
@@ -72,13 +71,11 @@ Object.assign(UI, {
 
         const equippedList = [];
 
-        // 1. INVENTORY ITEMS SORTIEREN
         Game.state.inventory.forEach((entry, index) => {
             if(entry.count <= 0) return;
             const item = Game.items[entry.id];
             if(!item) return;
 
-            // Spezialfall: Camp Kit (Aufgestellt)
             if(entry.id === 'camp_kit' && Game.state.camp) {
                  const btn = createBtn(item, entry.count, entry.props, false, true, "AUFGESTELLT", null);
                  equippedList.push(btn); 
@@ -88,33 +85,27 @@ Object.assign(UI, {
             const onClick = () => UI.showItemConfirm(index);
             const btn = createBtn(item, entry.count, entry.props, entry.isNew, false, null, onClick);
 
-            // Einsortieren in Kategorien
             if(['weapon', 'head', 'body', 'arms', 'legs', 'feet', 'back', 'tool'].includes(item.type)) {
                 cats.equip.items.push(btn);
             } else if (item.type === 'consumable') {
                 cats.aid.items.push(btn);
             } else {
-                cats.misc.items.push(btn); // Junk, Component, Ammo, Blueprint, Misc
+                cats.misc.items.push(btn);
             }
         });
 
-        // 2. RENDERN DER KATEGORIEN (Nur wenn Items enthalten sind)
         let hasItems = false;
         ['equip', 'aid', 'misc'].forEach(key => {
             if(cats[key].items.length > 0) {
                 hasItems = true;
-                // Header rendern
                 const header = document.createElement('div');
                 header.className = "col-span-4 bg-green-900/40 text-green-300 text-xs font-bold px-2 py-1 mt-2 border-b border-green-700 tracking-wider flex items-center gap-2";
                 header.innerHTML = cats[key].label;
                 list.appendChild(header);
-
-                // Items rendern
                 cats[key].items.forEach(btn => list.appendChild(btn));
             }
         });
 
-        // 3. AUSGERÜSTETE ITEMS (Unten angehängt)
         const slots = ['weapon', 'head', 'body', 'arms', 'legs', 'feet', 'back'];
         slots.forEach(slot => {
             const equippedItem = Game.state.equip[slot];
@@ -150,7 +141,6 @@ Object.assign(UI, {
         }
     },
 
-    // --- CHARAKTER STATS & PERKS (Unverändert) ---
     renderChar: function(mode = 'stats') {
         const grid = document.getElementById('stat-grid');
         const perksContainer = document.getElementById('perk-container');
@@ -265,31 +255,56 @@ Object.assign(UI, {
         return null;
     },
 
+    // [v0.6.0] LEVELED PERK LISTE
     renderPerksList: function(container) {
         container.innerHTML = '';
         const points = Game.state.perkPoints || 0;
-        container.innerHTML += `<div class="text-center mb-4">VERFÜGBARE PUNKTE: <span class="text-yellow-400 font-bold text-xl">${points}</span></div>`;
+        
+        container.innerHTML += `
+            <div class="text-center mb-4 border-b border-green-900 pb-2">
+                VERFÜGBARE PUNKTE: <span class="text-yellow-400 font-bold text-xl animate-pulse">${points}</span>
+            </div>`;
 
         if(Game.perkDefs) {
             Game.perkDefs.forEach(p => {
-                const hasPerk = Game.state.perks && Game.state.perks.includes(p.id);
-                const canAfford = points > 0 && !hasPerk;
+                const currentLvl = Game.getPerkLevel(p.id);
+                const maxLvl = p.max || 1;
+                const isMaxed = currentLvl >= maxLvl;
+                const canAfford = points > 0 && !isMaxed;
+                
+                // Visual Bar [■ ■ □ □ □]
+                let levelBar = '';
+                for(let i=0; i<maxLvl; i++) {
+                    levelBar += (i < currentLvl) ? '<span class="text-yellow-400 text-lg">■</span>' : '<span class="text-gray-700 text-lg">□</span>';
+                }
+
                 let btnHtml = '';
-                if(hasPerk) btnHtml = '<span class="text-green-500 font-bold border border-green-500 px-2 py-1 text-xs">GELERNT</span>';
-                else if(canAfford) btnHtml = `<button class="action-button text-xs px-2 py-1" onclick="Game.choosePerk('${p.id}')">LERNEN</button>`;
-                else btnHtml = '<span class="text-gray-600 text-xs">---</span>';
+                if(isMaxed) {
+                    btnHtml = '<span class="text-green-500 font-bold border border-green-500 px-2 py-1 text-xs bg-green-900/20">MAX</span>';
+                } else if(canAfford) {
+                    btnHtml = `<button class="action-button text-xs px-3 py-1 bg-yellow-900/20 border-yellow-500 text-yellow-400 hover:bg-yellow-500 hover:text-black font-bold" onclick="Game.choosePerk('${p.id}')">LERNEN (+)</button>`;
+                } else {
+                    btnHtml = '<span class="text-gray-600 text-xs border border-gray-800 px-2 py-1">---</span>';
+                }
 
                 const div = document.createElement('div');
-                div.className = `border border-green-900 bg-green-900/10 p-2 mb-2 flex justify-between items-center ${hasPerk ? 'opacity-70' : ''}`;
+                div.className = `border ${isMaxed ? 'border-yellow-900 bg-yellow-900/5' : 'border-green-900 bg-green-900/10'} p-3 mb-2 flex justify-between items-center transition-all hover:bg-green-900/20`;
+                
                 div.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">${p.icon}</span>
-                        <div class="flex flex-col">
-                            <span class="font-bold ${hasPerk ? 'text-green-300' : 'text-white'}">${p.name}</span>
-                            <span class="text-xs text-green-500">${p.desc}</span>
+                    <div class="flex items-start gap-3 flex-1">
+                        <span class="text-3xl filter drop-shadow-[0_0_5px_rgba(0,255,0,0.3)] pt-1">${p.icon}</span>
+                        <div class="flex flex-col w-full pr-2">
+                            <div class="flex justify-between w-full">
+                                <span class="font-bold ${isMaxed ? 'text-yellow-500' : 'text-green-300'} text-lg">${p.name}</span>
+                                <div class="tracking-tighter">${levelBar}</div>
+                            </div>
+                            <span class="text-xs text-green-500/80 leading-tight">${p.desc}</span>
+                            <span class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest">Stufe ${currentLvl} / ${maxLvl}</span>
                         </div>
                     </div>
-                    <div>${btnHtml}</div>
+                    <div class="flex flex-col justify-center pl-2 border-l border-green-900/30">
+                        ${btnHtml}
+                    </div>
                 `;
                 container.appendChild(div);
             });
