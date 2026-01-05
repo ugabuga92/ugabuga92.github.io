@@ -1,6 +1,6 @@
-// [v2.0.2] - 2026-01-05 01:55pm (Combat Logic V2)
-// - Fix: Replaced .includes() checks with Game.getPerkRank() for Perk System 2.0.
-// - Logic: Integrated Perk Logic (Crit, Damage) from Game Actions.
+// [v3.2] - 2026-01-04 13:30pm (Ammo Logic Refactor)
+// - Fix: Munitionsverbrauch basiert auf 'usesAmmo: true' Property.
+// - Cleanup: isMelee Funktion entfernt.
 
 window.Combat = {
     loopId: null,
@@ -64,7 +64,7 @@ window.Combat = {
         }
     },
 
-    // VISUAL FEEDBACK SYSTEM
+    // [v3.0] VISUAL FEEDBACK SYSTEM
     triggerFeedback: function(type, value) {
         const layer = document.getElementById('combat-feedback-layer');
         if(!layer) return;
@@ -72,23 +72,25 @@ window.Combat = {
         const el = document.createElement('div');
         el.className = "float-text absolute font-bold text-4xl pointer-events-none z-50 text-shadow-black";
         
+        // Random slight offset for "natural" feel (X and Y)
         const offset = Math.floor(Math.random() * 40) - 20;
         const offsetY = Math.floor(Math.random() * 40) - 20;
         el.style.transform = `translate(${offset}px, ${offsetY}px)`;
 
         if(type === 'hit') {
             el.innerHTML = `-${value}`;
-            el.className += " text-yellow-400"; 
+            el.className += " text-yellow-400"; // Enemy takes dmg
         } else if(type === 'crit') {
             el.innerHTML = `CRIT! -${value}`;
-            el.className += " text-red-500 text-6xl blink-red"; 
+            el.className += " text-red-500 text-6xl blink-red"; // Big Crit
         } else if(type === 'miss') {
             el.innerHTML = "MISS";
             el.className += " text-gray-500 text-2xl";
         } else if(type === 'damage') {
             el.innerHTML = `-${value}`;
-            el.className += " text-red-600"; 
+            el.className += " text-red-600"; // Player takes dmg
             
+            // Screen Flash Red
             const flash = document.getElementById('damage-flash');
             if(flash) {
                 flash.classList.remove('hidden');
@@ -101,6 +103,8 @@ window.Combat = {
         }
 
         layer.appendChild(el);
+
+        // Remove element after animation
         setTimeout(() => { el.remove(); }, 1000);
     },
 
@@ -108,22 +112,30 @@ window.Combat = {
     attack: function(partIndex) {
         if(this.turn !== 'player') return;
 
-        let wpn = Game.state.equip.weapon || {name: "Fäuste"}; 
+        let wpn = Game.state.equip.weapon || {name: "Fäuste"}; // Use let to allow update
         
-        // AMMO CHECK
+        // [v3.2] CHECK AMMO PROPERTY
         if(wpn.usesAmmo) {
             const hasAmmo = Game.removeFromInventory('ammo', 1);
             if(!hasAmmo) {
                 this.log("Klick! Munition leer.", "text-red-500");
+                
+                // Try to unequip
                 Game.unequipItem('weapon');
+                
+                // Check if unequip worked (weapon should now be fists or no ammo weapon)
                 const newWpn = Game.state.equip.weapon || {name: "Fäuste"};
+                
+                // If the new weapon does NOT use ammo (e.g. Fists), we can attack
                 if(!newWpn.usesAmmo) {
                     this.log("Waffe abgelegt - Nahkampf!", "text-yellow-400 font-bold");
-                    wpn = newWpn; 
+                    wpn = newWpn; // Update weapon reference for calculation
+                    // Continue attack flow with fists immediately
                 } else {
+                    // Unequip failed (Inventory full?) or switched to another gun
                     this.log("Kein Platz zum Ablegen!", "text-red-500 font-bold");
                     this.triggerFeedback('miss');
-                    return; 
+                    return; // Stop attack
                 }
             }
         }
@@ -132,6 +144,7 @@ window.Combat = {
         const hitChance = this.calculateHitChance(partIndex);
         const roll = Math.random() * 100;
 
+        // Player Animation
         const screen = document.getElementById('game-screen');
         if(screen) {
             screen.classList.add('shake');
@@ -143,11 +156,8 @@ window.Combat = {
             let dmg = this.calculatePlayerDamage();
             let isCrit = false;
             
-            // [FIX V2.0] Critical Hit Calculation (Luck + Perks)
-            const commandoRank = Game.getPerkRank('commando'); 
-            const critChance = (Game.getStat('LUC') * 0.02) + (commandoRank * 0.05);
-
-            if(Math.random() < critChance) {
+            // Critical Hit (Luck based)
+            if(Math.random() < (Game.getStat('LUC') * 0.02) + (Game.state.perks.includes('mysterious_stranger') ? 0.1 : 0)) {
                 dmg = Math.floor(dmg * 2);
                 isCrit = true;
             }
@@ -176,13 +186,15 @@ window.Combat = {
         const enemy = Game.state.enemy;
         const roll = Math.random();
         
+        // Simple Enemy AI
         let dmg = enemy.dmg;
-        // Armor reduction (Endurance * 0.5)
-        let def = Game.getStat('END') * 0.5; 
+        // Armor reduction (Endurance + Armor Bonus)
+        let def = Game.getStat('END') * 0.5; // Base def
+        // Real armor values logic could go here
         
         dmg = Math.max(1, Math.floor(dmg - def));
         
-        if(roll < 0.8) { 
+        if(roll < 0.8) { // 80% Hit Chance for Enemy
             Game.state.hp -= dmg;
             this.log(`${enemy.name} trifft dich für ${dmg} Schaden!`, 'text-red-500');
             this.triggerFeedback('damage', dmg);
@@ -198,7 +210,7 @@ window.Combat = {
         }
 
         this.turn = 'player';
-        UI.update(); 
+        UI.update(); // Update HP Bars in HUD
         UI.renderCombat();
     },
 
@@ -206,19 +218,13 @@ window.Combat = {
         const enemy = Game.state.enemy;
         this.log(`${enemy.name} besiegt!`, 'text-yellow-400 font-bold');
         
+        // Rewards
         const xp = Array.isArray(enemy.xp) ? Math.floor(Math.random() * (enemy.xp[1]-enemy.xp[0]) + enemy.xp[0]) : enemy.xp;
-        Game.addXP(xp); // Assuming addXP alias exists or use gainExp
-        this.log(`Erhalten: ${xp} XP`);
-
+        Game.gainExp(xp);
+        
         if(enemy.loot > 0) {
-            // [FIX V2.0] Fortune Finder Logic using getPerkRank
-            const fortuneRank = Game.getPerkRank('fortune_finder');
-            let lootAmount = enemy.loot;
-            if (fortuneRank > 0) {
-                lootAmount = Math.floor(lootAmount * (1 + (fortuneRank * 0.1))); // +10% per Rank
-            }
-            Game.state.caps += lootAmount;
-            this.log(`Gefunden: ${lootAmount} Kronkorken`, 'text-yellow-200');
+            Game.state.caps += enemy.loot;
+            this.log(`Gefunden: ${enemy.loot} Kronkorken`, 'text-yellow-200');
         }
         
         // Item Drops
@@ -230,7 +236,7 @@ window.Combat = {
             });
         }
 
-        // Quest Trigger
+        // QUEST TRIGGER
         let mobId = null;
         if(Game.monsters) {
             for(let k in Game.monsters) {
@@ -242,13 +248,6 @@ window.Combat = {
         }
         if(mobId && typeof Game.updateQuestProgress === 'function') {
             Game.updateQuestProgress('kill', mobId, 1);
-        } else if (mobId && typeof Game.updateQuest === 'function') {
-             // Fallback for older quest system
-             Game.state.activeQuests.forEach(q => {
-                if(q.type === 'kill' && (q.target === mobId)) {
-                    Game.updateQuest(q.id, 1);
-                }
-            });
         }
 
         if(Game.state.kills === undefined) Game.state.kills = 0;
@@ -264,13 +263,14 @@ window.Combat = {
     flee: function() {
         if(Math.random() < 0.5) {
             this.log("Flucht gelungen!", 'text-green-400');
-            this.triggerFeedback('dodge'); 
+            this.triggerFeedback('dodge'); // Visual feedback for success
             setTimeout(() => {
                 Game.state.enemy = null;
                 UI.switchView('map');
             }, 800);
         } else {
             this.log("Flucht fehlgeschlagen!", 'text-red-500');
+            // Fail triggers enemy turn -> visual feedback for damage there
             this.turn = 'enemy';
             setTimeout(() => this.enemyTurn(), 800);
         }
@@ -281,29 +281,18 @@ window.Combat = {
         // 0=Head, 1=Torso, 2=Legs
         const per = Game.getStat('PER');
         const base = 50 + (per * 5);
-        if(partIndex === 0) return Math.min(95, base - 25); 
-        if(partIndex === 1) return Math.min(95, base);      
-        if(partIndex === 2) return Math.min(95, base - 10); 
+        if(partIndex === 0) return Math.min(95, base - 25); // Head hard
+        if(partIndex === 1) return Math.min(95, base);      // Torso normal
+        if(partIndex === 2) return Math.min(95, base - 10); // Legs medium
         return 0;
     },
 
     calculatePlayerDamage: function() {
         const wpn = Game.state.equip.weapon || {baseDmg: 2};
         let dmg = wpn.baseDmg;
-        
-        // Weapon Prop Mult
         if(wpn.props && wpn.props.dmgMult) dmg *= wpn.props.dmgMult;
         
-        // Strength Bonus
         dmg += (Game.getStat('STR') * 0.5);
-        
-        // [FIX V2.0] Gun Nut Perk using getPerkRank
-        if (['weapon'].includes(wpn.type)) { 
-             const gunNutRank = Game.getPerkRank('gun_nut');
-             if (gunNutRank > 0) {
-                 dmg *= (1 + (gunNutRank * 0.1)); // +10% per Rank
-             }
-        }
         
         return Math.floor(dmg);
     },
@@ -312,8 +301,10 @@ window.Combat = {
         return ['Kopf', 'Körper', 'Beine'][i];
     },
     
+    // UI Helpers mapped to buttons
     selectPart: function(partIndex) {
         this.selectedPart = partIndex;
+        // Update visual feedback manually if clicked
         this.moveSelection(0);
     },
     
