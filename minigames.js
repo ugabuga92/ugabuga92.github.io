@@ -1,4 +1,3 @@
-// [v0.4.27]
 const MiniGames = {
     // --- HACKING ---
     hacking: {
