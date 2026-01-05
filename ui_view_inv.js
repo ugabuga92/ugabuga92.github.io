@@ -63,29 +63,58 @@ Object.assign(UI, {
             return btn;
         };
 
-        const unequippedList = [];
+        // --- SORTIERUNG & KATEGORIEN ---
+        const cats = {
+            equip: { label: "🛡️ AUSRÜSTUNG", items: [] },
+            aid:   { label: "💉 HILFSMITTEL", items: [] },
+            misc:  { label: "⚙️ MATERIAL", items: [] }
+        };
+
         const equippedList = [];
 
-        // 1. INVENTORY ITEMS
+        // 1. INVENTORY ITEMS SORTIEREN
         Game.state.inventory.forEach((entry, index) => {
             if(entry.count <= 0) return;
             const item = Game.items[entry.id];
             if(!item) return;
 
+            // Spezialfall: Camp Kit (Aufgestellt)
             if(entry.id === 'camp_kit' && Game.state.camp) {
                  const btn = createBtn(item, entry.count, entry.props, false, true, "AUFGESTELLT", null);
                  equippedList.push(btn); 
                  return;
             }
 
-            // [v0.5.5] RUFT JETZT ZENTRALES OVERLAY AUF
             const onClick = () => UI.showItemConfirm(index);
-
             const btn = createBtn(item, entry.count, entry.props, entry.isNew, false, null, onClick);
-            unequippedList.push(btn);
+
+            // Einsortieren in Kategorien
+            if(['weapon', 'head', 'body', 'arms', 'legs', 'feet', 'back', 'tool'].includes(item.type)) {
+                cats.equip.items.push(btn);
+            } else if (item.type === 'consumable') {
+                cats.aid.items.push(btn);
+            } else {
+                cats.misc.items.push(btn); // Junk, Component, Ammo, Blueprint, Misc
+            }
         });
 
-        // 2. EQUIPPED ITEMS
+        // 2. RENDERN DER KATEGORIEN (Nur wenn Items enthalten sind)
+        let hasItems = false;
+        ['equip', 'aid', 'misc'].forEach(key => {
+            if(cats[key].items.length > 0) {
+                hasItems = true;
+                // Header rendern
+                const header = document.createElement('div');
+                header.className = "col-span-4 bg-green-900/40 text-green-300 text-xs font-bold px-2 py-1 mt-2 border-b border-green-700 tracking-wider flex items-center gap-2";
+                header.innerHTML = cats[key].label;
+                list.appendChild(header);
+
+                // Items rendern
+                cats[key].items.forEach(btn => list.appendChild(btn));
+            }
+        });
+
+        // 3. AUSGERÜSTETE ITEMS (Unten angehängt)
         const slots = ['weapon', 'head', 'body', 'arms', 'legs', 'feet', 'back'];
         slots.forEach(slot => {
             const equippedItem = Game.state.equip[slot];
@@ -98,7 +127,6 @@ Object.assign(UI, {
             }
             if(!baseDef) return; 
 
-            // [v0.5.5] RUFT JETZT ZENTRALES OVERLAY AUF
             const onClick = () => UI.showEquippedDialog(slot);
 
             const btn = createBtn(
@@ -109,21 +137,20 @@ Object.assign(UI, {
             equippedList.push(btn);
         });
 
-        unequippedList.forEach(b => list.appendChild(b));
-
         if(equippedList.length > 0) {
             const sep = document.createElement('div');
-            sep.className = "col-span-4 flex items-center justify-center text-[10px] text-green-900 font-bold tracking-widest my-2 opacity-80";
-            sep.innerHTML = "<span class='bg-black px-2 border-b border-green-900 w-full text-center'>--- AUSGERÜSTET ---</span>";
+            sep.className = "col-span-4 flex items-center justify-center text-[10px] text-green-900 font-bold tracking-widest my-2 opacity-80 mt-6";
+            sep.innerHTML = "<span class='bg-black px-2 border-b border-green-900 w-full text-center'>--- AKTIV AUSGERÜSTET ---</span>";
             list.appendChild(sep);
             equippedList.forEach(b => list.appendChild(b));
         }
 
-        if(unequippedList.length === 0 && equippedList.length === 0) {
+        if(!hasItems && equippedList.length === 0) {
             list.innerHTML = '<div class="col-span-4 text-center text-gray-500 italic mt-10">Leerer Rucksack...</div>';
         }
     },
 
+    // --- CHARAKTER STATS & PERKS (Unverändert) ---
     renderChar: function(mode = 'stats') {
         const grid = document.getElementById('stat-grid');
         const perksContainer = document.getElementById('perk-container');
