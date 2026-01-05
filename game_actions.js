@@ -1,357 +1,6 @@
-// [v2.3.0] - 2026-01-05 02:45pm (XP System Fix)
-// - Feature: Added addXP() method to handle leveling.
-// - Fix: Merged all previous perk/map fixes into one cohesive file.
-
 Object.assign(Game, {
 
-    // --- XP & LEVELING (MISSING PIECE) ---
-    addXP: function(amount) {
-        if(!this.state) return;
-        this.state.xp += amount;
-        
-        // Check Level Up
-        let nextXp = this.expToNextLevel(this.state.lvl);
-        while(this.state.xp >= nextXp) {
-            this.state.xp -= nextXp;
-            this.state.lvl++;
-            this.state.statPoints += 1; // +1 Stat per Level
-            if(this.state.lvl % 2 === 0) this.state.perkPoints += 1; // +1 Perk every 2 Levels
-            
-            UI.log(`LEVEL AUFSTIEG! (Lvl ${this.state.lvl})`, "text-yellow-400 font-bold animate-pulse");
-            UI.triggerLevelUpEffect(); // Optional visual flair
-            
-            // Recalc next level threshold
-            nextXp = this.expToNextLevel(this.state.lvl);
-        }
-        UI.update();
-    },
-
-    expToNextLevel: function(lvl) {
-        return Math.floor(100 * Math.pow(1.5, lvl - 1));
-    },
-
-    // --- PERK SYSTEM HELPERS ---
-    getPerkRank: function(perkId) {
-        if (!this.state.perks) return 0;
-        if (Array.isArray(this.state.perks)) { 
-            const oldArr = this.state.perks;
-            this.state.perks = {};
-            oldArr.forEach(id => { this.state.perks[id] = 1; });
-        }
-        return this.state.perks[perkId] || 0;
-    },
-
-    choosePerk: function(perkId) {
-        if (Array.isArray(this.state.perks) || !this.state.perks) this.getPerkRank('dummy');
-
-        const currentRank = this.state.perks[perkId] || 0;
-        const perkDef = this.perkDefs.find(p => p.id === perkId);
-        
-        if (!perkDef) return;
-
-        if (this.state.perkPoints > 0 && currentRank < perkDef.maxRank) {
-            this.state.perkPoints--;
-            this.state.perks[perkId] = currentRank + 1;
-            const newRank = this.state.perks[perkId];
-
-            UI.log(`Perk verbessert: ${perkDef.name} (Rang ${newRank})`, "text-yellow-400 font-bold");
-
-            if (perkId === 'toughness') {
-                this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
-                this.state.hp += 20; 
-            }
-            if (perkId === 'strong_back') {
-                UI.log("Inventarplatz erhöht!", "text-green-300");
-            }
-
-            UI.renderChar(); 
-            UI.update(); 
-            this.saveGame();
-        }
-    },
-
-    // --- MAP LOGIC ---
-    reveal: function(px, py) { 
-        if(!this.state || !this.state.currentMap) return;
-        if(!this.state.explored) this.state.explored = {}; 
-        
-        const radius = 2; 
-        const secKey = `${this.state.sector.x},${this.state.sector.y}`;
-        const h = this.state.currentMap.length;
-        const w = this.state.currentMap[0].length;
-
-        for(let y = py - radius; y <= py + radius; y++) {
-            for(let x = px - radius; x <= px + radius; x++) {
-                if(x >= 0 && x < w && y >= 0 && y < h) {
-                    const tileKey = `${secKey}_${x},${y}`;
-                    this.state.explored[tileKey] = true;
-                }
-            }
-        }
-    },
-
-    move: function(dx, dy) {
-        if(!this.state || this.state.isGameOver || this.state.view !== 'map' || this.state.inDialog) return;
-        
-        if (!this.state.currentMap || this.state.currentMap.length === 0) {
-            this.loadSector(this.state.sector.x, this.state.sector.y);
-            return;
-        }
-
-        const mapH = this.state.currentMap.length;
-        const mapW = this.state.currentMap[0].length;
-
-        const nx = this.state.player.x + dx;
-        const ny = this.state.player.y + dy;
-        
-        if(nx < 0 || nx >= mapW || ny < 0 || ny >= mapH) {
-            this.changeSector(nx, ny);
-            return;
-        }
-
-        const tile = this.state.currentMap[ny][nx];
-        const posKey = `${nx},${ny}`;
-
-        if(this.state.hiddenItems && this.state.hiddenItems[posKey]) {
-            const itemId = this.state.hiddenItems[posKey];
-            this.addToInventory(itemId, 1);
-            const iName = (this.items && this.items[itemId]) ? this.items[itemId].name : itemId;
-            UI.log(`Gefunden: ${iName}!`, "text-yellow-400 font-bold animate-pulse");
-            UI.shakeView(); 
-            delete this.state.hiddenItems[posKey]; 
-        }
-
-        if (tile === '$') { UI.switchView('shop'); return; }
-        if (tile === '&') { UI.switchView('crafting'); return; }
-        if (tile === 'P') { UI.switchView('clinic'); return; }
-        if (tile === 'E') { this.leaveCity(); return; }
-        if (tile === 'X') { this.openChest(nx, ny); return; } 
-        if (tile === 'v') { this.descendDungeon(); return; }
-
-        if(['M', 'W', '#', 'U', 't', 'o', 'Y', '|', 'F', 'T', 'R', 'A', 'K', 'S', 'H', 'C', 'V'].includes(tile)) { 
-            if (tile === 'V') { UI.switchView('vault'); return; }
-            if (tile === 'C') { this.enterCity(); return; } 
-            if (tile === 'S') { this.tryEnterDungeon("market"); return; }
-            if (tile === 'H') { this.tryEnterDungeon("cave"); return; }
-            if (tile === 'A') { this.tryEnterDungeon("military"); return; }
-            if (tile === 'R') { this.tryEnterDungeon("raider"); return; }
-            if (tile === 'K') { this.tryEnterDungeon("tower"); return; }
-
-            if(this.state.hiddenItems && this.state.hiddenItems[posKey]) {
-                 const itemId = this.state.hiddenItems[posKey];
-                 this.addToInventory(itemId, 1);
-                 const iName = (this.items && this.items[itemId]) ? this.items[itemId].name : itemId;
-                 UI.log(`Im Objekt gefunden: ${iName}!`, "text-yellow-400 font-bold");
-                 delete this.state.hiddenItems[posKey];
-                 return; 
-            }
-            UI.shakeView();
-            return; 
-        }
-        
-        this.state.player.x = nx;
-        this.state.player.y = ny;
-        
-        if(dx === 1) this.state.player.rot = Math.PI / 2;
-        if(dx === -1) this.state.player.rot = -Math.PI / 2;
-        if(dy === 1) this.state.player.rot = Math.PI;
-        if(dy === -1) this.state.player.rot = 0;
-
-        this.reveal(nx, ny);
-        if(typeof Network !== 'undefined') Network.sendHeartbeat();
-
-        if(['.', ',', '_', ';', '"', '+', 'x', 'B'].includes(tile)) {
-            if(Math.random() < 0.04) { 
-                this.startCombat();
-                return;
-            }
-        }
-        
-        if(window.GameMap && window.GameMap.render) window.GameMap.render();
-        UI.update();
-    },
-
-    changeSector: function(px, py) { 
-        let sx=this.state.sector.x, sy=this.state.sector.y; 
-        let newPx = px;
-        let newPy = py;
-        
-        const curW = this.state.currentMap[0].length;
-        const curH = this.state.currentMap.length;
-
-        if(py < 0) { sy--; newPy = curH - 1; newPx = this.state.player.x; }
-        else if(py >= curH) { sy++; newPy = 0; newPx = this.state.player.x; }
-        if(px < 0) { sx--; newPx = curW - 1; newPy = this.state.player.y; }
-        else if(px >= curW) { sx++; newPx = 0; newPy = this.state.player.y; }
-
-        this.state.sector = {x: sx, y: sy}; 
-        this.loadSector(sx, sy); 
-        this.state.player.x = newPx;
-        this.state.player.y = newPy;
-        this.findSafeSpawn(); 
-        this.reveal(this.state.player.x, this.state.player.y); 
-        this.saveGame();
-        
-        if(typeof this.updateQuestProgress === 'function') {
-             this.updateQuestProgress('visit', `${sx},${sy}`, 1);
-        }
-        
-        UI.log(`Sektorwechsel: ${sx},${sy}`, "text-blue-400"); 
-    },
-
-    loadSector: function(sx_in, sy_in) { 
-        const sx = parseInt(sx_in);
-        const sy = parseInt(sy_in);
-        const key = `${sx},${sy}`; 
-        
-        const mapSeed = (sx + 1) * 5323 + (sy + 1) * 8237 + 9283;
-        if(typeof WorldGen !== 'undefined') WorldGen.setSeed(mapSeed);
-        const rng = () => { return typeof WorldGen !== 'undefined' ? WorldGen.rand() : Math.random(); };
-        
-        if(!this.worldData[key]) { 
-            let biome = 'wasteland';
-            if(typeof WorldGen !== 'undefined') biome = WorldGen.getSectorBiome(sx, sy);
-            
-            let poiList = [];
-            let sectorPoiType = null;
-
-            if(this.state.worldPOIs) {
-                this.state.worldPOIs.forEach(poi => {
-                    if(poi.x === sx && poi.y === sy) {
-                        poiList.push({x: 20, y: 20, type: poi.type});
-                        sectorPoiType = poi.type;
-                    }
-                });
-            }
-
-            if(rng() < 0.35 && !sectorPoiType && sx !== 4 && sy !== 4) { 
-                let type = null;
-                const r = rng(); 
-                if(r < 0.3) type = 'S'; 
-                else if(r < 0.6) type = 'H';
-                if(type) {
-                    poiList.push({x: Math.floor(rng()*(25-6))+3, y: Math.floor(rng()*(25-6))+3, type: type});
-                    sectorPoiType = type;
-                }
-            }
-
-            let map;
-            if(typeof WorldGen !== 'undefined') map = WorldGen.createSector(25, 25, biome, poiList);
-            else map = Array(25).fill().map(() => Array(25).fill('.'));
-            
-            this.worldData[key] = { layout: map, biome: biome, poi: sectorPoiType };
-        } 
-        
-        const data = this.worldData[key]; 
-        this.state.currentMap = data.layout; 
-        
-        if(this.state.visitedSectors && !this.state.visitedSectors.includes(key)) {
-            this.state.visitedSectors.push(key);
-        }
-        
-        this.state.hiddenItems = {}; 
-        if(Math.random() < 0.3) { 
-            let hiddenX, hiddenY;
-            let attempts = 0;
-            const h = this.state.currentMap.length;
-            const w = this.state.currentMap[0].length;
-            do {
-                hiddenX = Math.floor(Math.random() * w);
-                hiddenY = Math.floor(Math.random() * h);
-                attempts++;
-            } while(attempts < 100 && !this.isValidHiddenSpot(hiddenX, hiddenY));
-            
-            if(attempts < 100) {
-                const bps = ['bp_ammo', 'bp_rusty_pistol', 'bp_machete', 'bp_leather_armor'];
-                const bp = bps[Math.floor(Math.random() * bps.length)];
-                if(this.items && this.items[bp]) {
-                    const recipeId = this.items[bp].recipeId;
-                    if(!this.state.knownRecipes.includes(recipeId)) {
-                        this.state.hiddenItems[`${hiddenX},${hiddenY}`] = bp;
-                    }
-                }
-            }
-        }
-
-        this.fixMapBorders(this.state.currentMap, sx, sy);
-        if(!this.state.explored) this.state.explored = {};
-        
-        let zn = "Ödland"; 
-        if(data.biome === 'city') zn = "Ruinenstadt"; 
-        if(data.biome === 'desert') zn = "Aschewüste"; 
-        if(data.biome === 'jungle') zn = "Dschungel"; 
-        if(data.biome === 'swamp') zn = "Sumpf";
-        this.state.zone = `${zn} (${sx},${sy})`; 
-        
-        this.findSafeSpawn();
-        
-        if(window.GameMap && window.GameMap.render) window.GameMap.render();
-        
-        this.reveal(this.state.player.x, this.state.player.y);
-    },
-
-    isValidHiddenSpot: function(x, y) {
-        if(!this.state.currentMap || !this.state.currentMap[y]) return false;
-        const t = this.state.currentMap[y][x];
-        return ['t', 'T', 'o', 'Y', '#', '"'].includes(t);
-    },
-
-    fixMapBorders: function(map, sx, sy) {
-        const h = map.length;
-        const w = map[0].length;
-        const WORLD_MAX = 100;
-        if(sy === 0) { for(let i=0; i<w; i++) map[0][i] = '#'; }
-        if(sy === WORLD_MAX - 1) { for(let i=0; i<w; i++) map[h-1][i] = '#'; }
-        if(sx === 0) { for(let i=0; i<h; i++) map[i][0] = '#'; }
-        if(sx === WORLD_MAX - 1) { for(let i=0; i<h; i++) map[i][w-1] = '#'; }
-    },
-    
-    findSafeSpawn: function() {
-        if(!this.state || !this.state.currentMap) return;
-        const h = this.state.currentMap.length;
-        const w = this.state.currentMap[0].length;
-
-        const isSafe = (x, y) => {
-            if(x < 0 || x >= w || y < 0 || y >= h) return false;
-            const t = this.state.currentMap[y][x];
-            return !['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F', 'R', 'A', 'K'].includes(t);
-        };
-        
-        if(isSafe(this.state.player.x, this.state.player.y)) return;
-        
-        const rMax = 6;
-        for(let r=1; r<=rMax; r++) {
-            for(let dy=-r; dy<=r; dy++) {
-                for(let dx=-r; dx<=r; dx++) {
-                    const tx = this.state.player.x + dx;
-                    const ty = this.state.player.y + dy;
-                    if(isSafe(tx, ty)) {
-                        this.state.player.x = tx;
-                        this.state.player.y = ty;
-                        return;
-                    }
-                }
-            }
-        }
-        this.state.player.x = Math.floor(w/2);
-        this.state.player.y = Math.floor(h/2);
-    },
-
-    // --- SHARED ACTIONS ---
-    getMaxSlots: function() {
-        const base = 10;
-        const strBonus = this.getStat('STR') * 1; 
-        const perkBonus = this.getPerkRank('strong_back') * 2; 
-        return base + strBonus + perkBonus;
-    },
-
-    calculateMaxHP: function(end) {
-        const base = 100;
-        const statBonus = end * 10;
-        const perkBonus = this.getPerkRank('toughness') * 20;
-        return base + statBonus + perkBonus;
-    },
-
+    // Helper: Definiert die Kosten für das NÄCHSTE Level
     getCampUpgradeCost: function(currentLevel) {
         switch(currentLevel) {
             case 1: return { id: 'junk_metal', count: 25, name: 'Schrott' };
@@ -370,20 +19,12 @@ Object.assign(Game, {
     addRadiation: function(amount) {
         if(!this.state) return;
         if(typeof this.state.rads === 'undefined') this.state.rads = 0;
-        
-        let finalAmount = amount;
-        if (amount > 0) {
-            const resRank = this.getPerkRank('rad_resistant');
-            if(resRank > 0) finalAmount = Math.ceil(amount * (1 - (resRank * 0.1)));
-        }
-
-        this.state.rads = Math.min(this.state.maxHp, Math.max(0, this.state.rads + finalAmount));
-        if(finalAmount > 0) UI.log(`+${finalAmount} RADS!`, "text-red-500 font-bold animate-pulse");
-        else UI.log(`${Math.abs(finalAmount)} RADS entfernt.`, "text-green-300");
-        
+        this.state.rads = Math.min(this.state.maxHp, Math.max(0, this.state.rads + amount));
+        if(amount > 0) UI.log(`+${amount} RADS!`, "text-red-500 font-bold animate-pulse");
+        else UI.log(`${Math.abs(amount)} RADS entfernt.`, "text-green-300");
         const effectiveMax = this.state.maxHp - this.state.rads;
         if(this.state.hp > effectiveMax) { this.state.hp = effectiveMax; }
-        if(this.state.hp <= 0 && finalAmount > 0) {
+        if(this.state.hp <= 0 && amount > 0) {
             this.state.hp = 0; this.state.isGameOver = true;
             if(UI && UI.showGameOver) UI.showGameOver();
         }
@@ -392,6 +33,7 @@ Object.assign(Game, {
 
     rest: function() { 
         if(!this.state) return;
+        
         const isSafe = (this.state.view === 'vault' || this.state.view === 'city' || this.state.view === 'clinic' ||
                         (this.state.zone && (this.state.zone.includes("Vault") || this.state.zone.includes("Stadt") || this.state.zone.includes("City"))));
 
@@ -404,21 +46,21 @@ Object.assign(Game, {
 
         const effectiveMax = this.state.maxHp - (this.state.rads || 0);
         this.state.hp = effectiveMax; 
-        UI.log("Ausgeruht. HP voll.", "text-blue-400"); 
+        UI.log("Ausgeruht. HP voll (soweit möglich).", "text-blue-400"); 
         UI.update(); 
     },
 
     restInCamp: function() {
         if(!this.state || !this.state.camp) return;
         const lvl = this.state.camp.level || 1;
+        
         this.addRadiation(5); 
 
         const effectiveMax = this.state.maxHp - (this.state.rads || 0);
-        const survRank = this.getPerkRank('survivalist');
-        let perkBonus = survRank * 10;
-
-        let healPct = 30 + ((lvl - 1) * 8) + perkBonus; 
-        if(lvl >= 10) healPct = 100 + perkBonus;
+        
+        // Lvl 1 = 30%, Lvl 10 = 100%.
+        let healPct = 30 + ((lvl - 1) * 8); 
+        if(lvl >= 10) healPct = 100;
         if(healPct > 100) healPct = 100;
 
         const healAmount = Math.floor(effectiveMax * (healPct / 100));
@@ -427,8 +69,8 @@ Object.assign(Game, {
         this.state.hp = Math.min(effectiveMax, this.state.hp + healAmount);
         const healed = Math.floor(this.state.hp - oldHp);
 
-        UI.log(`Geschlafen (Lager Lvl ${lvl}).`, "text-blue-300");
-        UI.log(`Regeneration: ${Math.floor(healPct)}% (+${healed} TP) / +5 RADS`, "text-green-400 font-bold");
+        UI.log(`Geschlafen (Lager Stufe ${lvl}).`, "text-blue-300");
+        UI.log(`Regeneration: ${healPct}% (+${healed} TP) / +5 RADS`, "text-green-400 font-bold");
 
         UI.update();
         if(typeof UI.renderCamp === 'function') UI.renderCamp();
@@ -439,22 +81,30 @@ Object.assign(Game, {
             this.state.caps -= 25; 
             this.state.rads = 0; 
             this.state.hp = this.state.maxHp; 
-            UI.log("Behandlung erfolgreich! (-RADS, +HP)", "text-green-400");
+            UI.log("Dr. Zimmermann: 'Alles wieder gut!' (-RADS, +HP)", "text-green-400");
             UI.update(); 
         } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); }
     },
     
-    buyAmmo: function(mode = 1) { this.buyItem('ammo', mode); },
+    buyAmmo: function(mode = 1) { 
+        this.buyItem('ammo', mode);
+    },
     
     buyItem: function(key, mode = 1) { 
         const item = this.items[key]; 
         if(!item) return;
 
         let stock = 0;
-        if(key === 'ammo') stock = this.state.shop.ammoStock || 0;
-        else stock = (this.state.shop.stock && this.state.shop.stock[key]) ? this.state.shop.stock[key] : 0;
+        if(key === 'ammo') {
+             stock = this.state.shop.ammoStock || 0;
+        } else {
+             stock = (this.state.shop.stock && this.state.shop.stock[key]) ? this.state.shop.stock[key] : 0;
+        }
 
-        if(stock <= 0) { UI.log("Ausverkauft.", "text-red-500"); return; }
+        if(stock <= 0) {
+            UI.log("Dieser Artikel ist ausverkauft.", "text-red-500");
+            return;
+        }
 
         let amount = 1;
         let costPerUnit = (key === 'ammo') ? 10 : item.cost; 
@@ -462,29 +112,58 @@ Object.assign(Game, {
         if (mode === 'max') {
             const maxAfford = Math.floor(this.state.caps / costPerUnit);
             amount = Math.min(stock, maxAfford);
-        } else { amount = mode; }
+        } else {
+            amount = mode;
+        }
 
-        if(amount <= 0) { if(this.state.caps < costPerUnit) UI.log("Zu wenig Kronkorken.", "text-red-500"); return; }
+        if(amount <= 0) {
+            if(this.state.caps < costPerUnit) UI.log("Zu wenig Kronkorken.", "text-red-500");
+            return;
+        }
+
         if(amount > stock) amount = stock;
         const totalCost = amount * costPerUnit;
 
         if (key === 'camp_kit') {
-            if (this.state.inventory.some(i => i.id === 'camp_kit')) { UI.log("Du hast schon ein Zelt!", "text-orange-500"); return; }
+            const hasCamp = this.state.inventory && this.state.inventory.some(i => i.id === 'camp_kit');
+            if (hasCamp) { UI.log("Du besitzt bereits einen Zeltbausatz!", "text-orange-500"); return; }
             if (amount > 1) amount = 1; 
         }
 
         if(this.state.caps >= totalCost) { 
+            let successCount = 0;
             let countToAdd = (key === 'ammo') ? 10 : 1;
-            let finalAmount = countToAdd * amount;
             
-            if(this.addToInventory(key, finalAmount)) {
-                this.state.caps -= totalCost;
-                if(key === 'ammo') this.state.shop.ammoStock -= amount;
-                else if(this.state.shop.stock[key]) this.state.shop.stock[key] -= amount;
+            const isStackable = (this.getStackLimit(key) > 1);
+            
+            if(isStackable) {
+                if(this.addToInventory(key, countToAdd * amount)) {
+                    successCount = amount;
+                }
+            } else {
+                for(let i=0; i<amount; i++) {
+                    if(this.addToInventory(key, 1)) successCount++;
+                    else break; 
+                }
+            }
 
-                UI.log(`Gekauft: ${amount}x ${item.name} (-${totalCost} KK)`, "text-green-400");
-                if(typeof UI.renderShopBuy === 'function') UI.renderShopBuy();
-                else if(document.getElementById('shop-list') && typeof UI.renderShop === 'function') UI.renderShop(document.getElementById('shop-list'));
+            if(successCount > 0) {
+                const finalCost = successCount * costPerUnit;
+                this.state.caps -= finalCost;
+                
+                if(key === 'ammo') {
+                    this.state.shop.ammoStock -= successCount;
+                } else {
+                    if(this.state.shop.stock[key]) this.state.shop.stock[key] -= successCount;
+                }
+
+                UI.log(`Gekauft: ${successCount}x ${item.name} (-${finalCost} KK)`, "text-green-400");
+                
+                const con = document.getElementById('shop-list');
+                if(con) {
+                    if(typeof UI.renderShopBuy === 'function') UI.renderShopBuy();
+                    else UI.renderShop(con);
+                }
                 UI.update();
             }
         } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); } 
@@ -498,35 +177,44 @@ Object.assign(Game, {
 
         let valMult = 1;
         if(item.props && item.props.valMult) valMult = item.props.valMult;
-        
-        const barterRank = this.getPerkRank('barter');
-        const barterBonus = 1 + (barterRank * 0.1); 
-
-        let sellPrice = Math.floor((def.cost * 0.25 * barterBonus) * valMult);
+        let sellPrice = Math.floor((def.cost * 0.25) * valMult);
         if(sellPrice < 1) sellPrice = 1;
 
         let amount = 1;
         if (mode === 'max') {
             const maxAfford = Math.floor(this.state.shop.merchantCaps / sellPrice);
             amount = Math.min(item.count, maxAfford);
-        } else { amount = mode; }
+        } else {
+            amount = mode;
+        }
 
         if(amount > item.count) amount = item.count;
-        if(amount <= 0 && this.state.shop.merchantCaps < sellPrice) { UI.log("Händler ist pleite!", "text-red-500"); return; }
+        
+        if(amount <= 0 && this.state.shop.merchantCaps < sellPrice) {
+            UI.log("Händler: 'Ich habe nicht genug Kronkorken!'", "text-red-500");
+            return;
+        }
         if(amount <= 0) return; 
 
         const totalEarned = amount * sellPrice;
-        if(this.state.shop.merchantCaps < totalEarned) { UI.log("Händler hat nicht genug KK!", "text-red-500"); return; }
+
+        if(this.state.shop.merchantCaps < totalEarned) {
+             UI.log("Händler: 'Ich habe nicht genug Kronkorken für diese Menge!'", "text-red-500");
+             return;
+        }
 
         this.state.caps += totalEarned;
         this.state.shop.merchantCaps -= totalEarned;
         
         item.count -= amount;
-        if(item.count <= 0) this.state.inventory.splice(invIndex, 1);
+        if(item.count <= 0) {
+            this.state.inventory.splice(invIndex, 1);
+        }
         if(item.id === 'ammo') this.syncAmmo();
 
         UI.log(`Verkauft: ${amount}x ${def.name} (+${totalEarned} KK)`, "text-yellow-400");
-        if(typeof UI.renderShopSell === 'function') UI.renderShopSell();
+        
+        if(typeof UI !== 'undefined' && UI.renderShopSell) UI.renderShopSell();
         this.saveGame();
     },
 
@@ -541,7 +229,8 @@ Object.assign(Game, {
         } else { itemId = idOrItem; }
 
         if (itemId === 'camp_kit') {
-            if (this.state.inventory.some(i => i.id === 'camp_kit')) return false; 
+            const hasCamp = this.state.inventory.some(i => i.id === 'camp_kit');
+            if (hasCamp) return false; 
         }
 
         const limit = this.getStackLimit(itemId);
@@ -579,8 +268,18 @@ Object.assign(Game, {
         }
 
         if (added) {
-            if (itemId === 'ammo') this.syncAmmo();
             const itemDef = this.items[itemId];
+            const name = (props && props.name) ? props.name : (itemDef ? itemDef.name : itemId);
+            const color = (props && props.color) ? props.color.split(' ')[0] : "text-green-400";
+            
+            if(itemId !== 'ammo' || count < 10) {
+                UI.log(`+ ${name} (${count})`, color);
+            } else {
+                UI.log(`+ ${count} Munition`, "text-green-400");
+            }
+            
+            if (itemId === 'ammo') this.syncAmmo();
+            
             if(itemDef && (['weapon','body','head','legs','feet','arms','back'].includes(itemDef.type))) {
                 if(typeof UI !== 'undefined' && UI.triggerInventoryAlert) UI.triggerInventoryAlert();
             }
@@ -592,6 +291,7 @@ Object.assign(Game, {
     removeFromInventory: function(itemId, amount=1) {
         if(!this.state) return false;
         let remaining = amount;
+        
         for (let i = 0; i < this.state.inventory.length; i++) {
             const item = this.state.inventory[i];
             if (item.id === itemId) {
@@ -613,11 +313,16 @@ Object.assign(Game, {
         if(!this.state.inventory || !this.state.inventory[invIndex]) return;
         const item = this.state.inventory[invIndex];
         const def = this.items[item.id];
-        let name = (item.props && item.props.name) ? item.props.name : def.name;
         
+        let name = (item.props && item.props.name) ? item.props.name : def.name;
+
+        // Item entfernen
         this.state.inventory.splice(invIndex, 1);
+        
         if(item.id === 'ammo') this.syncAmmo();
+        
         UI.log(`${name} weggeworfen.`, "text-red-500 italic");
+        
         UI.update();
         if(this.state.view === 'inventory') UI.renderInventory();
         this.saveGame();
@@ -634,64 +339,79 @@ Object.assign(Game, {
         
         this.state.inventory.splice(invIndex, 1);
 
-        const scrapperRank = this.getPerkRank('scrapper');
-        let scrapAmount = Math.max(1, Math.floor(value / 25)) + scrapperRank; 
-
+        let scrapAmount = Math.max(1, Math.floor(value / 25)); 
         this.addToInventory('junk_metal', scrapAmount);
+        
         let msg = `Zerlegt: ${name} -> ${scrapAmount}x Schrott`;
 
-        let rareChance = 0.5 + (scrapperRank * 0.05);
-        if(value >= 100 && Math.random() < rareChance) {
+        if(value >= 100 && Math.random() < 0.5) {
             let screws = Math.max(1, Math.floor(value / 100));
             this.addToInventory('screws', screws);
             msg += `, ${screws}x Schrauben`;
         }
-        if(value >= 200 && Math.random() < (0.3 + scrapperRank*0.05)) {
+        if(value >= 200 && Math.random() < 0.3) {
             this.addToInventory('plastic', 1);
             msg += `, 1x Plastik`;
         }
 
         UI.log(msg, "text-orange-400 font-bold");
+        
         UI.update();
-        if(this.state.view === 'crafting' && typeof UI.renderCrafting === 'function') UI.renderCrafting('scrap');
-        else if(this.state.view === 'inventory') UI.renderInventory();
+        
+        if(this.state.view === 'crafting' && typeof UI.renderCrafting === 'function') {
+            UI.renderCrafting('scrap');
+        } else if(this.state.view === 'inventory') {
+            UI.renderInventory();
+        }
+        
         this.saveGame();
     },
 
     unequipItem: function(slot) {
         if(!this.state.equip[slot]) return;
         const item = this.state.equip[slot];
-        if(item.name === "Fäuste" || item.name === "Vault-Anzug") return;
 
-        if(this.getUsedSlots() >= this.getMaxSlots()) { UI.log("Inventar voll!", "text-red-500"); return; }
-
-        let itemToAdd = item._fromInv || { id: item.id, count: 1, props: item.props };
-        if(!item._fromInv && !item.id) { 
-             const key = Object.keys(this.items).find(k => this.items[k].name === item.name);
-             if(key) itemToAdd = { id: key, count: 1 };
+        if(item.name === "Fäuste" || item.name === "Vault-Anzug") {
+             UI.log("Das kann nicht abgelegt werden.", "text-gray-500");
+             return;
         }
 
-        this.state.inventory.push(itemToAdd);
+        if(this.getUsedSlots() >= this.getMaxSlots()) {
+             UI.log("Inventar voll! Ablegen nicht möglich.", "text-red-500");
+             return;
+        }
+
+        let itemToAdd = item._fromInv || item.id;
+        if (!itemToAdd && item.id) itemToAdd = item.id;
+        let objToAdd = itemToAdd;
+        if (!item._fromInv && item.props) objToAdd = { id: item.id, count: 1, props: item.props };
+        else if (typeof itemToAdd === 'string') objToAdd = { id: itemToAdd, count: 1 };
+
+        this.state.inventory.push(objToAdd);
         
         if(slot === 'weapon') this.state.equip.weapon = this.items.fists;
         else if(slot === 'body') {
             this.state.equip.body = this.items.vault_suit;
             this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
+            
             const effectiveMax = this.state.maxHp - (this.state.rads || 0);
             if(this.state.hp > effectiveMax) this.state.hp = effectiveMax;
         }
-        else { this.state.equip[slot] = null; }
+        else {
+            this.state.equip[slot] = null; 
+        }
 
         UI.log(`${item.name} abgelegt.`, "text-yellow-400");
-        if(typeof UI.renderChar === 'function' && this.state.view === 'char') UI.renderChar(); 
-        if(typeof UI.renderInventory === 'function' && this.state.view === 'inventory') UI.renderInventory(); 
+        if(typeof UI !== 'undefined' && this.state.view === 'char') UI.renderChar(); 
+        
         this.saveGame();
     },
 
     useItem: function(invIndexOrId, mode = 1) { 
         let invItem, index;
-        if(typeof invIndexOrId === 'string') index = this.state.inventory.findIndex(i => i.id === invIndexOrId);
-        else index = invIndexOrId;
+        if(typeof invIndexOrId === 'string') {
+            index = this.state.inventory.findIndex(i => i.id === invIndexOrId);
+        } else { index = invIndexOrId; }
 
         if(index === -1 || !this.state.inventory[index]) return;
         invItem = this.state.inventory[index];
@@ -701,11 +421,13 @@ Object.assign(Game, {
             const slot = 'back';
             let oldEquip = this.state.equip[slot];
             this.state.inventory.splice(index, 1);
-            if(oldEquip && oldEquip.props) {
-                this.state.inventory.push({ id: oldEquip.id, count: 1, props: oldEquip.props, isNew: true });
+            if(oldEquip) {
+                const oldItem = { id: oldEquip.id, count: 1, props: oldEquip.props, isNew: true };
+                this.state.inventory.push(oldItem);
             }
             this.state.equip[slot] = { ...itemDef, ...invItem.props };
             UI.log(`Rucksack angelegt: ${itemDef.name}`, "text-yellow-400");
+            if(this.getUsedSlots() > this.getMaxSlots()) UI.log("WARNUNG: Überladen!", "text-red-500 blink-red");
             UI.update();
             if(this.state.view === 'inventory') UI.renderInventory();
             this.saveGame();
@@ -719,7 +441,7 @@ Object.assign(Game, {
             this.state.hp = Math.min(this.state.hp + 15, effectiveMax);
             this.state.caps += 1;
             this.addRadiation(5);
-            UI.log("Nuka Cola: Erfrischend...", "text-blue-400");
+            UI.log("Nuka Cola: Erfrischend... und strahlend.", "text-blue-400");
             this.removeFromInventory('nuka_cola', 1);
             UI.update();
             return;
@@ -727,7 +449,7 @@ Object.assign(Game, {
 
         if(invItem.id === 'radaway') {
             this.addRadiation(-50); 
-            UI.log("RadAway verwendet.", "text-green-300 font-bold");
+            UI.log("RadAway verwendet. Strahlung sinkt.", "text-green-300 font-bold");
             this.removeFromInventory('radaway', 1);
             UI.update();
             return;
@@ -745,10 +467,9 @@ Object.assign(Game, {
         else if(itemDef.type === 'consumable') { 
             if(itemDef.effect === 'heal' || itemDef.effect === 'heal_rad') { 
                 let healAmt = itemDef.val; 
-                
-                const medicRank = this.getPerkRank('medic');
-                if (medicRank > 0) healAmt = Math.floor(healAmt * (1 + (medicRank * 0.2)));
-
+                if(this.state.perks && this.state.perks.includes('medic')) {
+                    healAmt = Math.floor(healAmt * 1.5);
+                }
                 const effectiveMax = this.state.maxHp - (this.state.rads || 0);
                 if(this.state.hp >= effectiveMax) { UI.log("Gesundheit voll.", "text-gray-500"); return; } 
                 
@@ -807,6 +528,8 @@ Object.assign(Game, {
                 if(this.state.maxHp > oldMax) {
                      this.state.hp += (this.state.maxHp - oldMax); 
                 }
+                
+                // [v1.0.1] Fix: Cap HP at effective max
                 const effectiveMax = this.state.maxHp - (this.state.rads || 0);
                 if(this.state.hp > effectiveMax) this.state.hp = effectiveMax;
             }
@@ -842,8 +565,11 @@ Object.assign(Game, {
         
         UI.log(`Hergestellt: ${recipe.count}x ${recipe.out === "AMMO" ? "Munition" : this.items[recipe.out].name}`, "text-green-400 font-bold");
 
+        // [v1.2.0 FIX] - Cooking UI Logic
         if(recipe.type === 'cooking') {
-            if(typeof UI.renderCampCooking === 'function') UI.renderCampCooking();
+            if(typeof UI.renderCampCooking === 'function') {
+                UI.renderCampCooking();
+            }
         } else {
             if(typeof UI !== 'undefined') UI.renderCrafting(); 
         }
@@ -876,9 +602,8 @@ Object.assign(Game, {
         enemy.dmg = Math.floor(enemy.dmg * difficultyMult);
         enemy.loot = Math.floor(enemy.loot * difficultyMult);
 
-        const fortuneRank = this.getPerkRank('fortune_finder');
-        if (fortuneRank > 0) {
-            enemy.loot = Math.floor(enemy.loot * (1 + (fortuneRank * 0.1)));
+        if(this.state.perks && this.state.perks.includes('fortune_finder')) {
+            enemy.loot = Math.floor(enemy.loot * 1.5);
         }
 
         const isLegendary = Math.random() < 0.05; 
@@ -931,26 +656,21 @@ Object.assign(Game, {
         } 
     },
 
-    toggleRadio: function() { 
-        this.state.radio.on = !this.state.radio.on; 
-        if(Game.Audio) {
-            Game.Audio.toggle(this.state.radio.on, this.state.radio.station);
+    choosePerk: function(perkId) {
+        if(this.state.perkPoints > 0 && !this.state.perks.includes(perkId)) {
+            const perk = this.perkDefs.find(p => p.id === perkId);
+            if(!perk) return;
+            this.state.perks.push(perkId);
+            this.state.perkPoints--;
+            UI.log(`Perk gelernt: ${perk.name}`, "text-yellow-400 font-bold");
+            if(perkId === 'toughness') {
+                this.state.maxHp = this.calculateMaxHP(this.getStat('END'));
+                this.state.hp += 20;
+            }
+            UI.renderChar(); 
+            UI.update(); 
+            this.saveGame();
         }
-        UI.renderRadio(); 
-    },
-
-    tuningRadio: function(dir) {
-        if(!this.state.radio.on) return;
-        let next = this.state.radio.station + dir;
-        if(next < 0) next = this.radioStations.length - 1;
-        if(next >= this.radioStations.length) next = 0;
-        this.state.radio.station = next;
-        this.state.radio.trackIndex = 0;
-        
-        if(Game.Audio && this.state.radio.on) {
-            Game.Audio.playStation(next);
-        }
-        UI.renderRadio();
     },
 
     deployCamp: function(invIndex, confirmed=false) {
@@ -1026,6 +746,30 @@ Object.assign(Game, {
         UI.log(`Lager verbessert auf Stufe ${this.state.camp.level}!`, "text-green-400 font-bold animate-pulse");
         
         this.saveGame();
+        
+        // UI Refresh
         if(typeof UI.renderCamp === 'function') UI.renderCamp();
+    },
+
+    toggleRadio: function() { 
+        this.state.radio.on = !this.state.radio.on; 
+        if(Game.Audio) {
+            Game.Audio.toggle(this.state.radio.on, this.state.radio.station);
+        }
+        UI.renderRadio(); 
+    },
+
+    tuningRadio: function(dir) {
+        if(!this.state.radio.on) return;
+        let next = this.state.radio.station + dir;
+        if(next < 0) next = this.radioStations.length - 1;
+        if(next >= this.radioStations.length) next = 0;
+        this.state.radio.station = next;
+        this.state.radio.trackIndex = 0;
+        
+        if(Game.Audio && this.state.radio.on) {
+            Game.Audio.playStation(next);
+        }
+        UI.renderRadio();
     }
 });
