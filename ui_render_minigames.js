@@ -1,5 +1,3 @@
-// [v0.4.15]
-// Minigame Rendering (Hacking, Lockpicking)
 Object.assign(UI, {
     
     renderHacking: function() {
