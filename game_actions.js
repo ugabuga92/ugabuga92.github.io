@@ -1,8 +1,34 @@
-// [v2.2.1] - 2026-01-05 02:30pm (Action Map Fix Final)
-// - Fix: Replaces legacy renderStaticMap with GameMap.render().
-// - Fix: Dynamic map dimensions to prevent bounds errors.
+// [v2.3.0] - 2026-01-05 02:45pm (XP System Fix)
+// - Feature: Added addXP() method to handle leveling.
+// - Fix: Merged all previous perk/map fixes into one cohesive file.
 
 Object.assign(Game, {
+
+    // --- XP & LEVELING (MISSING PIECE) ---
+    addXP: function(amount) {
+        if(!this.state) return;
+        this.state.xp += amount;
+        
+        // Check Level Up
+        let nextXp = this.expToNextLevel(this.state.lvl);
+        while(this.state.xp >= nextXp) {
+            this.state.xp -= nextXp;
+            this.state.lvl++;
+            this.state.statPoints += 1; // +1 Stat per Level
+            if(this.state.lvl % 2 === 0) this.state.perkPoints += 1; // +1 Perk every 2 Levels
+            
+            UI.log(`LEVEL AUFSTIEG! (Lvl ${this.state.lvl})`, "text-yellow-400 font-bold animate-pulse");
+            UI.triggerLevelUpEffect(); // Optional visual flair
+            
+            // Recalc next level threshold
+            nextXp = this.expToNextLevel(this.state.lvl);
+        }
+        UI.update();
+    },
+
+    expToNextLevel: function(lvl) {
+        return Math.floor(100 * Math.pow(1.5, lvl - 1));
+    },
 
     // --- PERK SYSTEM HELPERS ---
     getPerkRank: function(perkId) {
@@ -141,7 +167,6 @@ Object.assign(Game, {
             }
         }
         
-        // Render Update via GameMap
         if(window.GameMap && window.GameMap.render) window.GameMap.render();
         UI.update();
     },
@@ -211,7 +236,6 @@ Object.assign(Game, {
             }
 
             let map;
-            // Default 25x25 for standard sectors
             if(typeof WorldGen !== 'undefined') map = WorldGen.createSector(25, 25, biome, poiList);
             else map = Array(25).fill().map(() => Array(25).fill('.'));
             
@@ -261,7 +285,6 @@ Object.assign(Game, {
         
         this.findSafeSpawn();
         
-        // [v2.2.1 FIX] Use GameMap render
         if(window.GameMap && window.GameMap.render) window.GameMap.render();
         
         this.reveal(this.state.player.x, this.state.player.y);
@@ -314,150 +337,7 @@ Object.assign(Game, {
         this.state.player.y = Math.floor(h/2);
     },
 
-    tryEnterDungeon: function(type) {
-        const key = `${this.state.sector.x},${this.state.sector.y}_${type}`;
-        const cd = this.state.cooldowns ? this.state.cooldowns[key] : 0;
-        if(cd && Date.now() < cd) {
-             const minLeft = Math.ceil((cd - Date.now())/60000);
-             UI.showDungeonLocked(minLeft);
-             return;
-        }
-        UI.showDungeonWarning(() => this.enterDungeon(type));
-    },
-
-    enterDungeon: function(type, level=1) {
-        if(level === 1) {
-            this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
-            this.state.sectorExploredCache = JSON.parse(JSON.stringify(this.state.explored));
-        }
-        this.state.dungeonLevel = level;
-        this.state.dungeonType = type;
-
-        if(typeof WorldGen !== 'undefined') {
-            const w = 40, h = 40; 
-            WorldGen.setSeed((this.state.sector.x + 1) * (this.state.sector.y + 1) * Date.now() + level); 
-            const data = WorldGen.generateDungeonLayout(w, h);
-            this.state.currentMap = data.map;
-            this.state.player.x = data.startX;
-            this.state.player.y = data.startY;
-
-            if(level < 3) {
-                for(let y=0; y<h; y++) {
-                    for(let x=0; x<w; x++) {
-                        if(this.state.currentMap[y][x] === 'X') {
-                            this.state.currentMap[y][x] = 'v'; 
-                        }
-                    }
-                }
-            }
-        }
-        
-        let typeName = "Dungeon";
-        if(type === "cave") typeName = "Dunkle Höhle";
-        if(type === "market") typeName = "Supermarkt Ruine";
-        if(type === "military") typeName = "Alte Militärbasis";
-        if(type === "raider") typeName = "Raider Festung";
-        if(type === "tower") typeName = "Funkturm-Station";
-
-        this.state.zone = `${typeName} (Ebene ${level})`;
-        this.state.explored = {}; 
-        this.reveal(this.state.player.x, this.state.player.y);
-        
-        if(window.GameMap && window.GameMap.render) window.GameMap.render();
-        
-        UI.log(`${typeName} - Ebene ${level} betreten!`, "text-red-500 font-bold");
-        UI.update();
-    },
-
-    descendDungeon: function() {
-        this.enterDungeon(this.state.dungeonType, this.state.dungeonLevel + 1);
-        UI.shakeView();
-        UI.log("Du steigst tiefer hinab...", "text-purple-400 font-bold");
-    },
-    
-    openChest: function(x, y) {
-        this.state.currentMap[y][x] = 'B'; 
-        if(window.GameMap && window.GameMap.render) window.GameMap.render();
-        
-        const multiplier = this.state.dungeonLevel || 1;
-        const caps = (Math.floor(Math.random() * 200) + 100) * multiplier;
-        this.state.caps += caps;
-        this.addToInventory('legendary_part', 1 * multiplier);
-        
-        if(Math.random() < 0.4) { 
-            const bps = ['bp_stimpack', 'bp_metal_armor', 'bp_ammo'];
-            const bp = bps[Math.floor(Math.random() * bps.length)];
-            if(this.items && this.items[bp]) {
-                const rid = this.items[bp].recipeId;
-                if(!this.state.knownRecipes.includes(rid)) {
-                    this.addToInventory(bp, 1);
-                    UI.log("BAUPLAN GEFUNDEN!", "text-cyan-400 font-bold");
-                } else {
-                    this.addToInventory('screws', 5);
-                }
-            } else {
-                this.addToInventory('screws', 5);
-            }
-        }
-
-        if(!this.state.cooldowns) this.state.cooldowns = {};
-        const key = `${this.state.sector.x},${this.state.sector.y}_${this.state.dungeonType}`;
-        this.state.cooldowns[key] = Date.now() + (10 * 60 * 1000); 
-
-        UI.showDungeonVictory(caps, multiplier);
-        
-        if(Math.random() < 0.5) this.addToInventory('stimpack', 2);
-        if(Math.random() < 0.5) this.addToInventory('nuclear_mat', 1);
-        
-        setTimeout(() => { this.leaveCity(); }, 4000);
-    },
-
-    enterCity: function() {
-        this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
-        this.state.sectorExploredCache = JSON.parse(JSON.stringify(this.state.explored));
-
-        if(typeof WorldGen !== 'undefined') {
-            const map = WorldGen.generateCityLayout(40, 40);
-            this.state.currentMap = map;
-        }
-        this.state.zone = "Rusty Springs (Stadt)";
-        this.state.player.x = 20;
-        this.state.player.y = 38;
-        this.state.player.rot = 0; 
-        
-        if(window.GameMap && window.GameMap.render) window.GameMap.render();
-        
-        if(!this.state.explored) this.state.explored = {};
-        const secKey = `${this.state.sector.x},${this.state.sector.y}`;
-        const h = this.state.currentMap.length;
-        const w = this.state.currentMap[0].length;
-        for(let y=0; y<h; y++) for(let x=0; x<w; x++) this.state.explored[`${secKey}_${x},${y}`] = true;
-        
-        UI.log("Betrete Rusty Springs...", "text-yellow-400");
-        UI.update();
-    },
-
-    leaveCity: function() {
-        if(this.state.savedPosition) {
-            this.state.player.x = this.state.savedPosition.x;
-            this.state.player.y = this.state.savedPosition.y;
-            this.state.savedPosition = null;
-        }
-        this.state.dungeonLevel = 0; 
-        
-        this.loadSector(this.state.sector.x, this.state.sector.y);
-        
-        if(this.state.sectorExploredCache) {
-            this.state.explored = this.state.sectorExploredCache;
-            this.state.sectorExploredCache = null;
-            this.reveal(this.state.player.x, this.state.player.y);
-        }
-
-        UI.log("Zurück im Ödland.", "text-green-400");
-    },
-
-    // --- SHARED ACTIONS (RE-ADDED to be safe) ---
-    // Includes getMaxSlots, calculateMaxHP, etc. from previous fix
+    // --- SHARED ACTIONS ---
     getMaxSlots: function() {
         const base = 10;
         const strBonus = this.getStat('STR') * 1; 
