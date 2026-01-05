@@ -1,6 +1,6 @@
 Object.assign(UI, {
     
-    // [v2.5] ZENTRALE OVERLAY LOGIC (Layer 1 - Hauptdialoge)
+    // [v2.6] ZENTRALE OVERLAY LOGIC (Layer 1 - Hauptdialoge)
     restoreOverlay: function() {
         let overlay = document.getElementById('ui-dialog-overlay');
         if(!overlay) {
@@ -14,7 +14,6 @@ Object.assign(UI, {
         
         // RESET Click Handler: Klick auf Hintergrund schließt Layer 1
         overlay.onclick = (e) => {
-            // Nur schließen, wenn wirklich der Hintergrund geklickt wurde
             if(e.target === overlay) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -25,9 +24,15 @@ Object.assign(UI, {
         return overlay;
     },
 
-    // Schließt Layer 1 (Hauptdialoge)
+    // Schließt Layer 1 (Hauptdialoge) und entfernt ESC-Listener
     leaveDialog: function() {
         if(Game.state) Game.state.inDialog = false;
+        
+        // ESC Listener aufräumen, falls vorhanden
+        if(this._activeEscHandler) {
+            document.removeEventListener('keydown', this._activeEscHandler);
+            this._activeEscHandler = null;
+        }
         
         const overlay = this.els.dialog || document.getElementById('ui-dialog-overlay');
         if(overlay) {
@@ -35,10 +40,26 @@ Object.assign(UI, {
             overlay.innerHTML = ''; 
         }
         
+        // UI Update feuern, damit Listen (Inventar/Shop) aktuell sind
         if(typeof this.update === 'function') this.update();
     },
 
-    // [v2.5] GENERIC INFO DIALOG (Layer 2 - Info Popups)
+    // Helper: Aktiviert ESC-Falle für Dialoge
+    _trapEscKey: function() {
+        // Alten Handler entfernen, falls vorhanden
+        if(this._activeEscHandler) document.removeEventListener('keydown', this._activeEscHandler);
+        
+        this._activeEscHandler = (e) => {
+            if(e.key === "Escape") {
+                e.preventDefault();
+                e.stopPropagation(); // Verhindert, dass Inventar/Menüs im Hintergrund zugehen
+                UI.leaveDialog();
+            }
+        };
+        document.addEventListener('keydown', this._activeEscHandler);
+    },
+
+    // [v2.6] GENERIC INFO DIALOG (Layer 2 - Info Popups)
     showInfoDialog: function(title, htmlContent) {
         if(Game.state) Game.state.inDialog = true;
 
@@ -47,7 +68,6 @@ Object.assign(UI, {
         
         const box = document.createElement('div');
         box.className = "bg-black border-2 border-yellow-400 p-4 shadow-[0_0_20px_#aa0] max-w-md w-full relative animate-float-in pointer-events-auto mx-4";
-        // Stop Durchklicken
         box.onclick = (e) => e.stopPropagation();
 
         box.innerHTML = `
@@ -60,7 +80,7 @@ Object.assign(UI, {
         btn.textContent = "VERSTANDEN";
         
         const closeLayer2 = (e) => {
-            if(e) e.stopPropagation(); 
+            if(e) { e.preventDefault(); e.stopPropagation(); }
             infoOverlay.remove();
             
             // Check ob Layer 1 noch offen ist
@@ -73,11 +93,7 @@ Object.assign(UI, {
         };
 
         btn.onclick = closeLayer2;
-        
-        // Klick auf Hintergrund schließt Layer 2
-        infoOverlay.onclick = (e) => {
-            if(e.target === infoOverlay) closeLayer2(e);
-        };
+        infoOverlay.onclick = (e) => { if(e.target === infoOverlay) closeLayer2(e); };
 
         box.appendChild(btn);
         infoOverlay.appendChild(box);
@@ -121,6 +137,7 @@ Object.assign(UI, {
         const overlay = this.restoreOverlay();
         overlay.style.display = 'flex';
         overlay.innerHTML = '';
+        this._trapEscKey(); // ESC Falle aktivieren
         
         const box = document.createElement('div');
         box.className = "bg-black border-4 border-green-500 p-6 shadow-[0_0_30px_green] max-w-sm w-full relative pointer-events-auto";
@@ -151,18 +168,8 @@ Object.assign(UI, {
     showHighscoreBoard: async function() {
         const overlay = this.restoreOverlay();
         overlay.style.display = 'flex';
-        
         if(Game.state) Game.state.inDialog = true;
-        
-        const escHandler = (e) => { if(e.key === "Escape") UI.leaveDialog(); };
-        document.addEventListener('keydown', escHandler);
-        
-        const originalLeave = this.leaveDialog.bind(this);
-        this.leaveDialog = function() {
-            document.removeEventListener('keydown', escHandler);
-            UI.leaveDialog = originalLeave;
-            originalLeave();
-        };
+        this._trapEscKey();
 
         overlay.innerHTML = `
             <div class="flex flex-col items-center justify-center p-6 border-2 border-green-500 bg-black shadow-[0_0_20px_green] pointer-events-auto" onclick="event.stopPropagation()">
@@ -261,13 +268,13 @@ Object.assign(UI, {
         const overlay = this.restoreOverlay();
         overlay.style.display = 'flex';
         overlay.innerHTML = '';
+        this._trapEscKey();
         
         const item = Game.items[itemKey];
         if(!item) return;
 
         if(Game.state) Game.state.inDialog = true;
         
-        // Calculate Stats
         let statsText = "";
         let typeLabel = item.type.toUpperCase();
         if(item.type === 'consumable') { statsText = `Effekt: ${item.effect} (${item.val})`; typeLabel = "VERBRAUCHSGEGENSTAND"; } 
@@ -318,29 +325,29 @@ Object.assign(UI, {
         }
         
         document.getElementById('btn-cancel').onclick = () => UI.leaveDialog();
-        this.refreshFocusables();
     },
 
     showItemConfirm: function(invIndex) {
         const overlay = this.restoreOverlay();
         overlay.style.display = 'flex';
         overlay.innerHTML = '';
+        this._trapEscKey();
         
         if(!Game.state.inventory || !Game.state.inventory[invIndex]) return;
         const invItem = Game.state.inventory[invIndex];
         const item = Game.items[invItem.id];
         
         if(!item) return;
-
         if(Game.state) Game.state.inDialog = true;
         
         const box = document.createElement('div');
         box.className = "bg-black border-2 border-green-500 p-4 shadow-[0_0_15px_green] max-w-sm text-center mb-4 w-full pointer-events-auto";
         box.onclick = (e) => e.stopPropagation();
 
-        // [FIX] STIMPACK SPECIAL LOGIC
-        // Wir prüfen lockerer, falls ID "Stimpack" oder "stimpack" ist.
-        if (invItem.id.toLowerCase() === 'stimpack' || item.name === 'Stimpack') {
+        // [FIX] STIMPACK SPECIAL LOGIC - ROBUSTER CHECK
+        const isStimpack = (invItem.id && invItem.id.toLowerCase().includes('stimpack')) || (item.name && item.name.toLowerCase().includes('stimpack'));
+
+        if (isStimpack) {
              box.innerHTML = `
                 <h2 class="text-xl font-bold text-green-400 mb-2 border-b border-green-500 pb-2">${item.name}</h2>
                 <div class="text-xs text-green-200 mb-4 bg-green-900/20 p-2">
@@ -367,14 +374,18 @@ Object.assign(UI, {
             overlay.appendChild(box);
             
             // Events manuell binden
-            document.getElementById('btn-use-one').onclick = () => { Game.useItem(invIndex, 1); UI.leaveDialog(); };
-            document.getElementById('btn-use-max').onclick = () => { Game.useItem(invIndex, 'max'); UI.leaveDialog(); };
-            document.getElementById('btn-cancel').onclick = () => { UI.leaveDialog(); };
+            const btnOne = document.getElementById('btn-use-one');
+            const btnMax = document.getElementById('btn-use-max');
+            const btnCancel = document.getElementById('btn-cancel');
+
+            if(btnOne) btnOne.onclick = () => { Game.useItem(invIndex, 1); setTimeout(() => UI.leaveDialog(), 50); };
+            if(btnMax) btnMax.onclick = () => { Game.useItem(invIndex, 'max'); setTimeout(() => UI.leaveDialog(), 50); };
+            if(btnCancel) btnCancel.onclick = () => { UI.leaveDialog(); };
             
-            this.refreshFocusables();
             return;
         }
 
+        // --- GENERIC ITEM LOGIC ---
         let statsText = "";
         let displayName = item.name;
         if(invItem.props) {
@@ -403,7 +414,7 @@ Object.assign(UI, {
             const btnYes = document.createElement('button');
             btnYes.className = "border border-green-500 text-green-500 hover:bg-green-900 px-4 py-3 font-bold w-full text-lg";
             btnYes.textContent = "BENUTZEN / AUSRÜSTEN";
-            btnYes.onclick = () => { Game.useItem(invIndex); UI.leaveDialog(); };
+            btnYes.onclick = () => { Game.useItem(invIndex); setTimeout(() => UI.leaveDialog(), 50); };
             btnContainer.appendChild(btnYes);
         }
         
@@ -413,7 +424,7 @@ Object.assign(UI, {
         const btnTrash = document.createElement('button');
         btnTrash.className = "border border-red-500 text-red-500 hover:bg-red-900 px-4 py-2 font-bold flex-1";
         btnTrash.innerHTML = "WEGWERFEN 🗑️";
-        btnTrash.onclick = () => { Game.destroyItem(invIndex); UI.leaveDialog(); };
+        btnTrash.onclick = () => { Game.destroyItem(invIndex); setTimeout(() => UI.leaveDialog(), 50); };
         
         const btnNo = document.createElement('button');
         btnNo.className = "border border-gray-600 text-gray-500 hover:bg-gray-800 px-4 py-2 font-bold flex-1";
@@ -422,17 +433,16 @@ Object.assign(UI, {
         
         row.appendChild(btnTrash);
         row.appendChild(btnNo);
-        
         btnContainer.appendChild(row);
         
         box.appendChild(btnContainer); overlay.appendChild(box);
-        this.refreshFocusables();
     },
 
     showDungeonWarning: function(callback) {
         const overlay = this.restoreOverlay();
         overlay.style.display = 'flex';
         overlay.innerHTML = '';
+        this._trapEscKey();
 
         if(Game.state) Game.state.inDialog = true;
         
@@ -456,7 +466,6 @@ Object.assign(UI, {
         btnNo.onclick = () => { UI.leaveDialog(); };
         btnContainer.appendChild(btnYes); btnContainer.appendChild(btnNo);
         box.appendChild(btnContainer); overlay.appendChild(box);
-        this.refreshFocusables();
     },
 
     showWastelandGamble: function(callback) {
@@ -528,6 +537,7 @@ Object.assign(UI, {
         const overlay = this.restoreOverlay();
         overlay.style.display = 'flex';
         overlay.innerHTML = '';
+        this._trapEscKey();
         
         if(Game.state) Game.state.inDialog = true;
 
@@ -544,7 +554,6 @@ Object.assign(UI, {
         btn.textContent = "VERSTANDEN";
         btn.onclick = () => UI.leaveDialog();
         box.appendChild(btn); overlay.appendChild(box);
-        this.refreshFocusables();
     },
 
     showDungeonVictory: function(caps, lvl) {
