@@ -1,16 +1,15 @@
 Object.assign(UI, {
     
-    // [v2.2] CENTRAL OVERLAY LOGIC
-    // Erstellt oder holt das Overlay und setzt das Standard-Verhalten (Klick daneben = Schließen)
+    // [v2.2] CENTRAL OVERLAY LOGIC (Layer 1 - Hauptdialoge)
     restoreOverlay: function() {
         let overlay = document.getElementById('ui-dialog-overlay');
         if(!overlay) {
             overlay = document.createElement('div');
             overlay.id = 'ui-dialog-overlay';
-            // Standard-Klassen für Overlay
+            // Z-Index 60 für Hauptdialoge
             overlay.className = "absolute inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm hidden pointer-events-auto";
             
-            // ZENTRALE SCHLIESS-LOGIK
+            // Klick auf Hintergrund schließt NUR Layer 1
             overlay.onclick = (e) => {
                 if(e.target === overlay) {
                     UI.leaveDialog();
@@ -21,7 +20,7 @@ Object.assign(UI, {
             this.els.dialog = overlay;
         }
         
-        // Sicherheitsnetz: Falls Event verloren ging, neu setzen
+        // Sicherheitsnetz: Event Listener sicherstellen
         overlay.onclick = (e) => { 
             if(e.target === overlay) UI.leaveDialog(); 
         };
@@ -29,38 +28,77 @@ Object.assign(UI, {
         return overlay;
     },
 
+    // Schließt Layer 1 (Hauptdialoge)
     leaveDialog: function() {
         if(Game.state) Game.state.inDialog = false;
         
         const overlay = this.els.dialog || document.getElementById('ui-dialog-overlay');
         if(overlay) {
             overlay.style.display = 'none';
-            overlay.innerHTML = ''; // Inhalt löschen
-            overlay.onclick = null; // Listener entfernen (wird von restoreOverlay neu gesetzt)
+            overlay.innerHTML = ''; 
         }
         
         if(typeof this.update === 'function') this.update();
     },
 
-    // [v2.2] GENERIC INFO DIALOG (Für ? Buttons)
+    // [v2.3 FIX] GENERIC INFO DIALOG (Layer 2 - Info Popups)
+    // Erstellt ein ZUSÄTZLICHES Overlay über dem aktuellen, damit das darunterliegende Fenster offen bleibt.
     showInfoDialog: function(title, htmlContent) {
-        const overlay = this.restoreOverlay();
-        overlay.style.display = 'flex';
-        overlay.innerHTML = '';
-
+        // Status setzen
+        const wasInDialog = Game.state.inDialog;
         if(Game.state) Game.state.inDialog = true;
 
+        // 1. Neues Overlay Element erstellen (Layer 2)
+        const infoOverlay = document.createElement('div');
+        // Z-Index 70 (höher als Layer 1 mit 60)
+        infoOverlay.className = "fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn pointer-events-auto";
+        
+        // 2. Inhalt Box bauen
         const box = document.createElement('div');
-        box.className = "bg-black border-2 border-yellow-400 p-4 shadow-[0_0_20px_#aa0] max-w-md w-full relative animate-float-in pointer-events-auto";
+        box.className = "bg-black border-2 border-yellow-400 p-4 shadow-[0_0_20px_#aa0] max-w-md w-full relative animate-float-in pointer-events-auto mx-4";
+        
+        // HTML Inhalt
         box.innerHTML = `
             <h2 class="text-2xl font-bold text-yellow-400 mb-4 border-b border-yellow-500 pb-2">${title}</h2>
             <div class="text-green-300 mb-6 font-mono text-sm max-h-[60vh] overflow-y-auto custom-scroll">${htmlContent}</div>
-            <button class="action-button w-full border-green-500 text-green-500 hover:bg-green-900" onclick="UI.leaveDialog()">VERSTANDEN</button>
         `;
-        overlay.appendChild(box);
+
+        // Button manuell erstellen, um die spezifische Schließ-Logik zu binden
+        const btn = document.createElement('button');
+        btn.className = "action-button w-full border-green-500 text-green-500 hover:bg-green-900";
+        btn.textContent = "VERSTANDEN";
+        
+        // 3. Schließ-Logik für Layer 2
+        const closeLayer2 = () => {
+            // Entferne Layer 2 aus dem DOM
+            infoOverlay.remove();
+            
+            // Prüfen, ob Layer 1 (Basis Overlay) noch sichtbar ist
+            const baseOverlay = document.getElementById('ui-dialog-overlay');
+            const isBaseOpen = baseOverlay && baseOverlay.style.display !== 'none';
+            
+            // Wenn Layer 1 NICHT offen ist, beenden wir den Dialog-Modus komplett.
+            // Wenn er offen ist, lassen wir inDialog auf true, damit das Spiel pausiert bleibt.
+            if(!isBaseOpen) {
+                Game.state.inDialog = false;
+            }
+        };
+
+        btn.onclick = closeLayer2;
+        
+        // Klick auf Hintergrund von Layer 2 schließt nur Layer 2
+        infoOverlay.onclick = (e) => {
+            if(e.target === infoOverlay) {
+                closeLayer2();
+            }
+        };
+
+        box.appendChild(btn);
+        infoOverlay.appendChild(box);
+        document.body.appendChild(infoOverlay);
     },
 
-    // [v3.0] NEW QUEST HUD
+    // [v3.0] QUEST HUD
     showQuestComplete: function(questDef) {
         let container = document.getElementById('hud-quest-overlay');
         if(!container) {
