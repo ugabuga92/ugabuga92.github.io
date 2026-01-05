@@ -1,5 +1,3 @@
-// [v0.4.22]
-// Extending UI object with Input methods
 Object.assign(UI, {
     
     touchState: {
