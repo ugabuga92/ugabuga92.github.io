@@ -1,6 +1,6 @@
 Object.assign(UI, {
 
-    // Helper für das Info-Popup
+    // Helper für das Info-Popup (Nutzt das zentrale Overlay System)
     showCampInfo: function() {
         let rows = '';
         for(let l=1; l<=10; l++) {
@@ -46,6 +46,7 @@ Object.assign(UI, {
             </div>
         `;
 
+        // Ruft das zentrale Overlay auf (ui_render_overlays.js)
         this.showInfoDialog("LAGER INFO", content);
     },
 
@@ -54,7 +55,7 @@ Object.assign(UI, {
         const cookingView = document.getElementById('camp-cooking-view');
         const mainActions = document.getElementById('camp-main-actions');
         
-        // RESET LOGIC: Nur ausführen, wenn wir es explizit wollen (Button Klick)
+        // RESET LOGIC: Button "Zurück zum Zelt" ruft renderCamp(true) auf -> Schließt Cooking
         if(reset && cookingView && mainActions) {
             cookingView.classList.add('hidden');
             mainActions.classList.remove('hidden');
@@ -132,12 +133,16 @@ Object.assign(UI, {
         
         if(!cookingView) return;
 
-        // Force Show Cooking
+        // Zeige Cooking View
         if(mainActions) mainActions.classList.add('hidden');
         cookingView.classList.remove('hidden');
 
         const list = document.getElementById('cooking-list');
         if(!list) return;
+
+        // [SCROLL FIX] Position merken
+        const scrollPos = list.scrollTop;
+
         list.innerHTML = '';
 
         const recipes = Game.recipes || [];
@@ -151,7 +156,7 @@ Object.assign(UI, {
         cookingRecipes.forEach(recipe => {
             const outItem = Game.items[recipe.out];
             const div = document.createElement('div');
-            div.className = "border border-yellow-900 bg-yellow-900/10 p-3 mb-2 flex justify-between items-center";
+            div.className = "border border-yellow-900 bg-yellow-900/10 p-3 mb-2 flex justify-between items-center relative";
             
             let reqHtml = '';
             let canCraft = true;
@@ -171,19 +176,23 @@ Object.assign(UI, {
                 reqHtml += `<span class="${color} text-xs mr-2 block">• ${ingredientName}: ${countHave}/${countNeeded}</span>`;
             }
 
-            // AUTO-REFRESH FIX: Nach Crafting neu rendern
+            // Button Logik: setTimeout ist nötig, damit das Spiel Zeit hat das Inventar zu updaten,
+            // bevor wir neu rendern. 50ms reichen und wirken direkter.
             div.innerHTML = `
                 <div class="flex flex-col">
                     <span class="font-bold text-yellow-400 text-lg">${outItem.name}</span>
                     <span class="text-xs text-yellow-600 italic">${outItem.desc}</span>
                     <div class="mt-1 bg-black/50 p-1 rounded">${reqHtml}</div>
                 </div>
-                <button class="border border-yellow-500 text-yellow-500 px-4 py-2 font-bold hover:bg-yellow-500 hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed h-full ml-2" 
-                    onclick="Game.craftItem('${recipe.id}'); setTimeout(() => UI.renderCampCooking(), 100)" ${canCraft ? '' : 'disabled'}>
+                <button class="action-button border-yellow-500 text-yellow-500 px-4 py-2 font-bold hover:bg-yellow-500 hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed h-full ml-2" 
+                    onclick="Game.craftItem('${recipe.id}'); setTimeout(() => UI.renderCampCooking(), 50)" ${canCraft ? '' : 'disabled'}>
                     BRATEN
                 </button>
             `;
             list.appendChild(div);
         });
+
+        // [SCROLL FIX] Position wiederherstellen
+        if(scrollPos > 0) list.scrollTop = scrollPos;
     }
 });
