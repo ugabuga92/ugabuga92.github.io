@@ -1,5 +1,3 @@
-// [v3.1] - 2026-01-03 01:20am (Balancing Update)
-// - Balance: Dropraten allgemein gesenkt.
 window.GameData = window.GameData || {};
 
 // --- MONSTER ---
