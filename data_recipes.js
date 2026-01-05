@@ -1,4 +1,3 @@
-// [v0.8.1] Added Cooking Recipes
 if(typeof window.GameData === 'undefined') window.GameData = {};
 
 window.GameData.recipes = [
