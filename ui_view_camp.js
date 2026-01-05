@@ -1,6 +1,9 @@
 Object.assign(UI, {
 
-    // Helper für das Info-Popup (Nutzt das zentrale Overlay System)
+    // Status-Speicher: 'main' oder 'cooking'
+    campMode: 'main', 
+
+    // Helper für das Info-Popup
     showCampInfo: function() {
         let rows = '';
         for(let l=1; l<=10; l++) {
@@ -46,19 +49,31 @@ Object.assign(UI, {
             </div>
         `;
 
-        // Ruft das zentrale Overlay auf (ui_render_overlays.js)
         this.showInfoDialog("LAGER INFO", content);
     },
 
-    // [Fix] Parameter reset=false ist Standard
-    renderCamp: function(reset = false) {
+    // Haupt-Render Funktion
+    renderCamp: function(resetToMain = false) {
+        // Wenn reset angefordert wurde (z.B. durch "Zurück"-Button), Modus ändern
+        if(resetToMain) {
+            this.campMode = 'main';
+        }
+
         const cookingView = document.getElementById('camp-cooking-view');
         const mainActions = document.getElementById('camp-main-actions');
         
-        // RESET LOGIC: Button "Zurück zum Zelt" ruft renderCamp(true) auf -> Schließt Cooking
-        if(reset && cookingView && mainActions) {
-            cookingView.classList.add('hidden');
-            mainActions.classList.remove('hidden');
+        // --- STATE MANAGEMENT FIX ---
+        // Wir erzwingen den Status basierend auf this.campMode
+        if(cookingView && mainActions) {
+            if(this.campMode === 'cooking') {
+                cookingView.classList.remove('hidden');
+                mainActions.classList.add('hidden');
+                // Wenn wir im Koch-Modus sind, Liste rendern/updaten
+                this.renderCampCooking(false); // false = kein Modus-Wechsel, nur Update
+            } else {
+                cookingView.classList.add('hidden');
+                mainActions.classList.remove('hidden');
+            }
         }
 
         const camp = Game.state.camp;
@@ -127,20 +142,21 @@ Object.assign(UI, {
         }
     },
 
-    renderCampCooking: function() {
-        const cookingView = document.getElementById('camp-cooking-view');
-        const mainActions = document.getElementById('camp-main-actions');
-        
-        if(!cookingView) return;
-
-        // Zeige Cooking View
-        if(mainActions) mainActions.classList.add('hidden');
-        cookingView.classList.remove('hidden');
+    // Aufgerufen durch den "KOCHEN" Button oder Update-Events
+    renderCampCooking: function(switchToCooking = true) {
+        if(switchToCooking) {
+            this.campMode = 'cooking';
+            // UI Update anstoßen um Klassen zu setzen
+            const cookingView = document.getElementById('camp-cooking-view');
+            const mainActions = document.getElementById('camp-main-actions');
+            if(cookingView) cookingView.classList.remove('hidden');
+            if(mainActions) mainActions.classList.add('hidden');
+        }
 
         const list = document.getElementById('cooking-list');
         if(!list) return;
 
-        // [SCROLL FIX] Position merken
+        // SCROLL FIX: Position merken
         const scrollPos = list.scrollTop;
 
         list.innerHTML = '';
@@ -157,6 +173,7 @@ Object.assign(UI, {
             const outItem = Game.items[recipe.out];
             const div = document.createElement('div');
             div.className = "border border-yellow-900 bg-yellow-900/10 p-3 mb-2 flex justify-between items-center relative";
+            div.onclick = (e) => e.stopPropagation(); // Sicherheit
             
             let reqHtml = '';
             let canCraft = true;
@@ -176,8 +193,9 @@ Object.assign(UI, {
                 reqHtml += `<span class="${color} text-xs mr-2 block">• ${ingredientName}: ${countHave}/${countNeeded}</span>`;
             }
 
-            // Button Logik: setTimeout ist nötig, damit das Spiel Zeit hat das Inventar zu updaten,
-            // bevor wir neu rendern. 50ms reichen und wirken direkter.
+            // BUTTON LOGIC FIX: 
+            // Wir verhindern Standard-Events und nutzen setTimeout für das Re-Render, 
+            // damit Game.craftItem durchlaufen kann.
             div.innerHTML = `
                 <div class="flex flex-col">
                     <span class="font-bold text-yellow-400 text-lg">${outItem.name}</span>
@@ -185,14 +203,14 @@ Object.assign(UI, {
                     <div class="mt-1 bg-black/50 p-1 rounded">${reqHtml}</div>
                 </div>
                 <button class="action-button border-yellow-500 text-yellow-500 px-4 py-2 font-bold hover:bg-yellow-500 hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed h-full ml-2" 
-                    onclick="Game.craftItem('${recipe.id}'); setTimeout(() => UI.renderCampCooking(), 50)" ${canCraft ? '' : 'disabled'}>
+                    onclick="event.stopPropagation(); Game.craftItem('${recipe.id}'); setTimeout(() => UI.renderCampCooking(false), 50)" ${canCraft ? '' : 'disabled'}>
                     BRATEN
                 </button>
             `;
             list.appendChild(div);
         });
 
-        // [SCROLL FIX] Position wiederherstellen
+        // SCROLL FIX: Position wiederherstellen
         if(scrollPos > 0) list.scrollTop = scrollPos;
     }
 });
