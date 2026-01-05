@@ -1,7 +1,3 @@
-// [v3.2] - 2026-01-04 13:30pm (Ammo Logic Refactor)
-// - Fix: Munitionsverbrauch basiert auf 'usesAmmo: true' Property.
-// - Cleanup: isMelee Funktion entfernt.
-
 window.Combat = {
     loopId: null,
     turn: 'player', 
