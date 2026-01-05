@@ -1,7 +1,3 @@
-// [v3.3.1] - 2026-01-05 12:15pm (Workbench Crash Fix)
-// - Fix: Added safety checks for undefined items in renderCrafting (both Create and Scrap tabs).
-// - Fix: Prevents "Cannot read properties of undefined (reading 'type')" error.
-
 Object.assign(UI, {
     
     shopQty: 1,
