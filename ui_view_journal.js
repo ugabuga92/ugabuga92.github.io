@@ -1,4 +1,3 @@
-// [v2.2] - Modularized Journal Views (Quests, Wiki)
 Object.assign(UI, {
 
     renderWiki: function(category = 'monsters') {
