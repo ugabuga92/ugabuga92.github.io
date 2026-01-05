@@ -1,6 +1,3 @@
-// [v5.10] - 2026-01-04 01:45am (UI Clean Up)
-// - Revert: "Zerlegen" Button aus Item-Popup entfernt (jetzt in der Werkbank).
-
 Object.assign(UI, {
     
     // [v3.0] NEW QUEST HUD
