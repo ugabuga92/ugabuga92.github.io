@@ -1,3 +1,17 @@
+# CHANGELOG
+
+v0.5.2 (Fixes)
+[UI] Multi-Layer Support: Info-Popups (? Buttons) öffnen jetzt auf einem separaten Layer.
+[UI] Dialog-Logik: Das Schließen eines Info-Fensters schließt nicht mehr darunterliegende Dialoge (z.B. Inventar-Aktionen).
+[BUGFIX] Klickverhalten "Danebenklicken" verfeinert.
+
+## v0.5.1 (UI & Overlay Fixes)
+- [UI] **Overlay-Fix:** Alle Popups (Minigame Hilfe, Camp Info) nutzen jetzt das zentrale Overlay-System.
+  - Das Schließen durch Klicken neben das Fenster funktioniert nun auch in Minigames und im Camp.
+  - Redundanter Code zur Dialog-Erstellung entfernt.
+- [UI] **Camp Info:** Anzeige optimiert und in das neue Dialog-Format integriert.
+- [SYSTEM] Code-Bereinigung in `ui_view_camp.js` und `ui_render_minigames.js`.
+
 
 [v1.2.0] - 2026-01-04 10:15pm (Admin Tool Upgrade) 
 - Feature: Neuer Tab "CAMP" im Admin-Panel zur Verwaltung von Lager-Level und Position. 
