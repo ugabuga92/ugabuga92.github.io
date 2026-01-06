@@ -114,14 +114,27 @@ window.Combat = {
         setTimeout(() => { el.remove(); }, 1000);
     },
 
-    // --- SAFETY HELPER ---
-    // Holt die aktuelle Waffe sicher ab, ohne abzustürzen
+    // --- SAFETY HELPER: REPAIR WEAPON ID ---
     getSafeWeapon: function() {
         let wpn = Game.state.equip.weapon;
-        // Wenn Waffe null, undefined oder keine ID hat -> Fäuste
-        if (!wpn || !wpn.id) {
-            return { id: 'fists', name: 'Fäuste', baseDmg: 2 };
+        
+        // 1. Wenn gar keine Waffe da ist -> Fäuste
+        if (!wpn) return { id: 'fists', name: 'Fäuste', baseDmg: 2 };
+
+        // 2. Wenn ID fehlt, versuche sie über den Namen zu finden (Legacy Save Fix)
+        if (!wpn.id && wpn.name) {
+            const foundId = Object.keys(Game.items).find(k => Game.items[k].name === wpn.name);
+            if(foundId) {
+                wpn.id = foundId; // Repariere das Objekt im State
+                // Optional: Savegame dirty markieren, aber hier reicht Laufzeit-Fix
+            } else {
+                return { id: 'fists', name: 'Fäuste (Fallback)', baseDmg: 2 };
+            }
         }
+        
+        // 3. Fallback, falls immer noch keine ID
+        if (!wpn.id) return { id: 'fists', name: 'Fäuste', baseDmg: 2 };
+
         return wpn;
     },
 
@@ -135,11 +148,12 @@ window.Combat = {
         const wpn = this.getSafeWeapon();
         const wId = wpn.id.toLowerCase();
         
-        const rangedKeywords = ['pistol', 'rifle', 'gun', 'shotgun', 'smg', 'minigun', 'blaster', 'sniper'];
+        // Erweiterte Keywords für Fernkampf
+        const rangedKeywords = ['pistol', 'rifle', 'gun', 'shotgun', 'smg', 'minigun', 'blaster', 'sniper', 'cannon', 'gewehr', 'flinte'];
         const isRanged = rangedKeywords.some(k => wId.includes(k));
 
         if (!isRanged) {
-            chance += 20; 
+            chance += 20; // Bonus für Nahkampf
         }
 
         return Math.min(95, Math.floor(chance));
@@ -152,25 +166,27 @@ window.Combat = {
         const part = this.bodyParts[partIndex];
         const hitChance = this.calculateHitChance(partIndex);
         
-        // 1. Sichere Waffe holen
+        // --- AMMO CHECK ---
         let wpn = this.getSafeWeapon();
         const wId = wpn.id.toLowerCase();
 
-        // 2. Typ bestimmen
-        const rangedKeywords = ['pistol', 'rifle', 'gun', 'shotgun', 'smg', 'minigun', 'blaster', 'sniper'];
+        // Check: Ist es eine Fernkampfwaffe?
+        const rangedKeywords = ['pistol', 'rifle', 'gun', 'shotgun', 'smg', 'minigun', 'blaster', 'sniper', 'cannon', 'gewehr', 'flinte'];
         const isRanged = rangedKeywords.some(k => wId.includes(k));
         
-        // 3. Ammo Logic
+        // Nur Munition verbrauchen, wenn Fernkampf UND nicht Alien Blaster (oder andere Ausnahmen)
         if(isRanged && wId !== 'alien_blaster') { 
              const hasAmmo = Game.removeFromInventory('ammo', 1);
              if(!hasAmmo) {
                  this.log("KLICK! Munition leer!", "text-red-500 font-bold");
                  
-                 Game.unequipItem('weapon');
-                 this.log("Wechsle zu Fäusten (Nahkampf)!", "text-yellow-400");
+                 // Fallback auf Nahkampf für diesen Zug
+                 this.log("Schlage mit dem Kolben zu!", "text-yellow-400 text-xs italic");
                  
-                 // Fallback für diesen Angriff
-                 wpn = { id: 'fists', baseDmg: 2, name: "Fäuste" }; 
+                 // Temporäre "Waffe" für diesen Schlag bauen
+                 wpn = { id: 'rifle_butt', baseDmg: 2, name: "Waffenkolben" }; 
+                 // Wir legen die Waffe NICHT ab, damit der Spieler sie nicht verliert/neu ausrüsten muss.
+                 // Er macht einfach nur wenig Schaden diese Runde.
              }
         }
 
@@ -188,19 +204,21 @@ window.Combat = {
             if(wpn.props && wpn.props.dmgMult) dmg *= wpn.props.dmgMult;
 
             // PERKS
-            if(!isRanged) {
-                // Nahkampf
+            if(!isRanged || wpn.id === 'rifle_butt') {
+                // Nahkampf Bonus
                 dmg += Math.floor(Game.getStat('STR') / 2);
+                
                 const sluggerLvl = Game.getPerkLevel('slugger');
                 if(sluggerLvl > 0) dmg = Math.floor(dmg * (1 + (sluggerLvl * 0.1)));
             } else {
-                // Fernkampf
+                // Fernkampf Bonus
                 const gunLvl = Game.getPerkLevel('gunslinger');
                 if(gunLvl > 0) dmg = Math.floor(dmg * (1 + (gunLvl * 0.1)));
             }
 
             dmg *= part.dmgMod;
 
+            // CRIT
             let isCrit = false;
             let critChance = Game.state.critChance || 5; 
             
