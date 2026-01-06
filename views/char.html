@@ -1,36 +1,75 @@
-<div class="p-4 w-full h-full overflow-y-auto overflow-x-hidden flex flex-col items-center">
-    <div class="w-full max-w-md flex flex-col items-center">
-        
-        <div class="flex w-full mb-4">
-            <button id="btn-show-stats" class="flex-1 py-2 font-bold bg-green-900/40 text-green-400 border border-green-500 hover:bg-green-500 hover:text-black transition-colors" onclick="UI.renderChar('stats')">S.P.E.C.I.A.L.</button>
-            <button id="btn-show-perks" class="flex-1 py-2 font-bold bg-black text-gray-500 border border-gray-700 hover:text-green-400 transition-colors ml-[-1px]" onclick="UI.renderChar('perks')">PERKS</button>
+<div class="w-full h-full flex flex-col bg-black/90 relative overflow-hidden">
+    
+    <div class="flex justify-between items-center p-4 border-b border-green-900 bg-green-900/10 shrink-0">
+        <div class="flex flex-col">
+            <span class="text-xs text-green-600 tracking-widest">BEWOHNER</span>
+            <span class="text-2xl font-bold text-yellow-400" id="char-sheet-name">PLAYER</span>
         </div>
+        <div class="text-right">
+            <span class="text-3xl font-bold text-[#39ff14]" id="char-sheet-lvl">1</span>
+            <div class="text-[10px] text-green-500">LEVEL</div>
+        </div>
+    </div>
 
-        <div id="char-header-info" class="w-full">
-             
-             <div class="w-full border-2 border-green-900 bg-black/50 p-2 mb-4 relative min-h-[100px]">
-                <div class="absolute top-0 left-0 bg-green-900 text-black px-2 py-0.5 font-bold text-xs tracking-widest">AUSRÜSTUNG</div>
-                <div id="dynamic-equip-list" class="flex flex-col gap-2 mt-6">
-                    </div>
-             </div>
+    <div class="flex justify-around bg-black border-b border-green-800 shrink-0">
+        <button onclick="UI.renderChar('status')" id="tab-btn-status" class="char-tab-btn flex-1 py-3 font-bold text-lg text-green-200 uppercase">Status</button>
+        <button onclick="UI.renderChar('stats')" id="tab-btn-stats" class="char-tab-btn flex-1 py-3 font-bold text-lg text-green-200 uppercase">S.P.E.C.I.A.L.</button>
+        <button onclick="UI.renderChar('perks')" id="tab-btn-perks" class="char-tab-btn flex-1 py-3 font-bold text-lg text-green-200 uppercase">Perks</button>
+    </div>
 
-            <div class="w-full mb-4">
-                <div class="flex justify-between items-end border-b border-green-900 pb-1 mb-2">
-                    <span class="font-bold">LEVEL <span id="char-lvl" class="text-white text-xl ml-1">1</span></span>
-                    <span class="text-xs">SKILL-PUNKTE: <span id="char-points" class="text-yellow-400 font-bold text-lg animate-pulse">0</span></span>
-                </div>
+    <div class="flex-grow overflow-y-auto p-4 custom-scrollbar relative">
+        
+        <div id="view-status" class="hidden h-full flex flex-col">
+            <div id="status-points-alert" class="w-full text-center mb-4 hidden cursor-pointer transition-transform hover:scale-105">
+                <span class="bg-yellow-500 text-black px-4 py-1 text-sm font-bold rounded animate-pulse shadow-[0_0_10px_gold]">🌟 LEVEL UP VERFÜGBAR! 🌟</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-x-8 gap-y-2 mb-6 text-sm border-b border-green-900/50 pb-4">
+                <div class="flex justify-between border-b border-green-900/30 pb-1"><span class="text-gray-500">TP</span> <span id="sheet-hp" class="text-white font-bold font-mono">100/100</span></div>
+                <div class="flex justify-between border-b border-green-900/30 pb-1"><span class="text-gray-500">XP</span> <span id="sheet-xp" class="text-white font-bold font-mono">0/100</span></div>
+                <div class="flex justify-between border-b border-green-900/30 pb-1"><span class="text-gray-500">TRAGLAST</span> <span id="sheet-load" class="text-white font-bold font-mono">0/10</span></div>
+                <div class="flex justify-between border-b border-green-900/30 pb-1"><span class="text-gray-500">KRITISCH</span> <span id="sheet-crit" class="text-yellow-400 font-bold font-mono">5%</span></div>
+            </div>
+
+            <div class="char-grid-container flex-grow">
+                <div></div> <div id="slot-head" class="equip-slot slot-head" onclick="UI.showEquippedDialog('head')"><span class="label">KOPF</span><span class="icon">🪖</span><span class="item-name">---</span></div>
+                <div id="slot-back" class="equip-slot slot-back" onclick="UI.showEquippedDialog('back')"><span class="label">RÜCKEN</span><span class="icon">🎒</span><span class="item-name">---</span></div>
                 
-                <div class="w-full bg-black border border-green-900 h-3 mb-1 relative">
-                    <div id="char-exp-bar" class="bg-[#39ff14] h-full transition-all duration-500" style="width: 0%"></div>
-                </div>
-                <div class="text-[10px] text-right opacity-70 mb-4">EXP: <span id="char-exp">0</span> / <span id="char-next">100</span></div>
+                <div id="slot-weapon" class="equip-slot slot-weapon" onclick="UI.showEquippedDialog('weapon')"><span class="label">WAFFE</span><span class="icon">🔫</span><span class="item-name">---</span></div>
+                <div id="slot-body" class="equip-slot slot-body" onclick="UI.showEquippedDialog('body')"><span class="label">KÖRPER</span><span class="icon">🛡️</span><span class="item-name">---</span></div>
+                <div id="slot-arms" class="equip-slot slot-arms" onclick="UI.showEquippedDialog('arms')"><span class="label">ARME</span><span class="icon">🦾</span><span class="item-name">---</span></div>
+
+                <div></div>
+                <div id="slot-legs" class="equip-slot slot-legs" onclick="UI.showEquippedDialog('legs')"><span class="label">BEINE</span><span class="icon">👖</span><span class="item-name">---</span></div>
+                <div></div>
+
+                <div></div>
+                <div id="slot-feet" class="equip-slot slot-feet" onclick="UI.showEquippedDialog('feet')"><span class="label">FÜSSE</span><span class="icon">🥾</span><span class="item-name">---</span></div>
+                <div></div>
             </div>
         </div>
 
-        <div id="stat-grid" class="space-y-2 w-full"></div>
+        <div id="view-stats" class="hidden">
+            <div class="text-center mb-6 border-b border-green-900 pb-2">
+                <span class="text-gray-500 text-xs tracking-widest uppercase">Verfügbare Punkte</span>
+                <div id="sheet-stat-points" class="text-5xl font-bold text-yellow-400 mt-1">0</div>
+            </div>
+            <div id="special-list" class="space-y-3">
+                </div>
+        </div>
 
-        <div id="perk-container" class="w-full hidden space-y-2"></div>
+        <div id="view-perks" class="hidden">
+            <div class="text-center mb-6 border-b border-green-900 pb-2">
+                <span class="text-gray-500 text-xs tracking-widest uppercase">Perk Punkte</span>
+                <div id="sheet-perk-points" class="text-5xl font-bold text-yellow-400 mt-1">0</div>
+            </div>
+            <div id="perks-list" class="space-y-2 pb-4">
+                </div>
+        </div>
 
-        <button class="action-button w-full mt-auto py-3 text-lg font-bold border-green-500 text-green-500 hover:bg-green-900 shrink-0" onclick="UI.switchView('map')">SCHLIESSEN</button>
+    </div>
+
+    <div class="p-4 border-t border-green-900 bg-black shrink-0">
+        <button class="action-button w-full border-green-500 text-green-500 py-3 font-bold text-lg hover:bg-green-900" onclick="UI.switchView('map')">SCHLIESSEN</button>
     </div>
 </div>
