@@ -331,7 +331,7 @@ Object.assign(UI, {
         }
     },
 
-    // --- [v0.8.0] RUSTY SPRINGS DASHBOARD ---
+    // --- [v0.8.3] RUSTY SPRINGS DASHBOARD ---
     renderCity: function() {
         const view = document.getElementById('view-container');
         view.innerHTML = ''; 
