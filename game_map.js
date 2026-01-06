@@ -41,12 +41,13 @@ Object.assign(Game, {
         }
 
         // --- INTERAKTIONEN ---
-        // (Alte Shortcuts entfernt, da alles übers Dashboard laufen soll wenn man auf C steht)
+        // (Alte Shop/Clinic Shortcuts entfernt, da jetzt alles über 'C' läuft)
         if (tile === 'X') { this.openChest(nx, ny); return; } 
         if (tile === 'v') { this.descendDungeon(); return; }
 
         // --- KOLLISION ---
-        // 'C' ist jetzt begehbar (siehe unten bei move), daher hier nicht blocken
+        // 'C' (City) muss hier begehbar sein, damit wir drauf treten können!
+        // Daher 'C' NICHT in dieser Liste!
         if(['M', 'W', '#', 'U', 't', 'o', 'Y', '|', 'F', 'T', 'R'].includes(tile) && tile !== 'R') { 
             if(this.state.hiddenItems && this.state.hiddenItems[posKey]) {
                  const itemId = this.state.hiddenItems[posKey];
@@ -75,7 +76,7 @@ Object.assign(Game, {
         // --- POI EVENTS ---
         if(tile === 'V') { UI.switchView('vault'); return; }
         
-        // [FIX] Hier wird enterCity aufgerufen, wenn man auf 'C' tritt
+        // [FIX] Wenn Spieler auf 'C' steht -> Stadt betreten
         if(tile === 'C') { this.enterCity(); return; } 
         
         if(tile === 'S') { this.tryEnterDungeon("market"); return; }
@@ -125,8 +126,6 @@ Object.assign(Game, {
         const sy = parseInt(sy_in);
         const key = `${sx},${sy}`; 
         
-        // [FIX] Interceptor entfernt! Map wird jetzt immer generiert.
-        
         const mapSeed = (sx + 1) * 5323 + (sy + 1) * 8237 + 9283;
         if(typeof WorldGen !== 'undefined') WorldGen.setSeed(mapSeed);
         const rng = () => { return typeof WorldGen !== 'undefined' ? WorldGen.rand() : Math.random(); };
@@ -141,7 +140,7 @@ Object.assign(Game, {
             if(this.state.worldPOIs) {
                 this.state.worldPOIs.forEach(poi => {
                     if(poi.x === sx && poi.y === sy) {
-                        // Standard POI Position
+                        // Standard Position für POIs im Sektor
                         poiList.push({x: 20, y: 20, type: poi.type});
                         sectorPoiType = poi.type;
                     }
@@ -230,9 +229,7 @@ Object.assign(Game, {
             const t = this.state.currentMap[y][x];
             return !['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F', 'R', 'A', 'K'].includes(t);
         };
-        // Wenn Spieler bereits sicher steht (z.B. nach Rückkehr aus Stadt), nichts tun
         if(isSafe(this.state.player.x, this.state.player.y)) return;
-        
         const rMax = 6;
         for(let r=1; r<=rMax; r++) {
             for(let dy=-r; dy<=r; dy++) {
@@ -347,35 +344,37 @@ Object.assign(Game, {
         setTimeout(() => { this.leaveCity(); }, 4000);
     },
 
-    // [v0.8.1] CITY LOGIC UPDATE
+    // [v0.8.2 FIX] CITY LOGIC
     enterCity: function() {
-        // Wir speichern die Position AUF der Karte, damit man nachher wieder dort steht
+        // Position speichern für Rückkehr
         this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
         
-        // Wir wechseln NUR den View, wir laden KEINE neue Map
+        // Status auf 'city' setzen
         this.state.view = 'city';
-        
-        // Öffne Dashboard
-        if(typeof UI !== 'undefined' && UI.renderCity) UI.renderCity();
         
         UI.log("Betrete Rusty Springs...", "text-yellow-400");
         this.saveGame();
+        
+        // WICHTIG: switchView nutzen, damit der Loader gefeuert wird!
+        UI.switchView('city');
     },
 
     leaveCity: function() {
-        // Zurück zur Map-Ansicht
+        // Status zurück auf Map
         this.state.view = 'map';
+        this.state.dungeonLevel = 0; 
         
-        // Position wiederherstellen (falls nötig, eigentlich steht man ja noch da)
+        // Position wiederherstellen (man steht ja noch auf 'C')
         if(this.state.savedPosition) {
             this.state.player.x = this.state.savedPosition.x;
             this.state.player.y = this.state.savedPosition.y;
             this.state.savedPosition = null;
         }
         
-        // Map neu rendern
-        if(this.renderStaticMap) this.renderStaticMap();
+        // Map Ansicht aktivieren
         UI.switchView('map');
+        if(this.renderStaticMap) this.renderStaticMap();
+        
         UI.log("Zurück im Ödland.", "text-green-400");
     }
 });
