@@ -1,100 +1,119 @@
-# 📟 PIP-BOY 3003 - BENUTZERHANDBUCH
-> **System:** ROBCO UNIFIED OS v2.2
-> **Status:** ONLINE
-> **Vault-Tec Freigabe:** ERTEILT
+📖 ÖDLAND-ÜBERLEBENSHANDBUCH (Ausgabe 3003)
+Herausgeber: Vault-Tec Publikationen (Post-War Edition) Status: Genehmigt für Vault 101 Bewohner
 
-Willkommen, Bewohner! Dieses Terminal ist dein Schlüssel zum Überleben im Ödland. Bitte verinnerliche die folgenden Instruktionen, um deinen vorzeitigen Tod zu vermeiden.
+Willkommen an der Oberfläche! Die Welt hat sich verändert. Dieses Handbuch lehrt dich, wie du nicht als Snack für eine Rad-Kakerlake endest.
 
----
+💀 1. DIE GOLDENE REGEL
+DAS ÖDLAND VERZEIHT NICHTS. Das System "Pip-Boy 3003" arbeitet mit Permadeath.
 
-## 📋 INHALTSVERZEICHNIS
-1.  [Grundlagen & Steuerung](#1-grundlagen)
-2.  [Interface (HUD)](#2-interface)
-3.  [Kampfsystem (V.A.T.S.)](#3-kampfsystem)
-4.  [Überleben: Camp & Kochen](#4-überleben)
-5.  [Crafting & Handel](#5-crafting)
-6.  [Radio & Signale](#6-radio)
+Fallen deine TP (Trefferpunkte) auf 0, ist dein Charakter tot.
 
----
+Dein Spielstand wird gelöscht.
 
-## 1. GRUNDLAGEN
-**Ziel:** Erkunde die prozedural generierte Welt, sammle Ressourcen, verbessere deinen Charakter und überlebe die Gefahren der verstrahlten Zone.
+Dein Inventar ist weg.
 
-### ⚠️ PERMADEATH WARNUNG
-Das Pip-Boy 3003 System verfügt über keine Wiederbelebungs-Matrix.
-* **HP = 0 bedeutet TOD.**
-* Dein Spielstand wird **unwiderruflich gelöscht**.
-* Dein Highscore wird in die *Hall of Heroes* hochgeladen.
+Nur dein Ruhm bleibt in der Hall of Legends (Highscore).
 
-### STEUERUNG
-Das System ist für Touch- und Maus-Eingabe optimiert.
-* **Bewegen:** Joystick (Touch) oder Klicken auf Nachbar-Sektoren.
-* **Interaktion:** Tippe auf Buttons oder Menü-Reiter.
-* **Menü:** Die untere Leiste (INV, MAP, RADIO...) schaltet die Ansichten um.
+Tipp: Wenn du wenig TP hast, FLIEHE! Heldenmut ist oft tödlich.
 
----
+👣 2. ERSTE SCHRITTE
+Du startest in Vault 101 (Sicherer Sektor).
 
-## 2. INTERFACE (HUD)
-Dein Bildschirm liefert lebenswichtige Daten in Echtzeit.
+Bewegung: Klicke auf die Pfeile oder benutze WASD / Pfeiltasten, um dich auf der Weltkarte zu bewegen.
 
-* **HP (Grüner Balken):** Deine Lebenspunkte. Halte sie über 0!
-* **RADS (Roter Balken):** Strahlung. Sie verringert deine maximalen HP. Nutze *RadAway*, um sie zu senken.
-* **XP (Gelber Balken):** Fortschritt zum nächsten Level.
-* **Lager-Icon (⛺):** Zeigt an, dass du dich in deinem eigenen Camp befindest.
+Erkundung: Jeder Schritt in einen neuen Sektor kostet Ausdauer (Hunger/Durst sind noch inaktiv, aber achte auf deine TP!).
 
----
+Vault 101: Hier kannst du jederzeit kostenlos und risikofrei schlafen, um dich voll zu heilen. Kehre oft hierher zurück!
 
-## 3. KAMPFSYSTEM
-Triffst du auf Gegner, wechselt der Pip-Boy in den **V.A.T.S. Modus**.
+⚔️ 3. KAMPF & V.A.T.S.
+Triffst du auf einen Gegner, wechselt das System in den Kampfmodus.
 
-### TREFFERZONEN
-Klicke auf die Körperteile, um anzugreifen:
-* 🎯 **KOPF:** Geringe Trefferchance, aber **doppelter Schaden**.
-* 🛡️ **TORSO:** Hohe Trefferchance, Standard-Schaden.
-* 🦵 **BEINE:** Mittlere Chance.
+V.A.T.S. (Vault-Tec Assisted Targeting System)
+Du hast 3 Trefferzonen zur Auswahl:
 
-### MUNITION
-* **Nahkampf** (Fäuste, Messer, Machete) kostet **keine** Munition.
-* **Fernkampf** (Pistolen, Gewehre) benötigt Patronen. Hast du keine Munition, setzt du eine Runde aus ("CLICK!").
+KOPF (Schwer): Geringe Trefferchance, aber kritischer Schaden.
 
----
+KÖRPER (Mittel): Standard-Angriff. Solide Chance, normaler Schaden.
 
-## 4. ÜBERLEBEN: CAMP & KOCHEN
-Das Ödland ist unbarmherzig. Baue dir einen Zufluchtsort.
+BEINE (Leicht): Hohe Trefferchance, geringer Schaden. Gut zum "Finishen".
 
-### LAGER AUFSCHLAGEN
-1.  Sammle **Stoff** und **Schrott**.
-2.  Baue einen **Zelt-Bausatz** an einer Werkbank.
-3.  Gehe ins Inventar (INV) und nutze den Bausatz im Ödland (nicht in Städten!).
-4.  Dein Camp erscheint als **⛺** auf der Weltkarte.
+Wichtig: Deine Trefferchance hängt von deinem PER (Wahrnehmung) Wert ab.
 
-### KOCHEN (NEU in v2.1)
-Rohes Fleisch ist gefährlich! In deinem Lager kannst du den Button **KOCHEN** nutzen.
-* **Zutaten:** Erlege Tiere (Kakerlaken, Ratten, Skorpione), um Fleisch zu erhalten.
-* **Effekt:** Gekochtes Essen heilt viele HP, gibt aber minimale Strahlung.
+FLUCHT
+Ist der Gegner zu stark (z.B. eine Todeskralle mit Level 1), drücke FLUCHT (oder ESC). Das klappt nicht immer, aber es ist oft deine einzige Rettung.
 
----
+⛺ 4. ÜBERLEBEN IN DER WILDNIS (NEU!)
+Die Wildnis ist weit und Vault 101 oft fern. Du musst lernen, draußen zu überleben.
 
-## 5. CRAFTING & HANDEL
-Besuche **Rusty Springs** [3,3] oder finde Werkbänke in Ruinen.
+DAS C.A.M.P. KIT
+Um draußen sicher zu schlafen, brauchst du ein eigenes Lager.
 
-### WERKBANK
-Hier erstellst du Munition, Stimpacks und Ausrüstung.
-> **TIPP:** Du startest nur mit Basis-Wissen. Finde **Baupläne (Blueprints)** in Dungeons, um bessere Waffen (z.B. *Kampfflinte*) oder Rüstungen (z.B. *Metallrüstung*) bauen zu können.
+Sammle 10x Schrottmetall und 5x Stoff.
 
-### HANDEL
-Händler akzeptieren nur **Kronkorken (KK)**.
-* Verkaufe Beute, um reich zu werden.
-* Das Inventar des Händlers erneuert sich alle 15 Minuten.
-* Achte auf Sonderangebote!
+Suche eine Werkbank (z.B. in Rusty Springs).
 
----
+Baue ein Zelt-Bausatz (Camp Kit).
 
-## 6. RADIO & SIGNALE
-Bleib nicht allein.
+Gehe ins Inventar und klicke auf "BENUTZEN", während du in der Wildnis bist.
 
-* **📻 RADIO:** Schalte im RADIO-Tab Sender ein (Galaxy News, Enclave, Klassik). Das hebt die Stimmung und bietet atmosphärische Musik/Geräusche.
-* **📡 SIGNALE:** Siehst du andere Spielernamen auf der Karte oder im Log? Das sind echte andere Überlebende, die gerade online sind (Asynchrones Multiplayer-Feature).
+LAGERFEUER & KOCHEN 🍖
+Rohes Fleisch von Tieren ist radioaktiv und gefährlich!
 
----
-*RobCo Industries wünscht einen angenehmen Aufenthalt im Ödland!*
+Jagen: Erlege Tiere (Hunde, Ratten, Fliegen) für Fleisch.
+
+Kochen: Nutze im Lager den Button KOCHEN.
+
+Effekt: Gebratenes Fleisch heilt viel besser und hat weniger Rads.
+
+LAGER UPGRADES
+Du kannst dein Zelt verbessern! Ein höheres Lager-Level heilt dich schneller und effektiver beim Schlafen. Sammle Schrauben, Kleber und Zahnräder für Upgrades.
+
+🏙️ 5. RUSTY SPRINGS & HANDEL
+Bei den Koordinaten [3,3] findest du die letzte Bastion der Zivilisation: Rusty Springs.
+
+Hier findest du:
+
+🏥 DOC'S KLINIK: Heilt Verletzungen und Strahlung gegen Kronkorken.
+
+🛒 HANDELSPOSTEN: Verkaufe deinen Schrott und kaufe Munition, Waffen oder Stimpacks.
+
+🔧 WERKBANK: Der einzige Ort, um komplexe Gegenstände wie Rüstungen oder Waffen zu bauen.
+
+🛠️ 6. CRAFTING & BAUPLÄNE
+Du beginnst nicht als Ingenieur. Du kennst nur Basis-Rezepte.
+
+Fundorte: Durchsuche Ruinen und besiege Bosse, um Baupläne (Blueprints) zu finden.
+
+Lernen: Klicke den Bauplan im Inventar an, um ihn zu lernen.
+
+Herstellen: An einer Werkbank kannst du nun bessere Ausrüstung (z.B. Metallrüstung, Kampfflinte) bauen.
+
+Wichtige Ressourcen:
+
+Schrott: Überall. Basis für alles.
+
+Kleber & Schrauben: Selten. Wichtig für Waffen-Mods und Rüstungen.
+
+Nukleares Material: Sehr selten. Für High-End Tech.
+
+🌍 7. DIE WELTKARTE & BIOME
+Die Welt ist 10x10 Sektoren groß. Verschiedene Zonen bergen verschiedene Gefahren:
+
+ZENTRALES ÖDLAND: Startgebiet. Relativ sicher. Ratten, Hunde.
+
+🌲 OASIS (Nord-West): Dichter Wald. Gefährliche Pflanzen und Tiere.
+
+☠️ THE PITT (Süd-Ost): Tödliche Wüste. Hohe Strahlung, starke Raider, wenig Wasser.
+
+🌫️ SUMPF (Nord-Ost): Radioaktives Wasser. Heimat der Mirelurks.
+
+⛰️ GEBIRGE (Süd-West): Felsiges Terrain. Todeskrallen-Gebiet.
+
+🧠 8. CHARAKTER & PERKS
+Mit jedem Level-Up wirst du stärker.
+
+S.P.E.C.I.A.L.: Investiere Punkte in Stärke (Nahkampf/Tragelast), Wahrnehmung (V.A.T.S.), Ausdauer (HP) etc..
+
+PERKS: Besondere Fähigkeiten wie "Sanitäter" (bessere Heilung) oder "Schatzsucher" (mehr Geld). Wähle weise!
+
+Viel Glück, Bewohner! Vault-Tec - Wir bauen die Zukunft (unter der Erde).
