@@ -9,6 +9,7 @@ window.Game = {
     perkDefs: (typeof window.GameData !== 'undefined') ? window.GameData.perks : [],
     questDefs: (typeof window.GameData !== 'undefined') ? window.GameData.questDefs : [],
 
+    // [v2.0] Radio Data
     radioStations: [
         {
             name: "GALAXY NEWS",
@@ -46,6 +47,7 @@ window.Game = {
         }
     ],
 
+    // [v2.0] Audio System
     Audio: {
         ctx: null, masterGain: null, noiseNode: null, noiseGain: null, osc: null, oscGain: null, analyser: null, dataArray: null,
 
@@ -158,13 +160,30 @@ window.Game = {
         }
     },
 
-    // [v0.6.0] PERK HELPER (Migration)
+    // --- GAME LOGIC & UTILS (Waren verloren gegangen) ---
+
+    saveGame: function(force = false) {
+        this.isDirty = true;
+        if (force) { this.performSave(); return; }
+        if (this.saveTimer) return;
+        this.saveTimer = setTimeout(() => { this.performSave(); }, 2000);
+    },
+
+    performSave: function() {
+        if(this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null; }
+        if(!this.isDirty) return;
+        if(!this.state) return;
+        if(typeof Network !== 'undefined') { Network.save(this.state); if(!this.state.isGameOver) Network.updateHighscore(this.state); }
+        try { localStorage.setItem('pipboy_save', JSON.stringify(this.state)); } catch(e){}
+        this.isDirty = false;
+    },
+
+    hardReset: function() { if(typeof Network !== 'undefined') Network.deleteSave(); this.state = null; location.reload(); },
+
+    // [v0.6.0] PERK HELPER 
     getPerkLevel: function(perkId) {
         if (!this.state || !this.state.perks) return 0;
-        // Migration: Alt (Array) vs Neu (Objekt)
-        if (Array.isArray(this.state.perks)) {
-            return this.state.perks.includes(perkId) ? 1 : 0;
-        }
+        if (Array.isArray(this.state.perks)) return this.state.perks.includes(perkId) ? 1 : 0;
         return this.state.perks[perkId] || 0;
     },
 
@@ -172,7 +191,6 @@ window.Game = {
     recalcStats: function() {
         if(!this.state) return;
         
-        // MaxHP Berechnung: Basis 50 + (END*10) + (Lvl*5) + (Toughness * 10)
         let end = this.getStat('END');
         let baseHp = 50 + (end * 10) + (this.state.lvl * 5);
         
@@ -182,7 +200,6 @@ window.Game = {
         this.state.maxHp = baseHp;
         if(this.state.hp > this.state.maxHp) this.state.hp = this.state.maxHp;
 
-        // Crit Chance: LUC*1% + Stranger*2%
         let luc = this.getStat('LUC');
         let strangerLvl = this.getPerkLevel('mysterious_stranger');
         this.state.critChance = (luc * 1) + (strangerLvl * 2);
@@ -226,6 +243,168 @@ window.Game = {
         if(typeof UI !== 'undefined' && UI.update) UI.update();
     },
 
+    calculateMaxHP: function(end) { 
+        // Helper für Legacy Calls, nutzt jetzt auch Perk Level
+        let baseHp = 50 + (end * 10) + (this.state.lvl * 5);
+        const toughnessLvl = this.getPerkLevel('toughness');
+        baseHp += (toughnessLvl * 10);
+        return baseHp;
+    }, 
+    
+    getStat: function(key) {
+        if(!this.state) return 5;
+        let val = this.state.stats[key] || 5;
+        const slots = ['weapon', 'body', 'head', 'legs', 'feet', 'arms', 'back'];
+        slots.forEach(slot => {
+            const item = this.state.equip[slot];
+            if(item) {
+                if(item.bonus && item.bonus[key]) val += item.bonus[key];
+                if(item.props && item.props.bonus && item.props.bonus[key]) val += item.props.bonus[key];
+            }
+        });
+        return val;
+    },
+
+    expToNextLevel: function(lvl) { return Math.floor(100 * Math.pow(lvl, 1.5)); },
+
+    gainExp: function(amount) {
+        this.state.xp += amount;
+        UI.log(`+${amount} XP`, "text-yellow-400");
+        let next = this.expToNextLevel(this.state.lvl);
+        if(this.state.xp >= next) {
+            this.state.lvl++;
+            this.state.xp -= next;
+            this.state.statPoints++;
+            if(this.state.lvl % 3 === 0) {
+                this.state.perkPoints++;
+                UI.log("🌟 NEUER PERK PUNKT VERFÜGBAR! 🌟", "text-yellow-400 font-bold animate-pulse text-lg");
+            }
+            this.recalcStats(); 
+            this.state.hp = this.state.maxHp; 
+            UI.log(`LEVEL UP! Du bist jetzt Level ${this.state.lvl}`, "text-yellow-400 font-bold animate-pulse");
+            this.checkNewQuests(); 
+            this.saveGame(true);
+        } else {
+            this.saveGame();
+        }
+    },
+
+    checkNewQuests: function() {
+        if(!this.questDefs || !this.state) return;
+        this.questDefs.forEach(def => {
+            if(this.state.lvl >= def.minLvl) {
+                const active = this.state.activeQuests.find(q => q.id === def.id);
+                const completed = this.state.completedQuests.includes(def.id);
+                if(!active && !completed) {
+                    this.state.activeQuests.push({
+                        id: def.id, progress: 0, max: def.amount, type: def.type, target: def.target
+                    });
+                    UI.log(`QUEST: "${def.title}" erhalten!`, "text-cyan-400 font-bold animate-pulse");
+                }
+            }
+        });
+    },
+
+    updateQuestProgress: function(type, target, value=1) {
+        if(!this.state || !this.state.activeQuests) return;
+        let updated = false;
+        for(let i = this.state.activeQuests.length - 1; i >= 0; i--) {
+            const q = this.state.activeQuests[i];
+            if(q.type === type) {
+                let match = false;
+                if(type === 'collect' || type === 'kill' || type === 'visit') match = (q.target === target); 
+                
+                if(match) {
+                    q.progress += value;
+                    updated = true;
+                    if(q.progress >= q.max) {
+                        this.completeQuest(i);
+                    }
+                }
+            }
+        }
+        if(updated) UI.update();
+    },
+
+    completeQuest: function(index) {
+        const q = this.state.activeQuests[index];
+        const def = this.questDefs.find(d => d.id === q.id);
+        if(def) {
+            if(def.reward) {
+                if(def.reward.xp) this.gainExp(def.reward.xp);
+                if(def.reward.caps) { this.state.caps += def.reward.caps; }
+                if(def.reward.items) {
+                    def.reward.items.forEach(item => {
+                        // FIX: Zugriff auf Game Actions (addToInventory)
+                        if(typeof Game.addToInventory === 'function') {
+                            Game.addToInventory(item.id, item.c || 1);
+                        }
+                    });
+                }
+            }
+            this.state.completedQuests.push(q.id);
+            if(typeof UI !== 'undefined' && UI.showQuestComplete) {
+                UI.showQuestComplete(def);
+            }
+        }
+        this.state.activeQuests.splice(index, 1);
+        this.saveGame(true);
+    },
+    
+    checkShopRestock: function() {
+        const now = Date.now();
+        if(!this.state.shop) this.state.shop = { nextRestock: 0, stock: {}, merchantCaps: 1000 };
+        
+        if(now >= this.state.shop.nextRestock) {
+            const stock = {};
+            stock['stimpack'] = 2 + Math.floor(Math.random() * 4);
+            stock['radaway'] = 1 + Math.floor(Math.random() * 3);
+            stock['nuka_cola'] = 3 + Math.floor(Math.random() * 5);
+            this.state.shop.ammoStock = 5 + Math.floor(Math.random() * 10); 
+
+            const weapons = Object.keys(this.items).filter(k => this.items[k].type === 'weapon' && !k.includes('legendary') && !k.startsWith('rusty'));
+            const armor = Object.keys(this.items).filter(k => this.items[k].type === 'body');
+            
+            for(let i=0; i<3; i++) {
+                const w = weapons[Math.floor(Math.random() * weapons.length)];
+                if(w) stock[w] = 1;
+            }
+            for(let i=0; i<3; i++) {
+                const a = armor[Math.floor(Math.random() * armor.length)];
+                if(a) stock[a] = 1;
+            }
+            
+            if(Math.random() < 0.3) stock['backpack_small'] = 1;
+            if(Math.random() < 0.1) stock['backpack_medium'] = 1;
+
+            stock['lockpick'] = 5;
+            stock['camp_kit'] = 1;
+
+            this.state.shop.merchantCaps = 500 + Math.floor(Math.random() * 1000);
+            this.state.shop.stock = stock;
+            this.state.shop.nextRestock = now + (15 * 60 * 1000); 
+            UI.log("INFO: Der Händler hat neue Ware & Kronkorken.", "text-green-500 italic");
+        }
+    },
+
+    generateLoot: function(baseId) {
+        const itemDef = this.items[baseId];
+        if(!itemDef || itemDef.type !== 'weapon') return { id: baseId, count: 1 };
+        const roll = Math.random();
+        let prefixKey = null;
+        if(roll < 0.3) prefixKey = 'rusty';       
+        else if(roll < 0.45) prefixKey = 'precise'; 
+        else if(roll < 0.55) prefixKey = 'hardened';
+        else if(roll < 0.58) prefixKey = 'radiated';
+        else if(roll < 0.60) prefixKey = 'legendary';
+        if(!prefixKey) return { id: baseId, count: 1 }; 
+        const prefixDef = this.lootPrefixes[prefixKey];
+        return {
+            id: baseId, count: 1,
+            props: { prefix: prefixKey, name: `${prefixDef.name} ${itemDef.name}`, dmgMult: prefixDef.dmgMult || 1, valMult: prefixDef.valMult || 1, bonus: prefixDef.bonus || null, color: prefixDef.color }
+        };
+    },
+
     init: function(saveData, spawnTarget=null, slotIndex=0, newName=null) {
         this.worldData = {};
         this.initCache();
@@ -247,7 +426,6 @@ window.Game = {
 
             if (saveData) {
                 this.state = saveData;
-                // Safety Checks
                 if(!this.state.explored) this.state.explored = {};
                 if(!this.state.view) this.state.view = 'map';
                 if(!this.state.radio) this.state.radio = { on: false, station: 0, trackIndex: 0 };
@@ -257,7 +435,6 @@ window.Game = {
                 if(!this.state.quests) this.state.quests = [];
                 if(!this.state.camp) this.state.camp = null;
                 if(!this.state.knownRecipes) this.state.knownRecipes = ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp']; 
-                // Perks init handled by array/object check later
                 if(!this.state.perks) this.state.perks = {}; 
                 
                 if(!this.state.shop) this.state.shop = { nextRestock: 0, stock: {}, merchantCaps: 1000 };
@@ -272,6 +449,7 @@ window.Game = {
                 this.state.saveSlot = slotIndex;
                 this.checkNewQuests();
                 
+                // Inventory Ammo Fix
                 if(this.state.ammo > 0 && !this.state.inventory.some(i => i.id === 'ammo')) {
                    let ammoLeft = this.state.ammo;
                    while(ammoLeft > 0) {
@@ -281,7 +459,6 @@ window.Game = {
                    }
                 }
                 this.syncAmmo();
-                // [v0.6.0] Recalc on Load
                 this.recalcStats();
 
                 UI.log(">> Spielstand geladen.", "text-cyan-400");
@@ -301,7 +478,7 @@ window.Game = {
                     }, 
                     inventory: [], 
                     hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 0, statPoints: 0, 
-                    perkPoints: 0, perks: {}, // Neues Perk Objekt
+                    perkPoints: 0, perks: {}, 
                     camp: null, 
                     radio: { on: false, station: 0, trackIndex: 0 },
                     rads: 0,
@@ -318,10 +495,13 @@ window.Game = {
                     startTime: Date.now()
                 };
                 
-                this.addToInventory('stimpack', 1);
-                this.addToInventory('ammo', 10); 
+                // Add to inventory uses Game actions, but they are assigned later. 
+                // We manually push for init.
+                this.state.inventory.push({id: 'stimpack', count: 1, isNew: true});
+                this.state.inventory.push({id: 'ammo', count: 10, isNew: true});
+                this.syncAmmo();
 
-                this.recalcStats(); // Setzt maxHp korrekt
+                this.recalcStats(); 
                 this.state.hp = this.state.maxHp;
                 
                 this.checkNewQuests(); 
@@ -329,8 +509,14 @@ window.Game = {
                 this.saveGame(true); 
             }
 
-            if (isNewGame) { this.loadSector(this.state.sector.x, this.state.sector.y); } 
-            else { if(this.renderStaticMap) this.renderStaticMap(); this.reveal(this.state.player.x, this.state.player.y); }
+            if (isNewGame) { 
+                // Need to ensure Game.loadSector is available (from game_map.js)
+                if(typeof this.loadSector === 'function') this.loadSector(this.state.sector.x, this.state.sector.y); 
+            } 
+            else { 
+                if(this.renderStaticMap) this.renderStaticMap(); 
+                if(this.reveal) this.reveal(this.state.player.x, this.state.player.y); 
+            }
 
             UI.switchView('map').then(() => { 
                 if(UI.els.gameOver) UI.els.gameOver.classList.add('hidden'); 
@@ -339,7 +525,5 @@ window.Game = {
         } catch(e) {
             console.error(e);
         }
-    },
-
-    // ... (restliche Funktionen: saveGame, performSave, hardReset, calculateMaxHP, getStat, expToNextLevel, gainExp etc. werden über Object.assign geladen)
+    }
 };
