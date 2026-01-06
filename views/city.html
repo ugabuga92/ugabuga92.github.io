@@ -1,61 +1,11 @@
-<!-- [v0.4.25] -->
-<div class="p-2 w-full h-full flex flex-col items-center overflow-hidden bg-black/50">
-    <div class="text-green-500 font-mono text-[8px] sm:text-[10px] leading-none whitespace-pre mb-2 text-center hidden sm:block opacity-60">
-      _   _   _   _   _   _   _   _   _   _   _
-     / \ / \ / \ / \ / \ / \ / \ / \ / \ / \ / \
-    ( R | U | S | T | Y |   | S | P | R | I | N )
-     \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/
-    </div>
-    
-    <h1 class="text-3xl md:text-4xl font-bold mb-4 text-center text-yellow-400 tracking-widest border-b-2 border-yellow-400 w-full max-w-3xl shadow-[0_0_15px_rgba(255,215,0,0.3)] bg-gradient-to-r from-transparent via-yellow-900/20 to-transparent">
-        RUSTY SPRINGS
-    </h1>
-
-    <div class="flex-grow w-full max-w-5xl flex flex-col md:flex-row gap-6 overflow-hidden px-2">
-        
-        <div class="hidden md:flex flex-col w-1/3 border-2 border-green-900 bg-green-900/10 p-4 rounded-lg relative overflow-hidden">
-            <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiMwMDgwMDAiIGZpbGwtb3BhY2l0eT0iMC4yIi8+PC9zdmc+')] opacity-20"></div>
-            
-            <h3 class="text-xl text-green-400 font-bold mb-4 border-b border-green-800 pb-1 flex justify-between items-center">
-                <span>STATUS</span>
-                <span class="text-xs animate-pulse">● ONLINE</span>
-            </h3>
-            
-            <div class="text-sm text-green-200 space-y-4 font-mono z-10">
-                <div class="flex justify-between border-b border-green-900/50 pb-2">
-                    <span>Bevölkerung:</span>
-                    <span class="text-yellow-400 font-bold">142</span>
-                </div>
-                <div class="flex justify-between border-b border-green-900/50 pb-2">
-                    <span>Strahlung:</span>
-                    <span class="text-green-400 font-bold">NIEDRIG</span>
-                </div>
-                <div class="flex justify-between border-b border-green-900/50 pb-2">
-                    <span>Sicherheit:</span>
-                    <span class="text-cyan-400 font-bold">HOCH</span>
-                </div>
-                
-                <div class="mt-6 p-3 bg-green-900/30 border-l-2 border-green-500 italic text-green-400 text-xs leading-relaxed">
-                    "Willkommen, Wanderer. Halten Sie Ihre Waffen gesichert und Ihre Kronkorken bereit. Doc Zimmermann sucht noch Spender... äh, Patienten."
-                </div>
-            </div>
-
-            <div class="mt-auto flex justify-center opacity-30 pointer-events-none">
-                 <div class="text-[6px] leading-none whitespace-pre text-green-500">
-           .
-          / \
-         | | |
-        . . . .
-         | | |
-         |_|_| 
-                 </div>
-            </div>
-        </div>
-
-        <div id="city-options" class="w-full md:w-2/3 flex flex-col gap-3 overflow-y-auto pr-1 pb-4">
-            </div>
-    </div>
+<div class="flex h-full w-full items-center justify-center text-green-900 animate-pulse">
+    LADE STADT-INTERFACE...
 </div>
 <script>
-    UI.renderCity();
+    // Startet den Aufbau des neuen Dashboards
+    if(UI && UI.renderCity) {
+        UI.renderCity();
+    } else {
+        console.error("UI.renderCity nicht gefunden!");
+    }
 </script>
