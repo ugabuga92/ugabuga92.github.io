@@ -1,20 +1,39 @@
+# CHANGELOG (v0.6.6 - v0.8.0)
 
-# CHANGELOG
-## v0.7.0 (Character Dashboard Overhaul)
-- [UI] **Neues Charakter-Menü (Dashboard):** Komplettes Redesign der Charakter-Ansicht.
-  - **Grid-Layout:** Visuelle "Paper Doll" Ansicht für Ausrüstung (Kopf, Körper, Waffe, etc. als Grid).
-  - **Tabs:** Aufteilung in 3 klare Bereiche: **STATUS**, **S.P.E.C.I.A.L.** und **PERKS**.
-  - **Visuals:** Neue CSS-Styles für Slots, Tabs und Fortschrittsbalken.
-- [UX] **Smart Header:** Klick auf Name/Level im HUD öffnet intelligent das Charakter-Menü:
-  - Hast du **Stat-Punkte**? -> Öffnet S.P.E.C.I.A.L. Tab.
-  - Hast du **Perk-Punkte**? -> Öffnet Perk Tab.
-  - Sonst -> Öffnet Status Tab.
-- [CONTROLS] **Input Update:**
-  - Verbesserte **Touch-Steuerung** (virtueller Joystick Logik integriert).
-  - **Mouse-Lockpicking:** Das Schlossknacken reagiert nun auch auf Mausbewegung.
-- [SYSTEM] **State Memory:** Das Charakter-Menü merkt sich nun den offenen Tab und die Scroll-Position (kein Rausfliegen mehr beim Skillen).
-- [BUGFIX] **Game Core:** Kritische Funktionen (`saveGame`, `gainExp`) wiederhergestellt, die kurzzeitig fehlten.
-- [BUGFIX] **Ghost UI:** Alte HTML-Fragmente aus dem Charakter-Screen entfernt, die manchmal kurz aufblitzten.
+## v0.8.0 (The Hub Update)
+- [UI] **Rusty Springs Overhaul:** Das Stadt-Menü wurde komplett überarbeitet.
+  - Neues **Kachel-Design (Grid)** statt langweiliger Liste.
+  - Riesiges, animiertes Händler-Icon.
+  - Dynamische Status-Anzeigen (Bevölkerung, Sicherheit).
+- [SYSTEM] **City Loader:** `views/city.html` wurde bereinigt und dient nur noch als Init-Trigger für das neue JS-Rendering.
+
+## v0.7.4 (Quality of Life)
+- [UX] **Klinik Auto-Close:** Nach einer erfolgreichen Heilung beim Arzt schließt sich das Menü automatisch nach 1 Sekunde und kehrt zur Stadtansicht zurück.
+
+## v0.7.3 (Crafting & Scrapping Balance)
+- [GAMEPLAY] **Zerlegen (Scrapping):** - Funktion wieder exklusiv an **Werkbänke** gebunden (kein Zerlegen im Feld).
+  - **Loot-Formel verbessert:** Jedes zerlegte Item gibt jetzt garantiert mindestens **1 Schrottmetall**, plus Bonus durch den *Wiederverwerter*-Perk.
+- [GAMEPLAY] **Loot Economy:**
+  - Monster (Ratten, Kakerlaken) droppen nun häufiger **Schrott** und **Komponenten** (Zähne, Stoff), um den Einstieg zu erleichtern.
+  - Raider lassen öfter rostige Waffen fallen, die zerlegt werden können.
+
+## v0.7.0 - v0.7.1 (Character Dashboard & Input)
+- [UI] **Neues Charakter-Menü:**
+  - Visuelles **Paper-Doll Grid** für Ausrüstung.
+  - Klare Trennung durch Tabs: **STATUS / S.P.E.C.I.A.L. / PERKS**.
+- [UX] **Smart Header:** Klick auf Name/Level öffnet direkt den relevanten Tab (z.B. Perks, wenn Punkte verfügbar sind).
+- [UX] **Menu Routing:** Der "Charakter"-Button im Burgermenü setzt die Ansicht jetzt immer korrekt auf den "Status"-Tab zurück.
+
+## v0.6.7 - v0.6.9a (Combat & Perks Core)
+- [BUGFIX] **Perk-Absturz behoben:** Kritischer Fehler `perks.includes is not a function` repariert. Das System nutzt nun sicher `getPerkLevel()`.
+- [BUGFIX] **Munitions-Logik:** - Nahkampfwaffen (Baseballschläger, Messer) verbrauchen keine Munition mehr und werden nicht automatisch abgelegt.
+  - "Whitelist"-System eingeführt: Nur Waffen mit Keywords wie "Pistol", "Rifle", "Gun" benötigen Munition.
+- [FEATURE] **10 neue Perks implementiert:**
+  - *Kampf:* Revolverheld (+Dmg Fern), Schläger (+Dmg Nah), Mysteriöser Fremder (+Crit).
+  - *Survival:* Rad-Resistenz, Sanitäter, Zähigkeit.
+  - *Utility:* Starker Rücken (+Inv), Wiederverwerter (+Loot beim Zerlegen), Heller Kopf (+XP), Schatzsucher (+Caps).
+- [BUGFIX] **Combat Safety:** Fallback eingebaut, falls eine Waffe keine ID hat (verhindert 0% VATS Bug und Abstürze).
+
 
 ## v0.6.1 (Perks & Quests Update)
 - [SYSTEM] **Perk-System 2.0:** Perks sind nicht mehr nur "an/aus", sondern haben jetzt **5 Stufen**.
