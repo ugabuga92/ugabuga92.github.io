@@ -1,5 +1,8 @@
 Object.assign(UI, {
 
+    // [v0.6.2] Status-Speicher für Charakter-Ansicht
+    charTab: 'stats', 
+
     renderInventory: function() {
         const list = document.getElementById('inventory-list');
         const countDisplay = document.getElementById('inv-count');
@@ -141,7 +144,13 @@ Object.assign(UI, {
         }
     },
 
-    renderChar: function(mode = 'stats') {
+    renderChar: function(mode) {
+        // [v0.6.2] TAB MEMORY FIX
+        // Wenn ein Modus übergeben wird (z.B. durch Klick), speichern wir ihn.
+        // Wenn kein Modus übergeben wird (z.B. durch Auto-Update), nutzen wir den gespeicherten.
+        if (mode) this.charTab = mode;
+        const currentMode = this.charTab;
+
         const grid = document.getElementById('stat-grid');
         const perksContainer = document.getElementById('perk-container');
         if(!grid) return; 
@@ -176,7 +185,7 @@ Object.assign(UI, {
         }
         
         if(btnStats && perkBtn) {
-             if(mode === 'stats') {
+             if(currentMode === 'stats') {
                  btnStats.className = "flex-1 py-2 font-bold bg-green-900/40 text-green-400 border border-green-500 transition-colors";
                  perkBtn.className = "flex-1 py-2 font-bold bg-black text-gray-500 border border-gray-700 hover:text-green-400 transition-colors ml-[-1px]";
              } else {
@@ -185,7 +194,7 @@ Object.assign(UI, {
              }
         }
 
-        if(mode === 'stats') {
+        if(currentMode === 'stats') {
              grid.style.display = 'block';
              if(perksContainer) perksContainer.style.display = 'none';
              
@@ -255,8 +264,13 @@ Object.assign(UI, {
         return null;
     },
 
-    // [v0.6.0] LEVELED PERK LISTE
+    // [v0.6.2] LEVELED PERK LISTE & SCROLL FIX
     renderPerksList: function(container) {
+        if(!container) return;
+        
+        // SCROLL FIX: Position merken
+        const scrollPos = container.scrollTop || 0;
+
         container.innerHTML = '';
         const points = Game.state.perkPoints || 0;
         
@@ -272,7 +286,7 @@ Object.assign(UI, {
                 const isMaxed = currentLvl >= maxLvl;
                 const canAfford = points > 0 && !isMaxed;
                 
-                // Visual Bar [■ ■ □ □ □]
+                // Visual Bar
                 let levelBar = '';
                 for(let i=0; i<maxLvl; i++) {
                     levelBar += (i < currentLvl) ? '<span class="text-yellow-400 text-lg">■</span>' : '<span class="text-gray-700 text-lg">□</span>';
@@ -282,7 +296,8 @@ Object.assign(UI, {
                 if(isMaxed) {
                     btnHtml = '<span class="text-green-500 font-bold border border-green-500 px-2 py-1 text-xs bg-green-900/20">MAX</span>';
                 } else if(canAfford) {
-                    btnHtml = `<button class="action-button text-xs px-3 py-1 bg-yellow-900/20 border-yellow-500 text-yellow-400 hover:bg-yellow-500 hover:text-black font-bold" onclick="Game.choosePerk('${p.id}')">LERNEN (+)</button>`;
+                    // [FIX] event.stopPropagation() prevents bubbling
+                    btnHtml = `<button class="action-button text-xs px-3 py-1 bg-yellow-900/20 border-yellow-500 text-yellow-400 hover:bg-yellow-500 hover:text-black font-bold" onclick="event.stopPropagation(); Game.choosePerk('${p.id}')">LERNEN (+)</button>`;
                 } else {
                     btnHtml = '<span class="text-gray-600 text-xs border border-gray-800 px-2 py-1">---</span>';
                 }
@@ -307,6 +322,13 @@ Object.assign(UI, {
                     </div>
                 `;
                 container.appendChild(div);
+            });
+        }
+
+        // SCROLL FIX: Position wiederherstellen
+        if(scrollPos > 0) {
+            requestAnimationFrame(() => {
+                container.scrollTop = scrollPos;
             });
         }
     }
