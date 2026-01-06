@@ -178,73 +178,94 @@
     </div>
 </div>
 <script>
-    function loadScript(src) {
-        return new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = src;
-            s.onload = resolve;
-            s.onerror = reject;
-            document.body.appendChild(s);
+    function loadScript(src) { return new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject; document.body.appendChild(s); }); }
+    
+    // BOOT SEQUENCE LOGIC
+    function runBootSequence(ver) {
+        const bootLines = [
+            "ROBCO INDUSTRIES UNIFIED OPERATING SYSTEM",
+            "COPYRIGHT 2075-2077 ROBCO INDUSTRIES",
+            "SERVER: ONLINE",
+            `LOADING SYSTEM VERSION ${ver || 'DETECTING...'}`,
+            "MEMORY: 64KB OK",
+            "BIO-METRICS: NOT FOUND",
+            "INITIALIZING PIP-BOY 3003 INTERFACE..."
+        ];
+        const log = document.getElementById('boot-log');
+        const bootSeq = document.getElementById('boot-sequence');
+        const loginContent = document.getElementById('login-content');
+        let delay = 1500; // Start nach kurzer Wartezeit für Animation
+        
+        bootLines.forEach((line, i) => {
+            setTimeout(() => {
+                const div = document.createElement('div');
+                div.className = "boot-line";
+                div.textContent = "> " + line;
+                log.appendChild(div);
+            }, delay);
+            delay += 600 + Math.random() * 400; // Zufällige Verzögerung
         });
+
+        // Nach Boot Sequence zum Login wechseln
+        setTimeout(() => {
+            bootSeq.style.display = 'none';
+            loginContent.classList.remove('hidden');
+            loginContent.classList.add('flex');
+        }, delay + 1000);
     }
 
+    // [v0.9.8] MAIN INIT - FORCE NO CACHE
     window.onload = function() {
         const verDisplay = document.getElementById('version-display');
-        const loginVerDisplay = document.getElementById('login-version-display');
+        const loginVerDisplay = document.getElementById('login-version-display'); 
+        
+        // Use current timestamp as version to force re-fetch
         const devVer = Date.now();
+        console.log("[PipBoy3003] Dev Mode Active. Force Loading ID:", devVer);
 
-        fetch('Version?t=' + devVer)
-            .then(res => res.text())
-            .then(v => {
-                const displayVer = v.trim();
-                runBootSequence(displayVer);
+        // Fetch Version file purely for display purposes
+        fetch('Version?t=' + devVer).then(res => res.text()).then(v => {
+            const displayVer = v.trim(); // Version string from file (e.g. 0.9.7)
+            
+            runBootSequence(displayVer);
 
-                if (verDisplay) verDisplay.textContent = displayVer;
-                if (loginVerDisplay) loginVerDisplay.textContent = displayVer;
-
-                loadScript('data/data_core.js?v=' + devVer)
-                    .then(() => loadScript('data/data_items.js?v=' + devVer))
-                    .then(() => loadScript('data/data_recipes.js?v=' + devVer))
-                    .then(() => loadScript('data/data_monsters.js?v=' + devVer))
-
-                    .then(() => loadScript('world_gen.js?v=' + devVer))
-                    .then(() => loadScript('network.js?v=' + devVer))
-                    .then(() => loadScript('minigames.js?v=' + devVer))
-                    .then(() => loadScript('combat.js?v=' + devVer))
-
-                    .then(() => loadScript('game/game_core.js?v=' + devVer))
-                    .then(() => loadScript('game/game_map.js?v=' + devVer))
-                    .then(() => loadScript('game/game_actions.js?v=' + devVer))
-                    .then(() => loadScript('game/game_render.js?v=' + devVer))
-
-                    .then(() => loadScript('ui/ui_core.js?v=' + devVer))
-                    .then(() => loadScript('ui/ui_render_core.js?v=' + devVer))
-
-                    .then(() => loadScript('ui/ui_view_inv.js?v=' + devVer))
-                    .then(() => loadScript('ui/ui_view_city.js?v=' + devVer))
-                    .then(() => loadScript('ui/ui_view_world.js?v=' + devVer))
-                    .then(() => loadScript('ui/ui_view_town.js?v=' + devVer))
-                    .then(() => loadScript('ui/ui_view_journal.js?v=' + devVer))
-                    .then(() => loadScript('ui/ui_view_camp.js?v=' + devVer))
-
-                    .then(() => loadScript('ui/ui_render_views.js?v=' + devVer))
-                    .then(() => loadScript('ui/ui_render_minigames.js?v=' + devVer))
-                    .then(() => loadScript('ui/ui_render_overlays.js?v=' + devVer))
-                    .then(() => loadScript('ui/ui_input.js?v=' + devVer))
-
-                    .then(() => {
-                        if (typeof UI !== 'undefined') UI.init();
-                        console.log('System Ready.');
-                    })
-                    .catch(err => {
-                        console.error('Critical Load Error:', err);
-                        const ls = document.getElementById('login-status');
-                        if (ls) {
-                            ls.innerHTML =
-                                '<span style="color:red">CRITICAL ERROR: FILE MISSING OR WRONG PATH.<br>CHECK CONSOLE.</span>';
-                        }
-                    });
-            });
+            if(verDisplay) { verDisplay.textContent = displayVer; verDisplay.classList.remove('animate-pulse'); }
+            if(loginVerDisplay) { loginVerDisplay.textContent = displayVer; }
+            
+            // LOAD SCRIPTS WITH TIMESTAMP (devVer) TO IGNORE CACHE
+            loadScript('data_core.js?v=' + devVer)
+                .then(() => loadScript('world_gen.js?v=' + devVer))
+                .then(() => loadScript('network.js?v=' + devVer))
+                .then(() => loadScript('minigames.js?v=' + devVer))
+                .then(() => loadScript('combat.js?v=' + devVer))
+                                // NEW DATA ORDNER
+                .then(() => loadScript('data/data_items.js?v=' + devVer))
+                .then(() => loadScript('data/data_recipes.js?v=' + devVer))
+                .then(() => loadScript('data/data_monsters.js?v=' + devVer))
+                                // NEW GAME ORDNER
+                .then(() => loadScript('game/game_core.js?v=' + devVer))
+                .then(() => loadScript('game/game_map.js?v=' + devVer))
+                .then(() => loadScript('game/game_actions.js?v=' + devVer))
+                .then(() => loadScript('game/game_render.js?v=' + devVer))
+                                // NEW UI ORDNERR
+                .then(() => loadScript('ui/ui_core.js?v=' + devVer))
+                .then(() => loadScript('ui/ui_render_core.js?v=' + devVer))
+                .then(() => loadScript('ui/ui_view_inv.js?v=' + devVer))
+                .then(() => loadScript('ui/ui_view_world.js?v=' + devVer))
+                .then(() => loadScript('ui/ui_view_town.js?v=' + devVer))
+                .then(() => loadScript('ui/ui_view_journal.js?v=' + devVer))
+                .then(() => loadScript('ui/ui_view_city.js?v=' + devVer))
+                .then(() => loadScript('ui/ui_view_camp.js?v=' + devVer))
+                .then(() => loadScript('ui/ui_render_views.js?v=' + devVer))
+                .then(() => loadScript('ui/ui_render_minigames.js?v=' + devVer))
+                .then(() => loadScript('ui/ui_render_overlays.js?v=' + devVer))
+                .then(() => loadScript('ui/ui_input.js?v=' + devVer))
+                .then(() => { if(typeof UI !== 'undefined') UI.init(); console.log("System Ready."); })
+                .catch(err => {
+                    console.error("Critical Load Error:", err);
+                    if(document.getElementById('login-status')) document.getElementById('login-status').innerHTML = '<span style="color:red">CRITICAL ERROR: FILE MISSING OR CORRUPT.<br>CHECK CONSOLE.</span>';
+                });
+        });
     };
 </script>
 </body>
