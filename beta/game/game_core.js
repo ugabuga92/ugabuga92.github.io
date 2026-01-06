@@ -151,8 +151,10 @@ window.Game = {
         this.drawLoop(); 
     },
 
+    // --- WICHTIGES UPDATE HIER ---
     drawLoop: function() { 
-        if(this.state && this.state.view === 'map' && !this.state.isGameOver) {
+        // Wir prüfen jetzt auf 'map' ODER 'combat', damit der Loop weiterläuft
+        if(this.state && (this.state.view === 'map' || this.state.view === 'combat') && !this.state.isGameOver) {
             this.draw(); 
             this.loopId = requestAnimationFrame(() => this.drawLoop());
         }
