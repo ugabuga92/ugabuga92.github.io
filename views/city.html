@@ -1,15 +1,5 @@
-<div class="flex h-full w-full items-center justify-center text-green-900 animate-pulse">
-    LADE STADT-INTERFACE...
+<div class="flex h-full w-full flex-col items-center justify-center bg-black text-green-900 animate-pulse font-mono tracking-widest">
+    <div class="text-4xl mb-4">⚙️</div>
+    <div class="text-xl">LADE STADT-INTERFACE...</div>
+    <div class="text-xs mt-2 opacity-50">LADE RUSTY_SPRINGS_HUB_V0.9...</div>
 </div>
-<script>
-    // Sicherheits-Verzögerung, falls JS noch nicht bereit ist
-    setTimeout(() => {
-        if(UI && UI.renderCity) {
-            UI.renderCity();
-        } else {
-            console.error("UI.renderCity nicht gefunden!");
-            // Fallback
-            UI.switchView('map');
-        }
-    }, 50);
-</script>
