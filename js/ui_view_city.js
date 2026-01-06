@@ -1,14 +1,14 @@
-// js/ui_view_city.js
 Object.assign(UI, {
 
-    // [v0.9.0] CITY DASHBOARD SYSTEM
-    // Kann später erweitert werden mit renderCity('megaton') etc.
+    // [v0.9.1] CITY DASHBOARD SYSTEM
     renderCity: function(cityId = 'rusty_springs') {
         const view = document.getElementById('view-container');
         if(!view) return;
         view.innerHTML = ''; 
+        
+        // WICHTIG: Status setzen, damit das Spiel weiß, dass wir im Menü sind
+        Game.state.view = 'city';
 
-        // Konfiguration für verschiedene Städte (Vorbereitung für Zukunft)
         const cityData = {
             'rusty_springs': {
                 name: "RUSTY SPRINGS",
@@ -20,7 +20,6 @@ Object.assign(UI, {
                     "Der sicherste Ort im Sektor."
                 ]
             }
-            // Hier könnten später 'megaton' etc. stehen
         };
 
         const data = cityData[cityId] || cityData['rusty_springs'];
@@ -52,29 +51,32 @@ Object.assign(UI, {
         // A. HÄNDLER
         this.createCityCard(grid, {
             icon: "🛒", label: "HANDELSPOSTEN", sub: "Waffen • Munition", type: "trader",
-            onClick: () => UI.renderShop(view)
+            onClick: () => {
+                // Prüfen ob Funktion existiert
+                if(UI.renderShop) UI.renderShop(); 
+                else console.error("UI.renderShop is missing!");
+            }
         });
 
         // B. ARZT
         this.createCityCard(grid, {
             icon: "⚕️", label: "KLINIK", sub: "Dr. Zimmermann", color: "text-red-400",
-            onClick: () => UI.renderClinic(view)
+            onClick: () => {
+                if(UI.renderClinic) UI.renderClinic();
+                else console.error("UI.renderClinic is missing!");
+            }
         });
 
         // C. WERKBANK
         this.createCityCard(grid, {
             icon: "🛠️", label: "WERKBANK", sub: "Zerlegen & Bauen", color: "text-blue-400",
-            onClick: () => UI.renderCrafting()
-        });
-
-        // D. RASTEN
-        this.createCityCard(grid, {
-            icon: "💤", label: "BARACKE", sub: "Rasten (Gratis)", color: "text-green-200",
-            onClick: () => { 
-                Game.rest(); 
-                UI.log("Du ruhst dich in der Baracke aus...", "text-blue-300");
+            onClick: () => {
+                if(UI.renderCrafting) UI.renderCrafting();
+                else console.error("UI.renderCrafting is missing!");
             }
         });
+
+        // (Baracke entfernt)
 
         view.appendChild(grid);
 
@@ -89,15 +91,12 @@ Object.assign(UI, {
         view.appendChild(footer);
     },
 
-    // Helper für saubereren Code
     createCityCard: function(container, conf) {
         const card = document.createElement('div');
         card.className = `city-card ${conf.type || ''}`;
         card.onclick = conf.onClick;
         
         const colorClass = conf.color || ""; 
-        
-        // Händler braucht größeres Icon
         const iconSize = conf.type === 'trader' ? 'text-6xl' : 'text-4xl';
 
         card.innerHTML = `
