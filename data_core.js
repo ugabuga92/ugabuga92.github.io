@@ -1,6 +1,6 @@
 window.GameData = window.GameData || {};
 
-// [v0.6.6] PERK SYSTEM (10 Perks)
+// [v0.7.3] PERK SYSTEM (10 Perks)
 window.GameData.perks = [
     // --- DEFENSIVE / SURVIVAL ---
     { 
@@ -132,6 +132,44 @@ window.GameData.questDefs = [
         reward: { xp: 300, caps: 150, items: [{id:'combat_armor', c:1}] } 
     }
 ];
+
+// --- ITEMS UPDATE (Mehr Loot) ---
+window.GameData.items = Object.assign(window.GameData.items || {}, {
+    junk_metal: { name: "Schrottmetall", type: "junk", cost: 5, icon: "⚙️", desc: "Wichtiges Baumaterial." },
+    cloth: { name: "Stofffetzen", type: "component", cost: 3, icon: "🧶", desc: "Für Betten und Rüstungen." },
+    screws: { name: "Lose Schrauben", type: "component", cost: 15, icon: "🔩", desc: "Wichtig für Waffen." },
+    duct_tape: { name: "Klebeband", type: "component", cost: 20, icon: "🩹", desc: "Hält die Welt zusammen." },
+    glue: { name: "Wunderkleber", type: "component", cost: 25, icon: "💧", desc: "Klebt alles." },
+    gears: { name: "Zahnräder", type: "component", cost: 30, icon: "⚙️", desc: "Für Mechanik." },
+    springs: { name: "Federn", type: "component", cost: 30, icon: "🌀", desc: "Für Abzüge und Dämpfer." },
+    plastic: { name: "Plastik", type: "component", cost: 10, icon: "🧴", desc: "Leichtes Material." },
+    tin_can: { name: "Blechdose", type: "junk", cost: 2, icon: "🥫", desc: "Bringt Stahl." },
+    wrench: { name: "Schraubenschlüssel", type: "junk", cost: 15, icon: "🔧", desc: "Guter Schrott." },
+    clipboard: { name: "Klemmbrett", type: "junk", cost: 10, icon: "📋", desc: "Enthält Federn." }
+});
+
+// --- MONSTER LOOT UPDATE ---
+window.GameData.monsters = Object.assign(window.GameData.monsters || {}, {
+    radRoach: { 
+        name: "Rad-Kakerlake", hp: 15, dmg: 3, xp: [10,20], loot: 2, minLvl: 1,
+        drops: [ {id:'junk_metal', c: 0.5}, {id:'rad_meat', c: 0.4} ]
+    },
+    moleRat: { 
+        name: "Maulwurfsratte", hp: 25, dmg: 5, xp: [15,30], loot: 5, minLvl: 1,
+        drops: [ {id:'rad_meat', c: 0.5}, {id:'leather', c: 0.3}, {id:'junk_metal', c: 0.2} ]
+    },
+    wildDog: { 
+        name: "Wilder Hund", hp: 35, dmg: 8, xp: [25,40], loot: 0, minLvl: 2,
+        drops: [ {id:'rad_meat', c: 0.6}, {id:'leather', c: 0.5} ]
+    },
+    raider: { 
+        name: "Raider", hp: 60, dmg: 12, xp: [50,80], loot: 15, minLvl: 2,
+        drops: [
+            {id:'ammo', c: 0.6}, {id:'stimpack', c: 0.2}, {id:'knife', c: 0.2},
+            {id:'pistol_rusty', c: 0.3}, {id:'junk_metal', c: 0.4}
+        ]
+    }
+});
 
 // --- FARBPALETTE ---
 window.GameData.colors = { 
