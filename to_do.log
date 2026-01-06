@@ -1,8 +1,4 @@
 🐛 Aktuelle Bugs & Anpassungen:
-- Perk logik neu gedacht. es gibt eine msx Punktezal con 5 pro Perk, effekt steigt somit langsam an und nicht direkt 100%, sonst hat man zu viele Punkte zu schnell übrig. 
-- Der Rucksack soll sich automatisch sortieren, aktuell gibt es unten ausgerüstet, jetzt soll oben die gesammelten Sachen nach Kategorien sortiert werden ausrüstung, eilung und Essen Schrott
-
-- zurück button char auswahl ohne funktion. 
-
+- 
 - Neue und mehr Quest implemntieren, gerne 5 neue Quest. eine Anfänger quest z.b noch. Das erste mal Zelt aubauen, was braten + übernachten
 - Tutorial einbauen um alle funktionen kennen zu lernen? Gerne eine abfolge von Anfängerquests o.ä?
