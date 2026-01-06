@@ -1,7 +1,8 @@
 window.GameData = window.GameData || {};
 
-// [v0.6.0] PERK SYSTEM 2.0 (Leveled)
+// [v0.6.6] PERK SYSTEM (10 Perks)
 window.GameData.perks = [
+    // --- DEFENSIVE / SURVIVAL ---
     { 
         id: 'toughness', 
         name: 'Zähigkeit', 
@@ -17,6 +18,22 @@ window.GameData.perks = [
         max: 5 
     },
     { 
+        id: 'rad_resistant', 
+        name: 'Rad-Resistenz', 
+        desc: '-10% Strahlungsaufnahme pro Stufe.', 
+        icon: '☢️', 
+        max: 5 
+    },
+    
+    // --- UTILITY / LOOT ---
+    { 
+        id: 'strong_back', 
+        name: 'Starker Rücken', 
+        desc: '+1 Inventar-Slot pro Stufe.', 
+        icon: '🎒', 
+        max: 5 
+    },
+    { 
         id: 'fortune_finder', 
         name: 'Schatzsucher', 
         desc: '+10% mehr Kronkorken finden pro Stufe.', 
@@ -24,10 +41,40 @@ window.GameData.perks = [
         max: 5 
     },
     { 
+        id: 'scrapper', 
+        name: 'Wiederverwerter', 
+        desc: 'Höhere Chance auf seltene Teile beim Zerlegen.', 
+        icon: '⚙️', 
+        max: 3 
+    },
+    { 
+        id: 'swift_learner', 
+        name: 'Heller Kopf', 
+        desc: '+5% Erfahrungspunkte (XP) pro Stufe.', 
+        icon: '🧠', 
+        max: 5 
+    },
+
+    // --- COMBAT ---
+    { 
         id: 'mysterious_stranger', 
         name: 'Mysteriöser Fremder', 
         desc: '+2% Krit-Chance im V.A.T.S. pro Stufe.', 
         icon: '🕵️', 
+        max: 5 
+    },
+    { 
+        id: 'gunslinger', 
+        name: 'Revolverheld', 
+        desc: '+10% Schaden mit Schusswaffen pro Stufe.', 
+        icon: '🔫', 
+        max: 5 
+    },
+    { 
+        id: 'slugger', 
+        name: 'Schläger', 
+        desc: '+10% Schaden im Nahkampf pro Stufe.', 
+        icon: '🏏', 
         max: 5 
     }
 ];
