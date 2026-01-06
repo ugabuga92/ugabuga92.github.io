@@ -41,13 +41,11 @@ Object.assign(Game, {
         }
 
         // --- INTERAKTIONEN ---
-        // (Alte Shop/Clinic Shortcuts entfernt, da jetzt alles über 'C' läuft)
         if (tile === 'X') { this.openChest(nx, ny); return; } 
         if (tile === 'v') { this.descendDungeon(); return; }
 
         // --- KOLLISION ---
-        // 'C' (City) muss hier begehbar sein, damit wir drauf treten können!
-        // Daher 'C' NICHT in dieser Liste!
+        // 'C' ist begehbar!
         if(['M', 'W', '#', 'U', 't', 'o', 'Y', '|', 'F', 'T', 'R'].includes(tile) && tile !== 'R') { 
             if(this.state.hiddenItems && this.state.hiddenItems[posKey]) {
                  const itemId = this.state.hiddenItems[posKey];
@@ -76,7 +74,7 @@ Object.assign(Game, {
         // --- POI EVENTS ---
         if(tile === 'V') { UI.switchView('vault'); return; }
         
-        // [FIX] Wenn Spieler auf 'C' steht -> Stadt betreten
+        // TRIGGER CITY DASHBOARD
         if(tile === 'C') { this.enterCity(); return; } 
         
         if(tile === 'S') { this.tryEnterDungeon("market"); return; }
@@ -140,7 +138,6 @@ Object.assign(Game, {
             if(this.state.worldPOIs) {
                 this.state.worldPOIs.forEach(poi => {
                     if(poi.x === sx && poi.y === sy) {
-                        // Standard Position für POIs im Sektor
                         poiList.push({x: 20, y: 20, type: poi.type});
                         sectorPoiType = poi.type;
                     }
@@ -344,36 +341,38 @@ Object.assign(Game, {
         setTimeout(() => { this.leaveCity(); }, 4000);
     },
 
-    // [v0.8.2 FIX] CITY LOGIC
+    // [v0.8.3 FIX] CITY LOGIC
     enterCity: function() {
-        // Position speichern für Rückkehr
         this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
-        
-        // Status auf 'city' setzen
         this.state.view = 'city';
         
         UI.log("Betrete Rusty Springs...", "text-yellow-400");
         this.saveGame();
         
-        // WICHTIG: switchView nutzen, damit der Loader gefeuert wird!
-        UI.switchView('city');
+        // WICHTIG: .then() stellt sicher, dass der View geladen ist, BEVOR gerendert wird!
+        UI.switchView('city').then(() => {
+            if(typeof UI !== 'undefined' && UI.renderCity) {
+                UI.renderCity();
+            } else {
+                console.error("UI.renderCity missing!");
+            }
+        });
     },
 
     leaveCity: function() {
-        // Status zurück auf Map
         this.state.view = 'map';
         this.state.dungeonLevel = 0; 
         
-        // Position wiederherstellen (man steht ja noch auf 'C')
         if(this.state.savedPosition) {
             this.state.player.x = this.state.savedPosition.x;
             this.state.player.y = this.state.savedPosition.y;
             this.state.savedPosition = null;
         }
         
-        // Map Ansicht aktivieren
-        UI.switchView('map');
-        if(this.renderStaticMap) this.renderStaticMap();
+        // Zurück zur Map (diesmal 'map' als Viewname, nicht 'worldmap', um sicherzugehen)
+        UI.switchView('map').then(() => {
+            if(this.renderStaticMap) this.renderStaticMap();
+        });
         
         UI.log("Zurück im Ödland.", "text-green-400");
     }
