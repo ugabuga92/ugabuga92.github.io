@@ -99,6 +99,17 @@ Object.assign(UI, {
                 this.toggleMenu();
             };
         }
+
+        // [v0.6.4] SMART CHAR CLICK (Merged)
+        const btnCharHeader = document.getElementById('header-char-info');
+        if(btnCharHeader) {
+            btnCharHeader.onclick = () => {
+                if (Game.state.statPoints > 0) this.charTab = 'stats';
+                else if (Game.state.perkPoints > 0) this.charTab = 'perks';
+                else this.charTab = 'stats';
+                this.switchView('char');
+            };
+        }
         
         document.addEventListener('click', (e) => {
             if(this.els.navMenu && !this.els.navMenu.classList.contains('hidden')) {
@@ -133,6 +144,13 @@ Object.assign(UI, {
         if(this.els.btnChar) this.els.btnChar.onclick = () => this.toggleView('char');
         if(this.els.btnQuests) this.els.btnQuests.onclick = () => this.toggleView('quests');
         if(this.els.btnSpawnRandom) this.els.btnSpawnRandom.onclick = () => this.selectSpawn(null);
+
+        // Mobile D-Pad Toggle (falls du den noch willst, sonst ignorieren)
+        const btnDpad = document.getElementById('btn-toggle-dpad');
+        if(btnDpad) btnDpad.onclick = () => {
+            const dpad = document.getElementById('dpad-overlay');
+            if(dpad) dpad.classList.toggle('hidden');
+        };
 
         if(this.els.touchArea) {
             this.els.touchArea.addEventListener('touchstart', (e) => this.handleTouchStart(e), {passive: false});
@@ -176,7 +194,6 @@ Object.assign(UI, {
             this.inputMethod = 'key';
             
             // FIX: Prevent browser scrolling with Arrow Keys and Space
-            // Added more keys and target check to ensure it works everywhere except inputs
             const preventKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "Space", "PageUp", "PageDown", "Home", "End"];
             const targetTag = e.target.tagName.toLowerCase();
             
@@ -272,6 +289,13 @@ Object.assign(UI, {
             if(e.key === 's' || e.key === 'ArrowDown') Game.move(0, 1);
             if(e.key === 'a' || e.key === 'ArrowLeft') Game.move(-1, 0);
             if(e.key === 'd' || e.key === 'ArrowRight') Game.move(1, 0);
+            
+            // Shortcuts
+            const k = e.key.toLowerCase();
+            if(k === 'i') this.switchView('inventory');
+            else if(k === 'c') this.switchView('char');
+            else if(k === 'm') this.switchView('map');
+            else if(k === 'j') this.switchView('journal');
         }
     },
     
