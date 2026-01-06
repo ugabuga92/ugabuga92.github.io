@@ -112,7 +112,6 @@ Object.assign(Game, {
         this.reveal(this.state.player.x, this.state.player.y); 
         this.saveGame();
         
-        // [v0.9.12] QUEST TRIGGER: Visit Sector
         if(typeof this.updateQuestProgress === 'function') {
              this.updateQuestProgress('visit', `${sx},${sy}`, 1);
         }
@@ -125,6 +124,20 @@ Object.assign(Game, {
         const sy = parseInt(sy_in);
         const key = `${sx},${sy}`; 
         
+        // [v0.8.0] RUSTY SPRINGS INTERCEPTOR
+        // Wenn Sektor 3,3 (Stadt) geladen wird, öffne stattdessen das Dashboard
+        if (sx === 3 && sy === 3) {
+            this.state.sector = {x: 3, y: 3};
+            this.state.zone = "Rusty Springs (Hub)";
+            this.state.view = 'city'; 
+            
+            // Verhindere Map Generation und triggere UI
+            if(typeof UI !== 'undefined' && UI.renderCity) UI.renderCity();
+            
+            this.saveGame();
+            return; // STOP! Keine Map generieren.
+        }
+
         const mapSeed = (sx + 1) * 5323 + (sy + 1) * 8237 + 9283;
         if(typeof WorldGen !== 'undefined') WorldGen.setSeed(mapSeed);
         const rng = () => { return typeof WorldGen !== 'undefined' ? WorldGen.rand() : Math.random(); };
@@ -170,7 +183,6 @@ Object.assign(Game, {
             this.state.visitedSectors.push(key);
         }
         
-        // --- SPAWN HIDDEN BLUEPRINTS ---
         this.state.hiddenItems = {}; 
         
         if(Math.random() < 0.3) { 
@@ -344,26 +356,12 @@ Object.assign(Game, {
     },
 
     enterCity: function() {
-        this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
-        this.state.sectorExploredCache = JSON.parse(JSON.stringify(this.state.explored));
-
-        if(typeof WorldGen !== 'undefined') {
-            const map = WorldGen.generateCityLayout(this.MAP_W, this.MAP_H);
-            this.state.currentMap = map;
-        }
-        this.state.zone = "Rusty Springs (Stadt)";
-        this.state.player.x = 20;
-        this.state.player.y = 38;
-        this.state.player.rot = 0; 
-        
-        this.renderStaticMap();
-        
-        if(!this.state.explored) this.state.explored = {};
-        const secKey = `${this.state.sector.x},${this.state.sector.y}`;
-        for(let y=0; y<this.MAP_H; y++) for(let x=0; x<this.MAP_W; x++) this.state.explored[`${secKey}_${x},${y}`] = true;
-        
-        UI.log("Betrete Rusty Springs...", "text-yellow-400");
-        UI.update();
+        // [v0.8.0] OLD CITY FUNCTION - TRIGGERED WHEN STEPPING ON 'C' ON WORLDMAP
+        // Da wir Rusty Springs durch das Dashboard ersetzt haben, nutzen wir diese Funktion nun,
+        // um den Dashboard-View zu triggern, falls man auf ein City-Tile tritt.
+        this.state.view = 'city';
+        if(typeof UI !== 'undefined' && UI.renderCity) UI.renderCity();
+        this.saveGame();
     },
 
     leaveCity: function() {
