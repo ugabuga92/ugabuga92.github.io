@@ -45,7 +45,6 @@ Object.assign(Game, {
         if (tile === 'v') { this.descendDungeon(); return; }
 
         // --- KOLLISION ---
-        // 'C' ist begehbar!
         if(['M', 'W', '#', 'U', 't', 'o', 'Y', '|', 'F', 'T', 'R'].includes(tile) && tile !== 'R') { 
             if(this.state.hiddenItems && this.state.hiddenItems[posKey]) {
                  const itemId = this.state.hiddenItems[posKey];
