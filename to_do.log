@@ -1,6 +1,5 @@
 🐛 Aktuelle Bugs & Anpassungen:
-- nach Heilung beim Arzt in Rusty springs soll sich das Fenster schließen. 
-Symbole in Rusty Springs von Händler doppelt so groß
+- Symbole in Rusty Springs von Händler doppelt so groß
 - wenn man stirbt bleibt aktuell charaktee uns safegame bestehen. wenn TP 0 erreicht sollte der charakter ja gelöscht werden, liegt das an der speicher logik?
 - schrottmetal logik merkwürdig. kann schrottmetal zerlegen um schrottmetall zu bekommen? schrottmetall sollte nicht zerlegt werden nnen. 
 - Neue und mehr Quest implemntieren, gerne 5 neue Quest. eine Anfänger quest z.b noch. Das erste mal Zelt aubauen, was braten + übernachten
