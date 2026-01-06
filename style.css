@@ -164,3 +164,71 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
 }
 
 #player-list-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 90; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--pip-green); padding: 20px; min-width: 300px; display: none; flex-direction: column; box-shadow: 0 0 30px var(--pip-dim); }
+
+/* --- CHARACTER DASHBOARD (v0.7.0) --- */
+.char-grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto auto auto;
+    gap: 8px;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.equip-slot {
+    border: 1px solid #1b5e20; /* Dunkelgrün */
+    background: rgba(0, 20, 0, 0.5);
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4px;
+    position: relative;
+    transition: all 0.2s;
+    cursor: default;
+}
+
+.equip-slot.filled {
+    border-color: #39ff14; /* Hellgrün */
+    background: rgba(57, 255, 20, 0.1);
+    cursor: pointer;
+}
+.equip-slot.filled:hover {
+    background: rgba(57, 255, 20, 0.2);
+    box-shadow: 0 0 10px #39ff14;
+}
+
+.equip-slot.empty {
+    opacity: 0.5;
+    border-style: dashed;
+}
+
+.equip-slot .icon { font-size: 1.5rem; margin-bottom: 2px; }
+.equip-slot .label { font-size: 0.6rem; text-transform: uppercase; color: #888; }
+.equip-slot .item-name { font-size: 0.7rem; font-weight: bold; color: #39ff14; line-height: 1.1; word-break: break-word; }
+
+/* Grid Positionierung */
+.slot-head { grid-column: 2; grid-row: 1; }
+.slot-body { grid-column: 2; grid-row: 2; }
+.slot-legs { grid-column: 2; grid-row: 3; }
+.slot-feet { grid-column: 2; grid-row: 4; }
+.slot-weapon { grid-column: 1; grid-row: 2; } 
+.slot-arms { grid-column: 3; grid-row: 2; }
+.slot-back { grid-column: 3; grid-row: 1; }
+
+/* Tabs */
+.char-tab-btn {
+    border-bottom: 2px solid transparent;
+    opacity: 0.6;
+    transition: all 0.2s;
+}
+.char-tab-btn:hover { opacity: 1; background: rgba(0, 50, 0, 0.3); }
+.char-tab-btn.active {
+    border-bottom: 2px solid #39ff14;
+    color: #39ff14;
+    opacity: 1;
+    text-shadow: 0 0 5px #39ff14;
+    background: rgba(0, 30, 0, 0.5);
+}
