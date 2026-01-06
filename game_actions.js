@@ -87,6 +87,7 @@ Object.assign(Game, {
         if(typeof UI.renderCamp === 'function') UI.renderCamp();
     },
 
+    // [v0.7.4] Auto-Close Clinic
     heal: function() { 
         if(this.state.caps >= 25) { 
             this.state.caps -= 25; 
@@ -94,6 +95,14 @@ Object.assign(Game, {
             this.state.hp = this.state.maxHp; 
             UI.log("Dr. Zimmermann: 'Alles wieder gut!' (-RADS, +HP)", "text-green-400");
             UI.update(); 
+            
+            // Auto-Close nach 1 Sekunde
+            setTimeout(() => {
+                if (Game.state.view === 'clinic') {
+                    UI.switchView('city');
+                }
+            }, 1000);
+
         } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); }
     },
     
