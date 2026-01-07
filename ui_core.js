@@ -1,5 +1,4 @@
-// [FIX] Definieren wir UI direkt global, damit Erweiterungs-Skripte (wie ui_view_inv.js) es sofort finden.
-window.UI = {
+const UI = {
     els: {},
     timerInterval: null,
     lastInputTime: Date.now(),
@@ -119,7 +118,7 @@ window.UI = {
             newCharOverlay: document.getElementById('new-char-overlay'),
             inputNewCharName: document.getElementById('new-char-name'),
             btnCreateCharConfirm: document.getElementById('btn-create-char'),
-            // [REMOVED] btnCharSelectAction -> Wird nicht mehr benötigt
+            // [GEÄNDERT] btnCharSelectAction entfernt, da im HTML nicht mehr vorhanden
             btnCharDeleteAction: document.getElementById('btn-char-delete-action'),
             btnCharBack: document.getElementById('btn-char-back'),
             
@@ -144,11 +143,10 @@ window.UI = {
              this.els.btnInv.addEventListener('click', () => this.resetInventoryAlert());
         }
 
-        // [v3.4a] Header Info Click Event - Smart Routing
         if(this.els.headerCharInfo) {
             this.els.headerCharInfo.addEventListener('click', () => {
                 const hasStats = Game.state.statPoints > 0;
-                const hasPerks = Game.state.perkPoints > 0; 
+                const hasPerks = Game.state.perkPoints > 0;
                 
                 if(hasStats) {
                     this.switchView('char'); 
@@ -161,7 +159,7 @@ window.UI = {
         }
 
         window.Game = Game;
-        // window.UI ist jetzt bereits definiert
+        window.UI = this;
 
         if(this.initInput) this.initInput();
         
@@ -301,6 +299,7 @@ window.UI = {
         }
     },
     
+    // [GEÄNDERT] selectSlot bereinigt, da der Button nicht mehr existiert
     selectSlot: function(index) {
         if(this.selectedSlot === index) {
             this.triggerCharSlot();
@@ -367,4 +366,7 @@ window.UI = {
         this.els.charSelectScreen.focus();
     }
 };
+
+// [FIX] Ganz wichtig: UI global verfügbar machen!
+window.UI = UI;
 console.log("UI Core Loaded.");
