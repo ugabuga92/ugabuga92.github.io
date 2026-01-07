@@ -1,358 +1,334 @@
 Object.assign(UI, {
-    
-    shopQty: 1,
 
-    // --- KLINIK & WERKBANK ---
-    renderClinic: function() {
-        Game.state.view = 'clinic';
-        const view = document.getElementById('view-container');
-        if(!view) return;
-        view.innerHTML = '';
+    // [v0.7.0] VIEW STATE
+    charTab: 'status', 
 
-        // WRAPPER
-        const wrapper = document.createElement('div');
-        wrapper.className = "w-full h-full flex flex-col bg-black/95 relative";
+    // --- INVENTAR ---
+    renderInventory: function() {
+        const list = document.getElementById('inventory-list');
+        const countDisplay = document.getElementById('inv-count');
+        const capsDisplay = document.getElementById('inv-caps');
+        
+        if(!list) return;
+        
+        list.innerHTML = '';
+        if(capsDisplay) capsDisplay.textContent = Game.state.caps;
+        
+        const usedSlots = Game.getUsedSlots();
+        const maxSlots = Game.getMaxSlots();
+        
+        if(countDisplay) {
+            countDisplay.textContent = `${usedSlots} / ${maxSlots}`;
+            countDisplay.className = usedSlots >= maxSlots ? "text-red-500 font-bold animate-pulse" : "text-green-500 font-mono";
+        }
+        
+        const getIcon = (type) => {
+            switch(type) {
+                case 'weapon': return '🔫'; case 'body': return '🛡️'; case 'head': return '🪖';
+                case 'legs': return '👖'; case 'feet': return '🥾'; case 'arms': return '🦾';
+                case 'back': return '🎒'; case 'consumable': return '💉'; case 'junk': return '⚙️';
+                case 'component': return '🔩'; case 'ammo': return '🧨'; case 'blueprint': return '📜'; 
+                case 'tool': return '⛺'; default: return '📦';
+            }
+        };
 
-        wrapper.innerHTML = `
-            <div class="flex-shrink-0 p-4 border-b-2 border-red-600 bg-red-900/20 text-center shadow-lg shadow-red-900/20">
-                <h2 class="text-3xl text-red-500 font-bold tracking-widest font-vt323">DR. ZIMMERMANN</h2>
-                <div class="text-xs text-red-300 tracking-wider">MEDIZINISCHES ZENTRUM</div>
-            </div>
+        const createBtn = (itemDef, count, props, isNew, isEquipped, label, onClick) => {
+            const btn = document.createElement('div');
+            let cssClass = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center transition-colors group";
             
-            <div class="flex-grow flex flex-col items-center justify-center p-6 gap-6 text-center overflow-y-auto">
-                <div class="text-7xl animate-pulse filter drop-shadow-[0_0_15px_red]">⚕️</div>
-                
-                <div class="border-2 border-red-800 p-4 bg-black/80 w-full max-w-md shadow-inner shadow-red-900/30">
-                    <div class="text-red-400 mb-2 font-bold border-b border-red-900 pb-1 tracking-widest text-sm">PATIENTEN STATUS</div>
-                    <div class="flex justify-between text-lg font-mono mb-1">
-                        <span>GESUNDHEIT:</span> 
-                        <span class="${Game.state.hp < Game.state.maxHp ? 'text-red-500 blink-red' : 'text-green-500'}">${Math.floor(Game.state.hp)} / ${Game.state.maxHp}</span>
-                    </div>
-                    <div class="flex justify-between text-lg font-mono">
-                        <span>STRAHLUNG:</span> 
-                        <span class="${Game.state.rads > 0 ? 'text-red-500 animate-pulse' : 'text-green-500'}">${Math.floor(Game.state.rads)} RADS</span>
-                    </div>
-                </div>
+            if(onClick) cssClass += " cursor-pointer hover:bg-green-500 hover:text-black";
+            else cssClass += " cursor-default opacity-80"; 
+            
+            btn.className = cssClass;
+            
+            let displayName = props && props.name ? props.name : itemDef.name;
+            let extraClass = props && props.color ? props.color : "";
 
-                <div class="text-gray-400 italic text-sm max-w-md leading-relaxed border-l-2 border-red-900 pl-3 text-left">
-                    "Ich kann Sie wieder zusammenflicken. Entfernt Strahlung und heilt alle Verletzungen. Kostet aber ein bisschen was für die... Materialien."
-                </div>
+            btn.innerHTML = `
+                <div class="text-2xl">${getIcon(itemDef.type)}</div>
+                <div class="text-[10px] truncate max-w-full px-1 font-bold ${extraClass}">${displayName}</div>
+                <div class="absolute top-0 right-0 bg-green-900 text-white text-[10px] px-1 font-mono">${count}</div>
+            `;
 
-                <button onclick="Game.heal()" class="action-button w-full max-w-md py-4 text-xl border-2 border-red-500 text-red-500 hover:bg-red-900/50 font-bold transition-all" ${Game.state.caps < 25 ? 'disabled' : ''}>
-                    KOMPLETTBEHANDLUNG (25 KK)
-                </button>
-            </div>
+            if(isEquipped) {
+                const overlay = document.createElement('div');
+                overlay.className = "absolute inset-0 bg-black/60 border-2 border-green-500 flex items-center justify-center text-green-500 font-bold tracking-widest text-[10px] pointer-events-none";
+                overlay.textContent = label || "AUSGERÜSTET";
+                btn.appendChild(overlay);
+                btn.style.borderColor = "#39ff14"; 
+            }
+            
+            if(onClick) {
+                btn.onclick = (e) => {
+                    e.stopPropagation(); 
+                    onClick();
+                };
+            }
+            return btn;
+        };
 
-            <div class="flex-shrink-0 p-3 border-t border-red-900 bg-[#0a0000]">
-                <button class="action-button w-full border-gray-600 text-gray-500 hover:text-white hover:border-white transition-colors" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>
-            </div>
-        `;
-        view.appendChild(wrapper);
+        const cats = {
+            equip: { label: "🛡️ AUSRÜSTUNG", items: [] },
+            aid:   { label: "💉 HILFSMITTEL", items: [] },
+            misc:  { label: "⚙️ MATERIAL", items: [] }
+        };
+
+        const equippedList = [];
+
+        Game.state.inventory.forEach((entry, index) => {
+            if(entry.count <= 0) return;
+            const item = Game.items[entry.id];
+            if(!item) return;
+
+            if(entry.id === 'camp_kit' && Game.state.camp) {
+                 const btn = createBtn(item, entry.count, entry.props, false, true, "AUFGESTELLT", null);
+                 equippedList.push(btn); 
+                 return;
+            }
+
+            const onClick = () => UI.showItemConfirm(index);
+            const btn = createBtn(item, entry.count, entry.props, entry.isNew, false, null, onClick);
+
+            if(['weapon', 'head', 'body', 'arms', 'legs', 'feet', 'back', 'tool'].includes(item.type)) {
+                cats.equip.items.push(btn);
+            } else if (item.type === 'consumable') {
+                cats.aid.items.push(btn);
+            } else {
+                cats.misc.items.push(btn);
+            }
+        });
+
+        let hasItems = false;
+        ['equip', 'aid', 'misc'].forEach(key => {
+            if(cats[key].items.length > 0) {
+                hasItems = true;
+                const header = document.createElement('div');
+                header.className = "col-span-4 bg-green-900/40 text-green-300 text-xs font-bold px-2 py-1 mt-2 border-b border-green-700 tracking-wider flex items-center gap-2";
+                header.innerHTML = cats[key].label;
+                list.appendChild(header);
+                cats[key].items.forEach(btn => list.appendChild(btn));
+            }
+        });
+
+        const slots = ['weapon', 'head', 'body', 'arms', 'legs', 'feet', 'back'];
+        slots.forEach(slot => {
+            const equippedItem = Game.state.equip[slot];
+            if(!equippedItem || equippedItem.name === 'Fäuste' || equippedItem.name === 'Vault-Anzug' || equippedItem.name === 'Kein Rucksack') return;
+
+            let baseDef = Game.items[equippedItem.id];
+            if(!baseDef) {
+                const key = Object.keys(Game.items).find(k => Game.items[k].name === equippedItem.name);
+                if(key) baseDef = Game.items[key];
+            }
+            if(!baseDef) return; 
+
+            const onClick = () => UI.showEquippedDialog(slot);
+
+            const btn = createBtn(
+                baseDef, 1, 
+                equippedItem.props || { name: equippedItem.name, color: equippedItem.color, bonus: equippedItem.bonus }, 
+                false, true, "AUSGERÜSTET", onClick 
+            );
+            equippedList.push(btn);
+        });
+
+        if(equippedList.length > 0) {
+            const sep = document.createElement('div');
+            sep.className = "col-span-4 flex items-center justify-center text-[10px] text-green-900 font-bold tracking-widest my-2 opacity-80 mt-6";
+            sep.innerHTML = "<span class='bg-black px-2 border-b border-green-900 w-full text-center'>--- AKTIV AUSGERÜSTET ---</span>";
+            list.appendChild(sep);
+            equippedList.forEach(b => list.appendChild(b));
+        }
+
+        if(!hasItems && equippedList.length === 0) {
+            list.innerHTML = '<div class="col-span-4 text-center text-gray-500 italic mt-10">Leerer Rucksack...</div>';
+        }
     },
 
-    renderCrafting: function(tab = 'create') {
-        Game.state.view = 'crafting';
-        const view = document.getElementById('view-container');
-        if(!view) return;
-        view.innerHTML = '';
+    // --- CHARAKTER ---
+    renderChar: function(mode) {
+        if(mode) this.charTab = mode;
+        const tab = this.charTab;
 
-        // WRAPPER
-        const wrapper = document.createElement('div');
-        wrapper.className = "w-full h-full flex flex-col bg-black/95 relative";
+        const elName = document.getElementById('char-sheet-name');
+        const elLvl = document.getElementById('char-sheet-lvl');
+        if(elName) elName.textContent = Game.state.playerName;
+        if(elLvl) elLvl.textContent = Game.state.lvl;
 
-        wrapper.innerHTML = `
-            <div class="flex-shrink-0 p-4 border-b-2 border-blue-500 bg-blue-900/20 flex justify-between items-end shadow-lg shadow-blue-900/20">
-                <div>
-                    <h2 class="text-3xl text-blue-400 font-bold font-vt323 tracking-widest">WERKBANK</h2>
-                    <div class="text-xs text-blue-300 tracking-wider">Zustand: Rostig, aber funktional</div>
-                </div>
-                <div class="text-4xl text-blue-500 opacity-50">🛠️</div>
-            </div>
-            
-            <div class="flex-shrink-0 flex w-full border-b border-blue-900 bg-black">
-                <button class="flex-1 py-3 font-bold transition-colors uppercase tracking-wider ${tab==='create' ? 'bg-blue-900/40 text-blue-300 border-b-4 border-blue-500' : 'text-gray-600 hover:text-blue-300 hover:bg-blue-900/20'}" onclick="UI.renderCrafting('create')">HERSTELLEN</button>
-                <button class="flex-1 py-3 font-bold transition-colors uppercase tracking-wider ${tab==='scrap' ? 'bg-orange-900/40 text-orange-300 border-b-4 border-orange-500' : 'text-gray-600 hover:text-orange-300 hover:bg-orange-900/20'}" onclick="UI.renderCrafting('scrap')">ZERLEGEN</button>
-            </div>
-
-            <div id="crafting-list" class="flex-grow overflow-y-auto custom-scrollbar p-3 space-y-2 bg-[#00050a]"></div>
-            
-            <div class="flex-shrink-0 p-3 border-t border-blue-900 bg-[#000205]">
-                <button onclick="UI.renderCity()" class="action-button w-full border-gray-600 text-gray-500 hover:text-white hover:border-white transition-colors">ZURÜCK ZUM ZENTRUM</button>
-            </div>
-        `;
-        view.appendChild(wrapper);
-
-        // Content Logik
-        const container = wrapper.querySelector('#crafting-list');
-        
-        if (tab === 'create') {
-            const recipes = Game.recipes || [];
-            const known = Game.state.knownRecipes || [];
-            let knownCount = 0; 
-
-            recipes.forEach(recipe => {
-                if(recipe.type === 'cooking') return; 
-                if(!known.includes(recipe.id) && recipe.lvl > 1) return; 
-                knownCount++;
-
-                const outItem = (recipe.out === 'AMMO' ? {name: "15x Munition"} : Game.items[recipe.out]) || {name: "Unbekanntes Item"};
-                let reqHtml = '';
-                let canCraft = true;
-                
-                for(let reqId in recipe.req) {
-                    const countNeeded = recipe.req[reqId];
-                    const invItem = Game.state.inventory.find(i => i.id === reqId);
-                    const countHave = invItem ? invItem.count : 0;
-                    const reqDef = Game.items[reqId];
-                    const reqName = reqDef ? reqDef.name : reqId;
-                    let color = "text-green-600";
-                    if (countHave < countNeeded) { canCraft = false; color = "text-red-500 font-bold"; }
-                    reqHtml += `<div class="${color} text-xs uppercase">• ${reqName}: ${countHave}/${countNeeded}</div>`;
+        ['status', 'stats', 'perks'].forEach(t => {
+            const btn = document.getElementById(`tab-btn-${t}`);
+            const view = document.getElementById(`view-${t}`);
+            if(btn && view) {
+                if(t === tab) {
+                    btn.classList.add('active');
+                    view.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('active');
+                    view.classList.add('hidden');
                 }
+            }
+        });
+
+        if(tab === 'status') this.renderCharStatus();
+        else if(tab === 'stats') this.renderCharStats();
+        else if(tab === 'perks') this.renderCharPerks();
+    },
+
+    renderCharStatus: function() {
+        document.getElementById('sheet-hp').textContent = `${Math.floor(Game.state.hp)}/${Game.state.maxHp}`;
+        
+        const nextXp = Game.expToNextLevel(Game.state.lvl);
+        document.getElementById('sheet-xp').textContent = `${Math.floor(Game.state.xp)}/${nextXp}`;
+        
+        const used = Game.getUsedSlots();
+        const max = Game.getMaxSlots();
+        const loadEl = document.getElementById('sheet-load');
+        loadEl.textContent = `${used}/${max}`;
+        loadEl.className = used >= max ? "text-red-500 font-bold animate-pulse" : "text-white font-bold";
+
+        document.getElementById('sheet-crit').textContent = `${Game.state.critChance}%`;
+
+        const alertBox = document.getElementById('status-points-alert');
+        if(Game.state.statPoints > 0 || Game.state.perkPoints > 0) {
+            alertBox.classList.remove('hidden');
+            alertBox.onclick = () => {
+                if(Game.state.statPoints > 0) UI.renderChar('stats');
+                else UI.renderChar('perks');
+            };
+        } else {
+            alertBox.classList.add('hidden');
+        }
+
+        const slots = ['head', 'back', 'weapon', 'body', 'arms', 'legs', 'feet'];
+        
+        slots.forEach(slot => {
+            const el = document.getElementById(`slot-${slot}`);
+            if(!el) return;
+
+            const item = Game.state.equip[slot];
+            
+            const isEmpty = !item || 
+                           (slot === 'back' && !item.props) || 
+                           (!item.name || item.name === 'Fäuste' || item.name === 'Vault-Anzug' || item.name === 'Kein Rucksack');
+
+            if(isEmpty) {
+                el.classList.remove('filled');
+                el.classList.add('empty');
+                el.querySelector('.item-name').textContent = "---";
+                el.querySelector('.item-name').className = "item-name text-gray-600";
+                el.onclick = null; 
+            } else {
+                el.classList.add('filled');
+                el.classList.remove('empty');
+                const name = item.props ? item.props.name : item.name;
+                const color = (item.props && item.props.color) ? item.props.color : "text-[#39ff14]";
                 
-                if(Game.state.lvl < recipe.lvl) { canCraft = false; reqHtml += `<div class="text-red-500 text-xs mt-1 font-bold">Benötigt Level ${recipe.lvl}</div>`; }
+                el.querySelector('.item-name').textContent = name;
+                el.querySelector('.item-name').className = `item-name ${color}`;
+                el.onclick = () => UI.showEquippedDialog(slot);
+            }
+        });
+    },
+
+    renderCharStats: function() {
+        const container = document.getElementById('special-list');
+        const pointsEl = document.getElementById('sheet-stat-points');
+        if(!container) return;
+
+        container.innerHTML = '';
+        pointsEl.textContent = Game.state.statPoints;
+
+        const statOrder = ['STR', 'PER', 'END', 'INT', 'AGI', 'LUC'];
+        const canUpgrade = Game.state.statPoints > 0;
+
+        statOrder.forEach(key => {
+            const val = Game.getStat(key);
+            const label = (window.GameData && window.GameData.statLabels && window.GameData.statLabels[key]) ? window.GameData.statLabels[key] : key;
+            
+            let bar = '';
+            for(let i=1; i<=10; i++) {
+                bar += (i <= val) ? '<div class="h-2 w-full bg-[#39ff14] mr-0.5"></div>' : '<div class="h-2 w-full bg-green-900/30 mr-0.5"></div>';
+            }
+
+            const div = document.createElement('div');
+            div.className = "flex items-center justify-between bg-green-900/10 border border-green-900 p-2";
+            
+            let btnHtml = '';
+            if(canUpgrade && val < 10) {
+                btnHtml = `<button class="w-8 h-8 bg-yellow-500 text-black font-bold flex items-center justify-center hover:bg-yellow-400" onclick="Game.upgradeStat('${key}', event)">+</button>`;
+            } else {
+                btnHtml = `<div class="w-8 h-8 flex items-center justify-center font-bold text-green-700 text-xl">${val}</div>`;
+            }
+
+            div.innerHTML = `
+                <div class="flex-1">
+                    <div class="flex justify-between mb-1">
+                        <span class="font-bold text-green-400 text-lg">${key}</span>
+                        <span class="text-xs text-green-600 uppercase tracking-widest mt-1">${label}</span>
+                    </div>
+                    <div class="flex w-32">${bar}</div>
+                </div>
+                <div class="ml-4">${btnHtml}</div>
+            `;
+            container.appendChild(div);
+        });
+    },
+
+    renderCharPerks: function() {
+        const container = document.getElementById('perks-list');
+        const pointsEl = document.getElementById('sheet-perk-points');
+        if(!container) return;
+
+        const scrollPos = container.parentElement.scrollTop || 0;
+
+        container.innerHTML = '';
+        pointsEl.textContent = Game.state.perkPoints;
+        const points = Game.state.perkPoints;
+
+        if(Game.perkDefs) {
+            Game.perkDefs.forEach(p => {
+                const currentLvl = Game.getPerkLevel(p.id);
+                const maxLvl = p.max || 1;
+                const isMaxed = currentLvl >= maxLvl;
+                const canAfford = points > 0 && !isMaxed;
+                
+                let levelBar = '';
+                for(let i=0; i<maxLvl; i++) {
+                    levelBar += (i < currentLvl) ? '<span class="text-yellow-400 text-sm">●</span>' : '<span class="text-gray-700 text-sm">○</span>';
+                }
 
                 const div = document.createElement('div');
-                div.className = `border ${canCraft ? 'border-green-600 bg-green-900/10' : 'border-gray-800 bg-black opacity-50'} p-3 flex justify-between items-center transition-all hover:bg-green-900/20`;
+                div.className = `border ${isMaxed ? 'border-yellow-900 bg-yellow-900/5' : 'border-green-800 bg-black'} p-3 flex justify-between items-center transition-all hover:border-green-500`;
+                
+                let actionBtn = '';
+                if(canAfford) {
+                    actionBtn = `<button class="bg-yellow-500/20 text-yellow-400 border border-yellow-500 px-3 py-1 text-xs font-bold hover:bg-yellow-500 hover:text-black" onclick="event.stopPropagation(); Game.choosePerk('${p.id}')">LERNEN</button>`;
+                } else if (isMaxed) {
+                    actionBtn = `<span class="text-green-700 font-bold text-xs border border-green-900 px-2 py-1">MAX</span>`;
+                }
+
                 div.innerHTML = `
-                    <div>
-                        <div class="font-bold ${canCraft ? 'text-green-300' : 'text-gray-500'} text-lg">${outItem.name}</div>
-                        <div class="grid grid-cols-2 gap-x-4 mt-1 border-l-2 border-green-900 pl-2">${reqHtml}</div>
+                    <div class="flex items-center gap-3 flex-1">
+                        <div class="text-3xl bg-green-900/20 w-12 h-12 flex items-center justify-center rounded border border-green-900">${p.icon}</div>
+                        <div class="flex flex-col">
+                            <span class="font-bold ${isMaxed ? 'text-yellow-600' : 'text-green-300'} text-lg">${p.name}</span>
+                            <span class="text-xs text-gray-500">${p.desc}</span>
+                            <div class="mt-1 tracking-widest">${levelBar}</div>
+                        </div>
                     </div>
-                    <button class="action-button text-sm px-4 py-2 border-2 ${canCraft ? 'border-green-500 text-green-500 hover:bg-green-500 hover:text-black font-bold' : 'border-gray-600 text-gray-600 cursor-not-allowed'}" onclick="Game.craftItem('${recipe.id}')" ${canCraft ? '' : 'disabled'}>FERTIGEN</button>
+                    <div class="ml-2">
+                        ${actionBtn}
+                    </div>
                 `;
                 container.appendChild(div);
             });
-            if(knownCount === 0) container.innerHTML = '<div class="text-gray-500 italic mt-10 text-center">Keine bekannten Baupläne.</div>';
-        } else {
-            // SCRAP
-            let scrappables = [];
-            Game.state.inventory.forEach((item, idx) => {
-                const def = Game.items[item.id];
-                if(!def) return;
-                
-                // [FILTER] Verhindert, dass Schrottmetall & Baupläne hier auftauchen
-                if (item.id === 'junk_metal') return;
-                if (def.type === 'blueprint') return;
+        }
 
-                if (['weapon','body','head','legs','feet','arms','junk'].includes(def.type)) {
-                    scrappables.push({idx, item, def});
-                }
+        if(scrollPos > 0) {
+            requestAnimationFrame(() => {
+                container.parentElement.scrollTop = scrollPos;
             });
-
-            if(scrappables.length === 0) {
-                container.innerHTML = '<div class="text-center text-gray-500 mt-10 p-4 border-2 border-dashed border-gray-800">Kein zerlegbarer Schrott im Inventar.</div>';
-            } else {
-                scrappables.forEach(entry => {
-                    const name = entry.item.props && entry.item.props.name ? entry.item.props.name : entry.def.name;
-                    const div = document.createElement('div');
-                    div.className = "flex justify-between items-center p-3 border border-orange-800 bg-orange-900/10 hover:bg-orange-900/20 transition-colors";
-                    div.innerHTML = `
-                        <div class="font-bold text-orange-300">${name} <span class="text-xs text-orange-600 font-normal ml-2">(${entry.item.count}x)</span></div>
-                        <button class="border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black px-3 py-1 text-xs font-bold transition-colors uppercase" onclick="Game.scrapItem(${entry.idx})">ZERLEGEN</button>
-                    `;
-                    container.appendChild(div);
-                });
-            }
         }
-    },
-
-    // --- SHOP REDESIGN ---
-    renderShop: function(mode = 'buy') {
-        Game.state.view = 'shop';
-        Game.checkShopRestock(); 
-
-        const view = document.getElementById('view-container');
-        if(!view) return;
-        view.innerHTML = '';
-
-        // WRAPPER
-        const wrapper = document.createElement('div');
-        wrapper.className = "w-full h-full flex flex-col bg-black relative";
-
-        // 1. HEADER
-        const header = document.createElement('div');
-        header.className = "flex-shrink-0 flex justify-between items-end p-4 border-b-4 border-yellow-600 bg-[#1a1500] shadow-md z-10";
-        
-        // --- INVENTAR ANZEIGE ---
-        const usedSlots = Game.getUsedSlots();
-        const maxSlots = Game.getMaxSlots();
-        const isFull = usedSlots >= maxSlots;
-        const invColor = isFull ? "text-red-500 animate-pulse" : "text-yellow-300";
-        // ------------------------
-
-        header.innerHTML = `
-            <div>
-                <h2 class="text-3xl text-yellow-400 font-bold font-vt323 tracking-wider">HANDELSPOSTEN</h2>
-                <div class="text-xs text-yellow-700 font-mono mt-1">HÄNDLER: <span class="font-bold text-yellow-500">${Game.state.shop.merchantCaps} KK</span></div>
-            </div>
-            
-            <div class="flex gap-2">
-                <div class="bg-black/50 border-2 border-yellow-500 p-2 flex flex-col items-end shadow-inner">
-                     <span class="text-[10px] text-yellow-600 uppercase tracking-widest">GEWICHT</span>
-                     <span class="text-2xl ${invColor} font-bold font-vt323">${usedSlots} / ${maxSlots}</span>
-                </div>
-
-                <div class="bg-black/50 border-2 border-yellow-500 p-2 flex flex-col items-end shadow-inner">
-                    <span class="text-[10px] text-yellow-600 uppercase tracking-widest">DEIN VERMÖGEN</span>
-                    <span class="text-2xl text-yellow-300 font-bold font-vt323">${Game.state.caps} KK</span>
-                </div>
-            </div>
-        `;
-        wrapper.appendChild(header);
-
-        // 2. CONTROLS
-        const controls = document.createElement('div');
-        controls.className = "flex-shrink-0 bg-[#110d00] border-b-2 border-yellow-900 p-3 flex flex-col gap-3 shadow-inner";
-        
-        controls.innerHTML = `
-            <div class="flex w-full gap-2">
-                <button class="flex-1 py-2 font-bold text-lg uppercase tracking-wider border-2 transition-all ${mode==='buy' ? 'bg-yellow-500 text-black border-yellow-500 shadow-inner' : 'bg-black text-yellow-700 border-yellow-900 hover:text-yellow-500'}" onclick="UI.renderShop('buy')">KAUFEN</button>
-                <button class="flex-1 py-2 font-bold text-lg uppercase tracking-wider border-2 transition-all ${mode==='sell' ? 'bg-green-600 text-black border-green-600 shadow-inner' : 'bg-black text-green-700 border-green-900 hover:text-green-500'}" onclick="UI.renderShop('sell')">VERKAUFEN</button>
-            </div>
-        `;
-        
-        const qtyRow = document.createElement('div');
-        qtyRow.className = "flex justify-center gap-2 px-2 pt-1";
-        const makeQtyBtn = (label, val) => {
-            const isActive = (this.shopQty === val);
-            return `<button class="px-4 py-1 text-xs font-bold border uppercase tracking-widest transition-all ${isActive ? 'bg-yellow-600 text-black border-yellow-600' : 'bg-[#1a1500] text-yellow-600 border-yellow-900 hover:border-yellow-600'}" onclick="UI.shopQty = '${val}'; UI.renderShop('${mode}')">${label}</button>`;
-        };
-        qtyRow.innerHTML = `<span class="text-xs text-yellow-900 self-center mr-2 font-bold">MENGE:</span>` + makeQtyBtn("1x", 1) + makeQtyBtn("5x", 5) + makeQtyBtn("MAX", 'max');
-        controls.appendChild(qtyRow);
-        wrapper.appendChild(controls);
-
-        // 3. LIST
-        const content = document.createElement('div');
-        content.id = "shop-list";
-        content.className = "flex-grow overflow-y-auto p-3 custom-scrollbar bg-[#0a0800]";
-        wrapper.appendChild(content);
-
-        // 4. FOOTER
-        const footer = document.createElement('div');
-        footer.className = "flex-shrink-0 p-3 border-t-4 border-yellow-900 bg-[#1a1500]";
-        footer.innerHTML = `<button class="action-button w-full border-2 border-yellow-800 text-yellow-700 hover:border-yellow-500 hover:text-yellow-400 transition-colors py-3 font-bold tracking-widest uppercase" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>`;
-        wrapper.appendChild(footer);
-
-        view.appendChild(wrapper);
-
-        // Populate List
-        if(mode === 'buy') this.renderShopBuy(content);
-        else this.renderShopSell(content);
-    },
-
-    renderShopBuy: function(container) {
-        if(!container) container = document.getElementById('shop-list');
-        if(!container) return;
-        container.innerHTML = '';
-
-        const stock = Game.state.shop.stock || {};
-        const ammoStock = Game.state.shop.ammoStock || 0;
-
-        // HELPER
-        const createSlot = (icon, name, stock, price, onClick, isHighlight=false) => {
-            const canBuy = Game.state.caps >= price;
-            const borderColor = isHighlight ? 'border-blue-600' : (canBuy ? 'border-yellow-700' : 'border-red-900');
-            const bgClass = isHighlight ? 'bg-blue-900/20' : (canBuy ? 'bg-yellow-900/10' : 'bg-red-900/10 opacity-50');
-            const textClass = isHighlight ? 'text-blue-300' : (canBuy ? 'text-yellow-200' : 'text-gray-500');
-            
-            const el = document.createElement('div');
-            el.className = `flex justify-between items-center mb-2 border-2 ${borderColor} ${bgClass} h-16 transition-all ${canBuy ? 'hover:bg-yellow-900/30 cursor-pointer group' : ''}`;
-            
-            el.innerHTML = `
-                <div class="flex items-center gap-3 p-2 flex-grow overflow-hidden">
-                    <div class="text-3xl w-12 h-12 flex items-center justify-center bg-black/40 border border-yellow-900/50 rounded">${icon}</div>
-                    <div class="flex flex-col truncate">
-                        <span class="font-bold ${textClass} text-lg font-vt323 truncate leading-none pt-1">${name}</span>
-                        <span class="text-xs text-yellow-700 font-mono uppercase">Lager: ${stock}</span>
-                    </div>
-                </div>
-                <div class="h-full flex flex-col justify-center items-end border-l-2 ${borderColor} bg-black/30 min-w-[80px]">
-                    <div class="font-bold ${canBuy ? 'text-yellow-400' : 'text-red-500'} text-lg w-full text-center border-b border-white/10 font-vt323">${price}</div>
-                    <button class="flex-grow w-full text-[10px] font-bold uppercase tracking-wider hover:bg-yellow-500 hover:text-black transition-colors ${canBuy ? 'text-yellow-600' : 'text-red-900'}" ${canBuy?'':'disabled'}>KAUFEN</button>
-                </div>
-            `;
-            if(canBuy) {
-                el.onclick = onClick;
-                el.querySelector('button').onclick = (e) => { e.stopPropagation(); onClick(); };
-            }
-            return el;
-        };
-
-        if(ammoStock > 0) {
-            container.appendChild(createSlot("🧨", "10x MUNITION", ammoStock, 10, () => Game.buyAmmo(UI.shopQty), true));
-            container.innerHTML += `<div class="h-px bg-yellow-900/50 my-4 mx-2"></div>`;
-        }
-
-        const categories = {
-            'consumable': { title: '💊 MEDIZIN', items: [] },
-            'weapon': { title: '🔫 WAFFEN', items: [] },
-            'body': { title: '🛡️ RÜSTUNG', items: [] },
-            'misc': { title: '📦 SONSTIGES', items: [] } 
-        };
-
-        Object.keys(stock).forEach(key => {
-            if(stock[key] <= 0) return;
-            const item = Game.items[key];
-            if(!item) return;
-            const cat = categories[item.type] || categories['misc'];
-            cat.items.push({key, ...item});
-        });
-
-        for(let catKey in categories) {
-            const cat = categories[catKey];
-            if(cat.items.length > 0) {
-                const header = document.createElement('h3');
-                header.className = "text-yellow-600 font-bold border-b border-yellow-800 mt-4 mb-2 pl-1 text-xs uppercase tracking-widest font-mono";
-                header.textContent = cat.title;
-                container.appendChild(header);
-
-                cat.items.forEach(data => {
-                    let icon = "📦";
-                    if(data.type==='weapon') icon="🔫"; if(data.type==='body') icon="🛡️"; if(data.type==='consumable') icon="💉";
-                    container.appendChild(createSlot(icon, data.name, stock[data.key], data.cost, () => Game.buyItem(data.key, UI.shopQty)));
-                });
-            }
-        }
-    },
-
-    renderShopSell: function(container) {
-        if(!container) container = document.getElementById('shop-list');
-        if(!container) return;
-        container.innerHTML = '';
-
-        if(Game.state.inventory.length === 0) {
-            container.innerHTML = '<div class="text-center text-green-800 mt-10 font-mono border-2 border-dashed border-green-900 p-6">INVENTAR LEER</div>';
-            return;
-        }
-
-        Game.state.inventory.forEach((item, idx) => {
-            const def = Game.items[item.id];
-            if(!def) return;
-            
-            let valMult = item.props && item.props.valMult ? item.props.valMult : 1;
-            let sellPrice = Math.floor((def.cost * 0.25) * valMult);
-            if(sellPrice < 1) sellPrice = 1;
-            const canSell = Game.state.shop.merchantCaps >= sellPrice;
-            const name = item.props ? item.props.name : def.name;
-
-            const div = document.createElement('div');
-            div.className = `flex justify-between items-center mb-2 border-2 ${canSell ? 'border-green-700 bg-green-900/10 hover:bg-green-900/20 cursor-pointer' : 'border-red-900 opacity-50'} h-14 transition-all`;
-            
-            div.innerHTML = `
-                <div class="flex items-center gap-3 p-2 flex-grow overflow-hidden">
-                    <div class="text-green-500 font-bold text-lg font-vt323 truncate">${name} <span class="text-green-800 text-sm font-sans">x${item.count}</span></div>
-                </div>
-                <div class="h-full flex flex-col justify-center items-end border-l-2 border-green-800 bg-black/30 min-w-[80px]">
-                    <div class="font-bold text-green-400 text-lg w-full text-center border-b border-green-900 font-vt323">${sellPrice}</div>
-                    <button class="flex-grow w-full text-[10px] font-bold uppercase tracking-wider hover:bg-green-600 hover:text-black transition-colors text-green-700">VERKAUFEN</button>
-                </div>
-            `;
-            if(canSell) {
-                div.onclick = () => Game.sellItem(idx, UI.shopQty);
-            }
-            container.appendChild(div);
-        });
     },
 
     // --- [v0.8.3] RUSTY SPRINGS DASHBOARD ---
@@ -418,6 +394,20 @@ Object.assign(UI, {
             <div class="sub">Zerlegen & Bauen</div>
         `;
         grid.appendChild(craftCard);
+
+        // D. RASTEN
+        const restCard = document.createElement('div');
+        restCard.className = "city-card";
+        restCard.onclick = () => { 
+            Game.rest(); 
+            UI.log("Du ruhst dich in der Baracke aus...", "text-blue-300");
+        }; 
+        restCard.innerHTML = `
+            <div class="icon text-green-200">💤</div>
+            <div class="label text-green-200">BARACKE</div>
+            <div class="sub">Ausruhen (Gratis)</div>
+        `;
+        grid.appendChild(restCard);
 
         view.appendChild(grid);
 
