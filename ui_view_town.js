@@ -2,7 +2,7 @@ Object.assign(UI, {
     
     shopQty: 1,
 
-    // --- KLINIK & WERKBANK (Layout Fixes) ---
+    // --- KLINIK & WERKBANK ---
     renderClinic: function() {
         Game.state.view = 'clinic';
         const view = document.getElementById('view-container');
@@ -82,7 +82,7 @@ Object.assign(UI, {
         `;
         view.appendChild(wrapper);
 
-        // Content Logik (unverändert, nur Zielcontainer angepasst)
+        // Content Logik
         const container = wrapper.querySelector('#crafting-list');
         
         if (tab === 'create') {
@@ -131,7 +131,6 @@ Object.assign(UI, {
                 const def = Game.items[item.id];
                 if(!def) return;
                 
-                // [FIX] Verhindern, dass Bau-Ressourcen (Schrottmetall) oder Baupläne in der Zerlegen-Liste auftauchen
                 if (item.id === 'junk_metal') return;
                 if (def.type === 'blueprint') return;
 
@@ -157,7 +156,7 @@ Object.assign(UI, {
         }
     },
 
-    // --- SHOP REDESIGN (Wrapper Fix) ---
+    // --- SHOP REDESIGN ---
     renderShop: function(mode = 'buy') {
         Game.state.view = 'shop';
         Game.checkShopRestock(); 
@@ -173,14 +172,30 @@ Object.assign(UI, {
         // 1. HEADER
         const header = document.createElement('div');
         header.className = "flex-shrink-0 flex justify-between items-end p-4 border-b-4 border-yellow-600 bg-[#1a1500] shadow-md z-10";
+        
+        // --- NEW: INVENTAR ANZEIGE HINZUGEFÜGT ---
+        const usedSlots = Game.getUsedSlots();
+        const maxSlots = Game.getMaxSlots();
+        const isFull = usedSlots >= maxSlots;
+        const invColor = isFull ? "text-red-500 animate-pulse" : "text-yellow-300";
+        // -------------------------------------------
+
         header.innerHTML = `
             <div>
                 <h2 class="text-3xl text-yellow-400 font-bold font-vt323 tracking-wider">HANDELSPOSTEN</h2>
                 <div class="text-xs text-yellow-700 font-mono mt-1">HÄNDLER: <span class="font-bold text-yellow-500">${Game.state.shop.merchantCaps} KK</span></div>
             </div>
-            <div class="bg-black/50 border-2 border-yellow-500 p-2 flex flex-col items-end shadow-inner">
-                <span class="text-[10px] text-yellow-600 uppercase tracking-widest">DEIN VERMÖGEN</span>
-                <span class="text-2xl text-yellow-300 font-bold font-vt323">${Game.state.caps} KK</span>
+            
+            <div class="flex gap-2">
+                <div class="bg-black/50 border-2 border-yellow-500 p-2 flex flex-col items-end shadow-inner">
+                     <span class="text-[10px] text-yellow-600 uppercase tracking-widest">GEWICHT</span>
+                     <span class="text-2xl ${invColor} font-bold font-vt323">${usedSlots} / ${maxSlots}</span>
+                </div>
+
+                <div class="bg-black/50 border-2 border-yellow-500 p-2 flex flex-col items-end shadow-inner">
+                    <span class="text-[10px] text-yellow-600 uppercase tracking-widest">DEIN VERMÖGEN</span>
+                    <span class="text-2xl text-yellow-300 font-bold font-vt323">${Game.state.caps} KK</span>
+                </div>
             </div>
         `;
         wrapper.appendChild(header);
@@ -337,5 +352,85 @@ Object.assign(UI, {
             }
             container.appendChild(div);
         });
+    },
+
+    // --- [v0.8.3] RUSTY SPRINGS DASHBOARD (Baracke entfernt) ---
+    renderCity: function() {
+        const view = document.getElementById('view-container');
+        view.innerHTML = ''; 
+
+        // 1. HEADER
+        const header = document.createElement('div');
+        header.className = "city-header flex flex-col items-center justify-center relative";
+        
+        const flairs = [
+            "Die Luft riecht nach Rost und Ozon.",
+            "Ein Generator brummt in der Ferne.",
+            "Händler schreien ihre Preise aus.",
+            "Der sicherste Ort im Sektor."
+        ];
+        const flair = flairs[Math.floor(Math.random() * flairs.length)];
+
+        header.innerHTML = `
+            <div class="text-4xl font-bold text-green-400 tracking-widest text-shadow-glow">RUSTY SPRINGS</div>
+            <div class="text-xs text-green-700 font-mono mt-1 border-t border-green-900 pt-1 w-2/3 text-center">POP: 142 | RAD: NIEDRIG | SEC: HOCH</div>
+            <div class="text-gray-500 text-xs italic mt-2">"${flair}"</div>
+            <div class="absolute right-4 top-4 text-yellow-400 font-bold border border-yellow-600 px-2 bg-black/50">
+                💰 ${Game.state.caps} KK
+            </div>
+        `;
+        view.appendChild(header);
+
+        // 2. GRID
+        const grid = document.createElement('div');
+        grid.className = "city-grid flex-grow overflow-y-auto custom-scrollbar";
+
+        // A. HÄNDLER
+        const traderCard = document.createElement('div');
+        traderCard.className = "city-card trader";
+        traderCard.onclick = () => UI.renderShop(view); 
+        traderCard.innerHTML = `
+            <div class="icon">🛒</div>
+            <div class="label">HANDELSPOSTEN</div>
+            <div class="sub text-yellow-200">An- & Verkauf • Munition • Ausrüstung</div>
+        `;
+        grid.appendChild(traderCard);
+
+        // B. ARZT
+        const docCard = document.createElement('div');
+        docCard.className = "city-card";
+        docCard.onclick = () => UI.renderClinic(view);
+        docCard.innerHTML = `
+            <div class="icon text-red-400">⚕️</div>
+            <div class="label text-red-400">KLINIK</div>
+            <div class="sub">Dr. Zimmermann</div>
+        `;
+        grid.appendChild(docCard);
+
+        // C. WERKBANK
+        const craftCard = document.createElement('div');
+        craftCard.className = "city-card";
+        craftCard.onclick = () => UI.renderCrafting();
+        craftCard.innerHTML = `
+            <div class="icon text-blue-400">🛠️</div>
+            <div class="label text-blue-400">WERKBANK</div>
+            <div class="sub">Zerlegen & Bauen</div>
+        `;
+        grid.appendChild(craftCard);
+
+        // --- BARACKE ENTFERNT ---
+        // (Wunsch des Nutzers: "Der Baracken Knopf muss weg")
+
+        view.appendChild(grid);
+
+        // 3. FOOTER
+        const footer = document.createElement('div');
+        footer.className = "p-4 border-t border-green-900 bg-black";
+        footer.innerHTML = `
+            <button class="action-button w-full border-green-500 text-green-500 py-3 font-bold text-xl hover:bg-green-900" onclick="Game.leaveCity()">
+                ZURÜCK INS ÖDLAND (ESC)
+            </button>
+        `;
+        view.appendChild(footer);
     }
 });
