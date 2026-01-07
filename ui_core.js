@@ -118,7 +118,7 @@ const UI = {
             newCharOverlay: document.getElementById('new-char-overlay'),
             inputNewCharName: document.getElementById('new-char-name'),
             btnCreateCharConfirm: document.getElementById('btn-create-char'),
-            // [GEÄNDERT] btnCharSelectAction entfernt, da im HTML nicht mehr vorhanden
+            btnCharSelectAction: document.getElementById('btn-char-select-action'),
             btnCharDeleteAction: document.getElementById('btn-char-delete-action'),
             btnCharBack: document.getElementById('btn-char-back'),
             
@@ -143,16 +143,23 @@ const UI = {
              this.els.btnInv.addEventListener('click', () => this.resetInventoryAlert());
         }
 
+        // [v3.4a] Header Info Click Event - Smart Routing
         if(this.els.headerCharInfo) {
             this.els.headerCharInfo.addEventListener('click', () => {
                 const hasStats = Game.state.statPoints > 0;
-                const hasPerks = Game.state.perkPoints > 0;
+                const hasPerks = Game.state.perkPoints > 0; // Assuming perkPoints key
                 
                 if(hasStats) {
+                    // Prio 1: Stats
                     this.switchView('char'); 
+                    // ToDo: Force Stat Tab if needed
                 } else if (hasPerks) {
+                    // Prio 2: Perks
                     this.switchView('char');
+                    // ToDo: Force Perk Tab switch here if possible
+                    // setTimeout(() => document.getElementById('tab-perks')?.click(), 100);
                 } else {
+                    // Default
                     this.switchView('char');
                 }
             });
@@ -299,7 +306,6 @@ const UI = {
         }
     },
     
-    // [GEÄNDERT] selectSlot bereinigt, da der Button nicht mehr existiert
     selectSlot: function(index) {
         if(this.selectedSlot === index) {
             this.triggerCharSlot();
@@ -316,13 +322,21 @@ const UI = {
         }
         
         const save = this.currentSaves ? this.currentSaves[index] : null;
-        if (this.els.btnCharDeleteAction) {
+        if (this.els.btnCharSelectAction) {
             if (save) {
-                this.els.btnCharDeleteAction.disabled = false;
-                this.els.btnCharDeleteAction.classList.remove('opacity-50', 'cursor-not-allowed');
+                this.els.btnCharSelectAction.style.display = 'none';
+                if(this.els.btnCharDeleteAction) {
+                    this.els.btnCharDeleteAction.disabled = false;
+                    this.els.btnCharDeleteAction.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
             } else {
-                this.els.btnCharDeleteAction.disabled = true;
-                this.els.btnCharDeleteAction.classList.add('opacity-50', 'cursor-not-allowed');
+                this.els.btnCharSelectAction.style.display = 'block';
+                this.els.btnCharSelectAction.textContent = "CHARAKTER ERSTELLEN";
+                this.els.btnCharSelectAction.className = "action-button w-full border-yellow-400 text-yellow-400 font-bold py-3 mb-2";
+                if(this.els.btnCharDeleteAction) {
+                    this.els.btnCharDeleteAction.disabled = true;
+                    this.els.btnCharDeleteAction.classList.add('opacity-50', 'cursor-not-allowed');
+                }
             }
         }
     },
@@ -366,7 +380,4 @@ const UI = {
         this.els.charSelectScreen.focus();
     }
 };
-
-// [FIX] Ganz wichtig: UI global verfügbar machen!
-window.UI = UI;
 console.log("UI Core Loaded.");
