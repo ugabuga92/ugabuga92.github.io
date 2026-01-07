@@ -88,7 +88,7 @@ Object.assign(Game, {
     },
 
     // [v0.7.4] Auto-Close Clinic
-heal: function() { 
+    heal: function() { 
         if(this.state.caps >= 25) { 
             this.state.caps -= 25; 
             
@@ -363,6 +363,14 @@ heal: function() {
         }
 
         const item = this.state.inventory[invIndex];
+
+        // --- NEW: Blockiert das Zerlegen von Schrott ---
+        if (item.id === 'junk_metal') {
+            UI.log("Das ist bereits Schrott.", "text-orange-500");
+            return;
+        }
+        // -----------------------------------------------
+
         const def = this.items[item.id];
         if(!def) return;
 
