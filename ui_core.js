@@ -118,7 +118,7 @@ const UI = {
             newCharOverlay: document.getElementById('new-char-overlay'),
             inputNewCharName: document.getElementById('new-char-name'),
             btnCreateCharConfirm: document.getElementById('btn-create-char'),
-            btnCharSelectAction: document.getElementById('btn-char-select-action'),
+            // [REMOVED] btnCharSelectAction
             btnCharDeleteAction: document.getElementById('btn-char-delete-action'),
             btnCharBack: document.getElementById('btn-char-back'),
             
@@ -321,22 +321,16 @@ const UI = {
             if(slots[index]) slots[index].classList.add('active-slot');
         }
         
+        // --- BUTTON TOGGLE LOGIC REMOVED ---
+
         const save = this.currentSaves ? this.currentSaves[index] : null;
-        if (this.els.btnCharSelectAction) {
+        if (this.els.btnCharDeleteAction) {
             if (save) {
-                this.els.btnCharSelectAction.style.display = 'none';
-                if(this.els.btnCharDeleteAction) {
-                    this.els.btnCharDeleteAction.disabled = false;
-                    this.els.btnCharDeleteAction.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
+                this.els.btnCharDeleteAction.disabled = false;
+                this.els.btnCharDeleteAction.classList.remove('opacity-50', 'cursor-not-allowed');
             } else {
-                this.els.btnCharSelectAction.style.display = 'block';
-                this.els.btnCharSelectAction.textContent = "CHARAKTER ERSTELLEN";
-                this.els.btnCharSelectAction.className = "action-button w-full border-yellow-400 text-yellow-400 font-bold py-3 mb-2";
-                if(this.els.btnCharDeleteAction) {
-                    this.els.btnCharDeleteAction.disabled = true;
-                    this.els.btnCharDeleteAction.classList.add('opacity-50', 'cursor-not-allowed');
-                }
+                this.els.btnCharDeleteAction.disabled = true;
+                this.els.btnCharDeleteAction.classList.add('opacity-50', 'cursor-not-allowed');
             }
         }
     },
