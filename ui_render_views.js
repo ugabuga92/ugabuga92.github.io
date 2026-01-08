@@ -11,7 +11,7 @@ Object.assign(UI, {
         // Slots leeren
         if(this.els.charSlotsList) this.els.charSlotsList.innerHTML = '';
 
-        // [FIX] ZURÜCK-BUTTON LOGIK
+        // ZURÜCK-BUTTON LOGIK
         const btnBack = document.getElementById('btn-char-back');
         if (btnBack) {
             btnBack.onclick = () => {
@@ -21,15 +21,13 @@ Object.assign(UI, {
                     this.els.loginScreen.style.display = 'flex'; 
                 }
             };
-        } else {
-            console.warn("ACHTUNG: 'btn-char-back' nicht im HTML gefunden!");
         }
 
         // Slots rendern
         for (let i = 0; i < 5; i++) {
             const slot = document.createElement('div');
-            // Basis-Style für volle Slots
-            slot.className = "char-slot border-2 border-green-900 bg-black/80 p-4 mb-2 cursor-pointer hover:border-yellow-400 hover:bg-green-900/30 transition-all flex justify-between items-center group relative overflow-hidden";
+            // Basis-Style: 'group' ist wichtig für den Hover-Effekt auf den Button
+            slot.className = "char-slot border-2 border-green-900 bg-black/80 p-4 mb-2 cursor-pointer hover:border-yellow-400 transition-all flex justify-between items-center group relative overflow-hidden";
             slot.dataset.index = i;
             
             const save = saves[i];
@@ -43,6 +41,11 @@ Object.assign(UI, {
                 const statusIcon = isDead ? "💀" : "👤";
                 const statusClass = isDead ? "text-red-500" : "text-yellow-400";
 
+                /* ÄNDERUNGEN HIER:
+                   1. Button hat jetzt 'group-hover:...' Klassen. Das bedeutet:
+                      Wenn man über den Slot (group) fährt, ändert sich der Button.
+                   2. Das Hintergrund-Div (overlay), das das Bild abgedunkelt hat, wurde entfernt.
+                */
                 slot.innerHTML = `
                     <div class="flex flex-col z-10">
                         <span class="text-xl ${statusClass} font-bold tracking-wider">${statusIcon} ${name}</span>
@@ -50,12 +53,14 @@ Object.assign(UI, {
                     </div>
                     <div class="z-10 flex items-center gap-2">
                         <div class="text-xs text-gray-500 font-bold mr-2">SLOT ${i+1}</div>
-                        <button class="bg-green-600 text-black font-bold px-3 py-1 text-xs rounded hover:bg-green-400 transition-colors shadow-[0_0_10px_#39ff14]">START ▶</button>
+                        <button class="bg-green-700 text-black font-bold px-4 py-1 text-xs rounded transition-all duration-200 shadow-[0_0_5px_#1b5e20] 
+                                       group-hover:bg-[#39ff14] group-hover:shadow-[0_0_20px_#39ff14] group-hover:scale-110">
+                            START ▶
+                        </button>
                     </div>
-                    <div class="absolute inset-0 bg-green-900/0 group-hover:bg-green-900/10 transition-colors z-0"></div>
                 `;
             } else {
-                // LEERER SLOT -> DESIGN ALS "CREATE NEW" BUTTON
+                // LEERER SLOT
                 slot.className = "char-slot border-2 border-dashed border-gray-700 bg-black/50 p-4 mb-2 cursor-pointer hover:border-yellow-400 hover:bg-yellow-900/10 transition-all flex justify-center items-center group min-h-[80px]";
                 slot.innerHTML = `
                     <div class="text-gray-500 group-hover:text-yellow-400 font-bold tracking-widest flex items-center gap-2 transition-colors">
@@ -73,7 +78,6 @@ Object.assign(UI, {
             if(this.els.charSlotsList) this.els.charSlotsList.appendChild(slot);
         }
         
-        // Standardmäßig ersten Slot wählen
         if(typeof this.selectSlot === 'function') {
             this.selectSlot(0);
         }
@@ -102,10 +106,7 @@ Object.assign(UI, {
             
             btn.onclick = () => {
                 if(this.els.spawnScreen) this.els.spawnScreen.style.display = 'none';
-                
-                // Spiel starten an Position des anderen Spielers
-                this.startGame(null, this.selectedSlot, null); // null save, slot index, null load
-                
+                this.startGame(null, this.selectedSlot, null); 
                 if(Game.state && Game.state.player) {
                     Game.state.player.x = p.x;
                     Game.state.player.y = p.y;
@@ -146,7 +147,6 @@ Object.assign(UI, {
              if(elLegs) elLegs.textContent = cLegs + "%";
         }
         
-        // V.A.T.S. Selection Visuals (optional, falls CSS Klassen existieren)
         if(typeof Combat !== 'undefined' && Combat.selectedPart !== undefined) {
             for(let i=0; i<3; i++) {
                 const btn = document.getElementById(`btn-vats-${i}`);
