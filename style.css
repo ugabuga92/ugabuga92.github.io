@@ -58,7 +58,6 @@ canvas {
     100% { box-shadow: 0 0 5px red; border-color: #800000; color: #ffcccc; } 
 }
 
-/* Kombinierter Gelber Glow */
 .alert-glow-yellow, .lvl-ready-glow { 
     animation: pulse-yellow-intense 1.5s infinite !important; 
     border: 2px solid #ffd700 !important; 
@@ -125,7 +124,7 @@ canvas {
 .blink-red { animation: blink-red-anim 1s infinite; }
 @keyframes blink-red-anim { 0%, 100% { opacity: 1; color: red; } 50% { opacity: 0.5; } }
 
-/* --- [FIXED] CHARACTER SLOTS --- */
+/* --- CHARACTER SLOTS --- */
 .char-slot { 
     border: 1px solid var(--pip-dim); 
     background: rgba(0,20,0,0.5); 
@@ -136,10 +135,7 @@ canvas {
 }
 
 @media (hover: hover) {
-    .char-slot:hover { 
-        border-color: var(--pip-green); 
-        background: rgba(0,40,0,0.8); 
-    }
+    .char-slot:hover { border-color: var(--pip-green); background: rgba(0,40,0,0.8); }
 }
 
 .char-slot.active-slot { 
@@ -149,13 +145,8 @@ canvas {
 }
 
 .char-slot.active-slot button {
-    background-color: #39ff14;
-    color: black;
-    box-shadow: 0 0 10px #39ff14;
-    transform: scale(1.05);
-    border-color: #39ff14;
+    background-color: #39ff14; color: black; box-shadow: 0 0 10px #39ff14; transform: scale(1.05); border-color: #39ff14;
 }
-
 .char-slot.empty-slot { opacity: 0.5; font-style: italic; }
 
 #login-screen, #spawn-screen, #reset-overlay, #manual-overlay, #changelog-overlay, #char-select-screen, #delete-confirm-overlay { position: absolute; inset: 0; z-index: 999; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; }
@@ -184,7 +175,6 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
 
 #player-list-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 90; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--pip-green); padding: 20px; min-width: 300px; display: none; flex-direction: column; box-shadow: 0 0 30px var(--pip-dim); }
 
-/* --- CHARACTER DASHBOARD --- */
 .char-grid-container {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -208,7 +198,6 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
     transition: all 0.2s;
     cursor: default;
 }
-
 .equip-slot.filled { border-color: #39ff14; background: rgba(57, 255, 20, 0.1); cursor: pointer; }
 .equip-slot.filled:hover { background: rgba(57, 255, 20, 0.2); box-shadow: 0 0 10px #39ff14; }
 .equip-slot.empty { opacity: 0.5; border-style: dashed; }
@@ -228,7 +217,7 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
 .char-tab-btn:hover { opacity: 1; background: rgba(0, 50, 0, 0.3); }
 .char-tab-btn.active { border-bottom: 2px solid #39ff14; color: #39ff14; opacity: 1; text-shadow: 0 0 5px #39ff14; background: rgba(0, 30, 0, 0.5); }
 
-/* --- [UPDATED] CITY DASHBOARD (Mobile Fix & Cut-off Fix) --- */
+/* --- [UPDATED] CITY DASHBOARD (FLEXIBLE HEIGHT FIX) --- */
 .city-header {
     background: linear-gradient(to bottom, #051505, #000);
     border-bottom: 2px solid #39ff14;
@@ -239,25 +228,28 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
     flex-shrink: 0;
 }
 
+/* WICHTIG: grid-auto-rows auf 'auto' setzen!
+   Damit wird die Höhe der Karten NICHT mehr auf eine feste Pixelzahl gezwungen.
+   Sie wachsen jetzt mit dem Text.
+*/
 .city-grid {
     display: grid;
-    /* [FIX] Mobile Standard: 1 Spalte, 160px Minimum Höhe pro Karte */
-    grid-template-columns: 1fr; 
-    grid-auto-rows: minmax(160px, auto); 
+    grid-template-columns: 1fr; /* Mobile: 1 Spalte */
+    grid-auto-rows: auto;       /* Höhe: So hoch wie der Inhalt braucht! */
     gap: 15px;
     padding: 15px;
-    flex-grow: 1; 
+    flex-grow: 1;
     overflow-y: auto;
+    align-content: start; /* Verhindert, dass sie sich über die ganze Höhe strecken wenn wenig Inhalt */
 }
 
-/* Tablet & Desktop: 2 Spalten */
+/* Desktop: 2 Spalten */
 @media (min-width: 768px) {
     .city-grid {
         grid-template-columns: 1fr 1fr;
-        grid-template-rows: 180px auto; 
     }
     .city-card.trader {
-        grid-column: 1 / -1; 
+        grid-column: span 2; 
     }
 }
 
@@ -267,15 +259,18 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* [FIX] Space Evenly verteilt Inhalt besser als Center */
-    justify-content: space-evenly; 
+    justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
-    overflow: hidden;
-    padding: 15px;
-    text-align: center;
-    min-height: 120px;
+    overflow: hidden; /* Scanline-Effekt braucht das */
+    
+    /* WICHTIG: Padding erhöht, damit Text Platz hat */
+    padding: 20px 10px; 
+    
+    /* WICHTIG: Höhe ist flexibel! */
+    height: auto; 
+    min-height: 0; /* Flexbox Bugfix */
 }
 
 @media (hover: hover) {
@@ -288,37 +283,39 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
     }
 }
 
+/* Icons skalieren */
 .city-card .icon { 
-    font-size: 3rem; 
-    margin-bottom: 5px; /* [FIX] Weniger Margin */
+    font-size: 4rem; 
+    margin-bottom: 10px; 
     filter: drop-shadow(0 0 5px rgba(57,255,20,0.5));
     transition: transform 0.2s;
     flex-shrink: 0;
 }
 .city-card:hover .icon { transform: scale(1.1); }
 
+/* Text bricht jetzt um und wird nicht abgeschnitten */
 .city-card .label { 
-    font-size: 1.2rem; 
+    font-size: 1.4rem; 
     font-weight: bold; 
     color: #39ff14; 
     text-transform: uppercase; 
     letter-spacing: 2px; 
     text-shadow: 0 0 5px rgba(57,255,20,0.5);
-    /* [FIX] Verhindert Abschneiden und Umbruch */
-    line-height: 1.1;
+    line-height: 1.2;
     z-index: 2;
+    margin-bottom: 5px;
 }
 
 .city-card .sub { 
-    font-size: 0.75rem; 
+    font-size: 0.85rem; 
     color: #888; 
     font-style: italic; 
-    margin-top: 5px; 
     font-family: monospace;
     z-index: 2;
+    line-height: 1.2;
 }
 
-/* HÄNDLER SPECIAL STYLE */
+/* Händler: Besonderes Design */
 .city-card.trader {
     background: linear-gradient(45deg, rgba(20, 20, 0, 0.9), rgba(60, 50, 0, 0.3));
     border-color: #b8860b; 
@@ -330,16 +327,11 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
     }
 }
 .city-card.trader .icon {
-    font-size: 4rem; /* [FIX] Kleiner auf Mobile */
+    font-size: 5rem; 
     color: #ffd700;
     animation: pulse-trader 4s infinite ease-in-out;
 }
-/* Ab Tablet wieder riesig */
-@media (min-width: 768px) {
-    .city-card.trader .icon { font-size: 6rem; }
-}
-
-.city-card.trader .label { color: #ffd700; font-size: 1.5rem; }
+.city-card.trader .label { color: #ffd700; font-size: 1.8rem; }
 .city-card.trader .sub { color: #eecfa1; font-size: 0.9rem; }
 
 @keyframes pulse-trader { 
