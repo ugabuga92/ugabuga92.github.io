@@ -66,19 +66,32 @@ canvas {
 }
 @keyframes pulse-focus { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
+/* --- [UPDATE] STÄRKERER LEVEL UP GLOW --- */
 .lvl-ready-glow {
-    animation: pulse-lvl-text 1s infinite alternate;
-    color: #ffd700 !important;
-    text-shadow: 0 0 5px #b8860b;
+    animation: pulse-lvl-text 0.6s infinite alternate !important; /* Schneller */
+    border: 2px solid #ffd700 !important; /* Deutlicher Rand */
+    background-color: rgba(255, 215, 0, 0.15); /* Heller Hintergrund */
+    box-shadow: 0 0 15px #ffd700, inset 0 0 10px #ffd700 !important; /* Starker Schein */
 }
 .lvl-ready-glow * {
-    color: #ffd700 !important;
-    text-shadow: 0 0 5px #b8860b;
+    color: #fff !important; /* Weisser Text für Kontrast */
+    text-shadow: 0 0 10px #ffd700, 0 0 20px #ff0000 !important; /* Doppelter Schatten */
 }
 @keyframes pulse-lvl-text {
-    0% { transform: scale(1); text-shadow: 0 0 5px #b8860b; }
-    100% { transform: scale(1.02); text-shadow: 0 0 15px #ffd700, 0 0 2px white; }
+    0% { 
+        transform: scale(1); 
+        box-shadow: 0 0 5px #b8860b; 
+        border-color: #b8860b;
+    }
+    100% { 
+        transform: scale(1.1); /* Größeres Pulsieren (10%) */
+        text-shadow: 0 0 20px #ffd700, 0 0 30px white; 
+        box-shadow: 0 0 30px #ffd700, inset 0 0 20px #ffd700;
+        border-color: #fff;
+        background-color: rgba(255, 215, 0, 0.4);
+    }
 }
+/* ---------------------------------------- */
 
 .lock-container { position: relative; width: 250px; height: 250px; border-radius: 50%; border: 4px solid #333; background: radial-gradient(circle, #222, #000); box-shadow: inset 0 0 30px #000; margin: 0 auto; }
 .lock-inner { position: absolute; top: 10%; left: 10%; width: 80%; height: 80%; border-radius: 50%; border: 2px dashed #444; transition: transform 0.1s; }
