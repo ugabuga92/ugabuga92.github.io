@@ -6,6 +6,7 @@
 - Fäuste kaufen beim Handelsposten? Wirklich... wie soll das funktionieren. Munition kann ich nicht kaufen beim Handelsposten, wieso auch immer. 
 Zeltbausatz kann ich kaufen, obwohl mein Zelt in einem Sektor aufgebaut worden ist, hier muss eine Abfrage rein ob Zelt im Inventar (auch wenn "aufgebaut" oder nicht.) oder sonst halt eine logische methode umd as Abzufragen. Jeder Char kann max 1 Zelt Bausatz haben
 - Logik überabeiten welches Tier welches Fleisch abgibt: Wieso bekommt man vom wilden hund Rattenfleisch???!
+- Fäuste sollen die Standart "ausrüstung" als Waffe sein wenn man keine hat. Kein Item was so existiert, aktuell kann man sie in Schrott zerlegen. Was soll den der mist.
 
 - Neue und mehr Quest implemntieren, gerne 5 neue Quest. eine Anfänger quest z.b noch. Das erste mal Zelt aubauen, was braten + übernachten
 - Tutorial einbauen um alle funktionen kennen zu lernen? Gerne eine abfolge von Anfängerquests o.ä?
