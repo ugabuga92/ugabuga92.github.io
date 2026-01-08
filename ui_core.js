@@ -52,12 +52,17 @@ const UI = {
     },
 
     updateTimer: function() {
-        if(Game.state && this.els.gameScreen && !this.els.gameScreen.classList.contains('hidden')) {
-            if(Date.now() - this.lastInputTime > 300000) {
+        // [UPDATE] AFK Check: Greift jetzt im Spiel UND im Charakter-Menü
+        const isIngame = (Game.state && this.els.gameScreen && !this.els.gameScreen.classList.contains('hidden'));
+        const isCharSelect = this.charSelectMode;
+
+        if (isIngame || isCharSelect) {
+            if(Date.now() - this.lastInputTime > 300000) { // 5 Minuten
                 this.logout("AFK: ZEITÜBERSCHREITUNG");
                 return;
             }
         }
+
         if(!Game.state || !Game.state.startTime) return;
         const diff = Math.floor((Date.now() - Game.state.startTime) / 1000);
         const h = Math.floor(diff / 3600).toString().padStart(2,'0');
@@ -118,7 +123,7 @@ const UI = {
             newCharOverlay: document.getElementById('new-char-overlay'),
             inputNewCharName: document.getElementById('new-char-name'),
             btnCreateCharConfirm: document.getElementById('btn-create-char'),
-            btnCharSelectAction: document.getElementById('btn-char-select-action'),
+            // btnCharSelectAction entfernt (nicht mehr im HTML)
             btnCharDeleteAction: document.getElementById('btn-char-delete-action'),
             btnCharBack: document.getElementById('btn-char-back'),
             
@@ -143,28 +148,22 @@ const UI = {
              this.els.btnInv.addEventListener('click', () => this.resetInventoryAlert());
         }
 
-        // [v3.4a] Header Info Click Event - Smart Routing
         if(this.els.headerCharInfo) {
             this.els.headerCharInfo.addEventListener('click', () => {
                 const hasStats = Game.state.statPoints > 0;
-                const hasPerks = Game.state.perkPoints > 0; // Assuming perkPoints key
+                const hasPerks = Game.state.perkPoints > 0; 
                 
                 if(hasStats) {
-                    // Prio 1: Stats
                     this.switchView('char'); 
-                    // ToDo: Force Stat Tab if needed
                 } else if (hasPerks) {
-                    // Prio 2: Perks
                     this.switchView('char');
-                    // ToDo: Force Perk Tab switch here if possible
-                    // setTimeout(() => document.getElementById('tab-perks')?.click(), 100);
                 } else {
-                    // Default
                     this.switchView('char');
                 }
             });
         }
 
+        // [FIX] Global verfügbar machen
         window.Game = Game;
         window.UI = this;
 
@@ -205,6 +204,7 @@ const UI = {
     logout: function(msg) {
         this.loginBusy = false;
         this.selectedSlot = -1; 
+        this.charSelectMode = false; // [UPDATE] Reset Mode damit AFK Timer stoppt
         
         if(Game.state) {
             Game.saveGame(true); 
@@ -306,6 +306,7 @@ const UI = {
         }
     },
     
+    // [UPDATE] Alte Button-Logik entfernt
     selectSlot: function(index) {
         if(this.selectedSlot === index) {
             this.triggerCharSlot();
@@ -322,21 +323,13 @@ const UI = {
         }
         
         const save = this.currentSaves ? this.currentSaves[index] : null;
-        if (this.els.btnCharSelectAction) {
+        if (this.els.btnCharDeleteAction) {
             if (save) {
-                this.els.btnCharSelectAction.style.display = 'none';
-                if(this.els.btnCharDeleteAction) {
-                    this.els.btnCharDeleteAction.disabled = false;
-                    this.els.btnCharDeleteAction.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
+                this.els.btnCharDeleteAction.disabled = false;
+                this.els.btnCharDeleteAction.classList.remove('opacity-50', 'cursor-not-allowed');
             } else {
-                this.els.btnCharSelectAction.style.display = 'block';
-                this.els.btnCharSelectAction.textContent = "CHARAKTER ERSTELLEN";
-                this.els.btnCharSelectAction.className = "action-button w-full border-yellow-400 text-yellow-400 font-bold py-3 mb-2";
-                if(this.els.btnCharDeleteAction) {
-                    this.els.btnCharDeleteAction.disabled = true;
-                    this.els.btnCharDeleteAction.classList.add('opacity-50', 'cursor-not-allowed');
-                }
+                this.els.btnCharDeleteAction.disabled = true;
+                this.els.btnCharDeleteAction.classList.add('opacity-50', 'cursor-not-allowed');
             }
         }
     },
@@ -380,4 +373,6 @@ const UI = {
         this.els.charSelectScreen.focus();
     }
 };
+
+window.UI = UI;
 console.log("UI Core Loaded.");
