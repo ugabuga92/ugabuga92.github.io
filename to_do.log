@@ -1,4 +1,6 @@
 🐛 Aktuelle Bugs & Anpassungen:
+
+- Bei Munition leer während des Kampfes soll eing roßes rotes Klick overlay kommen inkl der Info das Munition leer ist. Danach soll auf die "stärkste" Nahkampfwaffe, sofern im inventar vorhanden" gewechselt werden
 - wenn man stirbt bleibt aktuell charaktee uns safegame bestehen. wenn TP 0 erreicht sollte der charakter ja gelöscht werden, liegt das an der speicher logik?
 - Neue und mehr Quest implemntieren, gerne 5 neue Quest. eine Anfänger quest z.b noch. Das erste mal Zelt aubauen, was braten + übernachten
 - Tutorial einbauen um alle funktionen kennen zu lernen? Gerne eine abfolge von Anfängerquests o.ä?
