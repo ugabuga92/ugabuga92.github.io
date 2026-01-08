@@ -1,3 +1,4 @@
+// [TIMESTAMP] 2026-01-08 23:15:00 - ui_view_town.js - Fix Ammo Buy Button
 Object.assign(UI, {
     
     shopQty: 1,
@@ -237,7 +238,9 @@ Object.assign(UI, {
         const ammoStock = Game.state.shop.ammoStock || 0;
 
         const createSlot = (icon, name, stock, price, onClick, isHighlight=false) => {
+            // [DEBUG] Check, ob wir genug Geld haben
             const canBuy = Game.state.caps >= price;
+            
             const borderColor = isHighlight ? 'border-blue-600' : (canBuy ? 'border-yellow-700' : 'border-red-900');
             const bgClass = isHighlight ? 'bg-blue-900/20' : (canBuy ? 'bg-yellow-900/10' : 'bg-red-900/10 opacity-50');
             const textClass = isHighlight ? 'text-blue-300' : (canBuy ? 'text-yellow-200' : 'text-gray-500');
@@ -260,16 +263,26 @@ Object.assign(UI, {
             `;
             if(canBuy) {
                 el.onclick = onClick;
-                el.querySelector('button').onclick = (e) => { e.stopPropagation(); onClick(); };
+                // Button-Click explizit
+                const btn = el.querySelector('button');
+                if(btn) btn.onclick = (e) => { 
+                    e.stopPropagation(); 
+                    console.log("Button clicked!"); // [DEBUG]
+                    onClick(); 
+                };
             }
             return el;
         };
 
-        // [FIX] Ammo Buy Logic: Nutzt generisches Item kaufen, falls buyAmmo fehlt
+        // [FIX] Ammo Logic: Direkter Aufruf und Debugging
         if(ammoStock > 0) {
             container.appendChild(createSlot("🧨", "10x MUNITION", ammoStock, 10, () => {
-                if(typeof Game.buyAmmo === 'function') Game.buyAmmo(UI.shopQty);
-                else Game.buyItem('ammo', UI.shopQty);
+                console.log("Kaufversuch Munition gestartet...");
+                if(typeof Game.buyItem === 'function') {
+                    Game.buyItem('ammo', UI.shopQty);
+                } else {
+                    console.error("Game.buyItem nicht gefunden!");
+                }
             }, true));
             container.innerHTML += `<div class="h-px bg-yellow-900/50 my-4 mx-2"></div>`;
         }
@@ -282,10 +295,8 @@ Object.assign(UI, {
         };
 
         Object.keys(stock).forEach(key => {
-            // [FIX] Fäuste & Vault-Anzug nicht verkaufbar
             if (key === 'fists' || key === 'vault_suit' || key === 'mele') return;
 
-            // [FIX] Zelt-Logik: Nur wenn man keins hat (weder Inv noch gebaut)
             if (key === 'camp_kit') {
                 const hasKit = Game.state.inventory.some(i => i.id === 'camp_kit');
                 const hasBuilt = !!Game.state.camp;
@@ -330,7 +341,6 @@ Object.assign(UI, {
             const def = Game.items[item.id];
             if(!def) return;
             
-            // [FIX] Verhindern, dass man seine Fäuste verkauft (Sicherheitshalber)
             if (item.id === 'fists') return;
 
             let valMult = item.props && item.props.valMult ? item.props.valMult : 1;
@@ -387,7 +397,6 @@ Object.assign(UI, {
         const header = document.createElement('div');
         header.className = "flex-shrink-0 flex flex-col border-b-4 border-green-900 bg-[#001100] p-4 relative shadow-lg z-10";
         
-        // [FIX] Währungssymbol auf KK vereinheitlicht
         header.innerHTML = `
             <div class="flex justify-between items-start z-10 relative">
                 <div>
