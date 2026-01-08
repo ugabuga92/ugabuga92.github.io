@@ -87,35 +87,27 @@ Object.assign(Game, {
         if(typeof UI.renderCamp === 'function') UI.renderCamp();
     },
 
-    // [v0.7.4] Auto-Close Clinic
     heal: function() { 
         if(this.state.caps >= 25) { 
             this.state.caps -= 25; 
-            
-            // Logik
             this.state.rads = 0; 
             this.state.hp = this.state.maxHp; 
-            
-            // Neuer Text
             UI.log("BEHANDLUNG ERFOLGREICH: Alle RADS entfernt, Gesundheit vollständig wiederhergestellt.", "text-green-400 font-bold");
             UI.update(); 
-            
-            // Auto-Close zum City Dashboard
             setTimeout(() => {
                 if (Game.state.view === 'clinic') {
-                    // Da wir im Dashboard Modul sind, rufen wir direkt das Dashboard auf
                     if(typeof UI.renderCity === 'function') UI.renderCity();
                 }
-            }, 1500); // 1.5 sekunden lesen lassen
-
+            }, 1500); 
         } else { UI.log("Zu wenig Kronkorken.", "text-red-500"); }
     },
     
+    // Wrapper für Munition (ruft die Hauptfunktion auf)
     buyAmmo: function(qty) { 
         this.buyItem('ammo', qty);
     },
     
-    // Generische Kauf-Funktion
+    // [FIXED] GENERISCHE KAUF-FUNKTION (Mit Munitions-Pack-Logik)
     buyItem: function(id, qtyMode = 1) {
         const item = Game.items[id];
         if (!item) {
@@ -123,81 +115,91 @@ Object.assign(Game, {
             return;
         }
 
-        // Lagerbestand prüfen
-        const stock = (Game.state.shop.stock && Game.state.shop.stock[id] !== undefined) ? Game.state.shop.stock[id] : 0;
-        // Ammo ist oft unendlich oder separat geregelt, sonst '&&' entfernen
-        if (stock <= 0 && id !== 'ammo') { 
-             if(typeof UI !== 'undefined') UI.error("Händler hat das nicht mehr.");
+        // --- 1. PREISE & MENGEN DEFINIEREN ---
+        let stock = 0;
+        let pricePerUnit = item.cost; 
+        let itemsPerUnit = 1; // Normalerweise kriegt man 1 Item pro Kauf
+
+        // SPEZIALFALL: MUNITION
+        // Munition wird im UI als "10x Munition" für "10 KK" verkauft.
+        if (id === 'ammo') {
+            stock = this.state.shop.ammoStock || 0; // Greift auf ammoStock zu!
+            itemsPerUnit = 10; // Ein "Kauf" gibt 10 Kugeln
+            pricePerUnit = 10; // Ein "Kauf" kostet 10 KK (Sonderpreis Paket)
+        } else {
+            // Normales Item
+            stock = (this.state.shop.stock && this.state.shop.stock[id] !== undefined) ? this.state.shop.stock[id] : 0;
+        }
+
+        // --- 2. LAGER CHECK ---
+        // Wenn Händler weniger hat als ein Paket (z.B. weniger als 10 Kugeln), kann man das Paket nicht kaufen
+        if (stock < itemsPerUnit) { 
+             if(typeof UI !== 'undefined') UI.error("Händler hat das nicht mehr vorrätig.");
              return;
         }
 
-        // Menge berechnen
-        let amount = 1;
+        // --- 3. MENGEN-BERECHNUNG (Wie viele PAKETE/STÜCK kaufe ich?) ---
+        let packsToBuy = 1; // Standard: 1 mal drücken = 1 Paket/Stück kaufen
+
         if (typeof qtyMode === 'number') {
-            amount = qtyMode;
+            packsToBuy = qtyMode;
         } else if (qtyMode === 'max') {
-            // Berechne wie viel ich mir leisten kann
-            const maxAffordable = Math.floor(Game.state.caps / item.cost);
-            amount = maxAffordable;
+            // Wie viele Pakete kann ich mir leisten?
+            const maxAffordable = Math.floor(Game.state.caps / pricePerUnit);
             
-            // Aber nicht mehr als der Händler hat (außer Ammo ist unendlich)
-            if (amount > stock && id !== 'ammo') amount = stock;
+            // Wie viele Pakete hat der Händler?
+            const maxInStock = Math.floor(stock / itemsPerUnit);
             
-            // Begrenzen auf sinnvolle Menge (z.B. Stacksize oder Gewicht)
-            // Hier vereinfacht: Wenn 0 rauskommt, versuche 1 (wird dann bei Cost check failen)
-            if (amount < 1) amount = 1;
+            packsToBuy = Math.min(maxAffordable, maxInStock);
+            
+            // Begrenzen auf sinnvolle Menge (damit Inventar nicht explodiert, z.B. 100 Pakete max)
+            if(packsToBuy > 100) packsToBuy = 100;
+            if(packsToBuy < 1) packsToBuy = 1; // Versucht zumindest 1 zu kaufen (schlägt dann bei Geld fehl)
         }
 
-        // Check: Hat Händler genug?
-        if (id !== 'ammo' && amount > stock) {
-            if(typeof UI !== 'undefined') UI.error("Händler hat nur noch " + stock + " Stück.");
+        // --- 4. VALIDIERUNG ---
+        const totalCost = packsToBuy * pricePerUnit;
+        const totalItemsReceived = packsToBuy * itemsPerUnit;
+
+        // Hat der Händler genug für diese Menge?
+        if (totalItemsReceived > stock) {
+            if(typeof UI !== 'undefined') UI.error("Händler hat nicht genug auf Lager.");
             return;
         }
 
-        // Check: Kosten
-        const totalCost = item.cost * amount;
+        // Habe ich genug Geld?
         if (Game.state.caps < totalCost) {
             if(typeof UI !== 'undefined') UI.error("Nicht genug Kronkorken! (" + totalCost + " benötigt)");
             return;
         }
 
-        // Zelt-Logik: Nur wenn man keins hat (weder Inv noch gebaut)
+        // Zelt-Logik: Nur eins erlaubt
         if (id === 'camp_kit') {
             const hasKit = Game.state.inventory.some(i => i.id === 'camp_kit');
             const hasBuilt = !!Game.state.camp;
             if (hasKit || hasBuilt) {
-                if(typeof UI !== 'undefined') UI.error("Du kannst nur einen Zeltbausatz besitzen/bauen.");
+                if(typeof UI !== 'undefined') UI.error("Du hast bereits ein Zelt!");
                 return;
             }
         }
 
-        // Check: Gewicht / Platz (Optional, falls du Gewicht nutzt)
-        if (Game.getUsedSlots() + amount > Game.getMaxSlots()) { // Vereinfacht: 1 Slot pro Item
-             // Falls Items stacken, müsste hier komplexere Logik hin. 
-             // Gehen wir davon aus, sie stacken noch nicht im Slot-Count:
-             // if(typeof UI !== 'undefined') UI.error("Inventar voll!");
-             // return;
-        }
-
-        // --- TRANSAKTION ---
+        // --- 5. TRANSAKTION DURCHFÜHREN ---
         Game.state.caps -= totalCost;
-        Game.state.shop.merchantCaps += totalCost; // Händler bekommt das Geld
+        Game.state.shop.merchantCaps += totalCost; 
         
-        // Händler Lager reduzieren (Ammo ist im 'stock' Objekt oft nicht drin, wenn es extra ist)
-        if (Game.state.shop.stock[id] !== undefined) {
-            Game.state.shop.stock[id] -= amount;
-        } else if (id === 'ammo') {
-            // Falls Ammo separat im State liegt
-            if(Game.state.shop.ammoStock) Game.state.shop.ammoStock -= amount;
+        // Lager reduzieren
+        if (id === 'ammo') {
+            Game.state.shop.ammoStock -= totalItemsReceived;
+        } else {
+            Game.state.shop.stock[id] -= packsToBuy;
         }
 
         // Item zum Inventar hinzufügen
-        Game.addItem(id, amount); // Achtung: addItem muss in game_actions.js definiert sein! 
-        // Falls nicht, hier die Logik einfügen oder sicherstellen, dass addToInventory verwendet wird.
-        // Game.addToInventory(id, amount); 
+        // Wir nutzen addToInventory, da addItem oft nur ein Alias ist der fehlen könnte
+        Game.addToInventory(id, totalItemsReceived); 
 
         if(typeof UI !== 'undefined') {
-            UI.log(`Gekauft: ${amount}x ${item.name} für ${totalCost} KK.`);
+            UI.log(`Gekauft: ${packsToBuy}x ${itemsPerUnit > 1 ? 'Paket ' : ''}${item.name} (-${totalCost} KK).`);
             // UI Update erzwingen
             if (Game.state.view === 'shop') UI.renderShop('buy'); 
         }
@@ -224,7 +226,7 @@ Object.assign(Game, {
             amount = qtyMode;
         } else if (qtyMode === 'max') {
             amount = entry.count;
-            // Optional: Begrenzen durch Händler-Geld
+            // Begrenzen durch Händler-Geld
             const maxMerchantCanBuy = Math.floor(Game.state.shop.merchantCaps / unitPrice);
             if (amount > maxMerchantCanBuy) amount = maxMerchantCanBuy;
         }
@@ -237,7 +239,6 @@ Object.assign(Game, {
 
         const totalValue = unitPrice * amount;
 
-        // Check: Hat Händler genug Geld?
         if (Game.state.shop.merchantCaps < totalValue) {
             if(typeof UI !== 'undefined') UI.error("Der Händler hat nicht genug Kronkorken.");
             return;
@@ -247,17 +248,20 @@ Object.assign(Game, {
         Game.state.caps += totalValue;
         Game.state.shop.merchantCaps -= totalValue;
 
-        // Item entfernen
-        // Achtung: removeItem/removeFromInventory muss Index oder ID handhaben können. 
-        // Hier sicherstellen, dass die richtige Funktion aufgerufen wird.
         Game.removeFromInventory(entry.id, amount); 
         
-        // Füge Item dem Händler hinzu (Restocking Logik)
-        if (!Game.state.shop.stock[entry.id]) Game.state.shop.stock[entry.id] = 0;
-        Game.state.shop.stock[entry.id] += amount;
+        // Item ins Händler-Lager
+        if (entry.id === 'ammo') {
+             // Ammo landet nicht im normalen Stock, sondern verschwindet oder füllt ammoStock auf?
+             // Sagen wir, er verkauft es weiter:
+             Game.state.shop.ammoStock = (Game.state.shop.ammoStock || 0) + amount;
+        } else {
+             if (!Game.state.shop.stock[entry.id]) Game.state.shop.stock[entry.id] = 0;
+             Game.state.shop.stock[entry.id] += amount;
+        }
 
         if(typeof UI !== 'undefined') {
-            UI.log(`Verkauft: ${amount}x ${item.name} für ${totalValue} KK.`);
+            UI.log(`Verkauft: ${amount}x ${item.name} (+${totalValue} KK).`);
             if (Game.state.view === 'shop') UI.renderShop('sell');
         }
         
@@ -373,24 +377,18 @@ Object.assign(Game, {
         this.saveGame();
     },
 
-    // [v0.7.3] Scrap Item with Perk (Only at Workbench)
     scrapItem: function(invIndex) {
         if(!this.state.inventory || !this.state.inventory[invIndex]) return;
-        
-        // Safety Check: Nur an Werkbank (view 'crafting')
         if (this.state.view !== 'crafting') {
             UI.log("Zerlegen nur an einer Werkbank möglich!", "text-red-500");
             return;
         }
 
         const item = this.state.inventory[invIndex];
-
-        // --- NEW: Blockiert das Zerlegen von Schrott ---
         if (item.id === 'junk_metal') {
             UI.log("Das ist bereits Schrott.", "text-orange-500");
             return;
         }
-        // -----------------------------------------------
 
         const def = this.items[item.id];
         if(!def) return;
@@ -400,20 +398,15 @@ Object.assign(Game, {
         
         this.state.inventory.splice(invIndex, 1);
 
-        // FORMEL (GENEROUS): mind. 1 Schrott, plus Perk Bonus
         let scrapAmount = Math.max(1, Math.floor(value / 10)); 
-        
         const perkLvl = this.getPerkLevel('scrapper');
-        if(perkLvl > 0) {
-            scrapAmount += perkLvl; // +1 pro Stufe
-        }
+        if(perkLvl > 0) { scrapAmount += perkLvl; }
 
         this.addToInventory('junk_metal', scrapAmount);
         
         let msg = `Zerlegt: ${name} -> ${scrapAmount}x Schrott`;
 
         let screwChance = 0.3 + (perkLvl * 0.15); 
-        // Auch "Junk" Items sollten Schrauben geben können
         const isComplex = def.type === 'weapon' || def.type === 'junk' || def.type === 'tool';
 
         if(isComplex && Math.random() < screwChance) {
@@ -432,12 +425,10 @@ Object.assign(Game, {
         }
 
         UI.log(msg, "text-orange-400 font-bold");
-        
         UI.update();
         if(typeof UI.renderCrafting === 'function') {
             UI.renderCrafting('scrap');
         }
-        
         this.saveGame();
     },
 
@@ -665,7 +656,6 @@ Object.assign(Game, {
         enemy.dmg = Math.floor(enemy.dmg * difficultyMult);
         enemy.loot = Math.floor(enemy.loot * difficultyMult);
 
-        // [v0.6.0] PERK: FORTUNE FINDER (Leveled)
         const fortuneLvl = this.getPerkLevel('fortune_finder');
         if(fortuneLvl > 0) {
             enemy.loot = Math.floor(enemy.loot * (1 + (fortuneLvl * 0.1)));
@@ -714,17 +704,13 @@ Object.assign(Game, {
         if(this.state.statPoints > 0) { 
             this.state.stats[key]++; 
             this.state.statPoints--; 
-            
-            // [v0.6.0] RECALC
             this.recalcStats();
-            
             UI.renderChar(); 
             UI.update(); 
             this.saveGame(); 
         } 
     },
 
-    // [v0.6.0] PERK WAHL (Leveled)
     choosePerk: function(perkId) {
         if(this.state.perkPoints <= 0) {
             UI.log("Keine Perk-Punkte verfügbar!", "text-red-500");
@@ -734,7 +720,6 @@ Object.assign(Game, {
         const perkDef = this.perkDefs.find(p => p.id === perkId);
         if(!perkDef) return;
 
-        // Migration Check
         if (Array.isArray(this.state.perks)) {
             const oldPerks = this.state.perks;
             this.state.perks = {};
@@ -755,9 +740,7 @@ Object.assign(Game, {
         
         UI.log(`Perk gelernt: ${perkDef.name} (Stufe ${this.state.perks[perkId]})`, "text-green-400 font-bold");
         
-        // Recalc Stats (für Toughness, etc)
         this.recalcStats();
-        
         this.saveGame();
         
         if(typeof UI.renderChar === 'function') UI.renderChar('perks');
@@ -838,7 +821,7 @@ Object.assign(Game, {
         this.saveGame();
         
         if(typeof UI.renderCamp === 'function') UI.renderCamp();
-    },
+    }
 });
-// Add addItem helper if missing
+// Add helper just in case
 Game.addItem = Game.addToInventory;
