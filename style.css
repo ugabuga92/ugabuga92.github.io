@@ -51,7 +51,11 @@ canvas {
 
 .alert-glow-red { animation: pulse-red-intense 1.5s infinite !important; border-width: 2px !important; font-weight: bold !important; }
 @keyframes pulse-red-intense { 0% { box-shadow: 0 0 5px red; border-color: #800000; color: #ffcccc; } 50% { box-shadow: 0 0 25px red, inset 0 0 10px red; border-color: red; color: white; background-color: rgba(255, 0, 0, 0.2); } 100% { box-shadow: 0 0 5px red; border-color: #800000; color: #ffcccc; } }
-.alert-glow-yellow { animation: pulse-yellow-intense 1.5s infinite !important; border-width: 2px !important; font-weight: bold !important; }
+/* Kombinierte Definition für identischen Look */
+.alert-glow-yellow, .lvl-ready-glow { 
+    animation: pulse-yellow-intense 1.5s infinite !important; 
+    border: 2px solid #ffd700 !important; /* 'solid' ist wichtig für den Header */
+    font-weight: bold !important;}
 @keyframes pulse-yellow-intense { 0% { box-shadow: 0 0 5px #ffd700; border-color: #b8860b; color: #ffffcc; } 50% { box-shadow: 0 0 25px #ffd700, inset 0 0 10px #ffd700; border-color: #ffd700; color: white; background-color: rgba(255, 215, 0, 0.2); } 100% { box-shadow: 0 0 5px #ffd700; border-color: #b8860b; color: #ffffcc; } }
 .alert-glow-cyan { animation: pulse-cyan-intense 1.5s infinite !important; border-width: 2px !important; font-weight: bold !important; }
 @keyframes pulse-cyan-intense { 0% { box-shadow: 0 0 5px cyan; border-color: #008b8b; color: #e0ffff; } 50% { box-shadow: 0 0 25px cyan, inset 0 0 10px cyan; border-color: cyan; color: white; background-color: rgba(0, 255, 255, 0.2); } 100% { box-shadow: 0 0 5px cyan; border-color: #008b8b; color: #e0ffff; } }
@@ -65,32 +69,6 @@ canvas {
     animation: pulse-focus 1.5s infinite;
 }
 @keyframes pulse-focus { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
-/* --- [UPDATE] STÄRKERER LEVEL UP GLOW --- */
-.lvl-ready-glow {
-    animation: pulse-lvl-text 0.8s infinite alternate !important; /* Schneller */
-    border: 1,5px solid #ffd700 !important; /* Deutlicher Rand */
-    background-color: rgba(255, 215, 0, 0.15); /* Heller Hintergrund */
-    box-shadow: 0 0 8px #ffd700, inset 0 0 10px #ffd700 !important; /* Starker Schein */
-}
-.lvl-ready-glow * {
-    color: #fff !important; /* Weisser Text für Kontrast */
-    text-shadow: 0 0 10px #ffd700, 0 0 20px #ff0000 !important; /* Doppelter Schatten */
-}
-@keyframes pulse-lvl-text {
-    0% { 
-        transform: scale(1); 
-        box-shadow: 0 0 2px #b8860b; 
-        border-color: #b8860b;
-    }
-    100% { 
-        transform: scale(1.05); /* Größeres Pulsieren (5%) */
-        box-shadow: 0 0 15px #ffd700, inset 0 0 10px #ffd700;
-        border-color: #fff;
-        background-color: rgba(255, 215, 0, 0.4);
-    }
-}
-/* ---------------------------------------- */
 
 .lock-container { position: relative; width: 250px; height: 250px; border-radius: 50%; border: 4px solid #333; background: radial-gradient(circle, #222, #000); box-shadow: inset 0 0 30px #000; margin: 0 auto; }
 .lock-inner { position: absolute; top: 10%; left: 10%; width: 80%; height: 80%; border-radius: 50%; border: 2px dashed #444; transition: transform 0.1s; }
