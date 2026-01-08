@@ -1,4 +1,5 @@
-// [TIMESTAMP] 2026-01-08 23:30:00 - ui_view_town.js - Debug Ammo Button
+// [TIMESTAMP] 2026-01-08 23:58:00 - ui_view_town.js - Fixed Ammo Button Click
+
 Object.assign(UI, {
     
     shopQty: 1,
@@ -234,20 +235,57 @@ Object.assign(UI, {
         container.innerHTML = '';
 
         const stock = Game.state.shop.stock || {};
-        // [FIX] Ammo Stock sicher holen
-        const ammoStock = (typeof Game.state.shop.ammoStock !== 'undefined') ? Game.state.shop.ammoStock : 0;
+        const ammoStock = (Game.state.shop.ammoStock !== undefined) ? Game.state.shop.ammoStock : 0;
+        const myCaps = Game.state.caps;
 
-        const createSlot = (icon, name, stock, price, onClick, isHighlight=false) => {
-            const canBuy = Game.state.caps >= price;
-            const borderColor = isHighlight ? 'border-blue-600' : (canBuy ? 'border-yellow-700' : 'border-red-900');
-            const bgClass = isHighlight ? 'bg-blue-900/20' : (canBuy ? 'bg-yellow-900/10' : 'bg-red-900/10 opacity-50');
-            const textClass = isHighlight ? 'text-blue-300' : (canBuy ? 'text-yellow-200' : 'text-gray-500');
+        // [FIX] AMMO HARDCODED MIT Z-INDEX
+        const ammoPrice = 10;
+        const canBuyAmmo = myCaps >= ammoPrice;
+        const ammoColor = canBuyAmmo ? 'border-blue-500 text-blue-300' : 'border-red-900 text-gray-600';
+        const ammoBg = canBuyAmmo ? 'bg-blue-900/20' : 'bg-red-900/10 opacity-50';
+        
+        const ammoDiv = document.createElement('div');
+        // RELATIVE & Z-INDEX 50 WICHTIG!
+        ammoDiv.className = `flex justify-between items-center mb-4 border-2 ${ammoColor} ${ammoBg} h-16 relative z-50`;
+        
+        const debugInfo = canBuyAmmo ? "" : "";
+        
+        ammoDiv.innerHTML = `
+            <div class="flex items-center gap-3 p-2 flex-grow overflow-hidden pointer-events-none">
+                <div class="text-3xl w-12 h-12 flex items-center justify-center bg-black/40 border border-blue-900/50 rounded">🧨</div>
+                <div class="flex flex-col truncate">
+                    <span class="font-bold text-lg font-vt323 truncate leading-none pt-1">10x MUNITION ${debugInfo}</span>
+                    <span class="text-xs text-blue-600 font-mono uppercase">Vorrat: ${ammoStock} | Preis: 10 KK</span>
+                </div>
+            </div>
+            <div class="h-full flex flex-col justify-center items-end border-l-2 ${canBuyAmmo ? 'border-blue-500' : 'border-red-900'} bg-black/30 min-w-[100px]">
+                <button 
+                    onclick="console.log('CLICK AMMO'); Game.buyItem('ammo', UI.shopQty);" 
+                    class="w-full h-full text-sm font-bold uppercase tracking-wider hover:bg-blue-500 hover:text-black transition-colors ${canBuyAmmo ? 'text-blue-400 cursor-pointer' : 'text-red-900 cursor-not-allowed pointer-events-none'}"
+                    style="pointer-events: auto !important; position: relative; z-index: 100;"
+                    ${canBuyAmmo ? '' : 'disabled'}>
+                    KAUFEN
+                </button>
+            </div>
+        `;
+        container.appendChild(ammoDiv);
+        
+        const sep = document.createElement('div');
+        sep.className = "h-px bg-yellow-900/50 my-4 mx-2";
+        container.appendChild(sep);
+
+        // --- NORMALE ITEMS ---
+        const createSlot = (icon, name, stock, price, key) => {
+            const canBuy = myCaps >= price;
+            const borderColor = canBuy ? 'border-yellow-700' : 'border-red-900';
+            const bgClass = canBuy ? 'bg-yellow-900/10' : 'bg-red-900/10 opacity-50';
+            const textClass = canBuy ? 'text-yellow-200' : 'text-gray-500';
             
             const el = document.createElement('div');
-            el.className = `flex justify-between items-center mb-2 border-2 ${borderColor} ${bgClass} h-16 transition-all ${canBuy ? 'hover:bg-yellow-900/30 cursor-pointer group' : ''}`;
+            el.className = `flex justify-between items-center mb-2 border-2 ${borderColor} ${bgClass} h-16 transition-all relative z-10`;
             
             el.innerHTML = `
-                <div class="flex items-center gap-3 p-2 flex-grow overflow-hidden">
+                <div class="flex items-center gap-3 p-2 flex-grow overflow-hidden pointer-events-none">
                     <div class="text-3xl w-12 h-12 flex items-center justify-center bg-black/40 border border-yellow-900/50 rounded">${icon}</div>
                     <div class="flex flex-col truncate">
                         <span class="font-bold ${textClass} text-lg font-vt323 truncate leading-none pt-1">${name}</span>
@@ -256,41 +294,17 @@ Object.assign(UI, {
                 </div>
                 <div class="h-full flex flex-col justify-center items-end border-l-2 ${borderColor} bg-black/30 min-w-[80px]">
                     <div class="font-bold ${canBuy ? 'text-yellow-400' : 'text-red-500'} text-lg w-full text-center border-b border-white/10 font-vt323">${price}</div>
-                    <button class="flex-grow w-full text-[10px] font-bold uppercase tracking-wider hover:bg-yellow-500 hover:text-black transition-colors ${canBuy ? 'text-yellow-600' : 'text-red-900'}" ${canBuy?'':'disabled'}>KAUFEN</button>
+                    <button 
+                        onclick="Game.buyItem('${key}', UI.shopQty)"
+                        class="flex-grow w-full text-[10px] font-bold uppercase tracking-wider hover:bg-yellow-500 hover:text-black transition-colors ${canBuy ? 'text-yellow-600 cursor-pointer' : 'text-red-900 cursor-not-allowed pointer-events-none'}" 
+                        style="pointer-events: auto !important; position: relative; z-index: 100;"
+                        ${canBuy?'':'disabled'}>
+                        KAUFEN
+                    </button>
                 </div>
             `;
-            if(canBuy) {
-                // [FIX] Event Listener explizit machen
-                const execute = (e) => {
-                    if(e) e.stopPropagation();
-                    console.log("Kaufen Button geklickt!");
-                    onClick();
-                };
-                el.onclick = execute;
-                const btn = el.querySelector('button');
-                if(btn) btn.onclick = execute;
-            }
             return el;
         };
-
-        // [FIX] AMMO Button IMMER anzeigen (ohne if-Check), zum Debuggen
-        container.appendChild(createSlot(
-            "🧨", 
-            "10x MUNITION", 
-            ammoStock, 
-            10, 
-            () => {
-                console.log("Rufe Game.buyItem('ammo') auf...");
-                if(typeof Game.buyItem === 'function') {
-                    Game.buyItem('ammo', UI.shopQty);
-                } else {
-                    console.error("FEHLER: Game.buyItem Funktion nicht gefunden!");
-                    if(typeof UI !== 'undefined') UI.error("Script Fehler: buyItem missing");
-                }
-            }, 
-            true
-        ));
-        container.innerHTML += `<div class="h-px bg-yellow-900/50 my-4 mx-2"></div>`;
 
         const categories = {
             'consumable': { title: '💊 MEDIZIN', items: [] },
@@ -301,13 +315,11 @@ Object.assign(UI, {
 
         Object.keys(stock).forEach(key => {
             if (key === 'fists' || key === 'vault_suit' || key === 'mele') return;
-
             if (key === 'camp_kit') {
                 const hasKit = Game.state.inventory.some(i => i.id === 'camp_kit');
                 const hasBuilt = !!Game.state.camp;
                 if (hasKit || hasBuilt) return; 
             }
-
             if(stock[key] <= 0) return;
             const item = Game.items[key];
             if(!item) return;
@@ -326,7 +338,7 @@ Object.assign(UI, {
                 cat.items.forEach(data => {
                     let icon = "📦";
                     if(data.type==='weapon') icon="🔫"; if(data.type==='body') icon="🛡️"; if(data.type==='consumable') icon="💉";
-                    container.appendChild(createSlot(icon, data.name, stock[data.key], data.cost, () => Game.buyItem(data.key, UI.shopQty)));
+                    container.appendChild(createSlot(icon, data.name, stock[data.key], data.cost, data.key));
                 });
             }
         }
