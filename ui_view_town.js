@@ -350,10 +350,14 @@ Object.assign(UI, {
         });
     },
 
-    // --- [v0.8.3] RUSTY SPRINGS DASHBOARD (Baracke entfernt) ---
+    // --- [FIXED] RUSTY SPRINGS DASHBOARD (Mit Wrapper!) ---
     renderCity: function() {
         const view = document.getElementById('view-container');
         view.innerHTML = ''; 
+
+        // [WICHTIG] Wrapper erstellt das vertikale Layout
+        const wrapper = document.createElement('div');
+        wrapper.className = "w-full h-full flex flex-col relative bg-black";
 
         // 1. HEADER
         const header = document.createElement('div');
@@ -375,7 +379,7 @@ Object.assign(UI, {
                 💰 ${Game.state.caps} KK
             </div>
         `;
-        view.appendChild(header);
+        wrapper.appendChild(header);
 
         // 2. GRID
         const grid = document.createElement('div');
@@ -414,10 +418,7 @@ Object.assign(UI, {
         `;
         grid.appendChild(craftCard);
 
-        // --- BARACKE ENTFERNT ---
-        // (Hier war früher der restCard Block)
-
-        view.appendChild(grid);
+        wrapper.appendChild(grid);
 
         // 3. FOOTER
         const footer = document.createElement('div');
@@ -427,6 +428,8 @@ Object.assign(UI, {
                 ZURÜCK INS ÖDLAND (ESC)
             </button>
         `;
-        view.appendChild(footer);
+        wrapper.appendChild(footer);
+
+        view.appendChild(wrapper);
     }
 });
