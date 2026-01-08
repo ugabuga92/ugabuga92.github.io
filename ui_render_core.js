@@ -120,13 +120,10 @@ Object.assign(UI, {
             if(unreadQuests) { this.els.btnQuests.classList.add('alert-glow-cyan'); hasAlert = true; } 
             else { this.els.btnQuests.classList.remove('alert-glow-cyan'); }
         }
-        
-        // --- CHANGE: BURGER MENU JETZT AUCH GELB BEI ALERT ---
         if(this.els.btnMenu) {
-            if(hasAlert) this.els.btnMenu.classList.add('alert-glow-yellow'); // War vorher red
+            if(hasAlert) this.els.btnMenu.classList.add('alert-glow-yellow');
             else this.els.btnMenu.classList.remove('alert-glow-yellow');
         }
-        // -----------------------------------------------------
 
         const inCombat = Game.state.view === 'combat';
         [this.els.btnWiki, this.els.btnMap, this.els.btnChar, this.els.btnQuests, this.els.btnLogout, this.els.btnInv].forEach(btn => { if(btn) btn.disabled = inCombat; });
@@ -251,6 +248,7 @@ Object.assign(UI, {
     restoreOverlay: function() {
         if(document.getElementById('joystick-base')) return;
         
+        // [v1.5.1] UPDATE: stopPropagation im OnClick
         const joystickHTML = `
             <div id="joystick-base" style="position: absolute; width: 100px; height: 100px; border-radius: 50%; border: 2px solid rgba(57, 255, 20, 0.5); background: rgba(0, 0, 0, 0.2); display: none; pointer-events: none; z-index: 9999;"></div>
             <div id="joystick-stick" style="position: absolute; width: 50px; height: 50px; border-radius: 50%; background: rgba(57, 255, 20, 0.8); display: none; pointer-events: none; z-index: 10000; box-shadow: 0 0 10px #39ff14;"></div>
@@ -267,11 +265,13 @@ Object.assign(UI, {
         this.els.joyStick = document.getElementById('joystick-stick');
         this.els.dialog = document.getElementById('dialog-overlay');
 
+        // [v1.5.1] Global ESC Listener: Prioritize Overlay
         if(!window.escListenerAdded) {
             window.addEventListener('keydown', (e) => {
                 if(e.key === 'Escape') {
                     const d = document.getElementById('dialog-overlay');
                     if(d && d.style.display !== 'none') {
+                        // Close Overlay AND STOP PROPAGATION
                         d.style.display = 'none';
                         d.innerHTML = '';
                         e.stopPropagation(); 
@@ -279,7 +279,7 @@ Object.assign(UI, {
                         e.preventDefault();
                     }
                 }
-            }, true);
+            }, true); // Use Capture phase to catch it first
             window.escListenerAdded = true;
         }
     },
