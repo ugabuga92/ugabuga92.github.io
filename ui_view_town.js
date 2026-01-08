@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-08 23:15:00 - ui_view_town.js - Fix Ammo Buy Button
+// [TIMESTAMP] 2026-01-08 23:30:00 - ui_view_town.js - Debug Ammo Button
 Object.assign(UI, {
     
     shopQty: 1,
@@ -153,7 +153,6 @@ Object.assign(UI, {
         }
     },
 
-    // --- SHOP REDESIGN (FIXED LOGIC) ---
     renderShop: function(mode = 'buy') {
         Game.state.view = 'shop';
         Game.checkShopRestock(); 
@@ -235,12 +234,11 @@ Object.assign(UI, {
         container.innerHTML = '';
 
         const stock = Game.state.shop.stock || {};
-        const ammoStock = Game.state.shop.ammoStock || 0;
+        // [FIX] Ammo Stock sicher holen
+        const ammoStock = (typeof Game.state.shop.ammoStock !== 'undefined') ? Game.state.shop.ammoStock : 0;
 
         const createSlot = (icon, name, stock, price, onClick, isHighlight=false) => {
-            // [DEBUG] Check, ob wir genug Geld haben
             const canBuy = Game.state.caps >= price;
-            
             const borderColor = isHighlight ? 'border-blue-600' : (canBuy ? 'border-yellow-700' : 'border-red-900');
             const bgClass = isHighlight ? 'bg-blue-900/20' : (canBuy ? 'bg-yellow-900/10' : 'bg-red-900/10 opacity-50');
             const textClass = isHighlight ? 'text-blue-300' : (canBuy ? 'text-yellow-200' : 'text-gray-500');
@@ -262,30 +260,37 @@ Object.assign(UI, {
                 </div>
             `;
             if(canBuy) {
-                el.onclick = onClick;
-                // Button-Click explizit
-                const btn = el.querySelector('button');
-                if(btn) btn.onclick = (e) => { 
-                    e.stopPropagation(); 
-                    console.log("Button clicked!"); // [DEBUG]
-                    onClick(); 
+                // [FIX] Event Listener explizit machen
+                const execute = (e) => {
+                    if(e) e.stopPropagation();
+                    console.log("Kaufen Button geklickt!");
+                    onClick();
                 };
+                el.onclick = execute;
+                const btn = el.querySelector('button');
+                if(btn) btn.onclick = execute;
             }
             return el;
         };
 
-        // [FIX] Ammo Logic: Direkter Aufruf und Debugging
-        if(ammoStock > 0) {
-            container.appendChild(createSlot("🧨", "10x MUNITION", ammoStock, 10, () => {
-                console.log("Kaufversuch Munition gestartet...");
+        // [FIX] AMMO Button IMMER anzeigen (ohne if-Check), zum Debuggen
+        container.appendChild(createSlot(
+            "🧨", 
+            "10x MUNITION", 
+            ammoStock, 
+            10, 
+            () => {
+                console.log("Rufe Game.buyItem('ammo') auf...");
                 if(typeof Game.buyItem === 'function') {
                     Game.buyItem('ammo', UI.shopQty);
                 } else {
-                    console.error("Game.buyItem nicht gefunden!");
+                    console.error("FEHLER: Game.buyItem Funktion nicht gefunden!");
+                    if(typeof UI !== 'undefined') UI.error("Script Fehler: buyItem missing");
                 }
-            }, true));
-            container.innerHTML += `<div class="h-px bg-yellow-900/50 my-4 mx-2"></div>`;
-        }
+            }, 
+            true
+        ));
+        container.innerHTML += `<div class="h-px bg-yellow-900/50 my-4 mx-2"></div>`;
 
         const categories = {
             'consumable': { title: '💊 MEDIZIN', items: [] },
