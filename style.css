@@ -1,4 +1,4 @@
-/* [TIMESTAMP] 2026-01-08 23:58:00 - style.css - Fix Z-Index & Clickability */
+/* [TIMESTAMP] 2026-01-09 00:15:00 - style.css - Full Row Clickable Fix */
 
 :root { --pip-green: #1aff1a; --pip-glow: #2bff2b; --pip-dim: #0d330d; --pip-bg: #051105; }
 
@@ -99,11 +99,23 @@ canvas { image-rendering: pixelated; image-rendering: crisp-edges; image-renderi
     pointer-events: none !important; 
 }
 
-/* [FIX] WICHTIG: Buttons über alles legen! */
-button, .action-button, .header-btn, #shop-list button {
+/* [FIX] Buttons und Container Interaktion */
+button, .action-button, .header-btn {
     position: relative;
-    z-index: 100; /* Muss höher sein als CRT Effekt (10) */
+    z-index: 100; 
     pointer-events: auto !important;
+}
+
+/* Der Shop Container Zeile */
+.shop-item-row {
+    position: relative;
+    z-index: 50; /* Über den Effekten */
+    cursor: pointer;
+    user-select: none;
+}
+.shop-item-row:active {
+    transform: scale(0.98);
+    opacity: 0.8;
 }
 
 .action-button { background-color: #0f1f0f; color: var(--pip-green); border: 1px solid var(--pip-green); padding: 5px 10px; margin: 2px; cursor: pointer; text-transform: uppercase; font-size: 1.25rem; transition: all 0.1s; font-family: 'VT323', monospace; display: flex; align-items: center; justify-content: center; }
@@ -175,28 +187,21 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
     flex-shrink: 0;
 }
 
-/* Flexible Grid für City Cards */
 .city-grid {
     display: grid;
-    /* Mobile: 1 Spalte */
     grid-template-columns: 1fr; 
-    /* Flexible Höhe basierend auf Inhalt */
     grid-auto-rows: min-content; 
     gap: 15px;
     padding: 15px;
-    
-    /* Scrollbar Logic */
     flex-grow: 1;
     overflow-y: auto;
-    min-height: 0; /* Verhindert Flex-Überlauf */
+    min-height: 0; 
 }
 
-/* Tablet & Desktop: 2 Spalten Layout */
 @media (min-width: 768px) {
     .city-grid {
         grid-template-columns: 1fr 1fr;
     }
-    /* Händler nimmt oben die volle Breite */
     .city-card.trader {
         grid-column: span 2; 
     }
@@ -213,11 +218,7 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
     transition: all 0.2s;
     position: relative;
     overflow: hidden;
-    
-    /* Viel Padding für den Text */
     padding: 25px 15px; 
-    
-    /* Flexibilität erlauben */
     height: auto; 
     min-height: 120px; 
 }
@@ -232,44 +233,29 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
     }
 }
 
-/* Icon auf Mobile etwas kleiner, damit Text Platz hat */
 .city-card .icon { 
-    font-size: 3.5rem; 
-    margin-bottom: 10px; 
+    font-size: 3.5rem; margin-bottom: 10px; 
     filter: drop-shadow(0 0 5px rgba(57,255,20,0.5));
-    transition: transform 0.2s;
-    flex-shrink: 0;
+    transition: transform 0.2s; flex-shrink: 0;
 }
 .city-card:hover .icon { transform: scale(1.1); }
 
-/* Desktop: Riesige Icons erlaubt */
 @media (min-width: 768px) {
     .city-card .icon { font-size: 5rem; }
     .city-card.trader .icon { font-size: 6rem; }
 }
 
 .city-card .label { 
-    font-size: 1.2rem; 
-    font-weight: bold; 
-    color: #39ff14; 
-    text-transform: uppercase; 
-    letter-spacing: 2px; 
+    font-size: 1.2rem; font-weight: bold; color: #39ff14; 
+    text-transform: uppercase; letter-spacing: 2px; 
     text-shadow: 0 0 5px rgba(57,255,20,0.5);
-    z-index: 2;
-    margin-bottom: 5px;
-    word-break: break-word; /* Falls Wörter zu lang sind */
+    z-index: 2; margin-bottom: 5px; word-break: break-word; 
 }
 
 .city-card .sub { 
-    font-size: 0.8rem; 
-    color: #888; 
-    font-style: italic; 
-    font-family: monospace;
-    z-index: 2;
-    line-height: 1.2;
+    font-size: 0.8rem; color: #888; font-style: italic; font-family: monospace; z-index: 2; line-height: 1.2;
 }
 
-/* Trader Special Style */
 .city-card.trader {
     background: linear-gradient(45deg, rgba(20, 20, 0, 0.9), rgba(60, 50, 0, 0.3));
     border-color: #b8860b; 
