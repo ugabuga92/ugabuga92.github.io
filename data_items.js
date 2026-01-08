@@ -76,7 +76,9 @@ Object.assign(window.GameData.items, {
     bracers_leather: { name: "Lederarmschienen", type: "arms", slot: "arms", cost: 80, bonus: {STR: 1}, desc: "Für den Nahkampf." },
 
     // --- CONSUMABLES & JUNK ---
+    // AMMO HIER HINZUGEFÜGT
     ammo: { name: "Munition", type: "ammo", cost: 2, desc: "Universale Projektile für Schusswaffen.", weight: 0.05 },
+    
     stimpack: { name: "Stimpack", type: "consumable", effect: "heal", val: 40, cost: 50, desc: "Heilt 40 HP." },
     radaway: { name: "RadAway", type: "consumable", effect: "rad", val: -50, cost: 40, desc: "Entfernt Strahlung." },
     nuka_cola: { name: "Nuka Cola", type: "consumable", effect: "heal", val: 10, cost: 10, desc: "Warm und abgestanden." },
