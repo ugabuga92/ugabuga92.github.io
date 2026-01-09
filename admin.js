@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-09 20:55:00 - admin.js - Permanent Bug Button Logic
+// [TIMESTAMP] 2026-01-09 20:15:00 - admin.js - Visual Fix for Perks & Stats
 
 const Admin = {
     gatePass: "bimbo123",
@@ -70,7 +70,7 @@ const Admin = {
             }
         });
 
-        // 2. [UPDATE] Bug Reports Listener
+        // 2. Bug Reports Listener
         Network.db.ref('bug_reports').on('value', snap => {
             this.bugData = snap.val() || {};
             const count = Object.keys(this.bugData).length;
@@ -78,19 +78,15 @@ const Admin = {
             const btn = document.getElementById('btn-bugs');
             const counter = document.getElementById('bug-count');
             
-            // Button immer anzeigen
             btn.classList.remove('hidden');
             counter.textContent = count;
 
             if(count > 0) {
-                // Alarm Modus (Rot & Blinkend)
                 btn.className = "btn btn-danger text-xs md:text-sm btn-bug-alert"; 
             } else {
-                // Ruhiger Modus (Grün)
                 btn.className = "btn text-xs md:text-sm border-green-500 text-green-500";
             }
             
-            // Falls Overlay offen, Liste aktualisieren
             if(!document.getElementById('bug-overlay').classList.contains('hidden')) {
                 this.renderBugs();
             }
@@ -110,7 +106,6 @@ const Admin = {
         for(let key in this.bugData) {
             reports.push({ id: key, ...this.bugData[key] });
         }
-        // Neueste zuerst
         reports.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         if(reports.length === 0) {
@@ -256,6 +251,7 @@ const Admin = {
         document.getElementById('inp-caps').value = d.caps || 0;
     },
 
+    // [UPDATED] Perks visually matching Stats
     fillStats: function(d) {
         const container = document.getElementById('special-container');
         container.innerHTML = '';
@@ -291,16 +287,17 @@ const Admin = {
                     if(Array.isArray(userPerks)) lvl = userPerks.includes(p.id) ? 1 : 0;
 
                     const div = document.createElement('div');
-                    div.className = "flex justify-between items-center bg-black p-1 border-b border-[#1a331a]";
+                    // [UPDATED] Uses 'panel-box' class like stats
+                    div.className = "panel-box p-2 flex justify-between items-center";
                     
                     div.innerHTML = `
                         <div class="flex flex-col overflow-hidden mr-2">
-                            <span class="text-xs font-bold text-green-300 truncate" title="${p.name}">${p.name}</span>
-                            <span class="text-[10px] text-gray-500 truncate">Max: ${p.max || 1}</span>
+                            <span class="font-bold text-sm w-32 truncate text-[#39ff14]" title="${p.name}">${p.name}</span>
                         </div>
                         <input type="number" min="0" max="${p.max || 5}" value="${lvl}" 
-                            class="w-10 text-center text-xs bg-[#002200] border border-green-800 focus:border-green-400"
+                            class="w-12 text-center text-lg bg-transparent border-b border-[#39ff14] text-[#39ff14] focus:outline-none font-bold"
                             onchange="Admin.savePerk('${p.id}', this.value)">
+                        <span class="text-[10px] text-gray-500 w-8 text-right self-center pt-1">/${p.max}</span>
                     `;
                     perkContainer.appendChild(div);
                 });
