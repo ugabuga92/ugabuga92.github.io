@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-09 23:55:00 - game_actions.js - Auto Switch Added
+// [2026-01-10 00:05:00] game_actions.js - Auto Switch Fix & Text Update
 
 Object.assign(Game, {
 
@@ -17,11 +17,18 @@ Object.assign(Game, {
         }
     },
     
-    // [NEU] Automatischer Waffenwechsel bei leerer Munition
+    // [FIX] Automatischer Waffenwechsel bei leerer Munition
     switchToBestMelee: function() {
+        // Alten Waffennamen sichern für Log
+        const oldWeapon = this.state.equip.weapon;
+        const oldName = (oldWeapon && oldWeapon.name && oldWeapon.name !== 'Fäuste') 
+            ? (oldWeapon.props?.name || oldWeapon.name) 
+            : "Fernkampfwaffe";
+
         if(!this.state.inventory || this.state.inventory.length === 0) {
             this.state.equip.weapon = this.items.fists;
-            UI.log("Keine Waffen! Kämpfe mit Fäusten!", "text-red-500 font-bold");
+            UI.log("Waffe abgelegt.", "text-red-500 font-bold");
+            if(typeof UI.renderChar === 'function') UI.renderChar();
             return;
         }
 
@@ -32,11 +39,13 @@ Object.assign(Game, {
         // Suche beste Nahkampfwaffe (ohne Munitionsbedarf)
         this.state.inventory.forEach((item, idx) => {
             const def = this.items[item.id];
-            if (def && def.type === 'weapon') {
-                // Item hat keine 'ammo' Eigenschaft -> Nahkampf
+            // Prüfen ob Waffe und KEINE Munition benötigt (also Nahkampf)
+            // Prüft auch auf type 'melee' falls definiert
+            if (def && (def.type === 'weapon' || def.type === 'melee' || def.type === 'weapon_melee')) {
                 if (!def.ammo) {
                     let dmg = def.dmg;
                     if (item.props && item.props.dmgMult) dmg *= item.props.dmgMult;
+                    
                     if (dmg > bestDmg) {
                         bestDmg = dmg;
                         bestWeapon = item;
@@ -48,11 +57,15 @@ Object.assign(Game, {
 
         if (bestWeapon) {
             this.useItem(bestIndex); 
-            UI.log(`Notfall-Wechsel: ${bestWeapon.props?.name || this.items[bestWeapon.id].name}`, "text-yellow-400 blink-red");
+            const newName = bestWeapon.props?.name || this.items[bestWeapon.id].name;
+            // Exakter Log wie gewünscht
+            UI.log(`${newName} wurde statt ${oldName} angelegt, deine Munition ist leer`, "text-yellow-400 blink-red");
         } else {
             this.unequipItem('weapon'); 
-            UI.log("Keine Nahkampfwaffe! Fäuste!", "text-red-500");
+            // Exakter Log wie gewünscht
+            UI.log("Waffe abgelegt", "text-red-500");
         }
+
         if(typeof UI.renderChar === 'function') UI.renderChar();
     },
 
