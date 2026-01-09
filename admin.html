@@ -29,7 +29,6 @@
         .btn-danger { border-color: #ff3333; color: #ff3333; }
         .btn-danger:hover { background: #ff3333; color: white; box-shadow: 0 0 15px #ff0000; }
         
-        /* Bug Button Pulsing */
         .btn-bug-alert { border-color: red; color: red; animation: pulse-red-admin 1.5s infinite; font-weight: bold; }
         @keyframes pulse-red-admin { 0% { box-shadow: 0 0 0 red; } 50% { box-shadow: 0 0 15px red; background: rgba(255,0,0,0.2); } 100% { box-shadow: 0 0 0 red; } }
 
@@ -171,25 +170,27 @@
                         </div>
 
                         <div id="tab-stats" class="absolute inset-0 hidden custom-scroll p-4 md:p-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="special-container"></div>
                             
-                            <div class="mt-4 panel-box p-4 border-t border-[#1a551a]">
-                                <h3 class="text-yellow-400 font-bold mb-4 border-b border-[#1a551a] pb-1">PERKS & POINTS</h3>
-                                
-                                <div class="flex gap-4 mb-4">
-                                    <div class="flex-1">
-                                        <span class="text-xs text-green-600">STAT POINTS:</span>
-                                        <input type="number" id="inp-statPoints" class="w-20 ml-2" onchange="Admin.saveVal('statPoints', this.value)">
-                                    </div>
-                                    <div class="flex-1">
-                                        <span class="text-xs text-green-600">PERK POINTS:</span>
-                                        <input type="number" id="inp-perkPoints" class="w-20 ml-2" onchange="Admin.saveVal('perkPoints', this.value)">
-                                    </div>
+                            <div class="flex justify-between items-end border-b border-[#1a551a] mb-4 pb-2">
+                                <h3 class="text-2xl font-bold text-yellow-400 tracking-widest">S.P.E.C.I.A.L.</h3>
+                                <div class="flex items-center text-green-400 font-mono">
+                                    <span class="mr-2 text-xs md:text-sm">AVAIL. POINTS:</span>
+                                    <input type="number" id="inp-statPoints" class="w-16 text-center bg-[#001100] border border-[#1a551a] text-[#39ff14] font-bold text-lg" onchange="Admin.saveVal('statPoints', this.value)">
                                 </div>
-
-                                <div id="perk-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm max-h-60 overflow-y-auto custom-scroll border border-[#1a551a] p-2 bg-[#001100]">
-                                    </div>
                             </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8" id="special-container"></div>
+                            
+                            <div class="flex justify-between items-end border-b border-[#1a551a] mb-4 pb-2">
+                                <h3 class="text-2xl font-bold text-yellow-400 tracking-widest">PERKS</h3>
+                                <div class="flex items-center text-green-400 font-mono">
+                                    <span class="mr-2 text-xs md:text-sm">AVAIL. POINTS:</span>
+                                    <input type="number" id="inp-perkPoints" class="w-16 text-center bg-[#001100] border border-[#1a551a] text-[#39ff14] font-bold text-lg" onchange="Admin.saveVal('perkPoints', this.value)">
+                                </div>
+                            </div>
+
+                            <div id="perk-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                </div>
                         </div>
 
                         <div id="tab-inv" class="absolute inset-0 hidden custom-scroll p-4 md:p-6 space-y-4">
