@@ -1,3 +1,5 @@
+// [2026-01-10 00:05:00] ui_view_inv.js - FIX: Null Checks added to prevent crash
+
 Object.assign(UI, {
 
     // [v0.7.0] VIEW STATE
@@ -189,36 +191,46 @@ Object.assign(UI, {
     },
 
     renderCharStatus: function() {
-        document.getElementById('sheet-hp').textContent = `${Math.floor(Game.state.hp)}/${Game.state.maxHp}`;
+        // [FIX] Helper function to safely set text content without crashing
+        const safeSetText = (id, text) => {
+            const el = document.getElementById(id);
+            if(el) el.textContent = text;
+        };
+
+        safeSetText('sheet-hp', `${Math.floor(Game.state.hp)}/${Game.state.maxHp}`);
         
         const nextXp = Game.expToNextLevel(Game.state.lvl);
-        document.getElementById('sheet-xp').textContent = `${Math.floor(Game.state.xp)}/${nextXp}`;
+        safeSetText('sheet-xp', `${Math.floor(Game.state.xp)}/${nextXp}`);
         
         const used = Game.getUsedSlots();
         const max = Game.getMaxSlots();
         const loadEl = document.getElementById('sheet-load');
-        loadEl.textContent = `${used}/${max}`;
-        loadEl.className = used >= max ? "text-red-500 font-bold animate-pulse" : "text-white font-bold";
+        if(loadEl) {
+            loadEl.textContent = `${used}/${max}`;
+            loadEl.className = used >= max ? "text-red-500 font-bold animate-pulse" : "text-white font-bold";
+        }
 
-        document.getElementById('sheet-crit').textContent = `${Game.state.critChance}%`;
+        safeSetText('sheet-crit', `${Game.state.critChance}%`);
 
         // Der Alert-Kasten kann drin bleiben, stört nicht
         const alertBox = document.getElementById('status-points-alert');
-        if(Game.state.statPoints > 0 || Game.state.perkPoints > 0) {
-            alertBox.classList.remove('hidden');
-            alertBox.onclick = () => {
-                if(Game.state.statPoints > 0) UI.renderChar('stats');
-                else UI.renderChar('perks');
-            };
-        } else {
-            alertBox.classList.add('hidden');
+        if(alertBox) {
+            if(Game.state.statPoints > 0 || Game.state.perkPoints > 0) {
+                alertBox.classList.remove('hidden');
+                alertBox.onclick = () => {
+                    if(Game.state.statPoints > 0) UI.renderChar('stats');
+                    else UI.renderChar('perks');
+                };
+            } else {
+                alertBox.classList.add('hidden');
+            }
         }
 
         const slots = ['head', 'back', 'weapon', 'body', 'arms', 'legs', 'feet'];
         
         slots.forEach(slot => {
             const el = document.getElementById(`slot-${slot}`);
-            if(!el) return;
+            if(!el) return; // Existiert Element nicht, abbrechen
 
             const item = Game.state.equip[slot];
             
@@ -226,11 +238,14 @@ Object.assign(UI, {
                            (slot === 'back' && !item.props) || 
                            (!item.name || item.name === 'Fäuste' || item.name === 'Vault-Anzug' || item.name === 'Kein Rucksack');
 
+            const nameEl = el.querySelector('.item-name');
+            if(!nameEl) return; // Sicherstellen dass auch Kind-Element da ist
+
             if(isEmpty) {
                 el.classList.remove('filled');
                 el.classList.add('empty');
-                el.querySelector('.item-name').textContent = "---";
-                el.querySelector('.item-name').className = "item-name text-gray-600";
+                nameEl.textContent = "---";
+                nameEl.className = "item-name text-gray-600";
                 el.onclick = null; 
             } else {
                 el.classList.add('filled');
@@ -238,8 +253,8 @@ Object.assign(UI, {
                 const name = item.props ? item.props.name : item.name;
                 const color = (item.props && item.props.color) ? item.props.color : "text-[#39ff14]";
                 
-                el.querySelector('.item-name').textContent = name;
-                el.querySelector('.item-name').className = `item-name ${color}`;
+                nameEl.textContent = name;
+                nameEl.className = `item-name ${color}`;
                 el.onclick = () => UI.showEquippedDialog(slot);
             }
         });
@@ -251,7 +266,7 @@ Object.assign(UI, {
         if(!container) return;
 
         container.innerHTML = '';
-        pointsEl.textContent = Game.state.statPoints;
+        if(pointsEl) pointsEl.textContent = Game.state.statPoints;
 
         const statOrder = ['STR', 'PER', 'END', 'INT', 'AGI', 'LUC'];
         const canUpgrade = Game.state.statPoints > 0;
@@ -297,7 +312,7 @@ Object.assign(UI, {
         const scrollPos = container.parentElement.scrollTop || 0;
 
         container.innerHTML = '';
-        pointsEl.textContent = Game.state.perkPoints;
+        if(pointsEl) pointsEl.textContent = Game.state.perkPoints;
         const points = Game.state.perkPoints;
 
         if(Game.perkDefs) {
