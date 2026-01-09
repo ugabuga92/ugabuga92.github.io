@@ -1,8 +1,13 @@
+// [TIMESTAMP] 2026-01-09 19:25:00 - ui_core.js - Bug Report System
+
 const UI = {
     els: {},
     timerInterval: null,
     lastInputTime: Date.now(),
     biomeColors: (typeof window.GameData !== 'undefined') ? window.GameData.colors : {},
+
+    // Bug Report Storage (Lokal Backup)
+    bugReports: JSON.parse(localStorage.getItem('Bug.report') || '[]'),
 
     // States
     loginBusy: false,
@@ -26,6 +31,7 @@ const UI = {
         this.els.log.prepend(line);
     },
 
+    // [MODIFIED] Error öffnet Modal
     error: function(msg) {
         const errText = `> ERROR: ${msg}`;
         console.error(errText);
@@ -34,6 +40,103 @@ const UI = {
             line.className = "text-red-500 font-bold blink-red";
             line.textContent = errText;
             this.els.log.prepend(line);
+        }
+        // Automatisch Bug-Fenster öffnen
+        this.openBugModal(msg);
+    },
+
+    // [NEU] Bug Report Modal
+    openBugModal: function(autoErrorMsg = null) {
+        if(document.getElementById('bug-report-overlay')) return;
+
+        // Menü schließen
+        if(this.els.navMenu) this.els.navMenu.classList.add('hidden');
+
+        const title = autoErrorMsg ? "⚠️ SYSTEMFEHLER ERKANNT" : "🐞 BUG MELDEN";
+        const subText = autoErrorMsg 
+            ? `CODE: "${autoErrorMsg}"` 
+            : "Fehler gefunden? Beschreibe ihn kurz:";
+        
+        const overlay = document.createElement('div');
+        overlay.id = 'bug-report-overlay';
+        overlay.className = "fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-4";
+        
+        overlay.innerHTML = `
+            <div class="bg-[#051105] border-2 border-red-600 p-6 rounded shadow-[0_0_30px_red] max-w-md w-full relative">
+                <h2 class="text-2xl text-red-500 font-bold mb-2 font-vt323 tracking-widest">${title}</h2>
+                <div class="text-red-300 text-sm font-mono mb-4 border-b border-red-900 pb-2">
+                    ${subText}
+                </div>
+                
+                <label class="block text-green-500 text-sm mb-1 uppercase tracking-wider">Beschreibung (Was hast du gemacht?)</label>
+                <textarea id="bug-desc" class="w-full bg-black border border-green-700 text-green-400 p-2 font-mono text-sm h-24 focus:border-green-400 outline-none mb-4" placeholder="z.B. Button reagiert nicht..."></textarea>
+                
+                <div class="flex gap-2">
+                    <button id="btn-bug-send" class="flex-1 bg-red-900/30 border border-red-500 text-red-400 py-2 font-bold hover:bg-red-500 hover:text-black transition-all uppercase">
+                        REPORT SENDEN
+                    </button>
+                    <button id="btn-bug-close" class="px-4 border border-gray-600 text-gray-500 hover:text-white transition-all uppercase">
+                        ABBRECHEN
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        document.getElementById('btn-bug-close').onclick = () => overlay.remove();
+        
+        document.getElementById('btn-bug-send').onclick = () => {
+            const desc = document.getElementById('bug-desc').value;
+            const errorType = autoErrorMsg || "Manuelle Meldung";
+            this.saveBugReport(errorType, desc);
+            overlay.remove();
+        };
+    },
+
+    // [NEU] Speichern und Senden
+    saveBugReport: async function(errorMsg, userDesc) {
+        const playerName = (Game.state && Game.state.playerName) ? Game.state.playerName : "Unbekannt/Login";
+        
+        const report = {
+            timestamp: new Date().toISOString(),
+            playerName: playerName,
+            error: errorMsg,
+            description: userDesc || "Keine Beschreibung",
+            gameState: {
+                view: Game.state ? Game.state.view : 'null',
+                sector: Game.state ? `${Game.state.sector.x},${Game.state.sector.y}` : 'null',
+                caps: Game.state ? Game.state.caps : 0,
+                lvl: Game.state ? Game.state.lvl : 0
+            },
+            userAgent: navigator.userAgent
+        };
+
+        this.log("Sende Fehlerbericht an Vault-Tec...", "text-yellow-400 blink-red");
+
+        // 1. VERSUCH: An Firebase senden
+        let sent = false;
+        if (typeof Network !== 'undefined' && Network.sendBugReport) {
+            sent = await Network.sendBugReport(report);
+        }
+
+        if (sent) {
+            this.log("✅ Bericht erfolgreich übertragen.", "text-green-400 font-bold");
+        } else {
+            this.log("❌ Senden fehlgeschlagen. Speichere lokal...", "text-red-500");
+            
+            // 2. FALLBACK: Lokal speichern & Download
+            this.bugReports.push(report);
+            localStorage.setItem('Bug.report', JSON.stringify(this.bugReports));
+
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `BugReport_${playerName}_${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
     },
     
@@ -52,12 +155,11 @@ const UI = {
     },
 
     updateTimer: function() {
-        // [UPDATE] AFK Check: Greift jetzt im Spiel UND im Charakter-Menü
         const isIngame = (Game.state && this.els.gameScreen && !this.els.gameScreen.classList.contains('hidden'));
         const isCharSelect = this.charSelectMode;
 
         if (isIngame || isCharSelect) {
-            if(Date.now() - this.lastInputTime > 300000) { // 5 Minuten
+            if(Date.now() - this.lastInputTime > 300000) { 
                 this.logout("AFK: ZEITÜBERSCHREITUNG");
                 return;
             }
@@ -98,7 +200,9 @@ const UI = {
             btnMap: document.getElementById('btn-map'),
             btnChar: document.getElementById('btn-char'),
             btnQuests: document.getElementById('btn-quests'),
-            // btnRadio entfernt
+            
+            // [NEU] Button im DOM
+            btnBugReport: document.getElementById('btn-bug-report'),
             
             btnMenuSave: document.getElementById('btn-menu-save'),
             btnLogout: document.getElementById('btn-logout'),
@@ -144,6 +248,13 @@ const UI = {
             gameOver: document.getElementById('game-over-screen')
         };
         
+        // [NEU] Listener
+        if (this.els.btnBugReport) {
+            this.els.btnBugReport.addEventListener('click', () => {
+                this.openBugModal();
+            });
+        }
+
         if(this.els.btnInv) {
              this.els.btnInv.addEventListener('click', () => this.resetInventoryAlert());
         }
@@ -163,7 +274,6 @@ const UI = {
             });
         }
 
-        // [FIX] Global verfügbar machen
         window.Game = Game;
         window.UI = this;
 
@@ -204,7 +314,7 @@ const UI = {
     logout: function(msg) {
         this.loginBusy = false;
         this.selectedSlot = -1; 
-        this.charSelectMode = false; // [UPDATE] Reset Mode damit AFK Timer stoppt
+        this.charSelectMode = false; 
         
         if(Game.state) {
             Game.saveGame(true); 
@@ -306,7 +416,6 @@ const UI = {
         }
     },
     
-    // [UPDATE] Alte Button-Logik entfernt
     selectSlot: function(index) {
         if(this.selectedSlot === index) {
             this.triggerCharSlot();
