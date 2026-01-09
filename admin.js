@@ -1,9 +1,12 @@
+// [TIMESTAMP] 2026-01-09 20:00:00 - admin.js - Added Bug Logic & Perk Editor
+
 const Admin = {
     gatePass: "bimbo123",
     adminUser: "admin@pipboy-system.com",
     adminPass: "zintel1992",
 
     dbData: {}, 
+    bugData: {}, // New: Bug Data Storage
     currentPath: null,
     currentUserData: null,
     itemsList: [], 
@@ -55,6 +58,7 @@ const Admin = {
             sel.appendChild(opt);
         });
 
+        // 1. Players Listener
         Network.db.ref('saves').on('value', snap => {
             this.dbData = snap.val() || {};
             this.renderUserList();
@@ -65,21 +69,90 @@ const Admin = {
                 }
             }
         });
+
+        // 2. [NEU] Bug Reports Listener
+        Network.db.ref('bug_reports').on('value', snap => {
+            this.bugData = snap.val() || {};
+            const count = Object.keys(this.bugData).length;
+            
+            const btn = document.getElementById('btn-bugs');
+            const counter = document.getElementById('bug-count');
+            
+            if(count > 0) {
+                btn.classList.remove('hidden');
+                btn.classList.add('btn-bug-alert');
+                counter.textContent = count;
+            } else {
+                btn.classList.remove('hidden'); // Optional: always show
+                btn.classList.remove('btn-bug-alert');
+                btn.classList.add('border-green-500', 'text-green-500'); // Normal Style
+                btn.classList.remove('btn-danger');
+                counter.textContent = "0";
+            }
+            this.renderBugs(); // Re-Render if open
+        });
+    },
+
+    // [NEU] Bug Report Functions
+    showBugs: function() {
+        document.getElementById('bug-overlay').classList.remove('hidden');
+        this.renderBugs();
+    },
+
+    renderBugs: function() {
+        const list = document.getElementById('bug-list');
+        list.innerHTML = '';
+        
+        const reports = [];
+        for(let key in this.bugData) {
+            reports.push({ id: key, ...this.bugData[key] });
+        }
+        // Neueste zuerst
+        reports.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        if(reports.length === 0) {
+            list.innerHTML = '<div class="text-center text-green-500 italic mt-10">NO BUGS REPORTED. SYSTEM CLEAN.</div>';
+            return;
+        }
+
+        reports.forEach(bug => {
+            const date = new Date(bug.timestamp).toLocaleString();
+            const div = document.createElement('div');
+            div.className = "border border-red-500 bg-red-900/20 p-4 relative";
+            div.innerHTML = `
+                <div class="flex justify-between items-start mb-2 border-b border-red-800 pb-2">
+                    <div>
+                        <span class="text-red-400 font-bold">${bug.error || "UNKNOWN ERROR"}</span>
+                        <div class="text-xs text-gray-400">${date} | Player: <span class="text-white">${bug.playerName}</span></div>
+                    </div>
+                    <button onclick="Admin.deleteBug('${bug.id}')" class="btn btn-danger text-xs px-2 py-1">DELETE</button>
+                </div>
+                <div class="text-sm text-gray-300 font-mono mb-2">
+                    <span class="text-red-600 font-bold">DESC:</span> ${bug.description}
+                </div>
+                <div class="text-[10px] text-gray-500 font-mono bg-black p-2 border border-gray-800">
+                    LOC: ${bug.gameState?.sector || 'Unknown'} | VIEW: ${bug.gameState?.view} | USER-AGENT: ${bug.userAgent}
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    },
+
+    deleteBug: function(id) {
+        if(!confirm("Bug erledigt? Löschen?")) return;
+        Network.db.ref('bug_reports/' + id).remove();
     },
 
     refresh: function() { location.reload(); },
 
-    // [v1.4.0] New Toggle Function for Mobile Sidebar
     toggleSidebar: function() {
         const sb = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');
         
         if (sb.classList.contains('-translate-x-full')) {
-            // Open
             sb.classList.remove('-translate-x-full');
             overlay.classList.remove('hidden');
         } else {
-            // Close
             sb.classList.add('-translate-x-full');
             overlay.classList.add('hidden');
         }
@@ -106,7 +179,6 @@ const Admin = {
                 
                 div.className = `p-2 cursor-pointer border-b border-[#1a331a] flex justify-between items-center hover:bg-[#39ff14] hover:text-black transition-colors ${isSelected ? 'bg-[#39ff14] text-black font-bold' : 'text-[#39ff14]'}`;
                 
-                // [v1.4.0] Auto-close sidebar on selection (Mobile UX)
                 div.onclick = () => {
                     this.selectUser(path);
                     const sb = document.getElementById('sidebar');
@@ -186,6 +258,7 @@ const Admin = {
         container.innerHTML = '';
         const stats = d.stats || { STR:1, PER:1, END:1, CHA:1, INT:1, AGI:1, LUC:1 };
         
+        // S.P.E.C.I.A.L.
         for(let key in stats) {
             const val = stats[key];
             const div = document.createElement('div');
@@ -200,6 +273,53 @@ const Admin = {
         }
         document.getElementById('inp-statPoints').value = d.statPoints || 0;
         document.getElementById('inp-perkPoints').value = d.perkPoints || 0;
+
+        // [NEU] PERK EDITOR
+        const perkContainer = document.getElementById('perk-list-container');
+        if(perkContainer) {
+            perkContainer.innerHTML = '';
+            
+            // Perks aus GameData holen
+            const allPerks = (window.GameData && window.GameData.perks) ? window.GameData.perks : [];
+            const userPerks = d.perks || {};
+
+            if(allPerks.length === 0) {
+                perkContainer.innerHTML = '<div class="col-span-2 text-gray-500">No Perk Definitions found via GameData.</div>';
+            } else {
+                allPerks.forEach(p => {
+                    // Level holen (Objekt oder Array legacy support)
+                    let lvl = userPerks[p.id] || 0;
+                    if(Array.isArray(userPerks)) lvl = userPerks.includes(p.id) ? 1 : 0;
+
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center bg-black p-1 border-b border-[#1a331a]";
+                    
+                    div.innerHTML = `
+                        <div class="flex flex-col overflow-hidden mr-2">
+                            <span class="text-xs font-bold text-green-300 truncate" title="${p.name}">${p.name}</span>
+                            <span class="text-[10px] text-gray-500 truncate">Max: ${p.max || 1}</span>
+                        </div>
+                        <input type="number" min="0" max="${p.max || 5}" value="${lvl}" 
+                            class="w-10 text-center text-xs bg-[#002200] border border-green-800 focus:border-green-400"
+                            onchange="Admin.savePerk('${p.id}', this.value)">
+                    `;
+                    perkContainer.appendChild(div);
+                });
+            }
+        }
+    },
+
+    saveStat: function(stat, val) {
+        if(!this.currentPath) return;
+        Network.db.ref(this.currentPath + '/stats/' + stat).set(Number(val));
+    },
+
+    // [NEU] Perk speichern
+    savePerk: function(perkId, val) {
+        if(!this.currentPath) return;
+        const valNum = Number(val);
+        // Wir speichern Perks jetzt sicher als Objekt-Map: { "medic": 2 }
+        Network.db.ref(this.currentPath + '/perks/' + perkId).set(valNum);
     },
 
     fillInv: function(d) {
@@ -343,11 +463,6 @@ const Admin = {
         if(!this.currentUserData) return;
         let current = this.currentUserData[key] || 0;
         this.saveVal(key, current + amount);
-    },
-
-    saveStat: function(stat, val) {
-        if(!this.currentPath) return;
-        Network.db.ref(this.currentPath + '/stats/' + stat).set(Number(val));
     },
 
     action: function(type) {
