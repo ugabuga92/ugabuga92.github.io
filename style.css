@@ -283,3 +283,47 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
     background: linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.4) 50%);
     background-size: 100% 4px; pointer-events: none;
 }
+
+/* [TIMESTAMP] 2026-01-09 23:30:00 - style.css - Combat Effects */
+
+.click-effect-overlay {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'VT323', monospace;
+    font-weight: bold;
+    text-transform: uppercase;
+    pointer-events: none;
+    z-index: 9999;
+    text-align: center;
+    white-space: nowrap;
+    
+    /* Initial State */
+    opacity: 0;
+    font-size: 2rem;
+    
+    animation: click-explode 0.6s ease-out forwards;
+}
+
+.click-effect-text {
+    display: block;
+    font-size: 6rem;
+    color: red;
+    text-shadow: 0 0 20px red, 2px 2px 0px black;
+    letter-spacing: 5px;
+}
+
+.click-effect-sub {
+    font-size: 2rem;
+    color: #ffcccc;
+    background: rgba(255, 0, 0, 0.5);
+    padding: 2px 10px;
+    border: 2px solid red;
+}
+
+@keyframes click-explode {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+    20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    40% { transform: translate(-50%, -50%) scale(1.0); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
