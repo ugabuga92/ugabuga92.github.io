@@ -1,12 +1,10 @@
-// [TIMESTAMP] 2026-01-09 19:40:00 - ui_core.js - Bug Report NO LOCAL SAVE
+// [TIMESTAMP] 2026-01-09 22:55:00 - ui_core.js - First Time Hint Logic
 
 const UI = {
     els: {},
     timerInterval: null,
     lastInputTime: Date.now(),
     biomeColors: (typeof window.GameData !== 'undefined') ? window.GameData.colors : {},
-
-    // Bug Report Storage entfernt (Daten dürfen nicht lokal liegen)
 
     // States
     loginBusy: false,
@@ -41,6 +39,8 @@ const UI = {
         }
         this.openBugModal(msg);
     },
+
+    // --- MODALS ---
 
     openBugModal: function(autoErrorMsg = null) {
         if(document.getElementById('bug-report-overlay')) return;
@@ -88,7 +88,6 @@ const UI = {
         };
     },
 
-    // [FIX] Keine lokale Speicherung mehr!
     saveBugReport: async function(errorMsg, userDesc) {
         const playerName = (Game.state && Game.state.playerName) ? Game.state.playerName : "Unbekannt/Login";
         
@@ -116,10 +115,61 @@ const UI = {
         if (sent) {
             this.log("✅ Bericht erfolgreich übertragen.", "text-green-400 font-bold");
         } else {
-            // [ÄNDERUNG] Nur Fehlermeldung, KEIN Backup
             this.log("❌ Bug report aktuell nicht möglich.", "text-red-500 font-bold");
-            console.warn("Bug Report konnte nicht gesendet werden (Permission Denied oder Offline).");
+            console.warn("Bug Report Senden fehlgeschlagen.");
         }
+    },
+
+    // [NEU/UPDATED] Zeigt Steuerungshinweise (nur Mobile)
+    showMobileControlsHint: function() {
+        if(document.getElementById('controls-overlay')) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'controls-overlay';
+        overlay.className = "fixed inset-0 z-[9000] bg-black/95 flex flex-col items-center justify-center p-6 text-center";
+        
+        // Permadeath Warnung direkt hier integriert (als zweiter Absatz), da es der erste Start ist
+        overlay.innerHTML = `
+            <div class="border-2 border-green-500 p-6 max-w-sm w-full shadow-[0_0_20px_#1aff1a] bg-[#001100]">
+                <div class="text-4xl mb-4">📱</div>
+                <h2 class="text-2xl text-green-400 font-bold mb-4 font-vt323 tracking-widest border-b border-green-800 pb-2">STEUERUNG</h2>
+                
+                <div class="text-green-300 font-mono text-sm space-y-4 text-left mb-6">
+                    <div class="flex items-start gap-3">
+                        <span class="text-xl">👆</span>
+                        <div>
+                            <strong class="text-green-100">TIPPEN:</strong><br>
+                            Bewegen / Interagieren / Angreifen
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="text-xl">📄</span>
+                        <div>
+                            <strong class="text-green-100">MENÜ:</strong><br>
+                            Burger-Icon (☰) oben rechts für Inventar & Charakter.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-green-800 pt-4 mt-4">
+                    <h3 class="text-red-500 font-bold mb-2 animate-pulse">⚠️ WARNUNG: PERMADEATH</h3>
+                    <p class="text-red-400 text-xs font-mono leading-relaxed">
+                        In diesem Modus ist der Tod endgültig.<br>
+                        Stirbt dein Charakter, wird der Spielstand <span class="underline">automatisch gelöscht</span>.
+                    </p>
+                </div>
+
+                <button id="btn-close-controls" class="mt-6 w-full border-2 border-green-500 text-green-500 py-3 font-bold hover:bg-green-900 transition-colors uppercase tracking-widest">
+                    VERSTANDEN
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+        
+        document.getElementById('btn-close-controls').onclick = () => {
+            overlay.remove();
+        };
     },
     
     setConnectionState: function(status) {
@@ -157,7 +207,6 @@ const UI = {
         if(this.update) this.update();
     },
 
-    // Initialization
     init: function() {
         this.els = {
             touchArea: document.getElementById('main-content'),
@@ -241,16 +290,7 @@ const UI = {
 
         if(this.els.headerCharInfo) {
             this.els.headerCharInfo.addEventListener('click', () => {
-                const hasStats = Game.state.statPoints > 0;
-                const hasPerks = Game.state.perkPoints > 0; 
-                
-                if(hasStats) {
-                    this.switchView('char'); 
-                } else if (hasPerks) {
-                    this.switchView('char');
-                } else {
-                    this.switchView('char');
-                }
+                this.switchView('char'); 
             });
         }
 
@@ -277,17 +317,23 @@ const UI = {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
     },
 
+    // [UPDATED] Start Logik mit "Nur beim ersten Mal"-Check
     startGame: function(saveData, slotIndex, newName=null) {
         this.charSelectMode = false;
         this.els.charSelectScreen.style.display = 'none';
         this.els.gameScreen.classList.remove('hidden');
         this.els.gameScreen.classList.remove('opacity-0');
         
+        // Prüfen: Ist es ein neuer Spielstand? (saveData ist null)
+        const isNewGame = !saveData;
+
         Game.init(saveData, null, slotIndex, newName);
         
-        if(this.isMobile()) {
+        // Nur wenn Mobile UND Neuer Charakter: Zeige Steuerung & Warnung
+        if(this.isMobile() && isNewGame) {
             this.showMobileControlsHint();
         }
+        
         if(typeof Network !== 'undefined') Network.startPresence();
     },
 
@@ -340,20 +386,11 @@ const UI = {
             
         } catch(e) {
             let msg = e.message;
-            if(msg && (msg.includes("INVALID_LOGIN_CREDENTIALS") || msg.includes("INVALID_EMAIL"))) {
-                msg = "E-Mail oder Passwort falsch!";
-            }
-            else if(msg && msg.includes("EMAIL_NOT_FOUND")) msg = "E-Mail nicht gefunden!";
-            else if(msg && msg.includes("INVALID_PASSWORD")) msg = "Falsches Passwort!";
-            else if(msg && msg.includes("USER_DISABLED")) msg = "Account deaktiviert!";
-            else if(msg && msg.includes("Too many unsuccessful attempts")) msg = "Zu viele Versuche. Warte kurz!";
+            if(msg && (msg.includes("INVALID_LOGIN_CREDENTIALS") || msg.includes("INVALID_EMAIL"))) msg = "E-Mail oder Passwort falsch!";
             else if (e.code === "auth/email-already-in-use") msg = "E-Mail wird bereits verwendet!";
             else if (e.code === "auth/invalid-email") msg = "Ungültige E-Mail-Adresse!";
             else if (e.code === "auth/wrong-password") msg = "Falsches Passwort!";
             else if (e.code === "auth/user-not-found") msg = "Benutzer nicht gefunden!";
-            else if (e.code === "auth/internal-error") {
-                 if(msg.includes("INVALID_LOGIN_CREDENTIALS")) msg = "E-Mail oder Passwort falsch!";
-            }
 
             this.els.loginStatus.textContent = "FEHLER: " + msg;
             this.els.loginStatus.className = "mt-4 text-red-500 font-bold blink-red";
