@@ -1,4 +1,7 @@
 🐛 Aktuelle Bugs & Anpassungen:
+- Bei Char löschen soll Enter auch funktionieren zum "löschen" nicht nur der Button zum drücken. Sofern der Name halt Korrekt ist. Dann bitte "Char wird gelöscht..." anzeigen bis der Charakter aus der Datenbank gelöscht wurde.
+- Öfters Probleme mit dem Laden der Dateien im Hintergrund das dies länger dauert als der Boot Screen. Sollte die "system ready" meldung noch nicht da sein bis die boot sequenz abgeschlosssen ist, soll es nicht weiter gehen. Sonst haben wir ab und an Probleme beim Login.
+
 - Mengen auswahl : Hier soll anfangs 1x ausgefüllt sein, also das Feld, und wenn man ein anderes anklickt (so wie es bei Max der fall ist) soll es gehighlighted bleiben duch asugefülltes Gelb. Es soll schnell ersichtlich sein was aktuell gewählt ist.
 - Bei Munition leer während des Kampfes soll eing roßes rotes Klick overlay kommen inkl der Info das Munition leer ist. Danach soll auf die "stärkste" Nahkampfwaffe, sofern im inventar vorhanden" gewechselt werden
 - wenn man stirbt bleibt aktuell charaktee uns safegame bestehen. wenn TP 0 erreicht sollte der charakter ja gelöscht werden, liegt das an der speicher logik?
