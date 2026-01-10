@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-11 14:00:00 - ui_core.js - FINAL FIX: Sync Logout, Delete Feedback, Name Check
+// [TIMESTAMP] 2026-01-10 05:30:00 - ui_core.js - Fixed Inventory Alert & FX
 
 const UI = {
     els: {},
@@ -316,126 +316,6 @@ const UI = {
             gameOver: document.getElementById('game-over-screen')
         };
         
-        // --- BUTTON EVENT LISTENERS ---
-        
-        // 1. Charakter erstellen (Confirm Button) - MIT BESSEREM CHECK
-        if(this.els.btnCreateCharConfirm) {
-            this.els.btnCreateCharConfirm.onclick = () => {
-                const name = this.els.inputNewCharName.value.trim();
-                if(name.length < 3) {
-                    alert("Name muss mindestens 3 Zeichen haben!");
-                    return;
-                }
-                
-                // [FIX] Robuster Duplicate Check
-                const nameUpper = name.toUpperCase();
-                let isDuplicate = false;
-                
-                // Prüfe alle Slots (auch wenn null, um sicher zu gehen)
-                for(let k in this.currentSaves) {
-                    const save = this.currentSaves[k];
-                    if(save && save.playerName && save.playerName.toUpperCase() === nameUpper) {
-                        isDuplicate = true;
-                        break;
-                    }
-                }
-                
-                if(isDuplicate) {
-                    alert(`Der Name "${name}" ist bereits vergeben!`);
-                    this.els.inputNewCharName.focus();
-                    return;
-                }
-
-                if(this.selectedSlot === -1) return;
-                
-                this.els.newCharOverlay.classList.add('hidden');
-                this.startGame(null, this.selectedSlot, name);
-            };
-        }
-
-        // 2. Zurück zum Login
-        if(this.els.btnCharBack) {
-            this.els.btnCharBack.onclick = () => {
-                this.logout("ZURÜCK ZUM LOGIN");
-            };
-        }
-
-        // 3. Löschen Dialog öffnen
-        if(this.els.btnCharDeleteAction) {
-            this.els.btnCharDeleteAction.onclick = () => {
-                this.triggerDeleteSlot();
-            };
-        }
-
-        // 4. Löschen bestätigen - MIT FEEDBACK & WARTEZEIT
-        if(this.els.btnDeleteConfirm) {
-            this.els.btnDeleteConfirm.onclick = async () => {
-                if(this.selectedSlot === -1) return;
-                
-                const btn = this.els.btnDeleteConfirm;
-                const originalText = btn.textContent;
-                
-                // Feedback Status
-                btn.textContent = "WIRD GELÖSCHT...";
-                btn.disabled = true;
-                btn.classList.add('opacity-50', 'cursor-wait');
-                btn.classList.remove('animate-pulse', 'border-green-500', 'text-green-500'); // Rot/Grau bleiben
-                btn.classList.add('border-red-500', 'text-red-500');
-
-                if(typeof Network !== 'undefined') {
-                    try {
-                        // [FIX] Mindestens 1 Sekunde warten für Feedback, selbst wenn Netz schnell ist
-                        const deletePromise = Network.deleteSave(this.selectedSlot);
-                        const delayPromise = new Promise(resolve => setTimeout(resolve, 1500)); 
-                        
-                        await Promise.all([deletePromise, delayPromise]);
-                        
-                    } catch(e) {
-                        console.error("Delete Error:", e);
-                        alert("Fehler beim Löschen: " + e.message);
-                        
-                        // Reset Button bei Fehler
-                        btn.textContent = originalText;
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-50', 'cursor-wait');
-                        return;
-                    }
-                }
-
-                // UI Reset erst NACH Erfolg
-                btn.textContent = originalText;
-                btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-wait');
-
-                this.els.deleteOverlay.style.display = 'none';
-                this.currentSaves[this.selectedSlot] = null;
-                this.renderCharacterSelection(this.currentSaves);
-            };
-        }
-
-        // 5. Löschen Input Check
-        if(this.els.deleteInput) {
-            this.els.deleteInput.oninput = (e) => {
-                const target = this.els.deleteTargetName.textContent;
-                if(e.target.value === target) {
-                    this.els.btnDeleteConfirm.disabled = false;
-                    this.els.btnDeleteConfirm.classList.remove('border-red-500', 'text-red-500');
-                    this.els.btnDeleteConfirm.classList.add('border-green-500', 'text-green-500', 'animate-pulse');
-                } else {
-                    this.els.btnDeleteConfirm.disabled = true;
-                    this.els.btnDeleteConfirm.classList.add('border-red-500', 'text-red-500');
-                    this.els.btnDeleteConfirm.classList.remove('border-green-500', 'text-green-500', 'animate-pulse');
-                }
-            };
-        }
-
-        // 6. Löschen Abbrechen
-        if(this.els.btnDeleteCancel) {
-            this.els.btnDeleteCancel.onclick = () => {
-                this.closeDeleteOverlay();
-            };
-        }
-
         if (this.els.btnBugReport) {
             this.els.btnBugReport.addEventListener('click', () => {
                 this.openBugModal();
@@ -459,11 +339,6 @@ const UI = {
         
         if(this.timerInterval) clearInterval(this.timerInterval);
         this.timerInterval = setInterval(() => this.updateTimer(), 1000);
-        
-        // Logout Button Handler (falls er nicht über HTML onclick gebunden ist)
-        if(this.els.btnLogout) {
-             this.els.btnLogout.onclick = () => this.logout();
-        }
     },
 
     isMobile: function() {
@@ -487,28 +362,13 @@ const UI = {
         if(typeof Network !== 'undefined') Network.startPresence();
     },
 
-    // [FIX] Synchronisiertes Logout (Wartet auf Save)
-    logout: async function(msg) {
+    logout: function(msg) {
         this.loginBusy = false;
         this.selectedSlot = -1; 
         this.charSelectMode = false; 
         
         if(Game.state) {
-            // Speichern erzwingen und WARTEN
-            console.log("[LOGOUT] Speichere Spielstand...");
-            if(this.els.loginStatus) this.els.loginStatus.textContent = "SPEICHERE...";
-            
-            try {
-                if(Game.saveGame) {
-                    await Game.saveGame(true); // Annahme: saveGame ist async oder wir warten zumindest kurz
-                }
-            } catch(e) {
-                console.error("Save Error on Logout:", e);
-            }
-            
-            // Sicherheitspause: Gib der Datenbank 500ms Zeit
-            await new Promise(r => setTimeout(r, 500));
-            
+            Game.saveGame(true); 
             Game.state = null;
         }
 
@@ -547,13 +407,7 @@ const UI = {
             }
             
             this.selectedSlot = -1; 
-            
-            if(this.renderCharacterSelection) {
-                this.renderCharacterSelection(saves || {});
-            } else {
-                console.error("CRITICAL: renderCharacterSelection missing in UI!");
-                this.els.loginStatus.textContent = "UI FEHLER: CharSelect fehlt!";
-            }
+            if(this.renderCharacterSelection) this.renderCharacterSelection(saves || {});
             
         } catch(e) {
             let msg = e.message;
@@ -568,40 +422,6 @@ const UI = {
         } finally {
             this.loginBusy = false;
         }
-    },
-
-    renderCharacterSelection: function(saves) {
-        this.currentSaves = saves || {};
-        this.els.loginScreen.style.display = 'none';
-        this.els.charSelectScreen.style.display = 'flex';
-        this.charSelectMode = true;
-        this.els.charSlotsList.innerHTML = '';
-
-        for(let i=0; i<5; i++) {
-            const save = this.currentSaves[i];
-            const div = document.createElement('div');
-            
-            let html = `
-                <div class="flex justify-between items-center p-3 border-2 transition-all cursor-pointer bg-black/80 hover:bg-green-900/30 ${save ? 'border-green-600' : 'border-gray-700 opacity-70'}">
-                    <div class="flex items-center gap-3">
-                        <div class="text-2xl">${save ? '👤' : '➕'}</div>
-                        <div>
-                            <div class="font-bold font-vt323 text-xl ${save ? 'text-green-400' : 'text-gray-500'}">
-                                ${save ? save.playerName : 'LEERER SLOT ' + (i+1)}
-                            </div>
-                            <div class="text-xs font-mono text-gray-400">
-                                ${save ? `Level ${save.lvl} • ${save.zone || 'Unbekannt'} • ${save.caps} KK` : 'Tippen zum Erstellen'}
-                            </div>
-                        </div>
-                    </div>
-                    ${save ? '<div class="text-xs bg-green-900 text-green-300 px-2 py-1 rounded">BEREIT</div>' : ''}
-                </div>
-            `;
-            div.innerHTML = html;
-            div.onclick = () => this.selectSlot(i);
-            this.els.charSlotsList.appendChild(div);
-        }
-        this.selectSlot(0); // Ersten Slot vorwählen
     },
 
     handleSaveClick: function() {
@@ -640,7 +460,7 @@ const UI = {
     
     selectSlot: function(index) {
         if(this.selectedSlot === index) {
-            this.triggerCharSlot(); // Doppelklick = Start / Erstellen
+            this.triggerCharSlot();
             return;
         }
 
@@ -648,13 +468,9 @@ const UI = {
         if(this.els.charSlotsList && this.els.charSlotsList.children) {
             const slots = this.els.charSlotsList.children;
             for(let i=0; i<slots.length; i++) {
-                const child = slots[i].firstElementChild; // Das innere Div
-                if(child) child.classList.remove('border-yellow-400', 'bg-yellow-900/20');
+                slots[i].classList.remove('active-slot');
             }
-            if(slots[index]) {
-                const child = slots[index].firstElementChild;
-                if(child) child.classList.add('border-yellow-400', 'bg-yellow-900/20');
-            }
+            if(slots[index]) slots[index].classList.add('active-slot');
         }
         
         const save = this.currentSaves ? this.currentSaves[index] : null;
