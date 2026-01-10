@@ -280,26 +280,38 @@ window.Combat = {
             this.log(`${this.enemy.name} trifft dich: -${dmgTaken} HP`, 'text-red-500 font-bold');
             this.triggerFeedback('damage', dmgTaken);
 
-        // [TIMESTAMP] 2026-01-10 14:55:00 - game_combat.js - Finaler Permadeath Fix: Stoppt Autosave vor Löschung
-        if (Game.state.hp <= 0) {
-            Game.state.hp = 0;
-            
-            // 1. Verhindere JEDEN weiteren Speichervorgang für diesen Charakter
-            const deadSlot = Game.selectedSlot;
-            Game.selectedSlot = -1; 
-            
-            // 2. Datenbank-Löschung triggern
-            if (typeof Network !== 'undefined' && deadSlot !== undefined && deadSlot !== -1) {
-                console.log("PERMADEATH: Lösche Slot " + deadSlot);
-                Network.deleteSlot(deadSlot); 
-            }
-        
-            // 3. UI umschalten
-            if (typeof UI !== 'undefined' && UI.showGameOver) {
-                UI.showGameOver();
-            }
-            return;
-        }
+        // [TIMESTAMP] 2026-01-10 15:15:00 - game_combat.js - Finaler Permadeath Fix mit Autosave-Blocker
+
+if(Game.state.hp <= 0) {
+    Game.state.hp = 0;
+    Game.state.isGameOver = true;
+    
+    console.log("CRITICAL: Player died. Initiating permanent deletion...");
+
+    // 1. WICHTIG: Den Slot lokal sofort auf -1 setzen. 
+    // Das verhindert, dass irgendeine andere Funktion (wie Autosave) weiß, wohin sie speichern soll.
+    const slotToDelete = Game.selectedSlot;
+    Game.selectedSlot = -1; 
+
+    // 2. Den Löschbefehl asynchron an Network senden
+    if (typeof Network !== 'undefined' && slotToDelete !== undefined && slotToDelete !== -1) {
+        // Wir warten nicht auf die Antwort, sondern schicken ihn sofort ab
+        Network.deleteSlot(slotToDelete).then(() => {
+            console.log("Network: Slot " + slotToDelete + " successfully wiped.");
+        }).catch(err => {
+            console.error("Network: Wipe failed", err);
+        });
+    }
+
+    // 3. UI anzeigen und den Spielzustand vernichten
+    if(typeof UI !== 'undefined' && UI.showGameOver) {
+        UI.showGameOver();
+    }
+    
+    // 4. Den globalen State leeren, damit kein Timer mehr speichern kann
+    Game.state = null;
+    return;
+}
 
 
             
