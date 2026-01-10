@@ -1,149 +1,260 @@
-// [TIMESTAMP] 2026-01-10 10:00:00 - minigames.js - Game Logic (Hacking, Lockpicking, Dice)
+// [TIMESTAMP] 2026-01-10 12:00:00 - game_combat.js - 100% Dice Trigger for Legendary
 
-window.MiniGames = {
-    active: null,
+window.Combat = {
+    // ... (restliche Variablen wie enemy, turn, bodyParts bleiben gleich) ...
+    enemy: null,
+    turn: 'player', 
+    logData: [], 
+    selectedPart: 1, 
+    
+    bodyParts: [
+        { name: "KOPF", hitMod: 0.6, dmgMod: 2.0 }, 
+        { name: "KÖRPER", hitMod: 1.0, dmgMod: 1.0 }, 
+        { name: "BEINE", hitMod: 1.3, dmgMod: 0.8 }
+    ],
 
-    // --- HACKING ---
-    hacking: {
-        words: [], password: "", attempts: 4, logs: [],
+    // ... start, log, renderLogs, render, moveSelection, selectPart, confirmSelection, triggerFeedback, getSafeWeapon, calculateHitChance, playerAttack, enemyTurn ... 
+    // (Füge hier den Code von vorhin für diese Funktionen ein oder lass ihn stehen, wenn du ihn schon hast)
+    // Damit der Post nicht zu lang wird, hier nur die kritische WIN Funktion:
+
+    // ... (Füge hier den Code für start() bis enemyTurn() ein - siehe meine vorherige Antwort) ...
+    
+    // Wir brauchen aber das ganze Objekt damit es funktioniert, daher hier nochmal in Kurzform,
+    // ABER mit dem Fokus auf die WIN Funktion:
+
+    start: function(enemyEntity) {
+        Game.state.enemy = JSON.parse(JSON.stringify(enemyEntity)); 
+        Game.state.enemy.maxHp = Game.state.enemy.hp; 
+        this.enemy = Game.state.enemy;
+        Game.state.view = 'combat';
+        this.logData = [];
+        this.turn = 'player';
+        this.selectedPart = 1; 
+        this.log(`Kampf gestartet gegen: ${this.enemy.name}`, 'text-yellow-400 blink-red');
+        UI.switchView('combat').then(() => {
+            this.render();
+            this.moveSelection(0); 
+        });
+    },
+    
+    log: function(msg, color='text-gray-300') {
+        this.logData.unshift({t: msg, c: color});
+        if(this.logData.length > 6) this.logData.pop();
+        this.renderLogs();
+    },
+    renderLogs: function() {
+        const el = document.getElementById('combat-log');
+        if(!el) return;
+        el.innerHTML = this.logData.map(l => `<div class="${l.c}">${l.t}</div>`).join('');
+    },
+    render: function() { UI.renderCombat(); this.renderLogs(); },
+    
+    moveSelection: function(dir) {
+        if (typeof this.selectedPart === 'undefined') this.selectedPart = 1;
+        this.selectedPart += dir;
+        if (this.selectedPart < 0) this.selectedPart = 2;
+        if (this.selectedPart > 2) this.selectedPart = 0;
+        for(let i=0; i<3; i++) {
+            const btn = document.getElementById(`btn-vats-${i}`);
+            if(btn) {
+                btn.classList.remove('border-yellow-400', 'text-yellow-400', 'bg-yellow-900/40');
+                if(i === this.selectedPart) btn.classList.add('border-yellow-400', 'text-yellow-400', 'bg-yellow-900/40');
+            }
+        }
+        UI.renderCombat(); 
+    },
+    selectPart: function(index) { this.selectedPart = index; this.moveSelection(0); },
+    confirmSelection: function() { if(this.turn === 'player') this.playerAttack(); },
+    
+    triggerFeedback: function(type, value) {
+        const layer = document.getElementById('combat-feedback-layer');
+        if(!layer) return;
+        const el = document.createElement('div');
+        el.className = "float-text absolute font-bold text-4xl pointer-events-none z-50 text-shadow-black";
+        const offset = Math.floor(Math.random() * 40) - 20;
+        const offsetY = Math.floor(Math.random() * 40) - 20;
+        el.style.transform = `translate(${offset}px, ${offsetY}px)`;
+        if(type === 'hit') { el.innerHTML = `-${value}`; el.className += " text-yellow-400 animate-float-up"; } 
+        else if(type === 'crit') { el.innerHTML = `CRIT! -${value}`; el.className += " text-red-500 text-6xl blink-red animate-float-up"; } 
+        else if(type === 'miss') { el.innerHTML = "MISS"; el.className += " text-gray-500 text-2xl animate-fade-out"; } 
+        else if(type === 'damage') { el.innerHTML = `-${value}`; el.className += " text-red-600 animate-shake"; 
+            const flash = document.getElementById('damage-flash');
+            if(flash) { flash.classList.remove('hidden'); flash.style.opacity = 0.5; setTimeout(() => { flash.style.opacity = 0; flash.classList.add('hidden'); }, 300); }
+        } else if(type === 'dodge') { el.innerHTML = "AUSGEWICHEN"; el.className += " text-blue-400 text-2xl animate-fade-out"; }
+        layer.appendChild(el); setTimeout(() => { el.remove(); }, 1000);
+    },
+
+    getSafeWeapon: function() {
+        let wpn = Game.state.equip.weapon;
+        if (!wpn || !wpn.id) return { id: 'fists', name: 'Fäuste', baseDmg: 2 };
+        if (!wpn.id && wpn.name) {
+            const foundId = Object.keys(Game.items).find(k => Game.items[k].name === wpn.name);
+            if(foundId) wpn.id = foundId; else return { id: 'fists', name: 'Fäuste', baseDmg: 2 };
+        }
+        return wpn;
+    },
+
+    calculateHitChance: function(partIndex) {
+        const part = this.bodyParts[partIndex];
+        const perception = Game.getStat('PER');
+        let chance = 50 + (perception * 5);
+        chance *= part.hitMod;
+        const wpn = this.getSafeWeapon();
+        const wId = wpn.id.toLowerCase();
+        const rangedKeywords = ['pistol', 'rifle', 'gun', 'shotgun', 'smg', 'minigun', 'blaster', 'sniper', 'cannon', 'gewehr', 'flinte', 'revolver'];
+        const isRanged = rangedKeywords.some(k => wId.includes(k));
+        if (!isRanged) chance += 20; 
+        return Math.min(95, Math.floor(chance));
+    },
+
+    playerAttack: function() {
+        if(this.turn !== 'player') return;
+        const partIndex = this.selectedPart;
+        const part = this.bodyParts[partIndex];
+        const hitChance = this.calculateHitChance(partIndex);
+        let wpn = this.getSafeWeapon();
+        const wId = wpn.id.toLowerCase();
+        const rangedKeywords = ['pistol', 'rifle', 'gun', 'shotgun', 'smg', 'minigun', 'blaster', 'sniper', 'cannon', 'gewehr', 'flinte', 'revolver'];
+        const isRanged = rangedKeywords.some(k => wId.includes(k));
         
-        init: function() {
-            const int = Game.getStat('INT');
-            const diff = 12 - Math.min(8, int);
-            const wordList = ["PASS", "FAIL", "DATA", "CODE", "HACK", "BIOS", "BOOT", "USER", "ROOT", "WIFI", "LINK", "NODE", "CORE", "DISK"];
-            this.words = [];
-            for(let i=0; i<diff; i++) {
-                this.words.push(wordList[Math.floor(Math.random() * wordList.length)]);
-            }
-            this.password = this.words[Math.floor(Math.random() * this.words.length)];
-            this.attempts = 4;
-            this.logs = ["> SYSTEM LOCKED", "> ENTER PASSWORD"];
-            if (typeof UI.renderHacking === 'function') UI.renderHacking();
-        },
+        if(isRanged && wId !== 'alien_blaster') { 
+             const hasAmmo = Game.removeFromInventory('ammo', 1);
+             if(!hasAmmo) {
+                 if(typeof UI.showCombatEffect === 'function') UI.showCombatEffect("* KLICK *", "MUNITION LEER!", "red", 2300);
+                 this.log("WAFFE LEER! *KLICK*", "text-red-500 font-bold text-xl");
+                 setTimeout(() => { if (typeof Game.switchToBestMelee === 'function') Game.switchToBestMelee(); }, 800);
+                 return; 
+             }
+        }
 
-        checkWord: function(word) {
-            if(this.attempts <= 0) return;
-            let likeness = 0;
-            for(let i=0; i<4; i++) {
-                if(word[i] === this.password[i]) likeness++;
-            }
-            this.logs.unshift(`> ${word}: ${likeness}/4 MATCH`);
-            this.attempts--;
+        const roll = Math.random() * 100;
+        const screen = document.getElementById('game-screen');
+        if(screen) { screen.classList.add('shake-anim'); setTimeout(() => screen.classList.remove('shake-anim'), 200); }
 
-            if(word === this.password) {
-                this.logs.unshift("> ACCESS GRANTED");
-                setTimeout(() => this.end(true), 1000);
-            } else if (this.attempts <= 0) {
-                this.logs.unshift("> SYSTEM LOCKOUT");
-                setTimeout(() => this.end(false), 1000);
-            }
-            if (typeof UI.renderHacking === 'function') UI.renderHacking();
-        },
-
-        end: function(success) {
-            if(success) {
-                if(typeof Game.updateQuestProgress === 'function') {
-                    Game.updateQuestProgress('hack', 'terminal', 1);
-                }
-                UI.log("Terminal gehackt!", "text-green-400");
+        if(roll <= hitChance) {
+            let dmg = wpn.baseDmg || 2;
+            if(wpn.props && wpn.props.dmgMult) dmg *= wpn.props.dmgMult;
+            if(!isRanged || wpn.id === 'rifle_butt') {
+                dmg += Math.floor(Game.getStat('STR') / 2);
+                const sluggerLvl = Game.getPerkLevel('slugger');
+                if(sluggerLvl > 0) dmg = Math.floor(dmg * (1 + (sluggerLvl * 0.1)));
             } else {
-                UI.log("Zugriff verweigert.", "text-red-500");
+                const gunLvl = Game.getPerkLevel('gunslinger');
+                if(gunLvl > 0) dmg = Math.floor(dmg * (1 + (gunLvl * 0.1)));
             }
-            UI.stopMinigame();
+            dmg *= part.dmgMod;
+            let isCrit = false;
+            let critChance = Game.state.critChance || 5; 
+            if(Math.random() * 100 <= critChance) {
+                dmg *= 2; isCrit = true;
+                this.log(">> KRITISCHER TREFFER! <<", "text-yellow-400 font-bold animate-pulse");
+                if(typeof UI.showCombatEffect === 'function') UI.showCombatEffect("CRITICAL!", "DOPPELTER SCHADEN", "yellow", 1500);
+                if (Game.getPerkLevel('mysterious_stranger') > 0) this.log("Der Fremde hilft dir...", "text-gray-400 text-xs");
+            }
+            dmg = Math.floor(dmg);
+            this.enemy.hp -= dmg;
+            this.log(`Treffer: ${part.name} für ${dmg} Schaden!`, 'text-green-400 font-bold');
+            this.triggerFeedback(isCrit ? 'crit' : 'hit', dmg);
+            const el = document.getElementById('enemy-img'); 
+            if(el) { el.classList.add('animate-pulse'); setTimeout(() => el.classList.remove('animate-pulse'), 200); }
+
+            if(this.enemy.hp <= 0) { this.win(); return; }
+        } else {
+            this.log("Daneben!", 'text-gray-500');
+            this.triggerFeedback('miss');
+        }
+        this.turn = 'enemy';
+        this.render(); 
+        setTimeout(() => this.enemyTurn(), 1000);
+    },
+
+    enemyTurn: function() {
+        if(!this.enemy || this.enemy.hp <= 0) return;
+        const agi = Game.getStat('AGI');
+        const enemyHitChance = 85 - (agi * 3); 
+        const roll = Math.random() * 100;
+        if(roll <= enemyHitChance) {
+            let dmg = this.enemy.dmg;
+            let armor = 0;
+            const slots = ['body', 'head', 'legs', 'feet', 'arms'];
+            slots.forEach(s => {
+                if(Game.state.equip[s]) {
+                    if (Game.state.equip[s].def) armor += Game.state.equip[s].def;
+                    if (Game.state.equip[s].props && Game.state.equip[s].props.bonus && Game.state.equip[s].props.bonus.DEF) armor += Game.state.equip[s].props.bonus.DEF;
+                }
+            });
+            let dmgTaken = Math.max(1, dmg - Math.floor(armor / 2));
+            Game.state.hp -= dmgTaken;
+            this.log(`${this.enemy.name} trifft dich: -${dmgTaken} HP`, 'text-red-500 font-bold');
+            this.triggerFeedback('damage', dmgTaken);
+            if(Game.state.hp <= 0) { Game.state.isGameOver = true; if(UI && UI.showGameOver) UI.showGameOver(); return; }
+        } else {
+            this.log(`${this.enemy.name} verfehlt dich!`, 'text-blue-300');
+            this.triggerFeedback('dodge');
+        }
+        this.turn = 'player';
+        UI.update(); 
+        this.render();
+    },
+
+    flee: function() {
+        if(Math.random() < 0.5) {
+            this.log("Flucht gelungen!", 'text-green-400');
+            this.triggerFeedback('dodge'); 
+            setTimeout(() => { Game.state.enemy = null; UI.switchView('map'); }, 800);
+        } else {
+            this.log("Flucht fehlgeschlagen!", 'text-red-500');
+            this.turn = 'enemy';
+            setTimeout(() => this.enemyTurn(), 800);
         }
     },
 
-    // --- LOCKPICKING ---
-    lockpicking: {
-        difficulty: 'easy', lockAngle: 0, currentAngle: 0, sweetSpot: 0, health: 100,
-
-        init: function(diff = 'easy') {
-            this.difficulty = diff;
-            this.lockAngle = 0;
-            this.currentAngle = 0;
-            this.health = 100;
-            this.sweetSpot = Math.floor(Math.random() * 160) - 80;
-            if (typeof UI.renderLockpicking === 'function') UI.renderLockpicking(true);
-        },
-
-        rotateLock: function() {
-            const dist = Math.abs(this.currentAngle - this.sweetSpot);
-            const maxRot = Math.max(0, 90 - dist);
-            this.lockAngle = maxRot;
-            
-            if(dist < 10) {
-                this.lockAngle = 90;
-                setTimeout(() => this.end(true), 500);
-            } else {
-                this.health -= 10;
-                if(this.health <= 0) {
-                    Game.removeFromInventory('bobby_pin', 1);
-                    this.end(false);
-                }
-            }
-            if (typeof UI.renderLockpicking === 'function') UI.renderLockpicking();
-        },
-
-        releaseLock: function() {
-            this.lockAngle = 0;
-            if (typeof UI.renderLockpicking === 'function') UI.renderLockpicking();
-        },
-
-        end: function(success) {
-            if(success) UI.log("Schloss geknackt!", "text-green-400");
-            else UI.log("Dietrich abgebrochen!", "text-red-500");
-            UI.stopMinigame();
+    // --- TRIGGER WÜRFELSPIEL (Win Funktion) ---
+    win: function() {
+        this.log(`${this.enemy.name} besiegt!`, 'text-yellow-400 font-bold');
+        const xpBase = Array.isArray(this.enemy.xp) ? (this.enemy.xp[0] + Math.floor(Math.random()*(this.enemy.xp[1]-this.enemy.xp[0]))) : this.enemy.xp;
+        Game.gainExp(xpBase);
+        
+        if(this.enemy.loot > 0) {
+            let caps = Math.floor(Math.random() * this.enemy.loot) + 1;
+            Game.state.caps += caps;
+            this.log(`Gefunden: ${caps} Kronkorken`, 'text-yellow-200');
         }
-    },
-
-    // --- DICE GAME (Wasteland Gamble) ---
-    dice: {
-        d1: 1, d2: 1, rolling: false,
-
-        init: function() {
-            this.d1 = 1; this.d2 = 1;
-            this.rolling = false;
-            // Da Dice ein Overlay ist, rendern wir es direkt hier via UI Aufruf
-            if (typeof UI.renderDice === 'function') UI.renderDice();
-        },
-
-        roll: function() {
-            if(this.rolling) return;
-            this.rolling = true;
-            
-            let rolls = 0;
-            const maxRolls = 10;
-            const rollInterval = setInterval(() => {
-                this.d1 = Math.floor(Math.random() * 6) + 1;
-                this.d2 = Math.floor(Math.random() * 6) + 1;
-                if (typeof UI.renderDice === 'function') UI.renderDice();
-                rolls++;
-                if(rolls >= maxRolls) {
-                    clearInterval(rollInterval);
-                    this.rolling = false;
-                    this.finish();
-                }
-            }, 100);
-        },
-
-        finish: function() {
-            const sum = this.d1 + this.d2;
-            const luck = Game.getStat('LUC') || 1;
-            const bonus = Math.floor(luck / 2);
-            const total = sum + bonus;
-
-            UI.log(`Würfel: ${sum} + Glück(${bonus}) = ${total}`, "text-yellow-400");
-            
-            // Render one last time to show result state
-            if (typeof UI.renderDice === 'function') UI.renderDice();
-
-            if(typeof Game.gambleLegendaryLoot === 'function') {
-                Game.gambleLegendaryLoot(total);
-            }
-
-            setTimeout(() => {
-                UI.stopMinigame();
-            }, 2500);
+        if(this.enemy.drops) {
+            this.enemy.drops.forEach(d => { if(Math.random() < d.c) Game.addToInventory(d.id, 1); });
         }
+
+        let mobId = null;
+        if(Game.monsters) {
+            for(let k in Game.monsters) {
+                if(Game.monsters[k].name === this.enemy.name.replace('Legendäre ', '')) { mobId = k; break; }
+            }
+        }
+        if(mobId && typeof Game.updateQuestProgress === 'function') Game.updateQuestProgress('kill', mobId, 1);
+
+        if(Game.state.kills === undefined) Game.state.kills = 0;
+        Game.state.kills++;
+        Game.saveGame();
+
+        // ----------------------------------------------------
+        // [TEST MODE] TRIGGER WÜRFELSPIEL (100% bei Legendary)
+        // ----------------------------------------------------
+        if (this.enemy.isLegendary && Math.random() < 1.0) { // 1.0 = 100%
+             setTimeout(() => {
+                 Game.state.enemy = null;
+                 if (typeof UI.startMinigame === 'function') {
+                     UI.startMinigame('dice'); // Starte Dice Game
+                 } else {
+                     UI.log("UI.startMinigame fehlt!", "text-red-500");
+                     UI.switchView('map');
+                 }
+             }, 1500);
+             return; // Wichtig: Hier abbrechen damit nicht zur Map gesprungen wird
+        }
+
+        setTimeout(() => {
+            Game.state.enemy = null;
+            UI.switchView('map');
+        }, 1500);
     }
 };
