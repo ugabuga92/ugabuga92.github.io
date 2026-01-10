@@ -149,7 +149,7 @@ const Network = {
         return firebase.database().ref('users/' + user.uid + '/saves/' + slotIndex).remove()
             .then(() => console.log("Slot erfolgreich gelöscht."))
             .catch(e => console.error("Fehler beim Löschen:", e));
-    }
+    },
 
 
     startPresence: function() {
