@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-10 21:15:00 - game_combat.js - FORCED DICE GAME TEST
+// [TIMESTAMP] 2026-01-10 23:00:00 - game_combat.js - Final Logic
 
 window.Combat = {
     enemy: null,
@@ -13,6 +13,7 @@ window.Combat = {
     ],
 
     start: function(enemyEntity) {
+        // Tiefe Kopie des Gegners erstellen, damit wir das Original nicht verändern
         Game.state.enemy = JSON.parse(JSON.stringify(enemyEntity)); 
         Game.state.enemy.maxHp = Game.state.enemy.hp; 
         this.enemy = Game.state.enemy;
@@ -21,12 +22,15 @@ window.Combat = {
         
         this.logData = [];
         this.turn = 'player';
-        this.selectedPart = 1; 
+        this.selectedPart = 1; // Start auf Körper
         
         this.log(`Kampf gestartet gegen: ${this.enemy.name}`, 'text-yellow-400 blink-red');
+        
+        // View wechseln und Rendering starten
         UI.switchView('combat').then(() => {
             this.render();
-            this.moveSelection(0); 
+            // Initialer Render-Call für VATS Highlights
+            if(typeof UI.renderCombat === 'function') UI.renderCombat();
         });
     },
 
@@ -43,10 +47,11 @@ window.Combat = {
     },
 
     render: function() {
-        UI.renderCombat();
+        if(typeof UI.renderCombat === 'function') UI.renderCombat();
         this.renderLogs();
     },
 
+    // VATS Steuerung (Tastatur/Buttons)
     moveSelection: function(dir) {
         if (typeof this.selectedPart === 'undefined') this.selectedPart = 1;
         this.selectedPart += dir;
@@ -54,21 +59,12 @@ window.Combat = {
         if (this.selectedPart < 0) this.selectedPart = 2;
         if (this.selectedPart > 2) this.selectedPart = 0;
 
-        for(let i=0; i<3; i++) {
-            const btn = document.getElementById(`btn-vats-${i}`);
-            if(btn) {
-                btn.classList.remove('border-yellow-400', 'text-yellow-400', 'bg-yellow-900/40');
-                if(i === this.selectedPart) {
-                    btn.classList.add('border-yellow-400', 'text-yellow-400', 'bg-yellow-900/40');
-                }
-            }
-        }
-        UI.renderCombat(); 
+        this.render(); 
     },
     
     selectPart: function(index) {
         this.selectedPart = index;
-        this.moveSelection(0); 
+        this.render(); 
     },
 
     confirmSelection: function() {
@@ -77,6 +73,7 @@ window.Combat = {
         }
     },
 
+    // Visuelles Feedback (Floating Text)
     triggerFeedback: function(type, value) {
         const layer = document.getElementById('combat-feedback-layer');
         if(!layer) return;
@@ -116,11 +113,13 @@ window.Combat = {
         setTimeout(() => { el.remove(); }, 1000);
     },
 
+    // Hilfsfunktion: Waffe holen oder Fäuste fallback
     getSafeWeapon: function() {
         let wpn = Game.state.equip.weapon;
         if (!wpn) return { id: 'fists', name: 'Fäuste', baseDmg: 2 };
 
         if (!wpn.id && wpn.name) {
+            // Versuch ID zu rekonstruieren falls verloren
             const foundId = Object.keys(Game.items).find(k => Game.items[k].name === wpn.name);
             if(foundId) wpn.id = foundId; 
             else return { id: 'fists', name: 'Fäuste (Fallback)', baseDmg: 2 };
@@ -144,7 +143,7 @@ window.Combat = {
         const rangedKeywords = ['pistol', 'rifle', 'gun', 'shotgun', 'smg', 'minigun', 'blaster', 'sniper', 'cannon', 'gewehr', 'flinte', 'revolver'];
         const isRanged = rangedKeywords.some(k => wId.includes(k));
 
-        if (!isRanged) chance += 20; 
+        if (!isRanged) chance += 20; // Nahkampf Bonus
 
         return Math.min(95, Math.floor(chance));
     },
@@ -162,6 +161,7 @@ window.Combat = {
         const rangedKeywords = ['pistol', 'rifle', 'gun', 'shotgun', 'smg', 'minigun', 'blaster', 'sniper', 'cannon', 'gewehr', 'flinte', 'revolver'];
         const isRanged = rangedKeywords.some(k => wId.includes(k));
         
+        // Munitions-Check für Fernkampf (außer Alien Blaster, der ist special)
         if(isRanged && wId !== 'alien_blaster') { 
              const hasAmmo = Game.removeFromInventory('ammo', 1);
              if(!hasAmmo) {
@@ -170,6 +170,7 @@ window.Combat = {
                  }
                  this.log("WAFFE LEER! *KLICK*", "text-red-500 font-bold text-xl");
                  
+                 // Auto-Switch zu Melee vorschlagen oder durchführen
                  setTimeout(() => {
                      if (typeof Game.switchToBestMelee === 'function') {
                          Game.switchToBestMelee();
@@ -177,13 +178,13 @@ window.Combat = {
                          this.log("Manuell wechseln!", "text-yellow-400");
                      }
                  }, 800);
-                 
                  return; 
              }
         }
 
         const roll = Math.random() * 100;
         
+        // Screen Shake Effect
         const screen = document.getElementById('game-screen');
         if(screen) {
             screen.classList.add('shake-anim'); 
@@ -194,6 +195,7 @@ window.Combat = {
             let dmg = wpn.baseDmg || 2;
             if(wpn.props && wpn.props.dmgMult) dmg *= wpn.props.dmgMult;
 
+            // Stats Bonus
             if(!isRanged || wpn.id === 'rifle_butt') {
                 dmg += Math.floor(Game.getStat('STR') / 2);
                 const sluggerLvl = Game.getPerkLevel('slugger');
@@ -205,6 +207,7 @@ window.Combat = {
 
             dmg *= part.dmgMod;
 
+            // Kritischer Treffer
             let isCrit = false;
             let critChance = Game.state.critChance || 5; 
             
@@ -249,6 +252,7 @@ window.Combat = {
         if(!this.enemy || this.enemy.hp <= 0) return;
         
         const agi = Game.getStat('AGI');
+        // Agility erhöht Ausweichchance (max 85% Hit Chance für Gegner)
         const enemyHitChance = 85 - (agi * 3); 
         
         const roll = Math.random() * 100;
@@ -256,6 +260,7 @@ window.Combat = {
         if(roll <= enemyHitChance) {
             let dmg = this.enemy.dmg;
             
+            // Rüstung berechnen
             let armor = 0;
             const slots = ['body', 'head', 'legs', 'feet', 'arms'];
             slots.forEach(s => {
@@ -291,15 +296,18 @@ window.Combat = {
     win: function() {
         this.log(`${this.enemy.name} besiegt!`, 'text-yellow-400 font-bold');
         
+        // XP berechnen
         const xpBase = Array.isArray(this.enemy.xp) ? (this.enemy.xp[0] + Math.floor(Math.random()*(this.enemy.xp[1]-this.enemy.xp[0]))) : this.enemy.xp;
         Game.gainExp(xpBase);
         
+        // Loot (Caps)
         if(this.enemy.loot > 0) {
             let caps = Math.floor(Math.random() * this.enemy.loot) + 1;
             Game.state.caps += caps;
             this.log(`Gefunden: ${caps} Kronkorken`, 'text-yellow-200');
         }
         
+        // Loot (Items)
         if(this.enemy.drops) {
             this.enemy.drops.forEach(d => {
                 if(Math.random() < d.c) {
@@ -308,31 +316,44 @@ window.Combat = {
             });
         }
 
+        // Stats & Quests
         if(Game.state.kills === undefined) Game.state.kills = 0;
         Game.state.kills++;
+        
+        let mobId = null;
+        if(Game.monsters) {
+            for(let k in Game.monsters) {
+                if(Game.monsters[k].name === this.enemy.name.replace('Legendäre ', '').replace('★', '').trim()) {
+                    mobId = k;
+                    break;
+                }
+            }
+        }
+        if(mobId && typeof Game.updateQuestProgress === 'function') {
+            Game.updateQuestProgress('kill', mobId, 1);
+        }
+
         Game.saveGame();
 
-        // --- [DEBUG FORCE DICE TRIGGER] ---
-        console.log("[COMBAT] Win Trigger. Enemy Legendary?", this.enemy.isLegendary);
-        
-        // Wir ignorieren jetzt "isLegendary" zum Testen!
-        // if (this.enemy.isLegendary && Math.random() < 1.0) {  <-- ORIGINAL
-        if (true) { // <-- FORCED ON (Jeder Sieg triggert Dice)
-             console.log("[COMBAT] Starting Dice Game...");
+        // --- DICE GAME TRIGGER LOGIC ---
+        // Prüfen ob Legendär UND 33% Chance
+        if (this.enemy.isLegendary && Math.random() < 0.33) {
+             console.log("[COMBAT] Legendary Luck! Dice Game triggered.");
              
              setTimeout(() => {
-                 Game.state.enemy = null;
+                 Game.state.enemy = null; // Gegner entfernen
+                 
                  if (typeof UI.startMinigame === 'function') {
                      UI.startMinigame('dice');
                  } else {
-                     console.error("[COMBAT ERROR] UI.startMinigame is missing!");
-                     UI.log("Fehler: Minigame nicht gefunden.", "text-red-500");
+                     console.error("UI.startMinigame missing!");
                      UI.switchView('map');
                  }
              }, 1500);
-             return; 
+             return; // Stop here, Minigame handles the rest
         }
 
+        // Standard Ende: Zurück zur Map
         setTimeout(() => {
             Game.state.enemy = null;
             UI.switchView('map');
