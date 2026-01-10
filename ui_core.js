@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-10 05:30:00 - ui_core.js - Fixed Inventory Alert & FX
+// [TIMESTAMP] 2026-01-10 13:05:00 - ui_core.js - Boot-Sequenz Absicherung (isSystemReady) integriert
 
 const UI = {
     els: {},
@@ -13,6 +13,7 @@ const UI = {
     deleteMode: false,
     currentSaves: {},
     selectedSlot: -1,
+    isSystemReady: false, // [NEU] Verhindert Login vor Abschluss der Boot-Sequenz
     
     // Focus System
     focusIndex: -1,
@@ -385,6 +386,13 @@ const UI = {
     },
 
     attemptLogin: async function() {
+        // [TO-DO FIX] Sperre für Boot-Sequenz
+        if(!this.isSystemReady) {
+            this.els.loginStatus.textContent = "SYSTEM INITIALIZING... PLEASE WAIT";
+            this.els.loginStatus.className = "mt-4 text-blue-400 animate-pulse";
+            return;
+        }
+
         if(this.loginBusy) return;
         this.loginBusy = true;
         const email = this.els.inputEmail.value.trim();
