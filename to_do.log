@@ -13,3 +13,79 @@
 Roadmap
 - Neue und mehr Quest implemntieren, gerne 5 neue Quest. eine Anfänger quest z.b noch. Das erste mal Zelt aubauen, was braten + übernachten
 - Tutorial einbauen um alle funktionen kennen zu lernen? Gerne eine abfolge von Anfängerquests o.ä?
+
+Das ist eine hervorragende Frage! Da dein Spiel sehr auf Atmosphäre (Pip-Boy, Retro-Look) und Stats (S.P.E.C.I.A.L.) setzt, sollten neue Minigames genau diese Attribute nutzen und sich "technisch" oder "mechanisch" anfühlen.
+
+Hier sind **4 konkrete Vorschläge**, die perfekt in dein Setting passen und technisch mit deiner aktuellen Struktur machbar wären:
+
+### 1. "Circuit Breaker" (Reparatur)
+
+**Attribut:** **INT** (Intelligenz) oder **PER** (Wahrnehmung)
+**Einsatzort:** Werkbank (um komplexe Items zu bauen) oder um Generatoren in Dungeons zu starten (für Licht/Loot).
+
+* **Die Idee:** Ein klassisches "Pipe Mania" oder "Stromkreis"-Spiel.
+* **Mechanik:** Du hast ein 4x4 oder 5x5 Raster mit Kabelstücken (Gerade, Kurve, T-Stück).
+* Startpunkt ist eine Batterie (Links), Ziel ist eine Lampe (Rechts).
+* Durch Klicken auf die Teile rotieren sie um 90 Grad.
+* **Ziel:** Verbinde Start und Ziel, bevor die Zeit abläuft (oder mit begrenzten Zügen).
+
+
+* **Vibe:** Passt perfekt zur "Ingenieur"-Fantasie.
+
+### 2. "Signal Peilung" (Radio Tuning)
+
+**Attribut:** **PER** (Wahrnehmung)
+**Einsatzort:** Um versteckte Bunker auf der Map zu finden oder Notsignale zu entschlüsseln.
+
+* **Die Idee:** Wellenformen übereinanderlegen (sehr bekannt aus neueren Fallouts oder Spider-Man).
+* **Mechanik:**
+* Es gibt eine **Ziel-Welle** (grün, statisch).
+* Es gibt deine **Tuner-Welle** (gelb, beweglich).
+* Du hast zwei Schieberegler (oder Buttons): **Frequenz** (wie eng die Wellen sind) und **Amplitude** (wie hoch die Wellen sind).
+* **Ziel:** Deine Welle muss sich exakt mit der Zielwelle decken.
+
+
+* **Vibe:** Sehr atmosphärisch, fühlt sich an wie echtes Hacking von Funkfrequenzen.
+
+### 3. "Bomb Defusal" (Entschärfen)
+
+**Attribut:** **AGI** (Beweglichkeit) oder **PER** (Wahrnehmung)
+**Einsatzort:** Um Fallen in Dungeons zu entschärfen oder verschlossene Kisten zu öffnen, die explosiv gesichert sind.
+
+* **Die Idee:** Ein Geschicklichkeits-Timing-Spiel.
+* **Mechanik:**
+* Ein Balken bewegt sich schnell hin und her.
+* Es gibt einen (oder mehrere) grüne Bereiche ("Sweet Spots").
+* Du musst genau im richtigen Moment klicken/tippen.
+* Bei höheren Leveln wird der Balken schneller oder der grüne Bereich kleiner.
+* Fehler = BOOM (Schaden).
+
+
+* **Vibe:** Erzeugt Spannung und Adrenalin.
+
+### 4. "Blackjack" (Casino)
+
+**Attribut:** **LUC** (Glück)
+**Einsatzort:** Alternativ zum Würfelspiel, vielleicht in einer Bar in der Stadt.
+
+* **Die Idee:** Das klassische Kartenspiel ("17 und 4").
+* **Mechanik:**
+* Simpelste Logik: Ziehe Karten, versuche nah an 21 zu kommen, aber nicht drüber.
+* Der Dealer (Computer) zieht auch.
+* Mit hohem **LUC**-Stat könntest du schummeln (z.B. die nächste Karte vorhersehen oder eine schlechte Karte einmalig tauschen).
+
+
+* **Vibe:** Perfekt für das "Wasteland Gamble" Feeling, etwas komplexer als nur Würfeln.
+
+---
+
+### Was würde ich als Erstes empfehlen?
+
+Ich würde **"Circuit Breaker" (Reparatur)** empfehlen.
+Warum?
+
+1. Es nutzt **Intelligenz**, was bisher nur beim Hacking vorkommt.
+2. Es ist visuell sehr anders als die Text-Listen oder das Schlossknacken.
+3. Es motiviert, Schrott zu sammeln, um "Reparatur-Kits" zu bauen, falls man das Minigame verhaut.
+
+Soll ich dir mal einen **Prototypen für das "Entschärfen" (Timing-Spiel)** oder **"Circuit Breaker"** bauen? Das Timing-Spiel wäre am einfachsten zu integrieren.
