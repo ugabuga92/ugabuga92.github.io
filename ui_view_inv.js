@@ -1,4 +1,4 @@
-// [2026-01-10 00:05:00] ui_view_inv.js - FIX: Null Checks added to prevent crash
+// [TIMESTAMP] 2026-01-10 06:00:00 - ui_view_inv.js - Inventory Glow Visuals
 
 Object.assign(UI, {
 
@@ -34,22 +34,28 @@ Object.assign(UI, {
             }
         };
 
-        const createBtn = (itemDef, count, props, isNew, isEquipped, label, onClick) => {
+        // Helper zum Erstellen der Buttons mit GLOW Logik
+        const createBtn = (itemDef, entry, isEquipped, label, onClick) => {
             const btn = document.createElement('div');
             let cssClass = "relative border border-green-500 bg-green-900/30 w-full h-16 flex flex-col items-center justify-center transition-colors group";
             
             if(onClick) cssClass += " cursor-pointer hover:bg-green-500 hover:text-black";
             else cssClass += " cursor-default opacity-80"; 
             
+            // [NEU] Glow Effekt hinzufügen, wenn Item neu ist
+            if (entry.isNew) {
+                cssClass += " new-item-glow";
+            }
+
             btn.className = cssClass;
             
-            let displayName = props && props.name ? props.name : itemDef.name;
-            let extraClass = props && props.color ? props.color : "";
+            let displayName = entry.props && entry.props.name ? entry.props.name : itemDef.name;
+            let extraClass = entry.props && entry.props.color ? entry.props.color : "";
 
             btn.innerHTML = `
                 <div class="text-2xl">${getIcon(itemDef.type)}</div>
                 <div class="text-[10px] truncate max-w-full px-1 font-bold ${extraClass}">${displayName}</div>
-                <div class="absolute top-0 right-0 bg-green-900 text-white text-[10px] px-1 font-mono">${count}</div>
+                <div class="absolute top-0 right-0 bg-green-900 text-white text-[10px] px-1 font-mono">${entry.count}</div>
             `;
 
             if(isEquipped) {
@@ -60,12 +66,23 @@ Object.assign(UI, {
                 btn.style.borderColor = "#39ff14"; 
             }
             
-            if(onClick) {
-                btn.onclick = (e) => {
-                    e.stopPropagation(); 
-                    onClick();
-                };
-            }
+            // [NEU] Logik zum Entfernen des "Neu"-Status
+            const markAsRead = () => {
+                if(entry.isNew) {
+                    entry.isNew = false;
+                    btn.classList.remove('new-item-glow');
+                    // Optional: Man könnte hier speichern, ist aber meist nicht nötig für reinen UI-Effekt
+                }
+            };
+
+            // Glow entfernen bei Hover oder Klick
+            btn.onmouseenter = markAsRead;
+            btn.onclick = (e) => {
+                e.stopPropagation(); 
+                markAsRead();
+                if(onClick) onClick();
+            };
+
             return btn;
         };
 
@@ -82,14 +99,15 @@ Object.assign(UI, {
             const item = Game.items[entry.id];
             if(!item) return;
 
+            // Wir übergeben jetzt das GANZE entry-Objekt an createBtn
             if(entry.id === 'camp_kit' && Game.state.camp) {
-                 const btn = createBtn(item, entry.count, entry.props, false, true, "AUFGESTELLT", null);
+                 const btn = createBtn(item, entry, true, "AUFGESTELLT", null);
                  equippedList.push(btn); 
                  return;
             }
 
             const onClick = () => UI.showItemConfirm(index);
-            const btn = createBtn(item, entry.count, entry.props, entry.isNew, false, null, onClick);
+            const btn = createBtn(item, entry, false, null, onClick);
 
             if(['weapon', 'head', 'body', 'arms', 'legs', 'feet', 'back', 'tool'].includes(item.type)) {
                 cats.equip.items.push(btn);
@@ -126,11 +144,15 @@ Object.assign(UI, {
 
             const onClick = () => UI.showEquippedDialog(slot);
 
-            const btn = createBtn(
-                baseDef, 1, 
-                equippedItem.props || { name: equippedItem.name, color: equippedItem.color, bonus: equippedItem.bonus }, 
-                false, true, "AUSGERÜSTET", onClick 
-            );
+            // Fake Entry für ausgerüstete Items (damit createBtn nicht crasht, haben aber nie isNew)
+            const fakeEntry = { 
+                id: equippedItem.id, 
+                count: 1, 
+                props: equippedItem.props,
+                isNew: false 
+            };
+
+            const btn = createBtn(baseDef, fakeEntry, true, "AUSGERÜSTET", onClick);
             equippedList.push(btn);
         });
 
@@ -171,7 +193,7 @@ Object.assign(UI, {
             }
         });
 
-        // --- NEW: TAB GLOW LOGIC ---
+        // Tab Glow Logic
         const btnStats = document.getElementById('tab-btn-stats');
         if(btnStats) {
             if(Game.state.statPoints > 0) btnStats.classList.add('alert-glow-yellow');
@@ -183,7 +205,6 @@ Object.assign(UI, {
             if(Game.state.perkPoints > 0) btnPerks.classList.add('alert-glow-yellow');
             else btnPerks.classList.remove('alert-glow-yellow');
         }
-        // ---------------------------
 
         if(tab === 'status') this.renderCharStatus();
         else if(tab === 'stats') this.renderCharStats();
@@ -191,7 +212,6 @@ Object.assign(UI, {
     },
 
     renderCharStatus: function() {
-        // [FIX] Helper function to safely set text content without crashing
         const safeSetText = (id, text) => {
             const el = document.getElementById(id);
             if(el) el.textContent = text;
@@ -212,7 +232,6 @@ Object.assign(UI, {
 
         safeSetText('sheet-crit', `${Game.state.critChance}%`);
 
-        // Der Alert-Kasten kann drin bleiben, stört nicht
         const alertBox = document.getElementById('status-points-alert');
         if(alertBox) {
             if(Game.state.statPoints > 0 || Game.state.perkPoints > 0) {
@@ -230,7 +249,7 @@ Object.assign(UI, {
         
         slots.forEach(slot => {
             const el = document.getElementById(`slot-${slot}`);
-            if(!el) return; // Existiert Element nicht, abbrechen
+            if(!el) return;
 
             const item = Game.state.equip[slot];
             
@@ -239,7 +258,7 @@ Object.assign(UI, {
                            (!item.name || item.name === 'Fäuste' || item.name === 'Vault-Anzug' || item.name === 'Kein Rucksack');
 
             const nameEl = el.querySelector('.item-name');
-            if(!nameEl) return; // Sicherstellen dass auch Kind-Element da ist
+            if(!nameEl) return;
 
             if(isEmpty) {
                 el.classList.remove('filled');
