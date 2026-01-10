@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-11 13:00:00 - ui_core.js - Async Logout & Delete Feedback
+// [TIMESTAMP] 2026-01-11 14:00:00 - ui_core.js - FINAL FIX: Sync Logout, Delete Feedback, Name Check
 
 const UI = {
     els: {},
@@ -318,7 +318,7 @@ const UI = {
         
         // --- BUTTON EVENT LISTENERS ---
         
-        // 1. Charakter erstellen (Confirm Button) - MIT LOGGING & DUP CHECK
+        // 1. Charakter erstellen (Confirm Button) - MIT BESSEREM CHECK
         if(this.els.btnCreateCharConfirm) {
             this.els.btnCreateCharConfirm.onclick = () => {
                 const name = this.els.inputNewCharName.value.trim();
@@ -327,16 +327,22 @@ const UI = {
                     return;
                 }
                 
-                // Debug Log für Duplicate Check
-                console.log("[UI] Prüfe auf Duplikate:", name);
-                console.log("[UI] Aktuelle Saves:", this.currentSaves);
-
-                const isDuplicate = Object.values(this.currentSaves).some(save => 
-                    save && save.playerName && save.playerName.toUpperCase() === name.toUpperCase()
-                );
+                // [FIX] Robuster Duplicate Check
+                const nameUpper = name.toUpperCase();
+                let isDuplicate = false;
+                
+                // Prüfe alle Slots (auch wenn null, um sicher zu gehen)
+                for(let k in this.currentSaves) {
+                    const save = this.currentSaves[k];
+                    if(save && save.playerName && save.playerName.toUpperCase() === nameUpper) {
+                        isDuplicate = true;
+                        break;
+                    }
+                }
                 
                 if(isDuplicate) {
                     alert(`Der Name "${name}" ist bereits vergeben!`);
+                    this.els.inputNewCharName.focus();
                     return;
                 }
 
@@ -361,30 +367,42 @@ const UI = {
             };
         }
 
-        // 4. Löschen bestätigen - MIT FEEDBACK
+        // 4. Löschen bestätigen - MIT FEEDBACK & WARTEZEIT
         if(this.els.btnDeleteConfirm) {
             this.els.btnDeleteConfirm.onclick = async () => {
                 if(this.selectedSlot === -1) return;
                 
-                // FEEDBACK STATUS ANZEIGEN
                 const btn = this.els.btnDeleteConfirm;
                 const originalText = btn.textContent;
                 
+                // Feedback Status
                 btn.textContent = "WIRD GELÖSCHT...";
                 btn.disabled = true;
                 btn.classList.add('opacity-50', 'cursor-wait');
-                
-                // Löschen im Netzwerk (AWAIT ist hier wichtig)
+                btn.classList.remove('animate-pulse', 'border-green-500', 'text-green-500'); // Rot/Grau bleiben
+                btn.classList.add('border-red-500', 'text-red-500');
+
                 if(typeof Network !== 'undefined') {
                     try {
-                        await Network.deleteSave(this.selectedSlot);
+                        // [FIX] Mindestens 1 Sekunde warten für Feedback, selbst wenn Netz schnell ist
+                        const deletePromise = Network.deleteSave(this.selectedSlot);
+                        const delayPromise = new Promise(resolve => setTimeout(resolve, 1500)); 
+                        
+                        await Promise.all([deletePromise, delayPromise]);
+                        
                     } catch(e) {
                         console.error("Delete Error:", e);
-                        alert("Fehler beim Löschen!");
+                        alert("Fehler beim Löschen: " + e.message);
+                        
+                        // Reset Button bei Fehler
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-50', 'cursor-wait');
+                        return;
                     }
                 }
 
-                // UI Reset
+                // UI Reset erst NACH Erfolg
                 btn.textContent = originalText;
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-wait');
@@ -441,6 +459,11 @@ const UI = {
         
         if(this.timerInterval) clearInterval(this.timerInterval);
         this.timerInterval = setInterval(() => this.updateTimer(), 1000);
+        
+        // Logout Button Handler (falls er nicht über HTML onclick gebunden ist)
+        if(this.els.btnLogout) {
+             this.els.btnLogout.onclick = () => this.logout();
+        }
     },
 
     isMobile: function() {
@@ -464,25 +487,30 @@ const UI = {
         if(typeof Network !== 'undefined') Network.startPresence();
     },
 
-    // [NEU] Async Logout, um Speichern abzuwarten
+    // [FIX] Synchronisiertes Logout (Wartet auf Save)
     logout: async function(msg) {
         this.loginBusy = false;
         this.selectedSlot = -1; 
         this.charSelectMode = false; 
         
         if(Game.state) {
-            console.log("[LOGOUT] Saving game data...");
-            // Wir warten auf das Speichern, falls Game.saveGame async ist/Promise zurückgibt
+            // Speichern erzwingen und WARTEN
+            console.log("[LOGOUT] Speichere Spielstand...");
+            if(this.els.loginStatus) this.els.loginStatus.textContent = "SPEICHERE...";
+            
             try {
-                if(Game.saveGame) await Game.saveGame(true);
+                if(Game.saveGame) {
+                    await Game.saveGame(true); // Annahme: saveGame ist async oder wir warten zumindest kurz
+                }
             } catch(e) {
-                console.error("Save failed during logout:", e);
+                console.error("Save Error on Logout:", e);
             }
+            
+            // Sicherheitspause: Gib der Datenbank 500ms Zeit
+            await new Promise(r => setTimeout(r, 500));
+            
             Game.state = null;
         }
-        
-        // Kurze Sicherheitspause für Netzwerk-Flush
-        await new Promise(r => setTimeout(r, 200));
 
         if(typeof Network !== 'undefined') Network.disconnect();
         
