@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-10 02:30:00 - admin.js - Inventory Overhaul (Search & Filter)
+// [TIMESTAMP] 2026-01-10 03:00:00 - admin.js - Compact Table Layout
 
 const Admin = {
     gatePass: "bimbo123",
@@ -314,45 +314,53 @@ const Admin = {
         Network.db.ref(this.currentPath + '/perks/' + perkId).set(valNum);
     },
 
-    // --- REBUILT INVENTORY PANEL (NEW FILTER SYSTEM) ---
+    // --- REBUILT INVENTORY PANEL (COMPACT TABLE) ---
     fillInv: function(d) {
         const invTab = document.getElementById('tab-inv');
         
-        // --- 1. Struktur aufbauen (falls noch leer oder alt) ---
-        // Wir bauen das UI jedes Mal neu auf, um sauber zu bleiben
         invTab.innerHTML = `
-            <div class="flex flex-col h-full gap-4">
+            <div class="flex flex-col h-full gap-2">
                 
-                <div class="panel-box p-4 shrink-0">
-                    <h3 class="text-yellow-400 font-bold border-b border-[#1a551a] mb-2 text-xs">CURRENTLY EQUIPPED</h3>
-                    <div id="equip-list" class="grid grid-cols-2 gap-2 text-xs"></div>
+                <div class="panel-box p-2 shrink-0">
+                    <h3 class="text-yellow-400 font-bold border-b border-[#1a551a] mb-1 text-xs">EQUIPPED</h3>
+                    <div id="equip-list" class="grid grid-cols-2 gap-1 text-[10px]"></div>
                 </div>
 
                 <div class="panel-box flex flex-col flex-1 min-h-0 overflow-hidden relative">
                     <div class="bg-[#002200] p-2 border-b border-[#1a551a] shrink-0 z-10">
-                        <div class="flex gap-2 mb-2">
+                        <div class="flex gap-2 mb-1">
                             <input type="text" id="admin-item-search" 
-                                class="w-full bg-black border border-green-500 text-green-300 text-xs p-2 uppercase"
-                                placeholder="🔍 SEARCH ITEM TO ADD..." 
+                                class="w-full bg-black border border-green-500 text-green-300 text-xs p-1 uppercase font-mono"
+                                placeholder="SEARCH..." 
                                 value="${this.invFilter.search}"
                                 onkeyup="Admin.updateItemFilter(this.value)">
                         </div>
-                        <div class="flex flex-wrap gap-1 justify-center" id="filter-btns">
-                            </div>
+                        <div class="flex flex-wrap gap-1 justify-center" id="filter-btns"></div>
                     </div>
                     
-                    <div id="admin-item-list" class="flex-1 custom-scroll p-2 space-y-1 bg-black/80">
-                        </div>
+                    <div class="flex-1 custom-scroll bg-black relative">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-[#001100] text-gray-500 text-[9px] sticky top-0 z-20 border-b border-[#1a551a]">
+                                <tr>
+                                    <th class="p-1 pl-2">ITEM NAME</th>
+                                    <th class="p-1 w-24 hidden md:table-cell">ID</th>
+                                    <th class="p-1 w-20 text-right pr-2">ADD</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-item-table-body" class="text-xs font-mono">
+                                </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <div class="panel-box p-2 h-1/4 shrink-0 flex flex-col">
-                    <h3 class="text-gray-500 font-bold text-xs mb-1">PLAYER INVENTORY</h3>
+                    <h3 class="text-gray-500 font-bold text-[10px] mb-1">PLAYER INVENTORY</h3>
                     <div class="flex-1 custom-scroll bg-black border border-[#1a551a]">
                         <table class="w-full text-left border-collapse">
-                            <thead class="text-[10px] text-gray-400 bg-[#001100] sticky top-0">
+                            <thead class="text-[9px] text-gray-400 bg-[#001100] sticky top-0">
                                 <tr><th class="p-1">ITEM</th><th class="p-1 text-center">QTY</th><th class="p-1 text-right">ACT</th></tr>
                             </thead>
-                            <tbody id="inv-table-body" class="text-xs font-mono"></tbody>
+                            <tbody id="inv-table-body" class="text-[10px] font-mono"></tbody>
                         </table>
                     </div>
                 </div>
@@ -369,7 +377,7 @@ const Admin = {
                     div.className = "flex justify-between items-center bg-black/50 p-1 border border-[#1a551a]";
                     div.innerHTML = `
                         <div class="truncate"><span class="text-gray-500 mr-1">${slot.substr(0,1).toUpperCase()}:</span><span class="text-green-300">${item.name}</span></div>
-                        <button onclick="Admin.forceUnequip('${slot}')" class="text-red-500 hover:text-white ml-1">X</button>
+                        <button onclick="Admin.forceUnequip('${slot}')" class="text-red-500 hover:text-white ml-1 font-bold">×</button>
                     `;
                     equipList.appendChild(div);
                 }
@@ -393,19 +401,19 @@ const Admin = {
                 <td class="p-1 truncate max-w-[120px]" title="${name}">${name}</td>
                 <td class="p-1 text-center text-yellow-500">${item.count}</td>
                 <td class="p-1 text-right">
-                    <button onclick="Admin.invDelete(${idx})" class="text-red-500 hover:text-white font-bold px-2">DEL</button>
+                    <button onclick="Admin.invDelete(${idx})" class="text-red-500 hover:text-white font-bold px-1">DEL</button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
 
         // --- 4. RENDER FILTER BUTTONS ---
-        const cats = ['ALL', 'WEAPON', 'APPAREL', 'AID', 'JUNK'];
+        const cats = ['ALL', 'WEAPON', 'APPAREL', 'AID', 'JUNK', 'NOTES'];
         const btnContainer = document.getElementById('filter-btns');
         cats.forEach(c => {
             const btn = document.createElement('button');
             const active = this.invFilter.category === c;
-            btn.className = `px-2 py-1 text-[10px] border ${active ? 'bg-green-500 text-black border-green-500' : 'bg-black text-green-500 border-green-800 hover:border-green-500'}`;
+            btn.className = `px-2 py-0.5 text-[9px] border ${active ? 'bg-green-500 text-black border-green-500 font-bold' : 'bg-black text-green-500 border-green-800 hover:border-green-500'}`;
             btn.textContent = c;
             btn.onclick = () => { this.invFilter.category = c; this.refreshItemBrowser(); };
             btnContainer.appendChild(btn);
@@ -431,14 +439,16 @@ const Admin = {
     },
 
     refreshItemBrowser: function() {
-        const container = document.getElementById('admin-item-list');
-        if(!container) return;
-        container.innerHTML = '';
+        const tbody = document.getElementById('admin-item-table-body');
+        if(!tbody) return;
+        tbody.innerHTML = '';
 
-        // Items holen
-        const allItems = this.itemsList; // Wurde in initData vorbereitet
+        const allItems = this.itemsList; 
         
         let count = 0;
+        // Sortieren nach Name
+        allItems.sort((a,b) => a.name.localeCompare(b.name));
+
         allItems.forEach(item => {
             // 1. Kategorie Filter
             const cat = this.getItemCategory(item.type);
@@ -450,35 +460,37 @@ const Admin = {
                 if(!searchStr.includes(this.invFilter.search)) return;
             }
 
-            // Render Row
-            const div = document.createElement('div');
-            div.className = "flex justify-between items-center bg-[#001100] border border-[#1a331a] p-1 hover:border-green-500 group";
+            // Render Table Row
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-[#1a331a] hover:bg-[#003300] transition-colors group";
             
             let icon = "📦";
             if(item.type === 'weapon') icon = "🔫";
             if(item.type === 'ammo') icon = "🧨";
             if(item.type === 'consumable') icon = "💉";
             if(item.type === 'back') icon = "🎒";
+            if(['body','head','arms','legs','feet'].includes(item.type)) icon = "🛡️";
 
-            div.innerHTML = `
-                <div class="flex items-center gap-2 overflow-hidden w-2/3">
-                    <span class="text-lg opacity-70">${icon}</span>
+            tr.innerHTML = `
+                <td class="p-1 pl-2 flex items-center gap-2 overflow-hidden">
+                    <span class="opacity-50 text-[10px]">${icon}</span>
                     <div class="flex flex-col min-w-0">
-                        <span class="text-green-300 text-xs font-bold truncate group-hover:text-white">${item.name}</span>
-                        <span class="text-[9px] text-gray-500 font-mono truncate">${item.id}</span>
+                        <span class="text-green-300 font-bold truncate group-hover:text-white">${item.name}</span>
+                        <span class="text-[8px] text-gray-500 md:hidden">${item.id}</span>
                     </div>
-                </div>
-                <div class="flex gap-1">
-                    <button onclick="Admin.invAddDirect('${item.id}', 1)" class="bg-[#1a331a] text-green-400 text-[10px] px-2 hover:bg-green-500 hover:text-black transition">+1</button>
-                    <button onclick="Admin.invAddDirect('${item.id}', 10)" class="bg-[#1a331a] text-green-400 text-[10px] px-2 hover:bg-green-500 hover:text-black transition">+10</button>
-                </div>
+                </td>
+                <td class="p-1 hidden md:table-cell text-[9px] text-gray-500 font-mono">${item.id}</td>
+                <td class="p-1 pr-2 text-right whitespace-nowrap">
+                    <button onclick="Admin.invAddDirect('${item.id}', 1)" class="bg-[#1a331a] text-green-400 text-[9px] px-1.5 py-0.5 border border-green-900 hover:bg-green-500 hover:text-black transition">+1</button>
+                    <button onclick="Admin.invAddDirect('${item.id}', 10)" class="bg-[#1a331a] text-green-400 text-[9px] px-1.5 py-0.5 border border-green-900 hover:bg-green-500 hover:text-black transition ml-1">+10</button>
+                </td>
             `;
-            container.appendChild(div);
+            tbody.appendChild(tr);
             count++;
         });
 
         if(count === 0) {
-            container.innerHTML = `<div class="text-gray-500 text-xs text-center mt-4">- NO ITEMS FOUND -</div>`;
+            tbody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-500 text-xs py-4 italic">- NO ITEMS FOUND -</td></tr>`;
         }
     },
 
@@ -487,7 +499,7 @@ const Admin = {
         const inv = [...(this.currentUserData.inventory || [])];
         let found = false;
         
-        // Versuch Stack zu finden
+        // Versuch Stack zu finden (nur wenn keine Props, normale Items stacken)
         for(let item of inv) {
             if(item.id === id && !item.props) {
                 item.count += count;
@@ -501,9 +513,7 @@ const Admin = {
         }
         
         Network.db.ref(this.currentPath + '/inventory').set(inv);
-        
-        // Kleines visuelles Feedback im Button (optional, aber nice)
-        // Da wir neu rendern, ist das schwer direkt zu zeigen, aber wir refreshen die Liste ja eh
+        // Kein visuelles Feedback nötig, Firebase Update triggert Render neu
     },
     // ---------------------------------------------
 
