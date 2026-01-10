@@ -177,111 +177,119 @@
             const s = document.createElement('script'); 
             s.src = src; 
             s.onload = resolve; 
-            s.onerror = (e) => reject({src: src, evt: e}); // Better error info
+            s.onerror = (e) => reject({src: src, evt: e}); 
             document.body.appendChild(s); 
         }); 
     }
     
-    // BOOT SEQUENCE LOGIC
-    function runBootSequence(ver) {
-        const bootLines = [
+    // Globale Variable, um den Fortschritt zu tracken
+    let scriptsLoaded = false;
+
+    function addBootLine(text, color = "boot-line") {
+        const log = document.getElementById('boot-log');
+        const div = document.createElement('div');
+        div.className = color;
+        div.textContent = "> " + text;
+        log.appendChild(div);
+    }
+
+    async function runBootSequence(ver) {
+        const log = document.getElementById('boot-log');
+        const bootSeq = document.getElementById('boot-sequence');
+        const loginContent = document.getElementById('login-content');
+        
+        const initialLines = [
             "ROBCO INDUSTRIES UNIFIED OPERATING SYSTEM",
             "COPYRIGHT 2075-2077 ROBCO INDUSTRIES",
             "SERVER: ONLINE",
             `LOADING SYSTEM VERSION ${ver || 'DETECTING...'}`,
-            "MEMORY: 64KB OK",
-            "BIO-METRICS: NOT FOUND",
-            "INITIALIZING PIP-BOY 3003 INTERFACE..."
+            "MEMORY: 64KB OK"
         ];
-        const log = document.getElementById('boot-log');
-        const bootSeq = document.getElementById('boot-sequence');
-        const loginContent = document.getElementById('login-content');
-        let delay = 1500; 
-        
-        bootLines.forEach((line, i) => {
-            setTimeout(() => {
-                const div = document.createElement('div');
-                div.className = "boot-line";
-                div.textContent = "> " + line;
-                log.appendChild(div);
-            }, delay);
-            delay += 600 + Math.random() * 400; 
-        });
 
-        setTimeout(() => {
-            bootSeq.style.display = 'none';
-            loginContent.classList.remove('hidden');
-            loginContent.classList.add('flex');
-        }, delay + 1000);
+        // 1. Initiale Zeilen ausgeben
+        for (let line of initialLines) {
+            addBootLine(line);
+            await new Promise(r => setTimeout(r, 400));
+        }
+
+        addBootLine("INITIALIZING PIP-BOY 3003 INTERFACE...");
+
+        // 2. Warten bis Scripte geladen sind (Intervall-Check)
+        const checkReady = setInterval(() => {
+            if (scriptsLoaded) {
+                clearInterval(checkReady);
+                finishBoot();
+            }
+        }, 500);
+
+        function finishBoot() {
+            addBootLine("SYSTEM READY.", "text-green-400 font-bold");
+            
+            setTimeout(() => {
+                bootSeq.style.display = 'none';
+                loginContent.classList.remove('hidden');
+                loginContent.classList.add('flex');
+                
+                // WICHTIG: Hier wird die Sperre in der ui_core.js aufgehoben
+                if(typeof UI !== 'undefined') {
+                    UI.isSystemReady = true; 
+                    console.log("Boot finished. System is now ready for interaction.");
+                }
+            }, 1000);
+        }
     }
 
-    // MAIN INIT
     window.onload = function() {
         const verDisplay = document.getElementById('version-display');
         const loginVerDisplay = document.getElementById('login-version-display'); 
-        
         const devVer = Date.now();
-        console.log("[PipBoy3003] Dev Mode Active. Force Loading ID:", devVer);
 
         fetch('Version?t=' + devVer).then(res => res.text()).then(v => {
             const displayVer = v.trim(); 
             runBootSequence(displayVer);
 
-            if(verDisplay) { verDisplay.textContent = displayVer; verDisplay.classList.remove('animate-pulse'); }
-            if(loginVerDisplay) { loginVerDisplay.textContent = displayVer; }
+            if(verDisplay) verDisplay.textContent = displayVer;
+            if(loginVerDisplay) loginVerDisplay.textContent = displayVer;
             
-            // --- LOAD ORDER START ---
-            
-            // 1. Data & Network
+            // --- LOAD ORDER ---
             loadScript('data_core.js?v=' + devVer)
                 .then(() => loadScript('data_items.js?v=' + devVer))
                 .then(() => loadScript('data_recipes.js?v=' + devVer))
                 .then(() => loadScript('data_monsters.js?v=' + devVer))
                 .then(() => loadScript('network.js?v=' + devVer))
-                
-                // 2. Core Game Logic
                 .then(() => loadScript('game/game_core.js?v=' + devVer))
                 .then(() => loadScript('game/game_map.js?v=' + devVer))
                 .then(() => loadScript('game/game_render.js?v=' + devVer))
                 .then(() => loadScript('world_gen.js?v=' + devVer))
                 .then(() => loadScript('minigames.js?v=' + devVer))
-                
-                // 3. New Logic Splits (replacing game_actions.js)
                 .then(() => loadScript('game/game_inv_logic.js?v=' + devVer))
                 .then(() => loadScript('game/game_world_logic.js?v=' + devVer))
                 .then(() => loadScript('game/game_char_logic.js?v=' + devVer))
-                
-                // 4. Combat Logic (Renamed & Moved)
                 .then(() => loadScript('game/game_combat.js?v=' + devVer))
                 .then(() => loadScript('ui/ui_combat.js?v=' + devVer))
-
-                // 5. UI System
                 .then(() => loadScript('ui_core.js?v=' + devVer))
                 .then(() => loadScript('ui_input.js?v=' + devVer))
-                
-                // 6. UI Views
                 .then(() => loadScript('ui_view_inv.js?v=' + devVer))
                 .then(() => loadScript('ui_view_world.js?v=' + devVer))
                 .then(() => loadScript('ui_view_town.js?v=' + devVer))
                 .then(() => loadScript('ui_view_journal.js?v=' + devVer))
                 .then(() => loadScript('ui_view_camp.js?v=' + devVer))
-                
-                // 7. UI Renders
                 .then(() => loadScript('ui_render_core.js?v=' + devVer)) 
                 .then(() => loadScript('ui_render_views.js?v=' + devVer))
                 .then(() => loadScript('ui_render_minigames.js?v=' + devVer))
                 .then(() => loadScript('ui_render_overlays.js?v=' + devVer))
-                
-                .then(() => { if(typeof UI !== 'undefined') UI.init(); console.log("System Ready."); })
+                .then(() => { 
+                    if(typeof UI !== 'undefined') UI.init(); 
+                    scriptsLoaded = true; // Signal an die Boot-Animation
+                    console.log("All Scripts Loaded & UI Initialized."); 
+                })
                 .catch(err => {
                     console.error("Critical Load Error:", err);
-                    if(document.getElementById('login-status')) {
-                        // Zeige an, welche Datei fehlt!
-                        document.getElementById('login-status').innerHTML = `<span style="color:red">ERROR LOADING: ${err.src ? err.src.split('?')[0] : 'UNKNOWN'}</span>`;
-                    }
+                    document.getElementById('login-status').innerHTML = `<span style="color:red">ERROR LOADING: ${err.src ? err.src.split('?')[0] : 'UNKNOWN'}</span>`;
                 });
         });
     };
 </script>
+
 </body>
 </html>
