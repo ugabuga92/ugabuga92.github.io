@@ -80,7 +80,7 @@ Object.assign(Game, {
             enemy.loot = Math.floor(enemy.loot * (1 + (fortuneLvl * 0.1)));
         }
 
-        const isLegendary = Math.random() < 0.05; 
+        const isLegendary = true; // -> OLD Math.random() < 0.05; 
         if(isLegendary) { 
             enemy.isLegendary = true; 
             enemy.name = "Legendäre " + enemy.name; 
