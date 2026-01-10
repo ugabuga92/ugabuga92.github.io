@@ -140,10 +140,17 @@ const Network = {
             .catch(e => console.error("Save Error:", e));
     },
     
-    deleteSlot: async function(slotIndex) {
-        if(!this.active || !this.myId) return;
-        await this.db.ref(`saves/${this.myId}/${slotIndex}`).remove();
-    },
+    // In network.js (Logik-Check)
+    deleteSlot: function(slotIndex) {
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+        
+        // Pfad: users / [UID] / saves / [SlotIndex]
+        return firebase.database().ref('users/' + user.uid + '/saves/' + slotIndex).remove()
+            .then(() => console.log("Slot erfolgreich gelöscht."))
+            .catch(e => console.error("Fehler beim Löschen:", e));
+    }
+
 
     startPresence: function() {
         if(!this.myId) return;
