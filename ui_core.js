@@ -531,6 +531,17 @@ const UI = {
         this.els.deleteOverlay.style.display = 'none';
         this.els.charSelectScreen.focus();
     }
+
+    // [TIMESTAMP] 2026-01-10 14:12:00 - ui_core.js - GameOver UI für Permadeath angepasst
+    showGameOver: function() {
+        if (this.els.gameOver) {
+            this.els.gameOver.classList.remove('hidden'); // Blendet den Screen ein
+        }
+        // Wichtig: Den lokalen State leeren, damit kein Autosave den toten Char rettet
+        Game.state = null; 
+    }
+
+    
 };
 
 window.UI = UI;
