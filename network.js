@@ -142,14 +142,21 @@ const Network = {
     
     // In network.js (Logik-Check)
     deleteSlot: function(slotIndex) {
-        const user = firebase.auth().currentUser;
-        if (!user) return;
-        
-        // Pfad: users / [UID] / saves / [SlotIndex]
-        return firebase.database().ref('users/' + user.uid + '/saves/' + slotIndex).remove()
-            .then(() => console.log("Slot erfolgreich gelöscht."))
-            .catch(e => console.error("Fehler beim Löschen:", e));
-    },
+    if(!this.active || !this.myId) {
+        console.error("deleteSlot: Nicht eingeloggt oder DB nicht aktiv!");
+        return Promise.reject("Not authenticated");
+    }
+    
+    // KORREKTER Pfad: saves / [UID] / [SlotIndex]
+    return this.db.ref(`saves/${this.myId}/${slotIndex}`).remove()
+        .then(() => {
+            console.log(`✅ Slot ${slotIndex} erfolgreich gelöscht (Permadeath).`);
+        })
+        .catch(e => {
+            console.error("❌ Fehler beim Löschen von Slot " + slotIndex + ":", e);
+            throw e;
+        });
+    }
 
 
     startPresence: function() {
