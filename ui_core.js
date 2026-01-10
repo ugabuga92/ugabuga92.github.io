@@ -530,7 +530,7 @@ const UI = {
         this.deleteMode = false;
         this.els.deleteOverlay.style.display = 'none';
         this.els.charSelectScreen.focus();
-    }
+    },
 
     // [TIMESTAMP] 2026-01-10 14:12:00 - ui_core.js - GameOver UI für Permadeath angepasst
     showGameOver: function() {
