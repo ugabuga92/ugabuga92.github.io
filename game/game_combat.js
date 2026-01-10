@@ -280,28 +280,27 @@ window.Combat = {
             this.log(`${this.enemy.name} trifft dich: -${dmgTaken} HP`, 'text-red-500 font-bold');
             this.triggerFeedback('damage', dmgTaken);
 
-        // [TIMESTAMP] 2026-01-10 14:35:00 - game_combat.js - Finaler Permadeath Fix
+        // [TIMESTAMP] 2026-01-10 14:55:00 - game_combat.js - Finaler Permadeath Fix: Stoppt Autosave vor Löschung
         if (Game.state.hp <= 0) {
             Game.state.hp = 0;
-            console.log("PERMADEATH: Spieler hat 0 HP erreicht.");
-        
-            // Wir nutzen hier direkt Network und den Slot aus dem Game-Objekt
-            const slotToKill = Game.selectedSlot;
             
-            if (slotToKill !== undefined && slotToKill !== -1) {
-                console.log("Lösche Charakter-Slot:", slotToKill);
-                
-                // Löschen einleiten
-                if (typeof Network !== 'undefined' && Network.deleteSlot) {
-                    Network.deleteSlot(slotToKill);
-                }
+            // 1. Verhindere JEDEN weiteren Speichervorgang für diesen Charakter
+            const deadSlot = Game.selectedSlot;
+            Game.selectedSlot = -1; 
+            
+            // 2. Datenbank-Löschung triggern
+            if (typeof Network !== 'undefined' && deadSlot !== undefined && deadSlot !== -1) {
+                console.log("PERMADEATH: Lösche Slot " + deadSlot);
+                Network.deleteSlot(deadSlot); 
             }
         
-            // UI erst triggern, nachdem der Löschbefehl raus ist
+            // 3. UI umschalten
             if (typeof UI !== 'undefined' && UI.showGameOver) {
                 UI.showGameOver();
             }
+            return;
         }
+
 
             
         } else {
