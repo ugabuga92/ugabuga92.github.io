@@ -1,4 +1,4 @@
-// [2026-01-10 00:05:00] game_actions.js - Auto Switch Fix & Text Update
+// [2026-01-10 01:15:00] game_actions.js - Smart Weapon Switch Logic
 
 Object.assign(Game, {
 
@@ -17,9 +17,8 @@ Object.assign(Game, {
         }
     },
     
-    // [FIX] Automatischer Waffenwechsel bei leerer Munition
+    // [FIX] Automatischer Waffenwechsel - Verbesserte Erkennung
     switchToBestMelee: function() {
-        // Alten Waffennamen sichern für Log
         const oldWeapon = this.state.equip.weapon;
         const oldName = (oldWeapon && oldWeapon.name && oldWeapon.name !== 'Fäuste') 
             ? (oldWeapon.props?.name || oldWeapon.name) 
@@ -39,18 +38,28 @@ Object.assign(Game, {
         // Suche beste Nahkampfwaffe (ohne Munitionsbedarf)
         this.state.inventory.forEach((item, idx) => {
             const def = this.items[item.id];
-            // Prüfen ob Waffe und KEINE Munition benötigt (also Nahkampf)
-            // Prüft auch auf type 'melee' falls definiert
-            if (def && (def.type === 'weapon' || def.type === 'melee' || def.type === 'weapon_melee')) {
-                if (!def.ammo) {
-                    let dmg = def.dmg;
-                    if (item.props && item.props.dmgMult) dmg *= item.props.dmgMult;
-                    
-                    if (dmg > bestDmg) {
-                        bestDmg = dmg;
-                        bestWeapon = item;
-                        bestIndex = idx;
-                    }
+            
+            // Sicherheitscheck: Item Definition muss existieren
+            if (!def) return;
+
+            // Kriterium 1: Es muss eine Waffe sein
+            // Wir prüfen auf diverse Typ-Schreibweisen, um sicherzugehen
+            const type = def.type ? def.type.toLowerCase() : '';
+            const isWeaponType = type === 'weapon' || type === 'melee' || type === 'weapon_melee' || type.includes('weapon');
+
+            // Kriterium 2: Es darf KEINE Munition verbrauchen
+            // Wenn 'ammo' undefined, null oder 'none' ist -> Nahkampf
+            const needsAmmo = def.ammo && def.ammo !== 'none';
+
+            if (isWeaponType && !needsAmmo) {
+                let dmg = def.dmg || 0;
+                if (item.props && item.props.dmgMult) dmg *= item.props.dmgMult;
+                
+                // Wir nehmen das Item mit dem höchsten Schaden
+                if (dmg > bestDmg) {
+                    bestDmg = dmg;
+                    bestWeapon = item;
+                    bestIndex = idx;
                 }
             }
         });
@@ -58,12 +67,17 @@ Object.assign(Game, {
         if (bestWeapon) {
             this.useItem(bestIndex); 
             const newName = bestWeapon.props?.name || this.items[bestWeapon.id].name;
-            // Exakter Log wie gewünscht
             UI.log(`${newName} wurde statt ${oldName} angelegt, deine Munition ist leer`, "text-yellow-400 blink-red");
         } else {
-            this.unequipItem('weapon'); 
-            // Exakter Log wie gewünscht
-            UI.log("Waffe abgelegt", "text-red-500");
+            // Keine Nahkampfwaffe gefunden -> Fäuste
+            // Wir prüfen, ob wir überhaupt etwas ausgerüstet hatten, das keine Faust war
+            if (this.state.equip.weapon && this.state.equip.weapon.name !== "Fäuste") {
+                this.unequipItem('weapon'); 
+                UI.log("Keine Nahkampfwaffe gefunden! Fäuste!", "text-red-500");
+            } else {
+                // War schon Faust
+                UI.log("Keine Munition mehr!", "text-red-500");
+            }
         }
 
         if(typeof UI.renderChar === 'function') UI.renderChar();
