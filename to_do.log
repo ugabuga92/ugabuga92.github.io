@@ -3,18 +3,12 @@
 - Bei Char löschen soll Enter auch funktionieren zum "löschen" nicht nur der Button zum drücken. Sofern der Name halt Korrekt ist. Dann bitte "Char wird gelöscht..." anzeigen bis der Charakter aus der Datenbank gelöscht wurde.
 - Öfters Probleme mit dem Laden der Dateien im Hintergrund das dies länger dauert als der Boot Screen. Sollte die "system ready" meldung noch nicht da sein bis die boot sequenz abgeschlosssen ist, soll es nicht weiter gehen. Sonst haben wir ab und an Probleme beim Login.
 - Buglog muss so ausführlich sein das ich ihn direkt weiterleiten kann zum beheben, an dich eben.
-
-- Mengen auswahl : Hier soll anfangs 1x ausgefüllt sein, also das Feld, und wenn man ein anderes anklickt (so wie es bei Max der fall ist) soll es gehighlighted bleiben duch asugefülltes Gelb. Es soll schnell ersichtlich sein was aktuell gewählt ist.
 - wenn man stirbt bleibt aktuell charaktee uns safegame bestehen. wenn TP 0 erreicht sollte der charakter ja gelöscht werden, liegt das an der speicher logik?
 - Doppellogin möglich, Handy und Laptop zur selben Zeit. Warum keine Abfrage mehr ob man schon verbunden ist?
 - Logik überabeiten welches Tier welches Fleisch abgibt: Wieso bekommt man vom wilden hund Rattenfleisch???!
 - Fäuste sollen die Standart "ausrüstung" als Waffe sein wenn man keine hat. Kein Item was so existiert, aktuell kann man sie in Schrott zerlegen. Was soll den der mist.
 - Wo sind die Rucksäcke hin?
 
-
+Roadmap
 - Neue und mehr Quest implemntieren, gerne 5 neue Quest. eine Anfänger quest z.b noch. Das erste mal Zelt aubauen, was braten + übernachten
 - Tutorial einbauen um alle funktionen kennen zu lernen? Gerne eine abfolge von Anfängerquests o.ä?
-
-
-Nach dem Kauf von einem Item, bzw erwerb, finden, herstellen WHAT EVER wenn es neu im inventar ist (außer stacks erhöhung) soll das Burger Menü + Inventar button im Burger Menü den typischen Glow effekt in gelb haben. 
-Dazu kommt, sobald man im Inventar ist, soll das neue Item auch einen minimalen Glow effekt haben bis man einmal angeklickt, oder drüber gehovert hat mit der maus. Bekommst du hin oder?
