@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-10 19:30:00 - ui_core.js - Added Missing Character Selection Logic
+// [TIMESTAMP] 2026-01-11 11:30:00 - ui_core.js - Fixed Char Creation Logic
 
 const UI = {
     els: {},
@@ -316,6 +316,80 @@ const UI = {
             gameOver: document.getElementById('game-over-screen')
         };
         
+        // --- BUTTON EVENT LISTENER FIXES ---
+        
+        // 1. Charakter erstellen (Confirm Button)
+        if(this.els.btnCreateCharConfirm) {
+            this.els.btnCreateCharConfirm.onclick = () => {
+                const name = this.els.inputNewCharName.value.trim();
+                if(name.length < 3) {
+                    alert("Name muss mindestens 3 Zeichen haben!");
+                    return;
+                }
+                if(this.selectedSlot === -1) return;
+                
+                // Overlay schließen
+                this.els.newCharOverlay.classList.add('hidden');
+                
+                // Spiel starten (Game initiiert neuen Slot)
+                this.startGame(null, this.selectedSlot, name);
+            };
+        }
+
+        // 2. Zurück zum Login
+        if(this.els.btnCharBack) {
+            this.els.btnCharBack.onclick = () => {
+                this.logout("ZURÜCK ZUM LOGIN");
+            };
+        }
+
+        // 3. Löschen Dialog öffnen
+        if(this.els.btnCharDeleteAction) {
+            this.els.btnCharDeleteAction.onclick = () => {
+                this.triggerDeleteSlot();
+            };
+        }
+
+        // 4. Löschen bestätigen
+        if(this.els.btnDeleteConfirm) {
+            this.els.btnDeleteConfirm.onclick = async () => {
+                if(this.selectedSlot === -1) return;
+                
+                // Löschen im Netzwerk
+                if(typeof Network !== 'undefined') {
+                    await Network.deleteSave(this.selectedSlot);
+                }
+
+                // UI Reset
+                this.els.deleteOverlay.style.display = 'none';
+                this.currentSaves[this.selectedSlot] = null;
+                this.renderCharacterSelection(this.currentSaves);
+            };
+        }
+
+        // 5. Löschen Input Check
+        if(this.els.deleteInput) {
+            this.els.deleteInput.oninput = (e) => {
+                const target = this.els.deleteTargetName.textContent;
+                if(e.target.value === target) {
+                    this.els.btnDeleteConfirm.disabled = false;
+                    this.els.btnDeleteConfirm.classList.remove('border-red-500', 'text-red-500');
+                    this.els.btnDeleteConfirm.classList.add('border-green-500', 'text-green-500', 'animate-pulse');
+                } else {
+                    this.els.btnDeleteConfirm.disabled = true;
+                    this.els.btnDeleteConfirm.classList.add('border-red-500', 'text-red-500');
+                    this.els.btnDeleteConfirm.classList.remove('border-green-500', 'text-green-500', 'animate-pulse');
+                }
+            };
+        }
+
+        // 6. Löschen Abbrechen
+        if(this.els.btnDeleteCancel) {
+            this.els.btnDeleteCancel.onclick = () => {
+                this.closeDeleteOverlay();
+            };
+        }
+
         if (this.els.btnBugReport) {
             this.els.btnBugReport.addEventListener('click', () => {
                 this.openBugModal();
@@ -408,7 +482,6 @@ const UI = {
             
             this.selectedSlot = -1; 
             
-            // --- DIESE FUNKTION FEHLTE ---
             if(this.renderCharacterSelection) {
                 this.renderCharacterSelection(saves || {});
             } else {
@@ -431,7 +504,6 @@ const UI = {
         }
     },
 
-    // --- DIE FEHLENDE FUNKTION (NEU) ---
     renderCharacterSelection: function(saves) {
         this.currentSaves = saves || {};
         this.els.loginScreen.style.display = 'none';
