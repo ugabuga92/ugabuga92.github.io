@@ -5,7 +5,7 @@ window.GameData.monsters = {
     radRoach: { name: "Rad-Kakerlake", hp: 15, dmg: 3, xp: [10, 15], loot: 1, minLvl: 1, drops: [{id:'meat_roach', c:0.3}] }, // c 0.6 -> 0.3
     bloatfly: { name: "Blähfliege", hp: 10, dmg: 5, xp: [12, 18], loot: 2, minLvl: 1, drops: [{id:'meat_fly', c:0.4}] }, // Removed nuclear_mat
     moleRat: { name: "Maulwurfsratte", hp: 25, dmg: 6, xp: [15, 25], loot: 3, minLvl: 1, drops: [{id:'meat_mole', c:0.3}] }, 
-    wildDog: { name: "Wilder Hund", hp: 40, dmg: 9, loot: 0, xp: [30, 50], minLvl: 2, drops: [{id:'meat_mole', c:0.2}] }, 
+    wildDog: { name: "Wilder Hund", hp: 40, dmg: 9, loot: 0, xp: [30, 50], minLvl: 2, drops: [{id:'meat_dog', c:0.2}] }, 
     mutantRose: { name: "Mutanten-Pflanze", hp: 45, dmg: 15, loot: 5, xp: [45, 60], minLvl: 1, drops: [{id:'adhesive', c:0.3}] }, 
     radScorpion: { name: "Radskorpion", hp: 90, dmg: 18, loot: 15, xp: [80, 100], minLvl: 3, drops: [{id:'meat_scorp', c:0.4}, {id:'nuclear_mat', c:0.05}] },
     raider: { name: "Raider", hp: 60, dmg: 12, loot: 20, xp: [50, 70], minLvl: 2, drops: [{id:'stimpack', c:0.1}, {id:'scrap_metal', c:0.2}] }, 
