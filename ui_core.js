@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-10 05:30:00 - ui_core.js - Fixed Inventory Alert & FX
+// [TIMESTAMP] 2026-01-10 19:30:00 - ui_core.js - Added Missing Character Selection Logic
 
 const UI = {
     els: {},
@@ -407,7 +407,14 @@ const UI = {
             }
             
             this.selectedSlot = -1; 
-            if(this.renderCharacterSelection) this.renderCharacterSelection(saves || {});
+            
+            // --- DIESE FUNKTION FEHLTE ---
+            if(this.renderCharacterSelection) {
+                this.renderCharacterSelection(saves || {});
+            } else {
+                console.error("CRITICAL: renderCharacterSelection missing in UI!");
+                this.els.loginStatus.textContent = "UI FEHLER: CharSelect fehlt!";
+            }
             
         } catch(e) {
             let msg = e.message;
@@ -422,6 +429,41 @@ const UI = {
         } finally {
             this.loginBusy = false;
         }
+    },
+
+    // --- DIE FEHLENDE FUNKTION (NEU) ---
+    renderCharacterSelection: function(saves) {
+        this.currentSaves = saves || {};
+        this.els.loginScreen.style.display = 'none';
+        this.els.charSelectScreen.style.display = 'flex';
+        this.charSelectMode = true;
+        this.els.charSlotsList.innerHTML = '';
+
+        for(let i=0; i<5; i++) {
+            const save = this.currentSaves[i];
+            const div = document.createElement('div');
+            
+            let html = `
+                <div class="flex justify-between items-center p-3 border-2 transition-all cursor-pointer bg-black/80 hover:bg-green-900/30 ${save ? 'border-green-600' : 'border-gray-700 opacity-70'}">
+                    <div class="flex items-center gap-3">
+                        <div class="text-2xl">${save ? '👤' : '➕'}</div>
+                        <div>
+                            <div class="font-bold font-vt323 text-xl ${save ? 'text-green-400' : 'text-gray-500'}">
+                                ${save ? save.playerName : 'LEERER SLOT ' + (i+1)}
+                            </div>
+                            <div class="text-xs font-mono text-gray-400">
+                                ${save ? `Level ${save.lvl} • ${save.zone || 'Unbekannt'} • ${save.caps} KK` : 'Tippen zum Erstellen'}
+                            </div>
+                        </div>
+                    </div>
+                    ${save ? '<div class="text-xs bg-green-900 text-green-300 px-2 py-1 rounded">BEREIT</div>' : ''}
+                </div>
+            `;
+            div.innerHTML = html;
+            div.onclick = () => this.selectSlot(i);
+            this.els.charSlotsList.appendChild(div);
+        }
+        this.selectSlot(0); // Ersten Slot vorwählen
     },
 
     handleSaveClick: function() {
@@ -459,8 +501,8 @@ const UI = {
     },
     
     selectSlot: function(index) {
-        if(this.selectedSlot === index) {
-            this.triggerCharSlot();
+        if(this.selectedSlot === index && this.currentSaves[index]) {
+            this.triggerCharSlot(); // Doppelklick = Start
             return;
         }
 
@@ -468,9 +510,13 @@ const UI = {
         if(this.els.charSlotsList && this.els.charSlotsList.children) {
             const slots = this.els.charSlotsList.children;
             for(let i=0; i<slots.length; i++) {
-                slots[i].classList.remove('active-slot');
+                const child = slots[i].firstElementChild; // Das innere Div
+                if(child) child.classList.remove('border-yellow-400', 'bg-yellow-900/20');
             }
-            if(slots[index]) slots[index].classList.add('active-slot');
+            if(slots[index]) {
+                const child = slots[index].firstElementChild;
+                if(child) child.classList.add('border-yellow-400', 'bg-yellow-900/20');
+            }
         }
         
         const save = this.currentSaves ? this.currentSaves[index] : null;
