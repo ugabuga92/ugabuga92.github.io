@@ -25,6 +25,7 @@ Object.assign(window.GameData.items, {
     meat_roach: { name: "Kakerlakenfleisch", type: "component", cost: 5, desc: "Ekelhaft, aber essbar." },
     meat_fly: { name: "Fliegenfleisch", type: "component", cost: 5, desc: "Schleimig." },
     meat_mole: { name: "Rattenfleisch", type: "component", cost: 8, desc: "Zäh." },
+    meat_dog: { name: "Hundefleisch", type: "component", cost: 10, desc: "Etwas zäh, aber nahrhaft." }, 
     meat_scorp: { name: "Skorpiondrüse", type: "component", cost: 20, desc: "Delikatesse." },
     meat_yao: { name: "Yao Guai Rippchen", type: "component", cost: 35, desc: "Sehr nahrhaft." },
     hide_yao: { name: "Yao Guai Leder", type: "component", cost: 40, desc: "Robustes Fell." },
