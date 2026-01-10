@@ -1,4 +1,4 @@
-// [2026-01-10 01:15:00] combat.js - Long Animations & FX Fixes
+// [2026-01-10 01:54:00] combat.js - Adjusted FX Durations (2.3s Click / 1.5s Crit)
 
 window.Combat = {
     enemy: null,
@@ -169,23 +169,21 @@ window.Combat = {
         if(isRanged && wId !== 'alien_blaster') { 
              const hasAmmo = Game.removeFromInventory('ammo', 1);
              if(!hasAmmo) {
-                 // [NEU] 3000ms Duration für KLICK
+                 // [UPDATE] 2300ms Duration für KLICK (2,3 Sekunden)
                  if(typeof UI.showCombatEffect === 'function') {
-                     UI.showCombatEffect("* KLICK *", "MUNITION LEER!", "red", 3000);
+                     UI.showCombatEffect("* KLICK *", "MUNITION LEER!", "red", 2300);
                  }
                  this.log("WAFFE LEER! *KLICK*", "text-red-500 font-bold text-xl");
                  
-                 // [NEU] Automatischer Wechsel zur besten Nahkampfwaffe
+                 // Automatischer Wechsel zur besten Nahkampfwaffe
                  setTimeout(() => {
                      if (typeof Game.switchToBestMelee === 'function') {
                          Game.switchToBestMelee();
                      } else {
-                         // Fallback, falls Funktion fehlt
                          this.log("Manuell wechseln!", "text-yellow-400");
                      }
                  }, 800);
                  
-                 // Zug nicht verbrauchen (Fairness)
                  return; 
              }
         }
@@ -220,8 +218,8 @@ window.Combat = {
                 dmg *= 2;
                 isCrit = true;
                 this.log(">> KRITISCHER TREFFER! <<", "text-yellow-400 font-bold animate-pulse");
-                // [NEU] 2000ms Duration für CRIT
-                if(typeof UI.showCombatEffect === 'function') UI.showCombatEffect("CRITICAL!", "DOPPELTER SCHADEN", "yellow", 2000);
+                // [UPDATE] 1500ms Duration für CRIT (1,5 Sekunden)
+                if(typeof UI.showCombatEffect === 'function') UI.showCombatEffect("CRITICAL!", "DOPPELTER SCHADEN", "yellow", 1500);
                 
                 if (Game.getPerkLevel('mysterious_stranger') > 0) {
                     this.log("Der Fremde hilft dir...", "text-gray-400 text-xs");
