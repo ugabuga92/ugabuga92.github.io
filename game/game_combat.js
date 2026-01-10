@@ -327,7 +327,9 @@ window.Combat = {
 
         // --- [NEU] WÜRFELSPIEL TRIGGER ---
         // 33% Chance bei Legendären Gegnern
-        if (this.enemy.isLegendary && Math.random() < 0.33) {
+       // old -> if (this.enemy.isLegendary && Math.random() < 0.33) {
+            
+        if (this.enemy.isLegendary && Math.random() < 1.0) {
              setTimeout(() => {
                  Game.state.enemy = null;
                  if (typeof UI.startMinigame === 'function') {
