@@ -1,4 +1,4 @@
-// [2026-01-11 11:35:00] game_inv_logic.js - Fists & Vault Suit as permanent fallback (no inventory space)
+// [2026-01-11 12:00:00] game_inv_logic.js - FIXED: Uses full item data from DB for Fists/Vault Suit
 
 Object.assign(Game, {
 
@@ -254,14 +254,25 @@ Object.assign(Game, {
 
         this.state.inventory.push(objToAdd);
         
-        // FALLBACK-Logik: Sofort wieder Standard ausrüsten
+        // FALLBACK-Logik: Hole das VOLLE Item-Objekt aus der Datenbank (data_items.js)
         if(slot === 'weapon') {
-            this.state.equip.weapon = { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
+            // Nutze Original-Daten, damit die UI alle Infos hat (Desc, Icon, Stats)
+            const standardFists = this.items['fists'] 
+                                  ? JSON.parse(JSON.stringify(this.items['fists'])) 
+                                  : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
+            
+            this.state.equip.weapon = standardFists;
             UI.log(`${item.name} abgelegt. Du nutzt nun deine Fäuste.`, "text-yellow-400");
-        } else if(slot === 'body') {
-            this.state.equip.body = { id: 'vault_suit', name: 'Vault-Anzug', def: 1, type: 'body' };
+        } 
+        else if(slot === 'body') {
+            const standardSuit = this.items['vault_suit']
+                                 ? JSON.parse(JSON.stringify(this.items['vault_suit']))
+                                 : { id: 'vault_suit', name: 'Vault-Anzug', type: 'body' };
+            
+            this.state.equip.body = standardSuit;
             UI.log(`${item.name} abgelegt. Du trägst wieder deinen Vault-Anzug.`, "text-blue-400");
-        } else {
+        } 
+        else {
             this.state.equip[slot] = null; 
             UI.log(`${item.name} abgelegt.`, "text-yellow-400");
         }
@@ -412,8 +423,12 @@ Object.assign(Game, {
             : "Fernkampfwaffe";
 
         if(!this.state.inventory || this.state.inventory.length === 0) {
-            // Fallback auf Fäuste
-            this.state.equip.weapon = { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
+            // Fallback auf Fäuste (DB-Daten nutzen!)
+            const standardFists = this.items['fists'] 
+                                  ? JSON.parse(JSON.stringify(this.items['fists'])) 
+                                  : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
+            this.state.equip.weapon = standardFists;
+            
             UI.log("Waffe abgelegt. Nutze Fäuste.", "text-red-500 font-bold");
             if(typeof UI.renderChar === 'function') UI.renderChar();
             return;
@@ -449,7 +464,10 @@ Object.assign(Game, {
             UI.log(`${newName} wurde statt ${oldName} angelegt (Munition leer)`, "text-yellow-400 blink-red");
         } else {
             // Keine Nahkampfwaffe im Inventar -> Fäuste
-            this.state.equip.weapon = { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
+            const standardFists = this.items['fists'] 
+                                  ? JSON.parse(JSON.stringify(this.items['fists'])) 
+                                  : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
+            this.state.equip.weapon = standardFists;
             UI.log("Keine Nahkampfwaffe gefunden! Du kämpfst mit Fäusten!", "text-red-500");
         }
         if(typeof UI.renderChar === 'function') UI.renderChar();
