@@ -1,4 +1,4 @@
-// [2026-01-11 13:10:00] network.js - Added Abandonment & Unique Name Check
+// [2026-01-11 13:30:00] network.js - Enforcing Unique Names & Clean Deletion
 
 const Network = {
     db: null,
@@ -37,9 +37,9 @@ const Network = {
     register: async function(email, password, name) {
         if(!this.active) throw new Error("Netzwerk nicht aktiv (Init Failed)");
         try {
-            // Check Name vor Registrierung
+            // Check: Name darf nicht existieren (egal ob User eingeloggt ist oder nicht)
             const isFree = await this.checkNameAvailability(name);
-            if (!isFree) throw new Error("Dieser Name ist bereits vergeben (Charakter lebt noch).");
+            if (!isFree) throw new Error("Name vergeben! Ein Charakter mit diesem Namen lebt bereits.");
 
             const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
             const user = userCredential.user;
@@ -68,7 +68,7 @@ const Network = {
         }
     },
     
-    // --- NAMENS CHECK ---
+    // Prüft, ob ein Name im Leaderboard als 'alive' markiert ist
     checkNameAvailability: async function(charName) {
         if (!this.db || !charName) return true;
         const safeName = charName.replace(/[.#$/[\]]/g, "_");
@@ -77,8 +77,8 @@ const Network = {
         const snap = await ref.once('value');
         if (snap.exists()) {
             const val = snap.val();
-            // Wenn der Charakter existiert UND noch lebt ('alive'), ist der Name gesperrt.
-            // Wenn er tot ('dead') oder aufgegeben ('abandoned') ist, ist der Name frei.
+            // Wenn Status 'alive', ist der Name gesperrt.
+            // Tote oder gelöschte Charaktere geben den Namen frei (wenn Eintrag weg ist).
             if (val.status === 'alive') {
                 return false; 
             }
@@ -86,7 +86,6 @@ const Network = {
         return true;
     },
 
-    // --- HIGHSCORE SYSTEM ---
     updateHighscore: function(gameState) {
         if(!this.active || !this.myId || !gameState) return;
         const safeName = (gameState.playerName || "Unknown").replace(/[.#$/[\]]/g, "_");
@@ -119,22 +118,15 @@ const Network = {
         this.db.ref(`leaderboard/${safeName}`).set(entry);
     },
 
-    // NEU: Für manuelles Löschen
-    registerAbandonment: function(gameState) {
-        if(!this.active || !gameState) return;
-        const safeName = (gameState.playerName || "Unknown").replace(/[.#$/[\]]/g, "_");
+    // NEU: Entfernt den Eintrag komplett aus dem Leaderboard (für manuelles Löschen)
+    removeLeaderboardEntry: function(charName) {
+        if(!this.active || !this.myId || !charName) return;
+        const safeName = charName.replace(/[.#$/[\]]/g, "_");
         
-        const entry = {
-            name: gameState.playerName || "Unknown",
-            lvl: gameState.lvl,
-            kills: gameState.kills || 0,
-            xp: gameState.xp + (gameState.lvl * 1000),
-            status: 'abandoned', // Status X für "Aufgegeben"
-            owner: this.myId,
-            deathTime: Date.now()
-        };
-        this.db.ref(`leaderboard/${safeName}`).set(entry);
-        console.log("Charakter als 'aufgegeben' (X) markiert.");
+        // Wir löschen den Eintrag unwiderruflich
+        this.db.ref(`leaderboard/${safeName}`).remove()
+            .then(() => console.log(`Leaderboard-Eintrag für ${charName} entfernt.`))
+            .catch(e => console.error("Fehler beim Entfernen vom Leaderboard:", e));
     },
 
     checkAndRemoveDeadChar: async function(charName) {
@@ -145,9 +137,7 @@ const Network = {
         const snap = await ref.once('value');
         if(snap.exists()) {
             const val = snap.val();
-            // Lösche Eintrag nur, wenn er mir gehört und tot/aufgegeben ist
-            // (Damit man den Namen wiederverwenden kann, falls man aufräumen will)
-            if(val.owner === this.myId && (val.status === 'dead' || val.status === 'abandoned')) {
+            if(val.owner === this.myId && val.status === 'dead') {
                 await ref.remove();
             }
         }
