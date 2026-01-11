@@ -281,9 +281,9 @@ window.Combat = {
             this.log(`${this.enemy.name} trifft dich: -${dmgTaken} HP`, 'text-red-500 font-bold');
             this.triggerFeedback('damage', dmgTaken);
 
-// [2026-01-11 08:50] game_combat.js - FIXED: Correct slot reference (saveSlot) and deletion order
+// [2026-01-11 09:30] game_combat.js - FIXED: Correct slot reference (saveSlot) and deletion order
 
-// ... (Code bleibt gleich bis zum HP Check in enemyTurn)
+// ... (vorheriger Code bleibt gleich bis zum HP Check in enemyTurn)
 
         if(Game.state.hp <= 0) {
             Game.state.hp = 0;
@@ -291,19 +291,19 @@ window.Combat = {
             
             console.log("☠️ PERMADEATH: Player died. Initiating deletion...");
             
-            // 1. Korrekten Slot aus Game.state extrahieren
+            // 1. Korrekten Slot-Index aus dem State sichern
             const slotToDelete = Game.state.saveSlot;
             
-            // 2. Highscore auf 'dead' setzen
+            // 2. Tod im Highscore registrieren
             if(typeof Network !== 'undefined' && Network.active) {
                 Network.registerDeath(Game.state);
             }
             
-            // 3. Löschvorgang in Firebase triggern
-            if (typeof Network !== 'undefined' && slotToDelete !== undefined && slotToDelete !== null) {
+            // 3. Slot in Firebase löschen, bevor der lokale State genullt wird
+            if (typeof Network !== 'undefined' && slotToDelete !== undefined && slotToDelete !== null && slotToDelete !== -1) {
                 Network.deleteSlot(slotToDelete)
                     .then(() => console.log(`✅ Slot ${slotToDelete} permanent entfernt.`))
-                    .catch(err => console.error("❌ Löschfehler:", err));
+                    .catch(err => console.error("❌ Firebase Delete Error:", err));
             }
             
             // 4. UI anzeigen
@@ -311,17 +311,17 @@ window.Combat = {
                 UI.showGameOver();
             }
             
-            // 5. Lokalen Slot entwerten (verhindert versehentliches Speichern)
+            // 5. Slot entwerten, um automatische Autosaves zu verhindern
             Game.state.saveSlot = -1; 
             
             // 6. State verzögert aufräumen
             setTimeout(() => { 
                 Game.state = null; 
-                // LocalStorage als Fallback ebenfalls leeren
-                localStorage.removeItem('pipboy_save');
+                localStorage.removeItem('pipboy_save'); // Fallback für LocalStorage
             }, 1000);
             return;
         }
+
 // ... (Rest bleibt gleich)
 
             
