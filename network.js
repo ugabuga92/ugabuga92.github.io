@@ -140,23 +140,22 @@ const Network = {
             .catch(e => console.error("Save Error:", e));
     },
     
-    // In network.js (Logik-Check)
-    deleteSlot: function(slotIndex) {
-    if(!this.active || !this.myId) {
-        console.error("deleteSlot: Nicht eingeloggt oder DB nicht aktiv!");
-        return Promise.reject("Not authenticated");
-    }
-    
-    // KORREKTER Pfad: saves / [UID] / [SlotIndex]
-    return this.db.ref(`saves/${this.myId}/${slotIndex}`).remove()
-        .then(() => {
-            console.log(`✅ Slot ${slotIndex} erfolgreich gelöscht (Permadeath).`);
-        })
-        .catch(e => {
-            console.error("❌ Fehler beim Löschen von Slot " + slotIndex + ":", e);
-            throw e;
-        });
+// [2026-01-11 08:52] network.js - Adjusted deleteSave to use state.saveSlot
+
+// ... (Suche die deleteSave Funktion am Ende der Datei)
+
+    deleteSave: function() {
+        if(!this.active || !this.myId) return;
+        // Nutze saveSlot aus dem state
+        if (typeof Game !== 'undefined' && Game.state && Game.state.saveSlot !== undefined) {
+            this.deleteSlot(Game.state.saveSlot);
+        } else {
+            console.warn("deleteSave: Kein aktiver Slot im Game.state gefunden.");
+        }
     },
+
+// ...
+
 
 
     startPresence: function() {
