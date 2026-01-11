@@ -1,10 +1,10 @@
-// [2026-01-11 12:20:00] game_core.js - Fixed initialization using window.GameData
+// [2026-01-11 12:40:00] game_core.js - Fixed init for Ghost Items
 
 window.Game = {
+    // ... (Konstanten und InitCache bleiben gleich)
     TILE: 30, MAP_W: 40, MAP_H: 40,
     WORLD_W: 10, WORLD_H: 10, 
     
-    // Fallback falls data_items.js später lädt
     colors: (typeof window.GameData !== 'undefined') ? window.GameData.colors : {},
     items: (typeof window.GameData !== 'undefined') ? window.GameData.items : {},
     monsters: (typeof window.GameData !== 'undefined') ? window.GameData.monsters : {},
@@ -94,7 +94,7 @@ window.Game = {
 
     getUsedSlots: function() {
         if(!this.state || !this.state.inventory) return 0;
-        return this.state.inventory.filter(i => i.id !== 'fists' && i.id !== 'vault_suit').length;
+        return this.state.inventory.length;
     },
 
     getStackLimit: function(itemId) {
@@ -280,7 +280,7 @@ window.Game = {
             if(this.isDirty) this.saveGame(true);
         });
 
-        // HIER WICHTIG: Sicherstellen, dass die Items geladen sind
+        // HIER WICHTIG: Daten aus data_items.js sicherstellen
         if(typeof window.GameData !== 'undefined' && window.GameData.items) {
             this.items = window.GameData.items;
         }
@@ -291,7 +291,7 @@ window.Game = {
 
             if (saveData) {
                 this.state = saveData;
-                // ... (Load Logic gekürzt, bleibt gleich)
+                // ... load logic ...
                 if(!this.state.explored) this.state.explored = {};
                 if(!this.state.view) this.state.view = 'map';
                 if(typeof this.state.rads === 'undefined') this.state.rads = 0;
@@ -321,7 +321,7 @@ window.Game = {
             } else {
                 isNewGame = true;
                 
-                // HIER: Volle Item-Daten laden für Init
+                // HIER WICHTIG: Erzeuge volle Kopien für die Start-Ausrüstung
                 const fistItem = this.items['fists'] 
                                  ? JSON.parse(JSON.stringify(this.items['fists'])) 
                                  : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
@@ -337,11 +337,11 @@ window.Game = {
                     player: {x: 20, y: 20, rot: 0},
                     stats: { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 }, 
                     equip: { 
-                        weapon: fistItem,
-                        body: suitItem, 
+                        weapon: fistItem, // Volles Objekt
+                        body: suitItem,   // Volles Objekt
                         back: null, head: null, legs: null, feet: null, arms: null
                     }, 
-                    inventory: [], 
+                    inventory: [], // Leer von Fäusten/Anzug
                     hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 0, statPoints: 0, 
                     perkPoints: 0, perks: {}, 
                     camp: null, rads: 0, kills: 0, 
