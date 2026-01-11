@@ -281,42 +281,49 @@ window.Combat = {
             this.log(`${this.enemy.name} trifft dich: -${dmgTaken} HP`, 'text-red-500 font-bold');
             this.triggerFeedback('damage', dmgTaken);
 
-            // --- PERMADEATH LOGIK KORREKTUR ---
-            if(Game.state.hp <= 0) {
-                Game.state.hp = 0;
-                Game.state.isGameOver = true;
-                
-                console.log("☠️ PERMADEATH: Player died. Initiating deletion...");
-                
-                // 1. Slot zwischenspeichern
-                const slotToDelete = Game.selectedSlot;
-                
-                // 2. Highscore-Update (Tod registrieren)
-                if(typeof Network !== 'undefined' && Network.active) {
-                    Network.registerDeath(Game.state);
-                }
-                
-                // 3. Löschvorgang triggern BEVOR der State lokal genullt wird
-                if (typeof Network !== 'undefined' && slotToDelete !== undefined && slotToDelete !== null && slotToDelete !== -1) {
-                    // Wir rufen die Löschung auf und warten nicht zwingend auf das Promise für die UI-Anzeige
-                    Network.deleteSlot(slotToDelete)
-                        .then(() => console.log(`✅ Slot ${slotToDelete} erfolgreich in Firebase gelöscht.`))
-                        .catch(err => console.error("❌ Firebase Delete Error:", err));
-                }
+// [2026-01-11 08:50] game_combat.js - FIXED: Correct slot reference (saveSlot) and deletion order
 
-                // 4. Erst JETZT Slot auf -1 setzen, um automatische Speicherversuche zu blockieren
-                Game.selectedSlot = -1; 
-                
-                // 5. UI anzeigen
-                if(typeof UI !== 'undefined' && UI.showGameOver) {
-                    UI.showGameOver();
-                }
-                
-                // 6. State aufräumen
-                // Hinweis: Game.state = null erst nach der UI-Logik, falls die UI noch Daten daraus braucht
-                setTimeout(() => { Game.state = null; }, 500);
-                return;
+// ... (Code bleibt gleich bis zum HP Check in enemyTurn)
+
+        if(Game.state.hp <= 0) {
+            Game.state.hp = 0;
+            Game.state.isGameOver = true;
+            
+            console.log("☠️ PERMADEATH: Player died. Initiating deletion...");
+            
+            // 1. Korrekten Slot aus Game.state extrahieren
+            const slotToDelete = Game.state.saveSlot;
+            
+            // 2. Highscore auf 'dead' setzen
+            if(typeof Network !== 'undefined' && Network.active) {
+                Network.registerDeath(Game.state);
             }
+            
+            // 3. Löschvorgang in Firebase triggern
+            if (typeof Network !== 'undefined' && slotToDelete !== undefined && slotToDelete !== null) {
+                Network.deleteSlot(slotToDelete)
+                    .then(() => console.log(`✅ Slot ${slotToDelete} permanent entfernt.`))
+                    .catch(err => console.error("❌ Löschfehler:", err));
+            }
+            
+            // 4. UI anzeigen
+            if(typeof UI !== 'undefined' && UI.showGameOver) {
+                UI.showGameOver();
+            }
+            
+            // 5. Lokalen Slot entwerten (verhindert versehentliches Speichern)
+            Game.state.saveSlot = -1; 
+            
+            // 6. State verzögert aufräumen
+            setTimeout(() => { 
+                Game.state = null; 
+                // LocalStorage als Fallback ebenfalls leeren
+                localStorage.removeItem('pipboy_save');
+            }, 1000);
+            return;
+        }
+// ... (Rest bleibt gleich)
+
             
         } else {
             this.log(`${this.enemy.name} verfehlt dich!`, 'text-blue-300');
