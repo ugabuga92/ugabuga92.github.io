@@ -1,4 +1,4 @@
-// [2026-01-10 01:45:00] game_core.js - CLEANED (Removed duplicate logic)
+// [2026-01-11 11:10:00] game_core.js - Fixed initialization for standard gear & dead character safety
 
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
@@ -55,10 +55,6 @@ window.Game = {
         this.saveTimer = setTimeout(() => { this.performSave(); }, 2000);
     },
 
-    // [2026-01-11 08:55] game_core.js - Added safety check to prevent saving dead characters
-
-// [2026-01-11 09:35] game_core.js - Added safety check to prevent saving dead characters
-
     performSave: function() {
         if(this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null; }
         if(!this.isDirty || !this.state) return;
@@ -76,8 +72,6 @@ window.Game = {
         try { localStorage.setItem('pipboy_save', JSON.stringify(this.state)); } catch(e){}
         this.isDirty = false;
     },
-//
-
 
     hardReset: function() { if(typeof Network !== 'undefined') Network.deleteSave(); this.state = null; location.reload(); },
 
@@ -104,8 +98,6 @@ window.Game = {
 
         if(typeof UI !== 'undefined' && UI.update) UI.update();
     },
-
-    // --- CLEANUP: getMaxSlots removed (is now in game_actions.js) ---
 
     getUsedSlots: function() {
         if(!this.state || !this.state.inventory) return 0;
@@ -255,7 +247,6 @@ window.Game = {
             stock['radaway'] = 1 + Math.floor(Math.random() * 3);
             stock['nuka_cola'] = 3 + Math.floor(Math.random() * 5);
             
-            // [FIX] Ammo: 30 bis 110 in 10er Schritten
             this.state.shop.ammoStock = 30 + (Math.floor(Math.random() * 9) * 10); 
 
             const weapons = Object.keys(this.items).filter(k => this.items[k].type === 'weapon' && !k.includes('legendary') && !k.startsWith('rusty'));
@@ -308,8 +299,6 @@ window.Game = {
             if(this.isDirty) this.saveGame(true);
         });
 
-        // Alte Item-Init entfernen, da wir jetzt data_items.js haben
-        // (Behalten es nur als Fallback falls data_items.js fehlt)
         if(this.items && Object.keys(this.items).length === 0) {
             this.items.ammo = { name: "Munition", type: "ammo", cost: 2, icon: "bullet" };
         }
@@ -364,8 +353,9 @@ window.Game = {
                     player: {x: 20, y: 20, rot: 0},
                     stats: { STR: 5, PER: 5, END: 5, INT: 5, AGI: 5, LUC: 5 }, 
                     equip: { 
-                        weapon: this.items.fists, 
-                        body: this.items.vault_suit, 
+                        // Standard-Ausrüstung ohne Inventarverbrauch
+                        weapon: { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' }, 
+                        body: { id: 'vault_suit', name: 'Vault-Anzug', def: 1, type: 'body' }, 
                         back: null, head: null, legs: null, feet: null, arms: null
                     }, 
                     inventory: [], 
