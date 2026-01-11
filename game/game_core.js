@@ -1,4 +1,4 @@
-// [2026-01-11 15:15:00] game_core.js - Styled Popup (Monofonto), UI Restore & Clean Deletion
+// [2026-01-11 15:30:00] game_core.js - Styled Popup (Monofonto), UI Reset & Clean Deletion
 
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
@@ -72,6 +72,7 @@ window.Game = {
         this.isDirty = false;
     },
 
+    // KORREKTUR: Manuelles Löschen (Hard Reset) entfernt Eintrag komplett
     hardReset: function() { 
         if(typeof Network !== 'undefined' && this.state) {
             if (this.state.playerName && typeof Network.removeLeaderboardEntry === 'function') {
@@ -282,6 +283,7 @@ window.Game = {
         };
     },
 
+    // KORREKTUR: Async Init mit UI-Reset & Style-Popup
     init: async function(saveData, spawnTarget=null, slotIndex=0, newName=null) {
         this.worldData = {};
         this.initCache();
@@ -300,7 +302,7 @@ window.Game = {
 
             if (saveData) {
                 this.state = saveData;
-                // ... Load Logic (Identisch) ...
+                // ... Load Logic ...
                 if(!this.state.explored) this.state.explored = {};
                 if(!this.state.view) this.state.view = 'map';
                 if(typeof this.state.rads === 'undefined') this.state.rads = 0;
@@ -329,7 +331,6 @@ window.Game = {
                 if(typeof UI !== 'undefined') UI.log(">> Spielstand geladen.", "text-cyan-400");
 
             } else {
-                // NEUES SPIEL
                 isNewGame = true;
                 let finalName = newName || "SURVIVOR";
                 
@@ -338,7 +339,18 @@ window.Game = {
                     const isFree = await Network.checkNameAvailability(finalName);
                     
                     if (!isFree) {
-                        // === FEHLER UI ===
+                        // === SCHRITT A: UI RESETTEN (Hintergrund aufräumen) ===
+                        // Verhindert, dass man im Hintergrund ein halb-geladenes Spiel sieht
+                        const loading = document.getElementById('loading-overlay');
+                        if(loading) loading.style.display = 'none';
+                        
+                        const spawn = document.getElementById('spawn-screen');
+                        if(spawn) {
+                            spawn.style.display = 'flex'; // Zurück zur Auswahl
+                            spawn.classList.remove('hidden');
+                        }
+
+                        // === SCHRITT B: POPUP ANZEIGEN (Pip-Boy Style) ===
                         const errDiv = document.createElement('div');
                         errDiv.id = "name-error-popup";
                         // Styling: Monofonto, Pip-Boy Grün (#33ff33), Schwarz
@@ -356,11 +368,12 @@ window.Game = {
                             text-align: center; 
                             z-index: 100000;
                             border-radius: 2px;
+                            text-transform: uppercase;
                         `;
                         
                         errDiv.innerHTML = `
-                            <h3 style="margin:0 0 15px 0; border-bottom:1px solid #33ff33; padding-bottom: 10px; font-size: 1.4em; letter-spacing: 1px;">FEHLER: ID KONFLIKT</h3>
-                            <p style="margin: 20px 0; font-size: 1.1em; line-height: 1.4;">Der Name<br><strong style="color:#fff;">"${finalName}"</strong><br>ist bereits im System registriert.</p>
+                            <h3 style="margin:0 0 15px 0; border-bottom:1px solid #33ff33; padding-bottom: 10px; font-size: 1.4em; letter-spacing: 1px; text-shadow: 0 0 5px #33ff33;">FEHLER: ID KONFLIKT</h3>
+                            <p style="margin: 20px 0; font-size: 1.1em; line-height: 1.4; text-shadow: 0 0 2px #33ff33;">Der Name<br><strong style="color:#ccffcc;">"${finalName}"</strong><br>ist bereits im System registriert.</p>
                             <button id="btn-popup-back" style="
                                 margin-top: 15px; 
                                 background: #000; 
@@ -371,6 +384,7 @@ window.Game = {
                                 font-family: inherit; 
                                 font-size: 1.2em;
                                 text-transform: uppercase;
+                                box-shadow: 0 0 5px #33ff33;
                                 transition: all 0.2s;">
                                 ZURÜCK
                             </button>
@@ -384,14 +398,9 @@ window.Game = {
 
                         btn.addEventListener('click', () => {
                             errDiv.remove();
-                            // VERSUCH: Menü wiederherstellen (falls es schon hidden war)
-                            const startScreen = document.getElementById('spawn-screen');
-                            if(startScreen) startScreen.style.display = 'flex';
-                            const loadingOverlay = document.getElementById('loading-overlay');
-                            if(loadingOverlay) loadingOverlay.style.display = 'none';
                         });
 
-                        return; // ABBRUCH: Wichtigstes Element, verhindert State-Erstellung
+                        return; // ABBRUCH: Game State wird nicht erstellt!
                     }
                 }
 
