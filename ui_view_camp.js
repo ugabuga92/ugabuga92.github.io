@@ -1,9 +1,11 @@
+// [TIMESTAMP] 2026-01-12 17:00:00 - ui_view_camp.js - Fixed Cooking Crash & Added State Handling
+
 Object.assign(UI, {
 
     // Status-Speicher: 'main' oder 'cooking'
     campMode: 'main', 
 
-    // Helper für das Info-Popup
+    // Helper für das Info-Popup (Lager Upgrade Info)
     showCampInfo: function() {
         let rows = '';
         for(let l=1; l<=10; l++) {
@@ -170,10 +172,17 @@ Object.assign(UI, {
         }
 
         cookingRecipes.forEach(recipe => {
+            // [FIX START] Check ob Output-Item existiert, sonst Crash vermeiden
             const outItem = Game.items[recipe.out];
+            if (!outItem) {
+                console.warn(`Rezept '${recipe.id}' übersprungen: Output '${recipe.out}' fehlt in Items.`);
+                return;
+            }
+            // [FIX END]
+
             const div = document.createElement('div');
             div.className = "border border-yellow-900 bg-yellow-900/10 p-3 mb-2 flex justify-between items-center relative";
-            div.onclick = (e) => e.stopPropagation(); // Sicherheit
+            div.onclick = (e) => e.stopPropagation(); 
             
             let reqHtml = '';
             let canCraft = true;
@@ -189,7 +198,11 @@ Object.assign(UI, {
                     color = "text-red-500"; 
                 }
                 
-                const ingredientName = Game.items[reqId] ? Game.items[reqId].name : reqId;
+                // [FIX START] Auch hier sicherstellen, dass Zutat existiert
+                const ingredientDef = Game.items[reqId];
+                const ingredientName = ingredientDef ? ingredientDef.name : `??? (${reqId})`;
+                // [FIX END]
+
                 reqHtml += `<span class="${color} text-xs mr-2 block">• ${ingredientName}: ${countHave}/${countNeeded}</span>`;
             }
 
