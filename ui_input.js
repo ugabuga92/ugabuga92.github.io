@@ -6,7 +6,7 @@ Object.assign(UI, {
         active: false, id: null, startX: 0, startY: 0, currentX: 0, currentY: 0, moveDir: { x: 0, y: 0 }, timer: null
     },
 
-    initInput: function() {
+initInput: function() {
         // --- AUTHENTIFIZIERUNG ---
         if(this.els.btnLogin) this.els.btnLogin.onclick = () => this.attemptLogin();
         
@@ -25,6 +25,7 @@ Object.assign(UI, {
             if(el) {
                 el.addEventListener("keydown", (e) => {
                     if (e.key === "Enter") {
+                        e.stopPropagation(); // WICHTIG: Verhindert Seiteneffekte
                         e.preventDefault();
                         this.attemptLogin();
                     }
@@ -32,21 +33,27 @@ Object.assign(UI, {
             }
         });
         
-        // --- CHARAKTER ERSTELLUNG ---
+        // --- CHARAKTER ERSTELLUNG (HIER WAR DER FEHLER) ---
         if(this.els.inputNewCharName) {
             this.els.inputNewCharName.addEventListener("keydown", (e) => {
+                // Stoppt das Event, damit es nicht zum Window-Handler hochwandert (der das Feld löscht)
+                e.stopPropagation(); 
+                
                 if (e.key === "Enter") {
                     e.preventDefault();
-                    if(this.els.btnCreateCharConfirm) this.els.btnCreateCharConfirm.click();
+                    if(this.els.btnCreateCharConfirm) {
+                        this.els.btnCreateCharConfirm.click();
+                    }
                 }
             });
         }
 
+        // --- DER ERSTELLEN-BUTTON (LOGIK MIT NETZWERK-PRÜFUNG) ---
         if(this.els.btnCreateCharConfirm) {
             this.els.btnCreateCharConfirm.onclick = async () => {
                 const name = this.els.inputNewCharName.value.trim().toUpperCase();
                 
-                // 1. Validierung: Länge (Mit Design-Popup statt alert)
+                // 1. Validierung
                 if(name.length < 3) { 
                     UI.showInfoDialog("NAMEN SPERRE", "Der Name ist zu kurz.<br>Mindestens 3 Zeichen erforderlich.");
                     return; 
@@ -55,43 +62,44 @@ Object.assign(UI, {
                 const btn = this.els.btnCreateCharConfirm;
                 const originalText = btn.textContent;
 
-                // 2. Button Feedback & Lock
+                // 2. Button sperren & Feedback
                 btn.textContent = "PRÜFE...";
                 btn.disabled = true;
                 btn.classList.add('opacity-50', 'cursor-not-allowed');
 
                 try {
-                    // 3. Netzwerk-Check auf Verfügbarkeit
-                    if(typeof Network !== 'undefined') {
-                        const isFree = await Network.checkNameAvailability(name);
-                        
-                        if(!isFree) {
-                            // Fehler im Ingame-Design anzeigen
-                            UI.showInfoDialog("IDENTITÄT ABGELEHNT", `
-                                Der Name <span class="text-white font-bold">'${name}'</span> ist bereits vergeben.<br><br>
-                                <span class="text-xs text-red-400 uppercase tracking-widest">>> Ein Bewohner mit diesem Namen lebt bereits im Ödland.</span>
-                            `);
-                            
-                            // Reset Button
-                            btn.textContent = originalText;
-                            btn.disabled = false;
-                            btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                            return;
-                        }
+                    // 3. Verfügbarkeit prüfen
+                    let isFree = true;
+                    if(typeof Network !== 'undefined' && Network.checkNameAvailability) {
+                        isFree = await Network.checkNameAvailability(name);
+                    } else {
+                        console.warn("Netzwerk-Modul nicht bereit, überspringe Namensprüfung.");
+                    }
+                    
+                    if(!isFree) {
+                        UI.showInfoDialog("IDENTITÄT ABGELEHNT", `
+                            Der Name <span class="text-white font-bold">'${name}'</span> ist bereits vergeben.<br><br>
+                            <span class="text-xs text-red-400 uppercase tracking-widest">>> Ein lebender Bewohner nutzt diesen Namen bereits.</span>
+                        `);
+                        // Reset
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        return;
                     }
 
-                    // 4. Erfolg -> Starten
+                    // 4. Alles OK -> Spiel starten
                     this.els.newCharOverlay.classList.add('hidden');
                     this.startGame(null, this.selectedSlot, name);
                     
-                    // Reset Button (clean up)
+                    // Cleanup
                     btn.textContent = originalText;
                     btn.disabled = false;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
 
                 } catch(e) {
                     console.error("Char Create Error:", e);
-                    UI.showInfoDialog("SYSTEM FEHLER", "Verbindung zu Vault-Tec unterbrochen.<br>Konnte Verfügbarkeit nicht prüfen.");
+                    UI.showInfoDialog("SYSTEM FEHLER", "Konnte Verfügbarkeit nicht prüfen.<br>Netzwerkfehler.");
                     btn.textContent = originalText;
                     btn.disabled = false;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
