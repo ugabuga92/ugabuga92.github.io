@@ -1,5 +1,38 @@
-/* [TIMESTAMP] 2026-01-10 03:15:00 - style.css - Animation Logic Fix */
+/* [TIMESTAMP] 2026-01-12 20:00:00 - style.css - Fullscreen Fixes */
 
+/* Layout Container Reset */
+#main-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    background: black; /* Sicherheitshintergrund */
+}
+
+/* Der Spielbereich soll alles ausfüllen */
+#view-container {
+    flex-grow: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    position: relative !important;
+}
+
+/* Kill switch für alte Elemente */
+#log-panel, 
+#layout-split, 
+#log-area {
+    display: none !important;
+    height: 0 !important;
+    width: 0 !important;
+    visibility: hidden !important;
+    position: absolute !important;
+}
+
+/* ... Deine restlichen Styles (Animationen, Colors, etc.) bleiben hier ... */
 :root { --pip-green: #1aff1a; --pip-glow: #2bff2b; --pip-dim: #0d330d; --pip-bg: #051105; }
 
 html, body { width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; position: fixed; }
@@ -148,11 +181,7 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
 @keyframes type-line { to { opacity: 1; } }
 
 #main-content { flex-grow: 1; display: flex; overflow: hidden; min-height: 0; position: relative; width: 100%; }
-#main-panel { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; width: 100%; }
-#layout-split { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; min-height: 0; width: 100%; }
-#view-container { position: relative; flex-grow: 0; flex-shrink: 0; display: flex; justify-content: center; align-items: center; height: 70%; border-bottom: 2px solid var(--pip-green); overflow: hidden; width: 100%; }
-#log-panel { display: flex; flex-direction: column; flex-shrink: 0; flex-grow: 1; height: 30%; min-height: 0; background-color: #020a02; width: 100%; }
-@media (min-width: 768px) { #layout-split { flex-direction: row; } #view-container { width: 75%; height: 100%; border-bottom: none; border-right: 2px solid var(--pip-green); flex-grow: 1; } #log-panel { width: 25%; height: 100%; border-left: none; } }
+/* main-panel wurde oben überschrieben durch !important Rules, hier Reste für Backup */
 
 #player-list-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 90; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--pip-green); padding: 20px; min-width: 300px; display: none; flex-direction: column; box-shadow: 0 0 30px var(--pip-dim); }
 
@@ -284,51 +313,6 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
     background-size: 100% 4px; pointer-events: none;
 }
 
-/* --- CLICK / COMBAT EFFECT OVERLAY --- */
-.click-effect-overlay {
-    position: absolute;
-    inset: 0; 
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.7); /* Background dim */
-    z-index: 9999;
-    pointer-events: none;
-    opacity: 0; 
-    /* Animation wird per JS gesetzt, aber hier sind die Keyframes wichtig */
-}
-
-.click-effect-text {
-    display: block;
-    font-size: 4rem; /* Angepasst für Mobile/Desktop Balance */
-    font-weight: bold;
-    font-family: 'Share Tech Mono', monospace;
-    transform: rotate(-5deg);
-    margin-bottom: 10px;
-    text-shadow: 0 0 20px currentColor, 2px 2px 0px black;
-    letter-spacing: 2px;
-}
-
-.click-effect-sub {
-    font-size: 1.5rem;
-    color: white;
-    background: rgba(0, 0, 0, 0.8);
-    padding: 5px 20px;
-    border: 2px solid currentColor;
-    font-weight: bold;
-    font-family: monospace;
-}
-
-/* Neue Animation Logik: Pop In -> Stay -> Fade Out */
-@keyframes clickEffectAnim {
-    0% { opacity: 0; transform: scale(0.5); }
-    10% { opacity: 1; transform: scale(1.1); }
-    20% { transform: scale(1.0); }
-    80% { opacity: 1; }
-    100% { opacity: 0; }
-}
-
 /* --- NEW ITEM GLOW --- */
 .new-item-glow {
     border-color: #ffd700 !important; /* Goldener Rand */
@@ -340,51 +324,6 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
     0% { box-shadow: inset 0 0 5px rgba(255, 215, 0, 0.1); border-color: #b8860b; }
     50% { box-shadow: inset 0 0 25px rgba(255, 215, 0, 0.5); border-color: #ffd700; }
     100% { box-shadow: inset 0 0 5px rgba(255, 215, 0, 0.1); border-color: #b8860b; }
-}
-
-/* --- CLICK / COMBAT EFFECT OVERLAY (FINAL FIX) --- */
-.click-effect-overlay {
-    position: absolute;
-    inset: 0; 
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 9999;
-    pointer-events: none;
-    opacity: 0; 
-    /* Animation wird per JS gesetzt */
-}
-
-.click-effect-text {
-    display: block;
-    font-size: 4rem;
-    font-weight: bold;
-    font-family: 'Share Tech Mono', monospace;
-    transform: rotate(-5deg);
-    margin-bottom: 10px;
-    text-shadow: 0 0 20px currentColor, 2px 2px 0px black;
-    letter-spacing: 2px;
-}
-
-.click-effect-sub {
-    font-size: 1.5rem;
-    color: white;
-    background: rgba(0, 0, 0, 0.8);
-    padding: 5px 20px;
-    border: 2px solid currentColor;
-    font-weight: bold;
-    font-family: monospace;
-}
-
-/* Animation: Pop In -> Stay -> Fade Out */
-@keyframes clickEffectAnim {
-    0% { opacity: 0; transform: scale(0.5); }
-    10% { opacity: 1; transform: scale(1.1); }
-    20% { transform: scale(1.0); }
-    80% { opacity: 1; }
-    100% { opacity: 0; }
 }
 
 /* [TIMESTAMP] 2026-01-12 17:30:00 - Toast Animations */
@@ -402,5 +341,3 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
 #game-toast-container::-webkit-scrollbar {
     display: none;
 }
-
-
