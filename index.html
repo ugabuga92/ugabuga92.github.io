@@ -256,12 +256,13 @@
             if(verDisplay) verDisplay.textContent = displayVer;
             if(loginVerDisplay) loginVerDisplay.textContent = displayVer;
             
-            // --- LOAD ORDER ---
+            // --- LOAD ORDER (KORRIGIERT) ---
             loadScript('data_core.js?v=' + devVer)
                 .then(() => loadScript('data_items.js?v=' + devVer))
                 .then(() => loadScript('data_recipes.js?v=' + devVer))
                 .then(() => loadScript('data_monsters.js?v=' + devVer))
                 .then(() => loadScript('network.js?v=' + devVer))
+                .then(() => loadScript('ui_core.js?v=' + devVer)) // <--- WICHTIG: UI Core HIERHIN verschoben (vor UI-Erweiterungen)
                 .then(() => loadScript('game/game_core.js?v=' + devVer))
                 .then(() => loadScript('game/game_map.js?v=' + devVer))
                 .then(() => loadScript('game/game_render.js?v=' + devVer))
@@ -271,8 +272,7 @@
                 .then(() => loadScript('game/game_world_logic.js?v=' + devVer))
                 .then(() => loadScript('game/game_char_logic.js?v=' + devVer))
                 .then(() => loadScript('game/game_combat.js?v=' + devVer))
-                .then(() => loadScript('ui/ui_combat.js?v=' + devVer))
-                .then(() => loadScript('ui_core.js?v=' + devVer))
+                .then(() => loadScript('ui/ui_combat.js?v=' + devVer)) // Kann jetzt sicher auf UI zugreifen
                 .then(() => loadScript('ui_input.js?v=' + devVer))
                 .then(() => loadScript('ui_view_inv.js?v=' + devVer))
                 .then(() => loadScript('ui_view_world.js?v=' + devVer))
