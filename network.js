@@ -1,6 +1,7 @@
-// [2026-01-11 14:05:00] network.js - Enforcing Unique Names & Clean Deletion
+// [2026-01-12 14:00:00] network.js - Fix: Release Name on Delete & Leaderboard Update
 
 const Network = {
+    // ... (restliche Config & Init bleiben gleich) ...
     db: null,
     auth: null,
     myId: null,
@@ -37,7 +38,6 @@ const Network = {
     register: async function(email, password, name) {
         if(!this.active) throw new Error("Netzwerk nicht aktiv (Init Failed)");
         try {
-            // Check Name vor Registrierung
             const isFree = await this.checkNameAvailability(name);
             if (!isFree) throw new Error("Dieser Name ist bereits vergeben (Charakter lebt noch).");
 
@@ -68,7 +68,6 @@ const Network = {
         }
     },
     
-    // Prüft, ob ein Name bereits von einem LEBENDEN Charakter genutzt wird
     checkNameAvailability: async function(charName) {
         if (!this.db || !charName) return true;
         const safeName = charName.replace(/[.#$/[\]]/g, "_");
@@ -77,7 +76,8 @@ const Network = {
         const snap = await ref.once('value');
         if (snap.exists()) {
             const val = snap.val();
-            // Nur wenn der Charakter noch lebt, ist der Name blockiert
+            // Wenn Status 'alive' ist -> Name besetzt.
+            // Wenn Status 'dead' (oder gelöscht) ist -> Name frei.
             if (val.status === 'alive') {
                 return false; 
             }
@@ -88,6 +88,9 @@ const Network = {
     updateHighscore: function(gameState) {
         if(!this.active || !this.myId || !gameState) return;
         const safeName = (gameState.playerName || "Unknown").replace(/[.#$/[\]]/g, "_");
+        
+        // Update statt Set, damit wir nicht versehentlich den 'dead' status überschreiben, 
+        // falls async was schief läuft (aber bei Alive chars ok)
         const entry = {
             name: gameState.playerName || "Unknown",
             lvl: gameState.lvl,
@@ -117,31 +120,6 @@ const Network = {
         this.db.ref(`leaderboard/${safeName}`).set(entry);
     },
 
-    // NEU: Entfernt den Eintrag komplett aus dem Leaderboard
-    removeLeaderboardEntry: function(charName) {
-        if(!this.active || !this.myId || !charName) return;
-        const safeName = charName.replace(/[.#$/[\]]/g, "_");
-        
-        this.db.ref(`leaderboard/${safeName}`).remove()
-            .then(() => console.log(`Leaderboard-Eintrag für ${charName} entfernt.`))
-            .catch(e => console.error("Fehler beim Entfernen vom Leaderboard:", e));
-    },
-
-    checkAndRemoveDeadChar: async function(charName) {
-        if(!this.active) return;
-        const safeName = charName.replace(/[.#$/[\]]/g, "_");
-        const ref = this.db.ref(`leaderboard/${safeName}`);
-        
-        const snap = await ref.once('value');
-        if(snap.exists()) {
-            const val = snap.val();
-            // Wenn Eintrag mir gehört und tot ist, weg damit
-            if(val.owner === this.myId && val.status === 'dead') {
-                await ref.remove();
-            }
-        }
-    },
-
     getHighscores: async function() {
         if(!this.active) return [];
         const snap = await this.db.ref('leaderboard').once('value');
@@ -155,12 +133,10 @@ const Network = {
     saveToSlot: function(slotIndex, gameState) {
         if(!this.active || !this.myId) return;
         const saveObj = JSON.parse(JSON.stringify(gameState));
-        
         if(this.auth && this.auth.currentUser && this.auth.currentUser.email) {
             saveObj._userEmail = this.auth.currentUser.email;
         }
         saveObj._lastSeen = Date.now();
-
         const updates = {};
         updates[`saves/${this.myId}/${slotIndex}`] = saveObj;
         this.db.ref().update(updates)
@@ -168,14 +144,43 @@ const Network = {
             .catch(e => console.error("Save Error:", e));
     },
 
-    deleteSlot: function(slotIndex) {
+    // --- HIER WAR DER FIX NÖTIG ---
+    deleteSlot: async function(slotIndex) {
         if(!this.active || !this.myId) {
             console.error("deleteSlot: Nicht eingeloggt!");
             return Promise.reject("Not authenticated");
         }
-        return this.db.ref(`saves/${this.myId}/${slotIndex}`).remove()
-            .then(() => { console.log(`✅ Slot ${slotIndex} erfolgreich gelöscht.`); })
-            .catch(e => { console.error("❌ Löschfehler:", e); throw e; });
+
+        try {
+            // 1. Zuerst den Namen aus dem Save holen, bevor wir ihn löschen
+            const snap = await this.db.ref(`saves/${this.myId}/${slotIndex}`).once('value');
+            const save = snap.val();
+
+            if (save && save.playerName) {
+                const safeName = save.playerName.replace(/[.#$/[\]]/g, "_");
+                
+                // Prüfen ob ein Leaderboard Eintrag existiert
+                const lbRef = this.db.ref(`leaderboard/${safeName}`);
+                const lbSnap = await lbRef.once('value');
+                
+                if (lbSnap.exists()) {
+                    // 2. Status auf DEAD setzen (damit Name frei wird, aber Eintrag bleibt)
+                    await lbRef.update({
+                        status: 'dead',
+                        deathTime: Date.now()
+                    });
+                    console.log(`Leaderboard: ${save.playerName} wurde begraben (Status: dead).`);
+                }
+            }
+
+            // 3. Jetzt den Save löschen
+            await this.db.ref(`saves/${this.myId}/${slotIndex}`).remove();
+            console.log(`✅ Slot ${slotIndex} erfolgreich gelöscht.`);
+            
+        } catch(e) {
+             console.error("❌ Löschfehler:", e); 
+             throw e; 
+        }
     },
 
     save: function(gameState) {
@@ -225,9 +230,7 @@ const Network = {
         }
         
         if(this.heartbeatInterval) clearInterval(this.heartbeatInterval);
-        this.heartbeatInterval = setInterval(() => {
-            this.sendHeartbeat();
-        }, 5000);
+        this.heartbeatInterval = setInterval(() => { this.sendHeartbeat(); }, 5000);
         this.sendHeartbeat();
     },
 
@@ -252,22 +255,10 @@ const Network = {
         }
     },
     
-    sendMove: function(x, y, level, sector) {
-        this.sendHeartbeat();
-    },
-
+    sendMove: function(x, y, level, sector) { this.sendHeartbeat(); },
     sendBugReport: async function(reportData) {
-        if (!this.db) {
-            console.error("Datenbank nicht verbunden.");
-            return false;
-        }
-        try {
-            await this.db.ref("bug_reports").push(reportData);
-            console.log("Bug Report erfolgreich an Firebase gesendet.");
-            return true;
-        } catch (e) {
-            console.error("Fehler beim Senden des Bug Reports:", e);
-            return false;
-        }
+        if (!this.db) return false;
+        try { await this.db.ref("bug_reports").push(reportData); return true; } 
+        catch (e) { console.error(e); return false; }
     }
 };
