@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-12 16:00:00 - admin.js - Loading Screen & Custom Modals
+// [TIMESTAMP] 2026-01-12 16:30:00 - admin.js - System Menu & Toast Notifications
 
 const Admin = {
     gatePass: "bimbo123",
@@ -12,7 +12,6 @@ const Admin = {
     currentUserData: null,
     itemsList: [], 
     
-    // Status für den Ladebildschirm
     isLoaded: false,
 
     invFilter: {
@@ -34,7 +33,6 @@ const Admin = {
         }
     },
 
-    // Steuert den Ladebalken in admin.html
     updateLoader: function(percent, text) {
         const bar = document.getElementById('loader-bar');
         const status = document.getElementById('loader-status');
@@ -48,21 +46,18 @@ const Admin = {
         }
 
         try {
-            // Login Screen ausblenden, Loader anzeigen
             document.getElementById('gate-screen').classList.add('hidden');
             document.getElementById('admin-loader').classList.remove('hidden');
             this.updateLoader(10, "AUTHENTICATING...");
 
             await Network.login(this.adminUser, this.adminPass);
             
-            // Verbindung erfolgreich
             this.updateLoader(30, "DOWNLOADING SECURE DATA...");
             document.getElementById('conn-dot').classList.replace('bg-red-500', 'bg-green-500');
             document.getElementById('conn-dot').classList.remove('animate-pulse');
             
             this.initData();
         } catch(e) {
-            // Fehler: Zurück zum Gate
             document.getElementById('admin-loader').classList.add('hidden');
             document.getElementById('gate-screen').classList.remove('hidden');
             document.getElementById('gate-msg').textContent = "UPLINK FAILED: " + e.code;
@@ -76,7 +71,6 @@ const Admin = {
         
         this.updateLoader(50, "LISTENING TO VAULT-TEC FREQUENCIES...");
 
-        // 1. Players Listener (Hauptdaten)
         Network.db.ref('saves').on('value', snap => {
             this.dbData = snap.val() || {};
             this.renderUserList();
@@ -88,51 +82,92 @@ const Admin = {
                 }
             }
 
-            // Sobald die ersten Player-Daten da sind -> App starten
             if(!this.isLoaded) {
                 this.isLoaded = true;
                 this.updateLoader(100, "SYSTEM READY.");
-                
-                // Kurze Verzögerung für den Effekt
                 setTimeout(() => {
                     document.getElementById('admin-loader').classList.add('hidden');
                     const app = document.getElementById('app-ui');
                     app.classList.remove('hidden');
-                    // Sanftes Einblenden
                     setTimeout(() => app.classList.remove('opacity-0'), 50); 
                 }, 800);
             }
         });
 
-        // 2. Bug Reports Listener
+        // Bug Listener updated for Menu Badge
         Network.db.ref('bug_reports').on('value', snap => {
             this.bugData = snap.val() || {};
             const count = Object.keys(this.bugData).length;
-            const btn = document.getElementById('btn-bugs');
-            const counter = document.getElementById('bug-count');
             
-            btn.classList.remove('hidden');
-            counter.textContent = count;
-            btn.className = count > 0 ? "btn btn-danger text-xs md:text-sm btn-bug-alert" : "btn text-xs md:text-sm border-green-500 text-green-500";
+            // Update Menu Badge
+            const counter = document.getElementById('bug-count');
+            const badge = document.getElementById('menu-bug-badge');
+            
+            if(counter) counter.textContent = count;
+            if(badge) {
+                if(count > 0) badge.classList.remove('hidden');
+                else badge.classList.add('hidden');
+            }
             
             if(!document.getElementById('bug-overlay').classList.contains('hidden')) {
                 this.renderBugs();
             }
         });
 
-        // 3. Leaderboard Listener
         Network.db.ref('leaderboard').on('value', snap => {
             this.lbData = snap.val() || {};
-            const btn = document.getElementById('btn-lb');
-            if(btn) btn.classList.remove('hidden');
-            
             if(document.getElementById('lb-overlay') && !document.getElementById('lb-overlay').classList.contains('hidden')) {
                 this.renderLeaderboard();
             }
         });
     },
 
-    // --- CUSTOM MODAL LOGIC (Ersetzt window.confirm) ---
+    // --- SYSTEM MENU ---
+    toggleSystemMenu: function() {
+        const menu = document.getElementById('system-menu');
+        if(menu) menu.classList.toggle('hidden');
+    },
+
+    setupMenuClose: function() {
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('system-menu');
+            const btn = document.querySelector('button[onclick="Admin.toggleSystemMenu()"]');
+            if(menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && (!btn || !btn.contains(e.target))) {
+                menu.classList.add('hidden');
+            }
+        });
+    },
+
+    // --- TOAST NOTIFICATIONS ---
+    showToast: function(msg, type='info') {
+        const container = document.getElementById('toast-container');
+        if(!container) return;
+
+        const el = document.createElement('div');
+        let colors = "border-green-500 text-green-400 bg-black";
+        if(type === 'warning') colors = "border-yellow-500 text-yellow-400 bg-black";
+        if(type === 'error') colors = "border-red-500 text-red-400 bg-black";
+        
+        el.className = `flex items-center justify-between p-3 border-l-4 ${colors} shadow-[0_0_15px_rgba(0,0,0,0.8)] min-w-[250px] animate-slide-in pointer-events-auto bg-opacity-90 transition-all duration-300 transform translate-x-0 mb-2`;
+        
+        el.innerHTML = `
+            <div class="font-mono text-xs font-bold mr-4 uppercase tracking-widest flex items-center gap-2">
+                <span>${type === 'warning' ? '⚠️' : (type === 'error' ? '❌' : 'ℹ️')}</span>
+                ${msg}
+            </div>
+            <button class="text-xs opacity-50 hover:opacity-100 font-bold px-1">X</button>
+        `;
+
+        el.querySelector('button').onclick = () => el.remove();
+        container.appendChild(el);
+
+        setTimeout(() => {
+            el.classList.add('opacity-0', 'translate-x-10');
+            setTimeout(() => el.remove(), 300);
+        }, 4000);
+    },
+
+    // --- MODALS ---
     confirm: function(title, text, callback) {
         const overlay = document.getElementById('admin-confirm-overlay');
         const elTitle = document.getElementById('admin-confirm-title');
@@ -141,14 +176,13 @@ const Admin = {
         const btnNo = document.getElementById('admin-confirm-no');
 
         if(!overlay) {
-            if(confirm(text)) callback(); // Fallback falls HTML fehlt
+            if(confirm(text)) callback(); 
             return;
         }
 
         elTitle.textContent = title;
         elText.innerHTML = text; 
         
-        // Alte Listener entfernen
         btnYes.onclick = null;
         btnNo.onclick = null;
 
@@ -163,6 +197,7 @@ const Admin = {
         overlay.classList.remove('hidden');
     },
 
+    // --- LEADERBOARD ---
     showLeaderboard: function() {
         let overlay = document.getElementById('lb-overlay');
         if(!overlay) {
@@ -175,11 +210,9 @@ const Admin = {
                         <h2 class="text-xl font-bold text-yellow-400 tracking-widest">VAULT LEGENDS MANAGER</h2>
                         <button onclick="document.getElementById('lb-overlay').classList.add('hidden')" class="text-red-500 font-bold border border-red-500 px-3 py-1 hover:bg-red-900">CLOSE</button>
                     </div>
-                    
                     <div class="p-2 bg-black border-b border-gray-800 text-[10px] text-gray-400 font-mono shrink-0">
                         INFO: 'DEAD' Status means the name is free to take. 'ALIVE' locks the name. DELETE removes the entry entirely.
                     </div>
-                    
                     <div class="flex-1 overflow-hidden relative flex flex-col">
                         <div class="bg-black border-b border-yellow-900 text-yellow-600 text-xs font-bold grid grid-cols-12 p-2 shrink-0 z-10">
                             <div class="col-span-3">NAME</div>
@@ -188,7 +221,6 @@ const Admin = {
                             <div class="col-span-2">STATUS</div>
                             <div class="col-span-4 text-right">ACTIONS</div>
                         </div>
-                        
                         <div class="flex-1 custom-scroll p-2 bg-black/50">
                             <div id="lb-list" class="flex flex-col gap-1"></div>
                         </div>
@@ -199,6 +231,8 @@ const Admin = {
         }
         overlay.classList.remove('hidden');
         this.renderLeaderboard();
+        // Menü schließen falls offen
+        document.getElementById('system-menu')?.classList.add('hidden');
     },
 
     renderLeaderboard: function() {
@@ -211,10 +245,8 @@ const Admin = {
 
         entries.forEach(entry => {
             const isDead = entry.status === 'dead';
-            
             const div = document.createElement('div');
             div.className = "grid grid-cols-12 gap-2 items-center p-2 border-b border-gray-900 hover:bg-[#002200] transition-colors text-sm font-mono";
-            
             const statusColor = isDead ? "text-red-500" : "text-green-500";
             const statusIcon = isDead ? "❌ DEAD" : "💚 ALIVE";
 
@@ -240,29 +272,32 @@ const Admin = {
         if(action === 'kill') {
             this.confirm("MARK AS DEAD", `Mark <b>${key}</b> as DEAD?<br>This frees the name for new players.`, () => {
                 ref.update({ status: 'dead', deathTime: Date.now() });
+                this.showToast("LEGEND MARKED DEAD", "warning");
             });
         } else if(action === 'revive') {
             ref.update({ status: 'alive' });
+            this.showToast("LEGEND REVIVED");
         } else if(action === 'delete') {
             this.confirm("DELETE LEGEND", `PERMANENTLY DELETE <b>${key}</b> from highscores?<br>This cannot be undone.`, () => {
                 ref.remove();
+                this.showToast("LEGEND DELETED", "error");
             });
         }
     },
 
+    // --- BUGS ---
     showBugs: function() {
         document.getElementById('bug-overlay').classList.remove('hidden');
+        // Menü schließen
+        document.getElementById('system-menu')?.classList.add('hidden');
         this.renderBugs();
     },
 
     renderBugs: function() {
         const list = document.getElementById('bug-list');
         list.innerHTML = '';
-        
         const reports = [];
-        for(let key in this.bugData) {
-            reports.push({ id: key, ...this.bugData[key] });
-        }
+        for(let key in this.bugData) { reports.push({ id: key, ...this.bugData[key] }); }
         reports.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         if(reports.length === 0) {
@@ -296,21 +331,20 @@ const Admin = {
     deleteBug: function(id) {
         this.confirm("DELETE BUG REPORT", "Diesen Bug Report wirklich löschen?", () => {
             Network.db.ref('bug_reports/' + id).remove();
+            this.showToast("BUG DELETED");
         });
     },
 
     refresh: function() { location.reload(); },
 
+    // --- SIDEBAR & LISTS ---
     toggleSidebar: function() {
         const sb = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');
-        
         if (sb.classList.contains('-translate-x-full')) {
-            sb.classList.remove('-translate-x-full');
-            overlay.classList.remove('hidden');
+            sb.classList.remove('-translate-x-full'); overlay.classList.remove('hidden');
         } else {
-            sb.classList.add('-translate-x-full');
-            overlay.classList.add('hidden');
+            sb.classList.add('-translate-x-full'); overlay.classList.add('hidden');
         }
     },
 
@@ -338,9 +372,7 @@ const Admin = {
                 div.onclick = () => {
                     this.selectUser(path);
                     const sb = document.getElementById('sidebar');
-                    if(!sb.classList.contains('-translate-x-full')) {
-                        this.toggleSidebar();
-                    }
+                    if(!sb.classList.contains('-translate-x-full')) { this.toggleSidebar(); }
                 };
                 
                 div.innerHTML = `
@@ -369,9 +401,7 @@ const Admin = {
             this.currentUserData = this.dbData[uid][slot];
             const d = this.currentUserData;
 
-            if(!silent) {
-                this.tab('general');
-            }
+            if(!silent) this.tab('general');
 
             document.getElementById('no-selection').classList.add('hidden');
             document.getElementById('editor-content').classList.remove('hidden');
@@ -443,12 +473,9 @@ const Admin = {
                 allPerks.forEach(p => {
                     let lvl = userPerks[p.id] || 0;
                     if(Array.isArray(userPerks)) lvl = userPerks.includes(p.id) ? 1 : 0;
-                    
                     const maxLvl = p.max || 1;
-
                     const div = document.createElement('div');
                     div.className = "panel-box p-2 flex justify-between items-center";
-                    
                     div.innerHTML = `
                         <span class="font-bold text-sm w-32 truncate text-[#39ff14]" title="${p.name}">${p.name}</span>
                         <input type="range" min="0" max="${maxLvl}" value="${lvl}" class="flex-grow mx-2 accent-[#39ff14]"
@@ -462,28 +489,29 @@ const Admin = {
         }
     },
 
+    // Save with Reminder
     saveStat: function(stat, val) {
         if(!this.currentPath) return;
         Network.db.ref(this.currentPath + '/stats/' + stat).set(Number(val));
+        this.showToast(`UPDATED ${stat}. SYNC REQUIRED!`, "warning");
     },
 
     savePerk: function(perkId, val) {
         if(!this.currentPath) return;
         const valNum = Number(val);
         Network.db.ref(this.currentPath + '/perks/' + perkId).set(valNum);
+        this.showToast(`PERK ${perkId} UPDATED. SYNC!`, "warning");
     },
 
     fillInv: function(d) {
         const invTab = document.getElementById('tab-inv');
-        
+        // COMPACT INVENTORY LAYOUT
         invTab.innerHTML = `
             <div class="flex flex-col h-full gap-2">
-                
                 <div class="panel-box p-2 shrink-0">
                     <h3 class="text-yellow-400 font-bold border-b border-[#1a551a] mb-1 text-xs">EQUIPPED</h3>
                     <div id="equip-list" class="grid grid-cols-2 gap-1 text-[10px]"></div>
                 </div>
-
                 <div class="panel-box flex flex-col flex-1 min-h-0 overflow-hidden relative">
                     <div class="bg-[#002200] p-2 border-b border-[#1a551a] shrink-0 z-10">
                         <div class="flex gap-2 mb-1">
@@ -495,7 +523,6 @@ const Admin = {
                         </div>
                         <div class="flex flex-wrap gap-1 justify-center" id="filter-btns"></div>
                     </div>
-                    
                     <div class="flex-1 custom-scroll bg-black relative">
                         <table class="w-full text-left border-collapse">
                             <thead class="bg-[#001100] text-gray-500 text-[9px] sticky top-0 z-20 border-b border-[#1a551a]">
@@ -509,7 +536,6 @@ const Admin = {
                         </table>
                     </div>
                 </div>
-
                 <div class="panel-box p-2 h-1/4 shrink-0 flex flex-col">
                     <h3 class="text-gray-500 font-bold text-[10px] mb-1">PLAYER INVENTORY</h3>
                     <div class="flex-1 custom-scroll bg-black border border-[#1a551a]">
@@ -547,7 +573,6 @@ const Admin = {
         inv.forEach((item, idx) => {
             const tr = document.createElement('tr');
             tr.className = "border-b border-[#1a331a] hover:bg-[#002200]";
-            
             let name = item.id;
             if(items[item.id]) name = items[item.id].name;
             if(item.props && item.props.name) name = item.props.name + "*";
@@ -595,21 +620,17 @@ const Admin = {
         const tbody = document.getElementById('admin-item-table-body');
         if(!tbody) return;
         tbody.innerHTML = '';
-
         const allItems = this.itemsList; 
-        
         let count = 0;
         allItems.sort((a,b) => a.name.localeCompare(b.name));
 
         allItems.forEach(item => {
             const cat = this.getItemCategory(item.type);
             if(this.invFilter.category !== 'ALL' && cat !== this.invFilter.category) return;
-
             if(this.invFilter.search) {
                 const searchStr = (item.name + " " + item.id).toLowerCase();
                 if(!searchStr.includes(this.invFilter.search)) return;
             }
-
             const tr = document.createElement('tr');
             tr.className = "border-b border-[#1a331a] hover:bg-[#003300] transition-colors group";
             
@@ -647,7 +668,6 @@ const Admin = {
         if(!this.currentPath || !this.currentUserData) return;
         const inv = [...(this.currentUserData.inventory || [])];
         let found = false;
-        
         for(let item of inv) {
             if(item.id === id && !item.props) {
                 item.count += count;
@@ -655,36 +675,18 @@ const Admin = {
                 break;
             }
         }
-        if(!found) {
-            inv.push({id: id, count: count, isNew: true});
-        }
+        if(!found) { inv.push({id: id, count: count, isNew: true}); }
         Network.db.ref(this.currentPath + '/inventory').set(inv);
+        this.showToast(`ADDED ${count}x ${id}. PLEASE SYNC.`, "warning");
     },
 
     fillCamp: function(d) {
         const container = document.getElementById('camp-data-content');
         if(!d.camp) {
-            container.innerHTML = `
-                <span class="text-gray-500 italic block mb-2">No camp deployed.</span>
-                <button onclick="Admin.action('force-camp')" class="btn border-yellow-500 text-yellow-500 w-full text-sm">FORCE DEPLOY (Lvl 1)</button>
-            `;
+            container.innerHTML = `<span class="text-gray-500 italic block mb-2">No camp deployed.</span><button onclick="Admin.action('force-camp')" class="btn border-yellow-500 text-yellow-500 w-full text-sm">FORCE DEPLOY (Lvl 1)</button>`;
             return;
         }
-
-        container.innerHTML = `
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs text-green-600 mb-1">LEVEL</label>
-                    <input type="number" value="${d.camp.level || 1}" class="text-2xl font-bold w-20 text-center"
-                        onchange="Admin.saveVal('camp/level', this.value)">
-                </div>
-                <div>
-                    <label class="block text-xs text-green-600 mb-1">LOCATION</label>
-                    <div class="text-xs text-gray-500">Sector: ${d.camp.sector.x},${d.camp.sector.y}</div>
-                </div>
-            </div>
-            <button onclick="Admin.action('destroy-camp')" class="btn btn-danger w-full mt-4">DESTROY CAMP</button>
-        `;
+        container.innerHTML = `<div class="grid grid-cols-2 gap-4"><div><label class="block text-xs text-green-600 mb-1">LEVEL</label><input type="number" value="${d.camp.level || 1}" class="text-2xl font-bold w-20 text-center" onchange="Admin.saveVal('camp/level', this.value)"></div><div><label class="block text-xs text-green-600 mb-1">LOCATION</label><div class="text-xs text-gray-500">Sector: ${d.camp.sector.x},${d.camp.sector.y}</div></div></div><button onclick="Admin.action('destroy-camp')" class="btn btn-danger w-full mt-4">DESTROY CAMP</button>`;
     },
 
     fillWorld: function(d) {
@@ -693,67 +695,49 @@ const Admin = {
         document.getElementById('view-sector').textContent = `${sx},${sy}`;
         document.getElementById('tele-x').value = sx;
         document.getElementById('tele-y').value = sy;
-
         const qList = document.getElementById('quest-list');
         qList.innerHTML = '';
-        
         const active = d.activeQuests || d.quests || [];
         const completed = d.completedQuests || [];
-        
         if(active.length === 0 && completed.length === 0) {
             qList.innerHTML = '<div class="text-gray-500 italic">No quest data found.</div>';
         }
-        
         active.forEach(q => {
             const id = q.id || q;
             const progress = q.progress !== undefined ? `${q.progress}/${q.max}` : '?';
             const div = document.createElement('div');
             div.className = "flex justify-between border-b border-[#1a331a] p-2 text-sm bg-yellow-900/20";
-            div.innerHTML = `
-                <div>
-                    <span class="font-bold text-yellow-400">${id}</span>
-                    <div class="text-xs opacity-70">Progress: ${progress}</div>
-                </div>
-                <span class="text-yellow-500 text-xs">ACTIVE</span>
-            `;
+            div.innerHTML = `<div><span class="font-bold text-yellow-400">${id}</span><div class="text-xs opacity-70">Progress: ${progress}</div></div><span class="text-yellow-500 text-xs">ACTIVE</span>`;
             qList.appendChild(div);
         });
-
         completed.forEach(qid => {
             const div = document.createElement('div');
             div.className = "flex justify-between border-b border-[#1a331a] p-2 text-sm opacity-60";
-            div.innerHTML = `
-                <span class="text-gray-400">${qid}</span>
-                <span class="text-green-500 text-xs">DONE</span>
-            `;
+            div.innerHTML = `<span class="text-gray-400">${qid}</span><span class="text-green-500 text-xs">DONE</span>`;
             qList.appendChild(div);
         });
     },
 
-    fillRaw: function(d) {
-        document.getElementById('raw-json').value = JSON.stringify(d, null, 2);
-    },
+    fillRaw: function(d) { document.getElementById('raw-json').value = JSON.stringify(d, null, 2); },
 
     tab: function(id) {
-        document.querySelectorAll('[id^="tab-btn-"]').forEach(b => {
-            b.classList.replace('active-tab', 'inactive-tab');
-        });
+        document.querySelectorAll('[id^="tab-btn-"]').forEach(b => { b.classList.replace('active-tab', 'inactive-tab'); });
         const btn = document.getElementById('tab-btn-' + id);
         if(btn) btn.classList.replace('inactive-tab', 'active-tab');
-        
         ['general', 'stats', 'inv', 'camp', 'world', 'raw'].forEach(t => {
             const el = document.getElementById('tab-' + t);
             if(el) el.classList.add('hidden');
         });
-        
         const target = document.getElementById('tab-' + id);
         if(target) target.classList.remove('hidden');
     },
 
+    // Save Logic with Reminder
     saveVal: function(key, val) {
         if(!this.currentPath) return;
         if(!isNaN(val) && val !== "") val = Number(val);
         Network.db.ref(this.currentPath + '/' + key).set(val);
+        this.showToast("VALUE SAVED. SYNC LATER.", "warning");
     },
 
     modVal: function(key, amount) {
@@ -766,61 +750,20 @@ const Admin = {
         if(!this.currentPath) return;
         const updates = {};
         const p = this.currentPath;
+        
+        const performUpdate = () => { 
+            Network.db.ref(p).update(updates); 
+            this.showToast("ACTION PERFORMED. PLEASE SYNC.", "warning");
+        };
 
-        if (type === 'heal') {
-            updates['hp'] = this.currentUserData.maxHp || 100;
-            updates['rads'] = 0;
-            updates['isGameOver'] = false;
-            Network.db.ref(p).update(updates);
-        }
-        else if (type === 'de-rad') {
-            updates['rads'] = 0;
-            Network.db.ref(p).update(updates);
-        }
-        else if (type === 'kill') {
-            this.confirm("KILL PLAYER", "Dies setzt HP auf 0 und beendet das Spiel des Spielers.", () => {
-                updates['hp'] = 0;
-                updates['isGameOver'] = true;
-                Network.db.ref(p).update(updates);
-            });
-        }
-        else if (type === 'revive') {
-            updates['hp'] = 10;
-            updates['isGameOver'] = false;
-            Network.db.ref(p).update(updates);
-        }
-        else if (type === 'delete') {
-            this.confirm("DELETE SAVE", "Savegame permanent löschen?", () => {
-                Network.db.ref(p).remove();
-                this.currentPath = null;
-                document.getElementById('editor-content').classList.add('hidden');
-                document.getElementById('no-selection').classList.remove('hidden');
-            });
-        }
-        else if (type === 'reset-vault') {
-            this.confirm("RESET TO VAULT", "Charakter zurück zu Vault 101 porten?", () => {
-                updates['sector'] = {x: 4, y: 4};
-                updates['player'] = {x: 100, y: 100}; 
-                updates['view'] = 'map';
-                Network.db.ref(p).update(updates);
-            });
-        }
-        else if (type === 'destroy-camp') {
-            this.confirm("DESTROY CAMP", "Camp löschen?", () => {
-                Network.db.ref(p + '/camp').remove();
-            });
-        }
-        else if (type === 'force-camp') {
-            const sec = this.currentUserData.sector || {x:4, y:4};
-            const pos = this.currentUserData.player || {x:100, y:100};
-            updates['camp'] = {
-                sector: sec,
-                x: pos.x,
-                y: pos.y,
-                level: 1
-            };
-            Network.db.ref(p).update(updates);
-        }
+        if (type === 'heal') { updates['hp'] = this.currentUserData.maxHp || 100; updates['rads'] = 0; updates['isGameOver'] = false; performUpdate(); }
+        else if (type === 'de-rad') { updates['rads'] = 0; performUpdate(); }
+        else if (type === 'kill') { this.confirm("KILL PLAYER", "Dies setzt HP auf 0...", () => { updates['hp'] = 0; updates['isGameOver'] = true; performUpdate(); }); }
+        else if (type === 'revive') { updates['hp'] = 10; updates['isGameOver'] = false; performUpdate(); }
+        else if (type === 'delete') { this.confirm("DELETE SAVE", "Permanent löschen?", () => { Network.db.ref(p).remove(); this.currentPath = null; document.getElementById('editor-content').classList.add('hidden'); document.getElementById('no-selection').classList.remove('hidden'); this.showToast("SAVE DELETED."); }); }
+        else if (type === 'reset-vault') { this.confirm("RESET TO VAULT", "Zurück zu Vault 101?", () => { updates['sector'] = {x: 4, y: 4}; updates['player'] = {x: 100, y: 100}; updates['view'] = 'map'; performUpdate(); }); }
+        else if (type === 'destroy-camp') { this.confirm("DESTROY CAMP", "Camp löschen?", () => { Network.db.ref(p + '/camp').remove(); this.showToast("CAMP DESTROYED. SYNC!", "warning"); }); }
+        else if (type === 'force-camp') { const sec = this.currentUserData.sector || {x:4, y:4}; const pos = this.currentUserData.player || {x:100, y:100}; updates['camp'] = { sector: sec, x: pos.x, y: pos.y, level: 1 }; performUpdate(); }
     },
 
     teleport: function() {
@@ -828,15 +771,12 @@ const Admin = {
         const y = Number(document.getElementById('tele-y').value);
         Network.db.ref(this.currentPath + '/sector').set({x:x, y:y});
         Network.db.ref(this.currentPath + '/player').set({x:300, y:200}); 
+        this.showToast("PLAYER TELEPORTED. SYNC!", "warning");
     },
 
     invUpdate: function(idx, val) {
         val = Number(val);
-        if(val <= 0) {
-            this.invDelete(idx);
-        } else {
-            Network.db.ref(`${this.currentPath}/inventory/${idx}/count`).set(val);
-        }
+        if(val <= 0) { this.invDelete(idx); } else { Network.db.ref(`${this.currentPath}/inventory/${idx}/count`).set(val); this.showToast("INV UPDATED. SYNC!", "warning"); }
     },
 
     invDelete: function(idx) {
@@ -844,18 +784,19 @@ const Admin = {
             const inv = [...(this.currentUserData.inventory || [])];
             inv.splice(idx, 1);
             Network.db.ref(this.currentPath + '/inventory').set(inv);
+            this.showToast("ITEM DELETED. SYNC!", "warning");
         });
     },
 
     forceUnequip: function(slot) {
-        this.confirm("UNEQUIP", `${slot} ablegen? (Wird ins Inventar verschoben)`, () => {
+        this.confirm("UNEQUIP", `${slot} ablegen?`, () => {
             const item = this.currentUserData.equip[slot];
             if(!item) return;
-            
             const inv = [...(this.currentUserData.inventory || [])];
             inv.push({id: item.id, count: 1, props: item.props});
             Network.db.ref(this.currentPath + '/inventory').set(inv);
             Network.db.ref(this.currentPath + '/equip/' + slot).remove();
+            this.showToast("FORCED UNEQUIP. SYNC!", "warning");
         });
     },
 
@@ -864,9 +805,13 @@ const Admin = {
             const data = JSON.parse(document.getElementById('raw-json').value);
             this.confirm("RAW OVERWRITE", "WARNUNG: Datenbank wird direkt überschrieben. Dies ist destruktiv!", () => {
                 Network.db.ref(this.currentPath).set(data);
+                this.showToast("RAW DATA WRITTEN. SYNC NOW!", "error");
             });
         } catch(e) {
             alert("INVALID JSON: " + e.message);
         }
     }
 };
+
+// Auto Init
+setTimeout(() => Admin.setupMenuClose(), 1000);
