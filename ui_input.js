@@ -1,4 +1,5 @@
-// [TIMESTAMP] 2026-01-10 12:45:00 - ui_input.js - Added Delete-Enter-Support, Delete-Status & Code Optimization
+// [TIMESTAMP] 2026-01-12 09:45:00 - ui_input.js - Added Name Availability Check & Design-Conform Error Handling
+
 Object.assign(UI, {
     
     touchState: {
@@ -42,11 +43,59 @@ Object.assign(UI, {
         }
 
         if(this.els.btnCreateCharConfirm) {
-            this.els.btnCreateCharConfirm.onclick = () => {
+            this.els.btnCreateCharConfirm.onclick = async () => {
                 const name = this.els.inputNewCharName.value.trim().toUpperCase();
-                if(name.length < 3) { alert("Name zu kurz!"); return; }
-                this.els.newCharOverlay.classList.add('hidden');
-                this.startGame(null, this.selectedSlot, name);
+                
+                // 1. Validierung: Länge (Mit Design-Popup statt alert)
+                if(name.length < 3) { 
+                    UI.showInfoDialog("NAMEN SPERRE", "Der Name ist zu kurz.<br>Mindestens 3 Zeichen erforderlich.");
+                    return; 
+                }
+
+                const btn = this.els.btnCreateCharConfirm;
+                const originalText = btn.textContent;
+
+                // 2. Button Feedback & Lock
+                btn.textContent = "PRÜFE...";
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                try {
+                    // 3. Netzwerk-Check auf Verfügbarkeit
+                    if(typeof Network !== 'undefined') {
+                        const isFree = await Network.checkNameAvailability(name);
+                        
+                        if(!isFree) {
+                            // Fehler im Ingame-Design anzeigen
+                            UI.showInfoDialog("IDENTITÄT ABGELEHNT", `
+                                Der Name <span class="text-white font-bold">'${name}'</span> ist bereits vergeben.<br><br>
+                                <span class="text-xs text-red-400 uppercase tracking-widest">>> Ein Bewohner mit diesem Namen lebt bereits im Ödland.</span>
+                            `);
+                            
+                            // Reset Button
+                            btn.textContent = originalText;
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                            return;
+                        }
+                    }
+
+                    // 4. Erfolg -> Starten
+                    this.els.newCharOverlay.classList.add('hidden');
+                    this.startGame(null, this.selectedSlot, name);
+                    
+                    // Reset Button (clean up)
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                } catch(e) {
+                    console.error("Char Create Error:", e);
+                    UI.showInfoDialog("SYSTEM FEHLER", "Verbindung zu Vault-Tec unterbrochen.<br>Konnte Verfügbarkeit nicht prüfen.");
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
             };
         }
 
@@ -75,7 +124,7 @@ Object.assign(UI, {
                 }
             });
 
-            // [TO-DO FIX] Enter-Taste zum Löschen
+            // Enter-Taste zum Löschen
             this.els.deleteInput.addEventListener('keydown', (e) => {
                 if (e.key === "Enter" && !this.els.btnDeleteConfirm.disabled) {
                     e.preventDefault();
@@ -88,7 +137,6 @@ Object.assign(UI, {
             this.els.btnDeleteConfirm.onclick = async () => {
                 if(this.selectedSlot === -1) return;
                 
-                // [TO-DO FIX] Feedback anzeigen
                 this.els.deleteTargetName.textContent = "CHAR WIRD GELÖSCHT...";
                 this.els.btnDeleteConfirm.disabled = true;
                 
