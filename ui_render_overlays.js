@@ -1,3 +1,5 @@
+// [TIMESTAMP] 2026-01-12 11:00:00 - ui_render_overlays.js - FIX: Info Dialog Z-Index (Layer Priority)
+
 Object.assign(UI, {
     
     // [v0.5.5] ZENTRALE OVERLAY LOGIC (Layer 1 - Hauptdialoge)
@@ -6,7 +8,7 @@ Object.assign(UI, {
         if(!overlay) {
             overlay = document.createElement('div');
             overlay.id = 'ui-dialog-overlay';
-            // Z-Index 60 für Hauptdialoge
+            // Z-Index 60 für Hauptdialoge (Inventar etc.)
             overlay.className = "absolute inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm hidden pointer-events-auto";
             document.body.appendChild(overlay);
             this.els.dialog = overlay;
@@ -68,7 +70,8 @@ Object.assign(UI, {
         if(Game.state) Game.state.inDialog = true;
 
         const infoOverlay = document.createElement('div');
-        infoOverlay.className = "fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn pointer-events-auto";
+        // --- FIX: Z-Index auf 2000 erhöht (vorher 70), damit es über dem Char-Screen (1000) liegt ---
+        infoOverlay.className = "fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn pointer-events-auto";
         
         const box = document.createElement('div');
         box.className = "bg-black border-2 border-yellow-400 p-4 shadow-[0_0_20px_#aa0] max-w-md w-full relative animate-float-in pointer-events-auto mx-4";
