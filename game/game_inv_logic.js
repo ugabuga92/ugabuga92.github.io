@@ -1,4 +1,4 @@
-// [2026-01-12 11:30:00] game_inv_logic.js - Robust Standard Gear Fallback
+// [TIMESTAMP] 2026-01-12 21:00:00 - game_inv_logic.js - Added Camp Upgrades
 
 Object.assign(Game, {
 
@@ -121,7 +121,6 @@ Object.assign(Game, {
         if(!this.state.inventory || !this.state.inventory[invIndex]) return;
         const item = this.state.inventory[invIndex];
         
-        // Schutz: Basis-Ausrüstung darf nicht weggeworfen werden
         if (item.id === 'fists' || item.id === 'vault_suit') {
             UI.log("Das gehört zu deiner Grundausstattung.", "text-gray-500");
             return;
@@ -143,7 +142,6 @@ Object.assign(Game, {
         if(!this.state.inventory || !this.state.inventory[invIndex]) return;
         const item = this.state.inventory[invIndex];
 
-        // Schutz: Basis-Ausrüstung darf nicht zerlegt werden
         if (item.id === 'fists' || item.id === 'vault_suit') {
             UI.log("Dieses Objekt kann nicht zerlegt werden!", "text-red-500");
             return;
@@ -234,7 +232,6 @@ Object.assign(Game, {
         if(!this.state.equip[slot]) return;
         const item = this.state.equip[slot];
 
-        // Schutz: Grundausstattung kann nicht abgelegt werden, wenn sie bereits aktiv ist
         if(item.id === 'fists' || item.id === 'vault_suit' || item.name === "Fäuste" || item.name === "Vault-Anzug") {
              UI.log("Das gehört zu deiner Grundausstattung.", "text-gray-500");
              return;
@@ -245,7 +242,6 @@ Object.assign(Game, {
              return;
         }
 
-        // Ins Inventar legen
         let itemToAdd = item._fromInv || item.id;
         if (!itemToAdd && item.id) itemToAdd = item.id;
         let objToAdd = itemToAdd;
@@ -254,14 +250,11 @@ Object.assign(Game, {
 
         this.state.inventory.push(objToAdd);
         
-        // --- NEU: FALLBACK-LOGIK MIT LIVE-DATEN ---
         if(slot === 'weapon') {
-            // Holt die aktuellen Fäuste-Daten aus der Item-Datenbank
             const fists = this.items['fists'] ? { ...this.items['fists'] } : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
             this.state.equip.weapon = fists;
             UI.log(`${item.name} abgelegt. Du nutzt nun deine Fäuste.`, "text-yellow-400");
         } else if(slot === 'body') {
-            // Holt den aktuellen Vault-Anzug aus der Item-Datenbank
             const suit = this.items['vault_suit'] ? { ...this.items['vault_suit'] } : { id: 'vault_suit', name: 'Vault-Anzug', def: 1, type: 'body' };
             this.state.equip.body = suit;
             UI.log(`${item.name} abgelegt. Du trägst wieder deinen Vault-Anzug.`, "text-blue-400");
@@ -285,7 +278,6 @@ Object.assign(Game, {
         invItem = this.state.inventory[index];
         const itemDef = this.items[invItem.id];
         
-        // Rucksack ausrüsten
         if (itemDef.type === 'back') {
             const slot = 'back';
             let oldEquip = this.state.equip[slot];
@@ -305,7 +297,6 @@ Object.assign(Game, {
 
         if(invItem.id === 'camp_kit') { this.deployCamp(index); return; }
 
-        // Consumables Logic
         if(invItem.id === 'nuka_cola') {
             const effectiveMax = this.state.maxHp - (this.state.rads || 0);
             this.state.hp = Math.min(this.state.hp + 15, effectiveMax);
@@ -337,7 +328,6 @@ Object.assign(Game, {
         else if(itemDef.type === 'consumable') { 
             if(itemDef.effect === 'heal' || itemDef.effect === 'heal_rad' || itemDef.effect === 'buff') { 
                 let healAmt = itemDef.val || 0; 
-                
                 const medicLvl = this.getPerkLevel('medic');
                 if(medicLvl > 0 && healAmt > 0) {
                     const bonus = 1 + (medicLvl * 0.2); 
@@ -376,13 +366,11 @@ Object.assign(Game, {
             } 
         } 
         else {
-            // Ausrüstung
             const validSlots = ['weapon', 'body', 'head', 'legs', 'feet', 'arms'];
             if(validSlots.includes(itemDef.type)) {
                 const slot = itemDef.slot || itemDef.type;
                 let oldEquip = this.state.equip[slot];
                 
-                // Alten Gegenstand ins Inv zurücklegen (außer es sind Fäuste/Vault-Suit)
                 if(oldEquip && oldEquip.id !== "fists" && oldEquip.id !== "vault_suit") {
                     if(oldEquip._fromInv) this.state.inventory.push(oldEquip._fromInv);
                     else {
@@ -416,7 +404,6 @@ Object.assign(Game, {
             : "Fernkampfwaffe";
 
         if(!this.state.inventory || this.state.inventory.length === 0) {
-            // Fallback auf Fäuste (Live Daten)
             const fists = this.items['fists'] ? { ...this.items['fists'] } : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
             this.state.equip.weapon = fists;
             UI.log("Waffe abgelegt. Nutze Fäuste.", "text-red-500 font-bold");
@@ -453,12 +440,39 @@ Object.assign(Game, {
             const newName = bestWeapon.props?.name || this.items[bestWeapon.id].name;
             UI.log(`${newName} wurde statt ${oldName} angelegt (Munition leer)`, "text-yellow-400 blink-red");
         } else {
-            // Keine Nahkampfwaffe im Inventar -> Fäuste
             const fists = this.items['fists'] ? { ...this.items['fists'] } : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
             this.state.equip.weapon = fists;
             UI.log("Keine Nahkampfwaffe gefunden! Du kämpfst mit Fäusten!", "text-red-500");
         }
         if(typeof UI.renderChar === 'function') UI.renderChar();
+    },
+
+    // --- NEU: Upgrade Logik ---
+    getCampUpgradeCost: function(currentLevel) {
+        const costBase = 200;
+        const multiplier = currentLevel * 1.5;
+        const totalCaps = Math.floor(costBase * multiplier);
+        return { id: 'caps', count: totalCaps, name: 'Kronkorken' };
+    },
+
+    upgradeCamp: function() {
+        if(!this.state.camp) return;
+        const lvl = this.state.camp.level || 1;
+        if(lvl >= 10) return;
+
+        const cost = this.getCampUpgradeCost(lvl);
+        
+        if(cost.id === 'caps') {
+            if(this.state.caps >= cost.count) {
+                this.state.caps -= cost.count;
+                this.state.camp.level = lvl + 1;
+                UI.log(`Lager auf Level ${this.state.camp.level} verbessert!`, "text-green-400");
+                UI.renderCamp();
+                this.saveGame();
+            } else {
+                UI.log("Nicht genug Kronkorken!", "text-red-500");
+            }
+        }
     }
 });
 
