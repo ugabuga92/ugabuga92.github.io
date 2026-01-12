@@ -159,21 +159,18 @@
         
         <div id="main-content">
             <div id="main-panel">
-                <div id="layout-split">
-                    <div id="view-container" class="crt-effect-container">
-                        <button id="btn-toggle-dpad" class="hidden">🎮</button>
-                        <div id="overlay-controls"></div>
-                        <div id="dialog-overlay"></div>
-                        <div id="dice-overlay" class="hidden"></div>
-                    </div>
-                    <div id="log-panel">
-                        <div class="bg-[#1aff1a] text-black font-bold px-2 flex justify-between items-center flex-shrink-0" style="box-shadow: 0 0 10px #1aff1a;"><h2>LOG</h2><span id="game-timer" class="font-mono text-sm">00:00:00</span></div>
-                        <div id="log-area" class="flex-grow overflow-y-auto p-2 text-sm flex flex-col-reverse font-mono leading-relaxed text-green-400 cursor-pointer"></div>
-                    </div>
+                <div id="view-container" class="crt-effect-container w-full h-full relative">
+                    <button id="btn-toggle-dpad" class="hidden">🎮</button>
+                    <div id="overlay-controls"></div>
+                    <div id="dialog-overlay"></div>
+                    <div id="dice-overlay" class="hidden"></div>
                 </div>
             </div>
         </div>
     </div>
+
+    <div id="game-toast-container" class="absolute top-24 right-4 z-[3000] flex flex-col gap-2 pointer-events-none w-72 md:w-96 max-h-[80vh] overflow-hidden"></div>
+
 </div>
 
 <script>
@@ -187,7 +184,6 @@
         }); 
     }
     
-    // Globale Variable, um den Fortschritt zu tracken
     let scriptsLoaded = false;
 
     function addBootLine(text, color = "boot-line") {
@@ -211,7 +207,6 @@
             "MEMORY: 64KB OK"
         ];
 
-        // 1. Initiale Zeilen ausgeben
         for (let line of initialLines) {
             addBootLine(line);
             await new Promise(r => setTimeout(r, 400));
@@ -219,7 +214,6 @@
 
         addBootLine("INITIALIZING PIP-BOY 3003 INTERFACE...");
 
-        // 2. Warten bis Scripte geladen sind (Intervall-Check)
         const checkReady = setInterval(() => {
             if (scriptsLoaded) {
                 clearInterval(checkReady);
@@ -235,7 +229,6 @@
                 loginContent.classList.remove('hidden');
                 loginContent.classList.add('flex');
                 
-                // WICHTIG: Hier wird die Sperre in der ui_core.js aufgehoben
                 if(typeof UI !== 'undefined') {
                     UI.isSystemReady = true; 
                     console.log("Boot finished. System is now ready for interaction.");
@@ -256,13 +249,12 @@
             if(verDisplay) verDisplay.textContent = displayVer;
             if(loginVerDisplay) loginVerDisplay.textContent = displayVer;
             
-            // --- LOAD ORDER (KORRIGIERT) ---
             loadScript('data_core.js?v=' + devVer)
                 .then(() => loadScript('data_items.js?v=' + devVer))
                 .then(() => loadScript('data_recipes.js?v=' + devVer))
                 .then(() => loadScript('data_monsters.js?v=' + devVer))
                 .then(() => loadScript('network.js?v=' + devVer))
-                .then(() => loadScript('ui_core.js?v=' + devVer)) // <--- WICHTIG: UI Core HIERHIN verschoben (vor UI-Erweiterungen)
+                .then(() => loadScript('ui_core.js?v=' + devVer)) 
                 .then(() => loadScript('game/game_core.js?v=' + devVer))
                 .then(() => loadScript('game/game_map.js?v=' + devVer))
                 .then(() => loadScript('game/game_render.js?v=' + devVer))
@@ -272,7 +264,7 @@
                 .then(() => loadScript('game/game_world_logic.js?v=' + devVer))
                 .then(() => loadScript('game/game_char_logic.js?v=' + devVer))
                 .then(() => loadScript('game/game_combat.js?v=' + devVer))
-                .then(() => loadScript('ui/ui_combat.js?v=' + devVer)) // Kann jetzt sicher auf UI zugreifen
+                .then(() => loadScript('ui/ui_combat.js?v=' + devVer)) 
                 .then(() => loadScript('ui_input.js?v=' + devVer))
                 .then(() => loadScript('ui_view_inv.js?v=' + devVer))
                 .then(() => loadScript('ui_view_world.js?v=' + devVer))
@@ -285,7 +277,7 @@
                 .then(() => loadScript('ui_render_overlays.js?v=' + devVer))
                 .then(() => { 
                     if(typeof UI !== 'undefined') UI.init(); 
-                    scriptsLoaded = true; // Signal an die Boot-Animation
+                    scriptsLoaded = true; 
                     console.log("All Scripts Loaded & UI Initialized."); 
                 })
                 .catch(err => {
