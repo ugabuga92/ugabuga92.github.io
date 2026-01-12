@@ -1,4 +1,4 @@
-// [2026-01-11 12:55:00] game_inv_logic.js - FIXED: ID injection for UI visibility
+// [2026-01-11 11:15:00] game_inv_logic.js - Fists & Vault Suit as permanent fallback (no inventory space)
 
 Object.assign(Game, {
 
@@ -22,12 +22,6 @@ Object.assign(Game, {
         return base;
     },
 
-    getUsedSlots: function() {
-        if(!this.state || !this.state.inventory) return 0;
-        // Filtert Fäuste/Anzug sicherheitshalber raus, falls sie doch im Array landen
-        return this.state.inventory.filter(item => item.id !== 'fists' && item.id !== 'vault_suit').length;
-    },
-
     addToInventory: function(idOrItem, count=1) { 
         if(!this.state.inventory) this.state.inventory = []; 
         let itemId, props = null;
@@ -37,12 +31,6 @@ Object.assign(Game, {
             props = idOrItem.props;
             count = idOrItem.count || 1;
         } else { itemId = idOrItem; }
-
-        // BLOCKER: Standard-Ausrüstung darf NIEMALS im Inventar-Array auftauchen
-        // Dadurch ist sie oben in der Liste "unsichtbar"
-        if (itemId === 'fists' || itemId === 'vault_suit') {
-            return false;
-        }
 
         if (itemId === 'camp_kit') {
             const hasCamp = this.state.inventory.some(i => i.id === 'camp_kit');
@@ -133,6 +121,7 @@ Object.assign(Game, {
         if(!this.state.inventory || !this.state.inventory[invIndex]) return;
         const item = this.state.inventory[invIndex];
         
+        // Schutz: Basis-Ausrüstung darf nicht weggeworfen werden
         if (item.id === 'fists' || item.id === 'vault_suit') {
             UI.log("Das gehört zu deiner Grundausstattung.", "text-gray-500");
             return;
@@ -154,8 +143,9 @@ Object.assign(Game, {
         if(!this.state.inventory || !this.state.inventory[invIndex]) return;
         const item = this.state.inventory[invIndex];
 
+        // Schutz: Basis-Ausrüstung darf nicht zerlegt werden
         if (item.id === 'fists' || item.id === 'vault_suit') {
-            UI.log("Nicht zerlegbar.", "text-red-500");
+            UI.log("Dieses Objekt kann nicht zerlegt werden!", "text-red-500");
             return;
         }
 
@@ -163,6 +153,7 @@ Object.assign(Game, {
             UI.log("Zerlegen nur an einer Werkbank möglich!", "text-red-500");
             return;
         }
+
         if (item.id === 'junk_metal') {
             UI.log("Das ist bereits Schrott.", "text-orange-500");
             return;
@@ -243,9 +234,9 @@ Object.assign(Game, {
         if(!this.state.equip[slot]) return;
         const item = this.state.equip[slot];
 
-        // 1. Basis-Ausrüstung kann nicht abgelegt werden
-        if(item.id === 'fists' || item.id === 'vault_suit') {
-             UI.log("Das ist deine Basis-Ausrüstung.", "text-gray-500");
+        // Fäuste und Vault-Anzug sind permanent und können nicht "ausgezogen" werden
+        if(item.id === 'fists' || item.id === 'vault_suit' || item.name === "Fäuste" || item.name === "Vault-Anzug") {
+             UI.log("Das gehört zu deiner Grundausstattung.", "text-gray-500");
              return;
         }
 
@@ -254,7 +245,7 @@ Object.assign(Game, {
              return;
         }
 
-        // 2. Echtes Item ins Inventar
+        // Ins Inventar legen
         let itemToAdd = item._fromInv || item.id;
         if (!itemToAdd && item.id) itemToAdd = item.id;
         let objToAdd = itemToAdd;
@@ -263,21 +254,14 @@ Object.assign(Game, {
 
         this.state.inventory.push(objToAdd);
         
-        // 3. Fallback: Wir setzen das Item direkt in den Slot (ohne Inventar)
-        // WICHTIG: Wir müssen die ID explizit setzen, damit das UI es rendern kann!
+        // FALLBACK-Logik: Sofort wieder Standard ausrüsten
         if(slot === 'weapon') {
-            const def = this.items['fists'];
-            const standardFists = def ? { ...def, id: 'fists', count: 1 } : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon', count: 1 };
-            this.state.equip.weapon = standardFists;
-            UI.log(`${item.name} abgelegt. Fäuste bereit.`, "text-yellow-400");
-        } 
-        else if(slot === 'body') {
-            const def = this.items['vault_suit'];
-            const standardSuit = def ? { ...def, id: 'vault_suit', count: 1 } : { id: 'vault_suit', name: 'Vault-Anzug', type: 'body', count: 1 };
-            this.state.equip.body = standardSuit;
-            UI.log(`${item.name} abgelegt. Vault-Anzug sitzt.`, "text-blue-400");
-        } 
-        else {
+            this.state.equip.weapon = { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
+            UI.log(`${item.name} abgelegt. Du nutzt nun deine Fäuste.`, "text-yellow-400");
+        } else if(slot === 'body') {
+            this.state.equip.body = { id: 'vault_suit', name: 'Vault-Anzug', def: 1, type: 'body' };
+            UI.log(`${item.name} abgelegt. Du trägst wieder deinen Vault-Anzug.`, "text-blue-400");
+        } else {
             this.state.equip[slot] = null; 
             UI.log(`${item.name} abgelegt.`, "text-yellow-400");
         }
@@ -297,6 +281,7 @@ Object.assign(Game, {
         invItem = this.state.inventory[index];
         const itemDef = this.items[invItem.id];
         
+        // Rucksack ausrüsten
         if (itemDef.type === 'back') {
             const slot = 'back';
             let oldEquip = this.state.equip[slot];
@@ -307,6 +292,7 @@ Object.assign(Game, {
             }
             this.state.equip[slot] = { ...itemDef, ...invItem.props };
             UI.log(`Rucksack angelegt: ${itemDef.name}`, "text-yellow-400");
+            if(this.getUsedSlots() > this.getMaxSlots()) UI.log("WARNUNG: Überladen!", "text-red-500 blink-red");
             UI.update();
             if(this.state.view === 'inventory') UI.renderInventory();
             this.saveGame();
@@ -315,19 +301,51 @@ Object.assign(Game, {
 
         if(invItem.id === 'camp_kit') { this.deployCamp(index); return; }
 
-        if(itemDef.type === 'consumable') { 
-            // Consumable Logik ...
+        // Consumables Logic
+        if(invItem.id === 'nuka_cola') {
+            const effectiveMax = this.state.maxHp - (this.state.rads || 0);
+            this.state.hp = Math.min(this.state.hp + 15, effectiveMax);
+            this.state.caps += 1;
+            this.addRadiation(5);
+            UI.log("Nuka Cola: Erfrischend... und strahlend.", "text-blue-400");
+            this.removeFromInventory('nuka_cola', 1);
+            UI.update();
+            return;
+        }
+
+        if(invItem.id === 'radaway') {
+            this.addRadiation(-50); 
+            UI.log("RadAway verwendet. Strahlung sinkt.", "text-green-300 font-bold");
+            this.removeFromInventory('radaway', 1);
+            UI.update();
+            return;
+        }
+
+        if(itemDef.type === 'blueprint') {
+            if(!this.state.knownRecipes.includes(itemDef.recipeId)) {
+                this.state.knownRecipes.push(itemDef.recipeId);
+                UI.log(`Gelernt: ${itemDef.name}`, "text-cyan-400 font-bold");
+                invItem.count--;
+                if(invItem.count <= 0) this.state.inventory.splice(index, 1);
+            } else { UI.log("Du kennst diesen Bauplan bereits.", "text-gray-500"); }
+            return;
+        }
+        else if(itemDef.type === 'consumable') { 
             if(itemDef.effect === 'heal' || itemDef.effect === 'heal_rad' || itemDef.effect === 'buff') { 
                 let healAmt = itemDef.val || 0; 
+                
                 const medicLvl = this.getPerkLevel('medic');
                 if(medicLvl > 0 && healAmt > 0) {
                     const bonus = 1 + (medicLvl * 0.2); 
                     healAmt = Math.floor(healAmt * bonus);
                 }
+
                 const effectiveMax = this.state.maxHp - (this.state.rads || 0);
+                
                 if(itemDef.effect === 'heal' && this.state.hp >= effectiveMax) { 
                     UI.log("Gesundheit voll.", "text-gray-500"); return; 
                 } 
+                
                 let countToUse = 1;
                 if (mode === 'max' && healAmt > 0) {
                     const missing = effectiveMax - this.state.hp;
@@ -336,33 +354,36 @@ Object.assign(Game, {
                         if (countToUse > invItem.count) countToUse = invItem.count;
                     } else { countToUse = 0; }
                 }
+
                 if (countToUse > 0) {
                     const totalHeal = healAmt * countToUse;
                     if(totalHeal > 0) this.state.hp = Math.min(effectiveMax, this.state.hp + totalHeal); 
-                    if(itemDef.effect === 'heal_rad' && itemDef.rad) { this.addRadiation(itemDef.rad * countToUse); }
-                    if(itemDef.effect === 'buff') { UI.log(`${itemDef.name} konsumiert!`, "text-pink-400"); } 
-                    else { UI.log(`Verwendet: ${countToUse}x ${itemDef.name} (+${totalHeal} HP)`, "text-blue-400"); }
+                    
+                    if(itemDef.effect === 'heal_rad' && itemDef.rad) {
+                        this.addRadiation(itemDef.rad * countToUse);
+                    }
+                    if(itemDef.effect === 'buff') {
+                        UI.log(`${itemDef.name} konsumiert! (Effekte noch WIP)`, "text-pink-400");
+                    } else {
+                         UI.log(`Verwendet: ${countToUse}x ${itemDef.name} (+${totalHeal} HP)`, "text-blue-400"); 
+                    }
                     this.removeFromInventory(invItem.id, countToUse);
                 }
             } 
         } 
         else {
-            // AUSRÜSTUNG (Equip Logic)
+            // Ausrüstung
             const validSlots = ['weapon', 'body', 'head', 'legs', 'feet', 'arms'];
             if(validSlots.includes(itemDef.type)) {
                 const slot = itemDef.slot || itemDef.type;
                 let oldEquip = this.state.equip[slot];
                 
-                // Alte Ausrüstung ins Inventar zurücklegen...
-                if(oldEquip) {
-                    // ...aber nur wenn es NICHT Fäuste oder Vault-Anzug sind!
-                    // Diese verschwinden einfach (da sie nur Geister-Items sind)
-                    if(oldEquip.id !== 'fists' && oldEquip.id !== 'vault_suit') {
-                        if(oldEquip._fromInv) this.state.inventory.push(oldEquip._fromInv);
-                        else {
-                            const oldKey = Object.keys(this.items).find(k => this.items[k].name === oldEquip.name);
-                            if(oldKey) this.state.inventory.push({id: oldKey, count: 1, isNew: true});
-                        }
+                // Alten Gegenstand ins Inv zurücklegen (außer es sind Fäuste/Vault-Suit)
+                if(oldEquip && oldEquip.id !== "fists" && oldEquip.id !== "vault_suit") {
+                    if(oldEquip._fromInv) this.state.inventory.push(oldEquip._fromInv);
+                    else {
+                        const oldKey = Object.keys(this.items).find(k => this.items[k].name === oldEquip.name);
+                        if(oldKey) this.state.inventory.push({id: oldKey, count: 1, isNew: true});
                     }
                 } 
                 
@@ -390,6 +411,14 @@ Object.assign(Game, {
             ? (oldWeapon.props?.name || oldWeapon.name) 
             : "Fernkampfwaffe";
 
+        if(!this.state.inventory || this.state.inventory.length === 0) {
+            // Fallback auf Fäuste
+            this.state.equip.weapon = { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
+            UI.log("Waffe abgelegt. Nutze Fäuste.", "text-red-500 font-bold");
+            if(typeof UI.renderChar === 'function') UI.renderChar();
+            return;
+        }
+
         let bestWeapon = null;
         let bestDmg = -1;
         let bestIndex = -1;
@@ -397,13 +426,20 @@ Object.assign(Game, {
         this.state.inventory.forEach((item, idx) => {
             const def = this.items[item.id];
             if (!def) return;
+
             const type = def.type ? def.type.toLowerCase() : '';
-            const isWeaponType = type === 'weapon' || type === 'melee' || type.includes('weapon');
+            const isWeaponType = type === 'weapon' || type === 'melee' || type === 'weapon_melee' || type.includes('weapon');
             const needsAmmo = def.ammo && def.ammo !== 'none';
+
             if (isWeaponType && !needsAmmo) {
                 let dmg = def.dmg || 0;
                 if (item.props && item.props.dmgMult) dmg *= item.props.dmgMult;
-                if (dmg > bestDmg) { bestDmg = dmg; bestWeapon = item; bestIndex = idx; }
+                
+                if (dmg > bestDmg) {
+                    bestDmg = dmg;
+                    bestWeapon = item;
+                    bestIndex = idx;
+                }
             }
         });
 
@@ -412,13 +448,13 @@ Object.assign(Game, {
             const newName = bestWeapon.props?.name || this.items[bestWeapon.id].name;
             UI.log(`${newName} wurde statt ${oldName} angelegt (Munition leer)`, "text-yellow-400 blink-red");
         } else {
-            // Keine Waffe gefunden -> Fäuste aktivieren (mit ID injection)
-            const def = this.items['fists'];
-            const standardFists = def ? { ...def, id: 'fists', count: 1 } : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon', count: 1 };
-            this.state.equip.weapon = standardFists;
+            // Keine Nahkampfwaffe im Inventar -> Fäuste
+            this.state.equip.weapon = { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
             UI.log("Keine Nahkampfwaffe gefunden! Du kämpfst mit Fäusten!", "text-red-500");
         }
         if(typeof UI.renderChar === 'function') UI.renderChar();
     }
 });
+
+// Alias für Kompatibilität
 Game.addItem = Game.addToInventory;
