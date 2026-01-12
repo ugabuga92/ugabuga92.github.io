@@ -1,8 +1,8 @@
-// [TIMESTAMP] 2026-01-12 22:00:00 - ui_view_camp.js - RESTORED ORIGINAL DESIGN
+// [TIMESTAMP] 2026-01-12 22:00:00 - ui_view_camp.js - RESTORED & FIXED
 
 Object.assign(UI, {
 
-    // Helper für das Info-Popup (Bleibt als nützliches Feature, stört das Design nicht)
+    // Helper für das Info-Popup
     showCampInfo: function() {
         if(typeof Game.getCampUpgradeCost !== 'function') return;
 
@@ -33,9 +33,9 @@ Object.assign(UI, {
         this.showInfoDialog("LAGER INFO", `<div class="flex flex-col gap-1 max-h-[50vh] overflow-y-auto custom-scroll p-1">${rows}</div>`);
     },
 
-    // DAS ALTE RENDER CAMP (Überschreibt einfach den View)
+    // Standard Render Camp (Original Design)
     renderCamp: function() {
-        const view = document.getElementById('view-container'); // Nutzt den Standard-Container
+        const view = document.getElementById('view-container');
         if(!view) return;
         
         const camp = Game.state.camp;
@@ -110,7 +110,6 @@ Object.assign(UI, {
     },
 
     renderCampSleep: function() {
-        // Einfaches Overlay für Schlaf
         const content = `
             <div class="flex flex-col gap-4">
                  <button onclick="Game.rest(1); UI.leaveDialog()" class="action-button border-green-500 text-green-400 py-4 w-full">
@@ -126,7 +125,7 @@ Object.assign(UI, {
         this.showInfoDialog("SCHLAFPLATZ", content);
     },
 
-    // DIE ALTE KOCH-ANSICHT (Ersetzt den kompletten View)
+    // Kochen-Ansicht (Ersetzt den View, wie gewünscht)
     renderCampCooking: function() {
         const view = document.getElementById('view-container');
         
@@ -147,7 +146,7 @@ Object.assign(UI, {
             html += '<div class="text-gray-500 text-center italic mt-10">Du kennst keine Rezepte.</div>';
         } else {
             cookingRecipes.forEach(recipe => {
-                // [FIX] Abfangen wenn Item-ID falsch ist, damit es nicht crasht
+                // [FIX] Prüfen ob Output-Item existiert
                 const outItem = Game.items[recipe.out];
                 if (!outItem) return; 
 
