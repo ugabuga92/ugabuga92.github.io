@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-12 15:30:00 - admin.js - Custom Modals & Fixes
+// [TIMESTAMP] 2026-01-12 16:00:00 - admin.js - Loading Screen & Custom Modals
 
 const Admin = {
     gatePass: "bimbo123",
@@ -11,6 +11,9 @@ const Admin = {
     currentPath: null,
     currentUserData: null,
     itemsList: [], 
+    
+    // Status für den Ladebildschirm
+    isLoaded: false,
 
     invFilter: {
         search: "",
@@ -31,21 +34,37 @@ const Admin = {
         }
     },
 
+    // Steuert den Ladebalken in admin.html
+    updateLoader: function(percent, text) {
+        const bar = document.getElementById('loader-bar');
+        const status = document.getElementById('loader-status');
+        if(bar) bar.style.width = percent + '%';
+        if(status) status.textContent = text;
+    },
+
     connectFirebase: async function() {
         if (typeof Network !== 'undefined' && !Network.db) {
             try { if(typeof Network.init === 'function') Network.init(); } catch(e) {}
         }
 
         try {
-            await Network.login(this.adminUser, this.adminPass);
+            // Login Screen ausblenden, Loader anzeigen
             document.getElementById('gate-screen').classList.add('hidden');
-            const app = document.getElementById('app-ui');
-            app.classList.remove('hidden');
-            setTimeout(() => app.classList.remove('opacity-0'), 50);
+            document.getElementById('admin-loader').classList.remove('hidden');
+            this.updateLoader(10, "AUTHENTICATING...");
+
+            await Network.login(this.adminUser, this.adminPass);
+            
+            // Verbindung erfolgreich
+            this.updateLoader(30, "DOWNLOADING SECURE DATA...");
             document.getElementById('conn-dot').classList.replace('bg-red-500', 'bg-green-500');
             document.getElementById('conn-dot').classList.remove('animate-pulse');
+            
             this.initData();
         } catch(e) {
+            // Fehler: Zurück zum Gate
+            document.getElementById('admin-loader').classList.add('hidden');
+            document.getElementById('gate-screen').classList.remove('hidden');
             document.getElementById('gate-msg').textContent = "UPLINK FAILED: " + e.code;
             console.error(e);
         }
@@ -55,17 +74,37 @@ const Admin = {
         const items = (typeof Game !== 'undefined' && Game.items) ? Game.items : (window.GameData ? window.GameData.items : {});
         this.itemsList = Object.entries(items).map(([k, v]) => ({id: k, ...v}));
         
+        this.updateLoader(50, "LISTENING TO VAULT-TEC FREQUENCIES...");
+
+        // 1. Players Listener (Hauptdaten)
         Network.db.ref('saves').on('value', snap => {
             this.dbData = snap.val() || {};
             this.renderUserList();
+            
             if(this.currentPath) {
                 const parts = this.currentPath.split('/'); 
                 if(this.dbData[parts[1]] && this.dbData[parts[1]][parts[2]]) {
                     this.selectUser(this.currentPath, true); 
                 }
             }
+
+            // Sobald die ersten Player-Daten da sind -> App starten
+            if(!this.isLoaded) {
+                this.isLoaded = true;
+                this.updateLoader(100, "SYSTEM READY.");
+                
+                // Kurze Verzögerung für den Effekt
+                setTimeout(() => {
+                    document.getElementById('admin-loader').classList.add('hidden');
+                    const app = document.getElementById('app-ui');
+                    app.classList.remove('hidden');
+                    // Sanftes Einblenden
+                    setTimeout(() => app.classList.remove('opacity-0'), 50); 
+                }, 800);
+            }
         });
 
+        // 2. Bug Reports Listener
         Network.db.ref('bug_reports').on('value', snap => {
             this.bugData = snap.val() || {};
             const count = Object.keys(this.bugData).length;
@@ -81,9 +120,9 @@ const Admin = {
             }
         });
 
+        // 3. Leaderboard Listener
         Network.db.ref('leaderboard').on('value', snap => {
             this.lbData = snap.val() || {};
-            // Button is now in HTML, just ensure visibility if needed
             const btn = document.getElementById('btn-lb');
             if(btn) btn.classList.remove('hidden');
             
@@ -93,7 +132,7 @@ const Admin = {
         });
     },
 
-    // --- CUSTOM MODAL LOGIC ---
+    // --- CUSTOM MODAL LOGIC (Ersetzt window.confirm) ---
     confirm: function(title, text, callback) {
         const overlay = document.getElementById('admin-confirm-overlay');
         const elTitle = document.getElementById('admin-confirm-title');
@@ -102,14 +141,14 @@ const Admin = {
         const btnNo = document.getElementById('admin-confirm-no');
 
         if(!overlay) {
-            if(confirm(text)) callback(); // Fallback
+            if(confirm(text)) callback(); // Fallback falls HTML fehlt
             return;
         }
 
         elTitle.textContent = title;
-        elText.innerHTML = text; // Allow HTML for breaks
+        elText.innerHTML = text; 
         
-        // Reset old listeners
+        // Alte Listener entfernen
         btnYes.onclick = null;
         btnNo.onclick = null;
 
@@ -435,14 +474,16 @@ const Admin = {
     },
 
     fillInv: function(d) {
-        // (Inventory Layout Code remains the same compact version)
         const invTab = document.getElementById('tab-inv');
+        
         invTab.innerHTML = `
             <div class="flex flex-col h-full gap-2">
+                
                 <div class="panel-box p-2 shrink-0">
                     <h3 class="text-yellow-400 font-bold border-b border-[#1a551a] mb-1 text-xs">EQUIPPED</h3>
                     <div id="equip-list" class="grid grid-cols-2 gap-1 text-[10px]"></div>
                 </div>
+
                 <div class="panel-box flex flex-col flex-1 min-h-0 overflow-hidden relative">
                     <div class="bg-[#002200] p-2 border-b border-[#1a551a] shrink-0 z-10">
                         <div class="flex gap-2 mb-1">
@@ -454,6 +495,7 @@ const Admin = {
                         </div>
                         <div class="flex flex-wrap gap-1 justify-center" id="filter-btns"></div>
                     </div>
+                    
                     <div class="flex-1 custom-scroll bg-black relative">
                         <table class="w-full text-left border-collapse">
                             <thead class="bg-[#001100] text-gray-500 text-[9px] sticky top-0 z-20 border-b border-[#1a551a]">
@@ -467,6 +509,7 @@ const Admin = {
                         </table>
                     </div>
                 </div>
+
                 <div class="panel-box p-2 h-1/4 shrink-0 flex flex-col">
                     <h3 class="text-gray-500 font-bold text-[10px] mb-1">PLAYER INVENTORY</h3>
                     <div class="flex-1 custom-scroll bg-black border border-[#1a551a]">
@@ -480,7 +523,7 @@ const Admin = {
                 </div>
             </div>
         `;
-        // ... (populate equip/inv lists logic same as before) ...
+
         const equipList = document.getElementById('equip-list');
         if(d.equip) {
             for(let slot in d.equip) {
@@ -488,23 +531,37 @@ const Admin = {
                 if(item) {
                     const div = document.createElement('div');
                     div.className = "flex justify-between items-center bg-black/50 p-1 border border-[#1a551a]";
-                    div.innerHTML = `<div class="truncate"><span class="text-gray-500 mr-1">${slot.substr(0,1).toUpperCase()}:</span><span class="text-green-300">${item.name}</span></div><button onclick="Admin.forceUnequip('${slot}')" class="text-red-500 hover:text-white ml-1 font-bold">×</button>`;
+                    div.innerHTML = `
+                        <div class="truncate"><span class="text-gray-500 mr-1">${slot.substr(0,1).toUpperCase()}:</span><span class="text-green-300">${item.name}</span></div>
+                        <button onclick="Admin.forceUnequip('${slot}')" class="text-red-500 hover:text-white ml-1 font-bold">×</button>
+                    `;
                     equipList.appendChild(div);
                 }
             }
         }
+
         const tbody = document.getElementById('inv-table-body');
         const inv = d.inventory || [];
         const items = (window.GameData && window.GameData.items) ? window.GameData.items : {};
+
         inv.forEach((item, idx) => {
             const tr = document.createElement('tr');
             tr.className = "border-b border-[#1a331a] hover:bg-[#002200]";
+            
             let name = item.id;
             if(items[item.id]) name = items[item.id].name;
             if(item.props && item.props.name) name = item.props.name + "*";
-            tr.innerHTML = `<td class="p-1 truncate max-w-[120px]" title="${name}">${name}</td><td class="p-1 text-center text-yellow-500">${item.count}</td><td class="p-1 text-right"><button onclick="Admin.invDelete(${idx})" class="text-red-500 hover:text-white font-bold px-1">DEL</button></td>`;
+
+            tr.innerHTML = `
+                <td class="p-1 truncate max-w-[120px]" title="${name}">${name}</td>
+                <td class="p-1 text-center text-yellow-500">${item.count}</td>
+                <td class="p-1 text-right">
+                    <button onclick="Admin.invDelete(${idx})" class="text-red-500 hover:text-white font-bold px-1">DEL</button>
+                </td>
+            `;
             tbody.appendChild(tr);
         });
+
         const cats = ['ALL', 'WEAPON', 'APPAREL', 'AID', 'JUNK', 'NOTES'];
         const btnContainer = document.getElementById('filter-btns');
         cats.forEach(c => {
@@ -515,6 +572,7 @@ const Admin = {
             btn.onclick = () => { this.invFilter.category = c; this.refreshItemBrowser(); };
             btnContainer.appendChild(btn);
         });
+
         this.refreshItemBrowser();
     },
 
@@ -537,28 +595,49 @@ const Admin = {
         const tbody = document.getElementById('admin-item-table-body');
         if(!tbody) return;
         tbody.innerHTML = '';
+
         const allItems = this.itemsList; 
+        
         let count = 0;
         allItems.sort((a,b) => a.name.localeCompare(b.name));
+
         allItems.forEach(item => {
             const cat = this.getItemCategory(item.type);
             if(this.invFilter.category !== 'ALL' && cat !== this.invFilter.category) return;
+
             if(this.invFilter.search) {
                 const searchStr = (item.name + " " + item.id).toLowerCase();
                 if(!searchStr.includes(this.invFilter.search)) return;
             }
+
             const tr = document.createElement('tr');
             tr.className = "border-b border-[#1a331a] hover:bg-[#003300] transition-colors group";
+            
             let icon = "📦";
             if(item.type === 'weapon') icon = "🔫";
             if(item.type === 'ammo') icon = "🧨";
             if(item.type === 'consumable') icon = "💉";
             if(item.type === 'back') icon = "🎒";
             if(['body','head','arms','legs','feet'].includes(item.type)) icon = "🛡️";
-            tr.innerHTML = `<td class="p-1 pl-2 flex items-center gap-2 overflow-hidden"><span class="opacity-50 text-[10px]">${icon}</span><div class="flex flex-col min-w-0"><span class="text-green-300 font-bold truncate group-hover:text-white">${item.name}</span><span class="text-[8px] text-gray-500 md:hidden">${item.id}</span></div></td><td class="p-1 hidden md:table-cell text-[9px] text-gray-500 font-mono">${item.id}</td><td class="p-1 pr-2 text-right whitespace-nowrap"><button onclick="Admin.invAddDirect('${item.id}', 1)" class="bg-[#1a331a] text-green-400 text-[9px] px-1.5 py-0.5 border border-green-900 hover:bg-green-500 hover:text-black transition">+1</button><button onclick="Admin.invAddDirect('${item.id}', 10)" class="bg-[#1a331a] text-green-400 text-[9px] px-1.5 py-0.5 border border-green-900 hover:bg-green-500 hover:text-black transition ml-1">+10</button></td>`;
+
+            tr.innerHTML = `
+                <td class="p-1 pl-2 flex items-center gap-2 overflow-hidden">
+                    <span class="opacity-50 text-[10px]">${icon}</span>
+                    <div class="flex flex-col min-w-0">
+                        <span class="text-green-300 font-bold truncate group-hover:text-white">${item.name}</span>
+                        <span class="text-[8px] text-gray-500 md:hidden">${item.id}</span>
+                    </div>
+                </td>
+                <td class="p-1 hidden md:table-cell text-[9px] text-gray-500 font-mono">${item.id}</td>
+                <td class="p-1 pr-2 text-right whitespace-nowrap">
+                    <button onclick="Admin.invAddDirect('${item.id}', 1)" class="bg-[#1a331a] text-green-400 text-[9px] px-1.5 py-0.5 border border-green-900 hover:bg-green-500 hover:text-black transition">+1</button>
+                    <button onclick="Admin.invAddDirect('${item.id}', 10)" class="bg-[#1a331a] text-green-400 text-[9px] px-1.5 py-0.5 border border-green-900 hover:bg-green-500 hover:text-black transition ml-1">+10</button>
+                </td>
+            `;
             tbody.appendChild(tr);
             count++;
         });
+
         if(count === 0) {
             tbody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-500 text-xs py-4 italic">- NO ITEMS FOUND -</td></tr>`;
         }
@@ -568,6 +647,7 @@ const Admin = {
         if(!this.currentPath || !this.currentUserData) return;
         const inv = [...(this.currentUserData.inventory || [])];
         let found = false;
+        
         for(let item of inv) {
             if(item.id === id && !item.props) {
                 item.count += count;
@@ -584,10 +664,27 @@ const Admin = {
     fillCamp: function(d) {
         const container = document.getElementById('camp-data-content');
         if(!d.camp) {
-            container.innerHTML = `<span class="text-gray-500 italic block mb-2">No camp deployed.</span><button onclick="Admin.action('force-camp')" class="btn border-yellow-500 text-yellow-500 w-full text-sm">FORCE DEPLOY (Lvl 1)</button>`;
+            container.innerHTML = `
+                <span class="text-gray-500 italic block mb-2">No camp deployed.</span>
+                <button onclick="Admin.action('force-camp')" class="btn border-yellow-500 text-yellow-500 w-full text-sm">FORCE DEPLOY (Lvl 1)</button>
+            `;
             return;
         }
-        container.innerHTML = `<div class="grid grid-cols-2 gap-4"><div><label class="block text-xs text-green-600 mb-1">LEVEL</label><input type="number" value="${d.camp.level || 1}" class="text-2xl font-bold w-20 text-center" onchange="Admin.saveVal('camp/level', this.value)"></div><div><label class="block text-xs text-green-600 mb-1">LOCATION</label><div class="text-xs text-gray-500">Sector: ${d.camp.sector.x},${d.camp.sector.y}</div></div></div><button onclick="Admin.action('destroy-camp')" class="btn btn-danger w-full mt-4">DESTROY CAMP</button>`;
+
+        container.innerHTML = `
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-green-600 mb-1">LEVEL</label>
+                    <input type="number" value="${d.camp.level || 1}" class="text-2xl font-bold w-20 text-center"
+                        onchange="Admin.saveVal('camp/level', this.value)">
+                </div>
+                <div>
+                    <label class="block text-xs text-green-600 mb-1">LOCATION</label>
+                    <div class="text-xs text-gray-500">Sector: ${d.camp.sector.x},${d.camp.sector.y}</div>
+                </div>
+            </div>
+            <button onclick="Admin.action('destroy-camp')" class="btn btn-danger w-full mt-4">DESTROY CAMP</button>
+        `;
     },
 
     fillWorld: function(d) {
@@ -596,25 +693,39 @@ const Admin = {
         document.getElementById('view-sector').textContent = `${sx},${sy}`;
         document.getElementById('tele-x').value = sx;
         document.getElementById('tele-y').value = sy;
+
         const qList = document.getElementById('quest-list');
         qList.innerHTML = '';
+        
         const active = d.activeQuests || d.quests || [];
         const completed = d.completedQuests || [];
+        
         if(active.length === 0 && completed.length === 0) {
             qList.innerHTML = '<div class="text-gray-500 italic">No quest data found.</div>';
         }
+        
         active.forEach(q => {
             const id = q.id || q;
             const progress = q.progress !== undefined ? `${q.progress}/${q.max}` : '?';
             const div = document.createElement('div');
             div.className = "flex justify-between border-b border-[#1a331a] p-2 text-sm bg-yellow-900/20";
-            div.innerHTML = `<div><span class="font-bold text-yellow-400">${id}</span><div class="text-xs opacity-70">Progress: ${progress}</div></div><span class="text-yellow-500 text-xs">ACTIVE</span>`;
+            div.innerHTML = `
+                <div>
+                    <span class="font-bold text-yellow-400">${id}</span>
+                    <div class="text-xs opacity-70">Progress: ${progress}</div>
+                </div>
+                <span class="text-yellow-500 text-xs">ACTIVE</span>
+            `;
             qList.appendChild(div);
         });
+
         completed.forEach(qid => {
             const div = document.createElement('div');
             div.className = "flex justify-between border-b border-[#1a331a] p-2 text-sm opacity-60";
-            div.innerHTML = `<span class="text-gray-400">${qid}</span><span class="text-green-500 text-xs">DONE</span>`;
+            div.innerHTML = `
+                <span class="text-gray-400">${qid}</span>
+                <span class="text-green-500 text-xs">DONE</span>
+            `;
             qList.appendChild(div);
         });
     },
@@ -629,10 +740,12 @@ const Admin = {
         });
         const btn = document.getElementById('tab-btn-' + id);
         if(btn) btn.classList.replace('inactive-tab', 'active-tab');
+        
         ['general', 'stats', 'inv', 'camp', 'world', 'raw'].forEach(t => {
             const el = document.getElementById('tab-' + t);
             if(el) el.classList.add('hidden');
         });
+        
         const target = document.getElementById('tab-' + id);
         if(target) target.classList.remove('hidden');
     },
@@ -653,29 +766,28 @@ const Admin = {
         if(!this.currentPath) return;
         const updates = {};
         const p = this.currentPath;
-        const performUpdate = () => { Network.db.ref(p).update(updates); };
 
         if (type === 'heal') {
             updates['hp'] = this.currentUserData.maxHp || 100;
             updates['rads'] = 0;
             updates['isGameOver'] = false;
-            performUpdate();
+            Network.db.ref(p).update(updates);
         }
         else if (type === 'de-rad') {
             updates['rads'] = 0;
-            performUpdate();
+            Network.db.ref(p).update(updates);
         }
         else if (type === 'kill') {
             this.confirm("KILL PLAYER", "Dies setzt HP auf 0 und beendet das Spiel des Spielers.", () => {
                 updates['hp'] = 0;
                 updates['isGameOver'] = true;
-                performUpdate();
+                Network.db.ref(p).update(updates);
             });
         }
         else if (type === 'revive') {
             updates['hp'] = 10;
             updates['isGameOver'] = false;
-            performUpdate();
+            Network.db.ref(p).update(updates);
         }
         else if (type === 'delete') {
             this.confirm("DELETE SAVE", "Savegame permanent löschen?", () => {
@@ -690,7 +802,7 @@ const Admin = {
                 updates['sector'] = {x: 4, y: 4};
                 updates['player'] = {x: 100, y: 100}; 
                 updates['view'] = 'map';
-                performUpdate();
+                Network.db.ref(p).update(updates);
             });
         }
         else if (type === 'destroy-camp') {
@@ -701,8 +813,13 @@ const Admin = {
         else if (type === 'force-camp') {
             const sec = this.currentUserData.sector || {x:4, y:4};
             const pos = this.currentUserData.player || {x:100, y:100};
-            updates['camp'] = { sector: sec, x: pos.x, y: pos.y, level: 1 };
-            performUpdate();
+            updates['camp'] = {
+                sector: sec,
+                x: pos.x,
+                y: pos.y,
+                level: 1
+            };
+            Network.db.ref(p).update(updates);
         }
     },
 
@@ -715,8 +832,11 @@ const Admin = {
 
     invUpdate: function(idx, val) {
         val = Number(val);
-        if(val <= 0) { this.invDelete(idx); } 
-        else { Network.db.ref(`${this.currentPath}/inventory/${idx}/count`).set(val); }
+        if(val <= 0) {
+            this.invDelete(idx);
+        } else {
+            Network.db.ref(`${this.currentPath}/inventory/${idx}/count`).set(val);
+        }
     },
 
     invDelete: function(idx) {
@@ -731,6 +851,7 @@ const Admin = {
         this.confirm("UNEQUIP", `${slot} ablegen? (Wird ins Inventar verschoben)`, () => {
             const item = this.currentUserData.equip[slot];
             if(!item) return;
+            
             const inv = [...(this.currentUserData.inventory || [])];
             inv.push({id: item.id, count: 1, props: item.props});
             Network.db.ref(this.currentPath + '/inventory').set(inv);
