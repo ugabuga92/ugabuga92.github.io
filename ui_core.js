@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-13 13:00:00 - ui_core.js - CLEANUP: Master Loop & Logic Separation
+// [2026-01-13 14:00:00] ui_core.js - CLEANUP: Logic Core
 
 const UI = {
     els: {},
@@ -35,8 +35,7 @@ const UI = {
             }
         }
         
-        // 2. UI Rendering aufrufen (falls vorhanden)
-        // Das trennt die Logik (hier) von der Grafik (ui_render_core.js)
+        // 2. UI Rendering aufrufen (Trennung von Logik & Grafik)
         if(typeof this.render === 'function') {
             this.render();
         }
