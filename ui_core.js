@@ -1,4 +1,4 @@
-// [2026-01-13 17:00:00] ui_core.js - Fixed AFK Logic (Robust Login Check)
+// [TIMESTAMP] 2026-01-13 18:30:00 - ui_core.js - Fixed AFK Logout View Transition (Hide CharSelect)
 
 const UI = {
     els: {},
@@ -282,10 +282,7 @@ const UI = {
     },
 
     update: function() {
-        // FIX: Bessere Prüfung ob wir eingeloggt sind.
-        // 1. Prüfen ob der Login Screen weg ist (Style OR Class 'hidden')
-        // 2. Prüfen ob wir technisch authentifiziert sind (Network.myId)
-        
+        // Robust Check for Active Session
         const loginScreen = this.els.loginScreen;
         const isLoginHidden = loginScreen && (loginScreen.style.display === 'none' || loginScreen.classList.contains('hidden'));
         const isAuth = (typeof Network !== 'undefined' && Network.myId);
@@ -432,9 +429,16 @@ const UI = {
 
         if(typeof Network !== 'undefined') Network.disconnect();
         
+        // HIER DER FIX: Alle anderen Screens explizit verstecken
         this.els.gameScreen.classList.add('hidden');
+        
+        if(this.els.charSelectScreen) this.els.charSelectScreen.style.display = 'none'; 
+        if(this.els.newCharOverlay) this.els.newCharOverlay.classList.add('hidden');
+        if(this.els.deleteOverlay) this.els.deleteOverlay.style.display = 'none';
+        if(this.els.spawnScreen) this.els.spawnScreen.style.display = 'none';
+        // -----------------------------------------------------------
+
         this.els.loginScreen.style.display = 'flex';
-        // Falls vorher hidden Klasse drauf war, entfernen:
         this.els.loginScreen.classList.remove('hidden');
         
         this.els.loginStatus.textContent = msg || "AUSGELOGGT";
