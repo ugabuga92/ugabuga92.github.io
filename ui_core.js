@@ -1,4 +1,4 @@
-// [2026-01-13 14:00:00] ui_core.js - CLEANUP: Logic Core
+// [TIMESTAMP] 2026-01-13 18:30:00 - ui_core.js - Fixed AFK Logout View Transition (Hide CharSelect)
 
 const UI = {
     els: {},
@@ -19,60 +19,74 @@ const UI = {
     focusableEls: [],
     inputMethod: 'touch', 
 
-    // --- MAIN LOOP (LOGIC ONLY) ---
-    update: function() {
-        // 1. AFK Logic / Session Check
-        const loginScreen = this.els.loginScreen || document.getElementById('login-screen');
-        const isLoginHidden = loginScreen && (loginScreen.style.display === 'none' || loginScreen.classList.contains('hidden'));
-        const isAuth = (typeof Network !== 'undefined' && Network.myId);
-
-        if (isLoginHidden && isAuth) {
-            // 300000 ms = 5 Minuten Inaktivität
-            if(Date.now() - this.lastInputTime > 300000) { 
-                console.log("AFK Trigger: Zeitüberschreitung.");
-                this.logout("AFK: ZEITÜBERSCHREITUNG");
-                return; // Loop unterbrechen
-            }
-        }
-        
-        // 2. UI Rendering aufrufen (Trennung von Logik & Grafik)
-        if(typeof this.render === 'function') {
-            this.render();
-        }
-
-        // 3. Sub-View Updates (z.B. Charakter Stats live berechnen)
-        if(typeof this.renderChar === 'function' && this.charTab === 'status') {
-             this.renderChar();
-        }
-    },
-
-    // --- LOGGING / TOASTS ---
+    // --- NEW LOG SYSTEM (TOASTS) ---
     log: function(message, colorClass = "text-green-500") {
         const container = this.els.toastContainer || document.getElementById('game-toast-container');
-        if(!container) { console.log(`[LOG]: ${message}`); return; }
+        if(!container) {
+            console.log(`[LOG BACKUP]: ${message}`); 
+            return;
+        }
 
+        // Style Definition basierend auf Textfarbe
         let borderColor = "border-green-500"; 
         let icon = "ℹ️"; 
 
-        if(colorClass.includes("red")) { borderColor = "border-red-600"; icon = "⚠️"; }
-        else if(colorClass.includes("yellow") || colorClass.includes("orange")) { borderColor = "border-yellow-500"; icon = "⚡"; }
-        else if(colorClass.includes("blue") || colorClass.includes("cyan")) { borderColor = "border-blue-500"; icon = "💾"; }
-        else if(colorClass.includes("gray")) { borderColor = "border-gray-500"; icon = "📝"; }
+        if(colorClass.includes("red")) { 
+            borderColor = "border-red-600"; 
+            icon = "⚠️"; 
+        }
+        else if(colorClass.includes("yellow") || colorClass.includes("orange")) { 
+            borderColor = "border-yellow-500"; 
+            icon = "⚡"; 
+        }
+        else if(colorClass.includes("blue") || colorClass.includes("cyan")) { 
+            borderColor = "border-blue-500"; 
+            icon = "💾"; 
+        }
+        else if(colorClass.includes("gray")) {
+            borderColor = "border-gray-500";
+            icon = "📝";
+        }
 
         const el = document.createElement('div');
-        el.className = `pointer-events-auto bg-black/95 border-l-4 ${borderColor} p-3 shadow-[0_0_15px_rgba(0,0,0,0.8)] animate-slide-in flex items-start justify-between transition-all duration-500 ease-out mb-1 backdrop-blur-sm`;
+        
+        el.className = `
+            pointer-events-auto 
+            bg-black/95 
+            border-l-4 ${borderColor} 
+            p-3 
+            shadow-[0_0_15px_rgba(0,0,0,0.8)] 
+            animate-slide-in 
+            flex items-start justify-between
+            transition-all duration-500 ease-out
+            mb-1 backdrop-blur-sm
+        `;
+
         el.innerHTML = `
             <div class="flex items-center gap-3 pr-4">
                 <span class="text-lg opacity-80 select-none">${icon}</span>
-                <span class="font-mono text-sm md:text-base font-bold ${colorClass} tracking-wide drop-shadow-md">${message}</span>
+                <span class="font-mono text-sm md:text-base font-bold ${colorClass} tracking-wide drop-shadow-md">
+                    ${message}
+                </span>
             </div>
             <button class="text-gray-600 hover:text-white font-bold text-xs self-start mt-1 px-1">✕</button>
         `;
 
-        el.querySelector('button').onclick = () => { el.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => el.remove(), 300); };
-        container.insertBefore(el, container.firstChild);
-        if (container.children.length > 5) { const last = container.lastElementChild; if(last) last.remove(); }
+        el.querySelector('button').onclick = () => {
+            el.classList.add('opacity-0', 'translate-x-full');
+            setTimeout(() => el.remove(), 300);
+        };
 
+        // Oben einfügen
+        container.insertBefore(el, container.firstChild);
+
+        // Limitierung
+        if (container.children.length > 5) {
+            const last = container.lastElementChild;
+            if(last) last.remove();
+        }
+
+        // Auto-Close Timer
         const duration = colorClass.includes("red") ? 6000 : 4000;
         setTimeout(() => {
             if(document.body.contains(el)) {
@@ -88,89 +102,304 @@ const UI = {
         this.openBugModal(msg);
     },
 
-    // --- INIT ---
+    showCombatEffect: function(mainText, subText, color="red", duration=1000) {
+        const view = document.getElementById('view-container');
+        if(!view) return;
+
+        const el = document.createElement('div');
+        el.className = "click-effect-overlay"; 
+        el.style.animation = `clickEffectAnim ${duration/1000}s ease-out forwards`;
+
+        el.innerHTML = `
+            <div class="click-effect-text" style="color:${color}; text-shadow: 0 0 20px ${color}">${mainText}</div>
+            <div class="click-effect-sub" style="border-color:${color}">${subText}</div>
+        `;
+        view.appendChild(el);
+        setTimeout(() => { if(el) el.remove(); }, duration);
+    },
+
+    // --- ALERT HANDLING ---
+    triggerInventoryAlert: function() {
+        if(this.els.btnInv) this.els.btnInv.classList.add('alert-glow-yellow');
+        if(this.els.btnMenu) this.els.btnMenu.classList.add('alert-glow-yellow');
+    },
+
+    resetInventoryAlert: function() {
+        if(this.els.btnInv) this.els.btnInv.classList.remove('alert-glow-yellow');
+        if(this.els.btnMenu) this.els.btnMenu.classList.remove('alert-glow-yellow');
+    },
+
+    // --- BUG REPORT MODAL ---
+    openBugModal: function(autoErrorMsg = null) {
+        if(document.getElementById('bug-report-overlay')) return;
+        if(this.els.navMenu) this.els.navMenu.classList.add('hidden');
+
+        const title = autoErrorMsg ? "⚠️ SYSTEMFEHLER ERKANNT" : "🐞 BUG MELDEN";
+        const subText = autoErrorMsg 
+            ? `CODE: "${autoErrorMsg}"` 
+            : "Fehler gefunden? Beschreibe ihn kurz:";
+        
+        const overlay = document.createElement('div');
+        overlay.id = 'bug-report-overlay';
+        overlay.className = "fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-4";
+        
+        overlay.innerHTML = `
+            <div class="bg-[#051105] border-2 border-red-600 p-6 rounded shadow-[0_0_30px_red] max-w-md w-full relative">
+                <h2 class="text-2xl text-red-500 font-bold mb-2 font-vt323 tracking-widest">${title}</h2>
+                <div class="text-red-300 text-sm font-mono mb-4 border-b border-red-900 pb-2">
+                    ${subText}
+                </div>
+                
+                <label class="block text-green-500 text-sm mb-1 uppercase tracking-wider">Beschreibung</label>
+                <textarea id="bug-desc" class="w-full bg-black border border-green-700 text-green-400 p-2 font-mono text-sm h-24 focus:border-green-400 outline-none mb-4" placeholder="Was ist passiert?"></textarea>
+                
+                <div class="flex gap-2">
+                    <button id="btn-bug-send" class="flex-1 bg-red-900/30 border border-red-500 text-red-400 py-2 font-bold hover:bg-red-500 hover:text-black transition-all uppercase">
+                        REPORT SENDEN
+                    </button>
+                    <button id="btn-bug-close" class="px-4 border border-gray-600 text-gray-500 hover:text-white transition-all uppercase">
+                        ABBRECHEN
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        const textArea = document.getElementById('bug-desc');
+        if(textArea) {
+            textArea.focus();
+            const stopPropagation = (e) => e.stopPropagation();
+            textArea.addEventListener('keydown', stopPropagation);
+            textArea.addEventListener('keyup', stopPropagation);
+            textArea.addEventListener('keypress', stopPropagation);
+        }
+
+        document.getElementById('btn-bug-close').onclick = () => overlay.remove();
+        
+        document.getElementById('btn-bug-send').onclick = () => {
+            const desc = document.getElementById('bug-desc').value;
+            const errorType = autoErrorMsg || "Manuelle Meldung";
+            this.saveBugReport(errorType, desc);
+            overlay.remove();
+        };
+    },
+
+    saveBugReport: async function(errorMsg, userDesc) {
+        const playerName = (Game.state && Game.state.playerName) ? Game.state.playerName : "Unbekannt/Login";
+        
+        const report = {
+            timestamp: new Date().toISOString(),
+            playerName: playerName,
+            error: errorMsg,
+            description: userDesc || "Keine Beschreibung",
+            gameState: {
+                view: Game.state ? Game.state.view : 'null',
+                sector: Game.state ? `${Game.state.sector.x},${Game.state.sector.y}` : 'null',
+                caps: Game.state ? Game.state.caps : 0,
+                lvl: Game.state ? Game.state.lvl : 0
+            },
+            userAgent: navigator.userAgent
+        };
+
+        this.log("Sende Fehlerbericht an Vault-Tec...", "text-yellow-400 blink-red");
+
+        let sent = false;
+        if (typeof Network !== 'undefined' && Network.sendBugReport) {
+            sent = await Network.sendBugReport(report);
+        }
+
+        if (sent) {
+            this.log("✅ Bericht erfolgreich übertragen.", "text-green-400 font-bold");
+        } else {
+            this.log("❌ Bug report aktuell nicht möglich.", "text-red-500 font-bold");
+            console.warn("Bug Report Senden fehlgeschlagen.");
+        }
+    },
+
+    showMobileControlsHint: function() {
+        if(document.getElementById('controls-overlay')) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'controls-overlay';
+        overlay.className = "fixed inset-0 z-[9000] bg-black/95 flex flex-col items-center justify-center p-6 text-center";
+        
+        overlay.innerHTML = `
+            <div class="border-2 border-green-500 p-6 max-w-sm w-full shadow-[0_0_20px_#1aff1a] bg-[#001100]">
+                <div class="text-4xl mb-4">📱</div>
+                <h2 class="text-2xl text-green-400 font-bold mb-4 font-vt323 tracking-widest border-b border-green-800 pb-2">STEUERUNG</h2>
+                
+                <div class="text-green-300 font-mono text-sm space-y-4 text-left mb-6">
+                    <div class="flex items-start gap-3">
+                        <span class="text-xl">👆</span>
+                        <div>
+                            <strong class="text-green-100">TIPPEN:</strong><br>
+                            Bewegen / Interagieren / Angreifen
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="text-xl">📄</span>
+                        <div>
+                            <strong class="text-green-100">MENÜ:</strong><br>
+                            Burger-Icon (☰) oben rechts für Inventar & Charakter.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-green-800 pt-4 mt-4">
+                    <h3 class="text-red-500 font-bold mb-2 animate-pulse">⚠️ WARNUNG: PERMADEATH</h3>
+                    <p class="text-red-400 text-xs font-mono leading-relaxed">
+                        In diesem Modus ist der Tod endgültig.<br>
+                        Stirbt dein Charakter, wird der Spielstand <span class="underline">automatisch gelöscht</span>.
+                    </p>
+                </div>
+
+                <button id="btn-close-controls" class="mt-6 w-full border-2 border-green-500 text-green-500 py-3 font-bold hover:bg-green-900 transition-colors uppercase tracking-widest">
+                    VERSTANDEN
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+        
+        document.getElementById('btn-close-controls').onclick = () => {
+            overlay.remove();
+        };
+    },
+    
+    setConnectionState: function(status) {
+        const v = this.els.version;
+        if(!v) return;
+        if(status === 'online') {
+            v.className = "text-[#39ff14] font-bold tracking-widest";
+            v.style.textShadow = "0 0 5px #39ff14";
+        } else if (status === 'offline') {
+            v.className = "text-red-500 font-bold tracking-widest";
+            v.style.textShadow = "0 0 5px red";
+        } else {
+            v.className = "text-yellow-400 font-bold tracking-widest animate-pulse";
+        }
+    },
+
+    update: function() {
+        // Robust Check for Active Session
+        const loginScreen = this.els.loginScreen;
+        const isLoginHidden = loginScreen && (loginScreen.style.display === 'none' || loginScreen.classList.contains('hidden'));
+        const isAuth = (typeof Network !== 'undefined' && Network.myId);
+
+        if (isLoginHidden && isAuth) {
+            // Auto Logout bei Inaktivität (300000ms = 5 Minuten)
+            if(Date.now() - this.lastInputTime > 300000) { 
+                console.log("AFK Trigger: Logout initiiert.");
+                this.logout("AFK: ZEITÜBERSCHREITUNG");
+            }
+        }
+        
+        // Platzhalter für UI Updates
+        if(typeof this.renderChar === 'function' && this.charTab === 'status') this.renderChar();
+    },
+
     init: function() {
-        // Element Caching
         this.els = {
             touchArea: document.getElementById('main-content'),
             view: document.getElementById('view-container'),
             toastContainer: document.getElementById('game-toast-container'), 
-            hp: document.getElementById('val-hp'), hpBar: document.getElementById('bar-hp'),
+            hp: document.getElementById('val-hp'),
+            hpBar: document.getElementById('bar-hp'),
             expBarTop: document.getElementById('bar-exp-top'),
-            lvl: document.getElementById('val-lvl'), xpTxt: document.getElementById('val-xp-txt'),
-            caps: document.getElementById('val-caps'), name: document.getElementById('val-name'),
+            lvl: document.getElementById('val-lvl'),
+            xpTxt: document.getElementById('val-xp-txt'),
+            caps: document.getElementById('val-caps'),
+            name: document.getElementById('val-name'),
             headerCharInfo: document.getElementById('header-char-info'),
             version: document.getElementById('version-display'),
             joyBase: null, joyStick: null,
             dialog: document.getElementById('dialog-overlay'),
             
-            // Buttons
-            btnNew: document.getElementById('btn-new'), btnInv: document.getElementById('btn-inv'),
-            btnWiki: document.getElementById('btn-wiki'), btnMap: document.getElementById('btn-map'),
-            btnChar: document.getElementById('btn-char'), btnQuests: document.getElementById('btn-quests'),
-            btnBugReport: document.getElementById('btn-bug-report'),
-            btnMenuSave: document.getElementById('btn-menu-save'), btnLogout: document.getElementById('btn-logout'),
-            btnReset: document.getElementById('btn-reset'), btnMenu: document.getElementById('btn-menu-toggle'),
+            btnNew: document.getElementById('btn-new'),
+            btnInv: document.getElementById('btn-inv'),
+            btnWiki: document.getElementById('btn-wiki'),
+            btnMap: document.getElementById('btn-map'),
+            btnChar: document.getElementById('btn-char'),
+            btnQuests: document.getElementById('btn-quests'),
             
-            // Menus
+            btnBugReport: document.getElementById('btn-bug-report'),
+            
+            btnMenuSave: document.getElementById('btn-menu-save'),
+            btnLogout: document.getElementById('btn-logout'),
+            btnReset: document.getElementById('btn-reset'),
+            btnMenu: document.getElementById('btn-menu-toggle'),
             navMenu: document.getElementById('main-nav'),
             playerCount: document.getElementById('val-players'),
             playerList: document.getElementById('player-list-overlay'),
             playerListContent: document.getElementById('player-list-content'),
             
-            // Login / Reg
-            loginScreen: document.getElementById('login-screen'), loginStatus: document.getElementById('login-status'),
-            inputEmail: document.getElementById('login-email'), inputPass: document.getElementById('login-pass'),
-            inputName: document.getElementById('login-name'), btnLogin: document.getElementById('btn-login'),
-            btnToggleRegister: document.getElementById('btn-toggle-register'), loginTitle: document.getElementById('login-title'),
+            loginScreen: document.getElementById('login-screen'),
+            loginStatus: document.getElementById('login-status'),
+            inputEmail: document.getElementById('login-email'),
+            inputPass: document.getElementById('login-pass'),
+            inputName: document.getElementById('login-name'),
+            btnLogin: document.getElementById('btn-login'),
+            btnToggleRegister: document.getElementById('btn-toggle-register'),
+            loginTitle: document.getElementById('login-title'),
             
-            // Char Select
-            charSelectScreen: document.getElementById('char-select-screen'), charSlotsList: document.getElementById('char-slots-list'),
-            newCharOverlay: document.getElementById('new-char-overlay'), inputNewCharName: document.getElementById('new-char-name'),
+            charSelectScreen: document.getElementById('char-select-screen'),
+            charSlotsList: document.getElementById('char-slots-list'),
+            newCharOverlay: document.getElementById('new-char-overlay'),
+            inputNewCharName: document.getElementById('new-char-name'),
             btnCreateCharConfirm: document.getElementById('btn-create-char'),
-            btnCharDeleteAction: document.getElementById('btn-char-delete-action'), btnCharBack: document.getElementById('btn-char-back'),
             
-            // Delete / Reset
-            deleteOverlay: document.getElementById('delete-confirm-overlay'), deleteTargetName: document.getElementById('delete-target-name'),
-            deleteInput: document.getElementById('delete-input'), btnDeleteConfirm: document.getElementById('btn-delete-confirm'),
+            btnCharDeleteAction: document.getElementById('btn-char-delete-action'),
+            btnCharBack: document.getElementById('btn-char-back'),
+            
+            deleteOverlay: document.getElementById('delete-confirm-overlay'),
+            deleteTargetName: document.getElementById('delete-target-name'),
+            deleteInput: document.getElementById('delete-input'),
+            btnDeleteConfirm: document.getElementById('btn-delete-confirm'),
             btnDeleteCancel: document.getElementById('btn-delete-cancel'),
-            resetOverlay: document.getElementById('reset-overlay'), btnConfirmReset: document.getElementById('btn-confirm-reset'),
-            btnCancelReset: document.getElementById('btn-cancel-reset'),
 
-            // Game Screens
-            spawnScreen: document.getElementById('spawn-screen'), spawnMsg: document.getElementById('spawn-msg'),
-            spawnList: document.getElementById('spawn-list'), btnSpawnRandom: document.getElementById('btn-spawn-random'),
-            gameScreen: document.getElementById('game-screen'), gameOver: document.getElementById('game-over-screen')
+            spawnScreen: document.getElementById('spawn-screen'),
+            spawnMsg: document.getElementById('spawn-msg'),
+            spawnList: document.getElementById('spawn-list'),
+            btnSpawnRandom: document.getElementById('btn-spawn-random'),
+            resetOverlay: document.getElementById('reset-overlay'),
+            btnConfirmReset: document.getElementById('btn-confirm-reset'),
+            btnCancelReset: document.getElementById('btn-cancel-reset'),
+            gameScreen: document.getElementById('game-screen'),
+            gameOver: document.getElementById('game-over-screen')
         };
         
-        // Event Listeners
-        if (this.els.btnBugReport) this.els.btnBugReport.addEventListener('click', () => this.openBugModal());
-        if(this.els.btnInv) this.els.btnInv.addEventListener('click', () => this.resetInventoryAlert());
-        if(this.els.headerCharInfo) this.els.headerCharInfo.addEventListener('click', () => this.switchView('char'));
+        if (this.els.btnBugReport) {
+            this.els.btnBugReport.addEventListener('click', () => {
+                this.openBugModal();
+            });
+        }
+
+        if(this.els.btnInv) {
+             this.els.btnInv.addEventListener('click', () => this.resetInventoryAlert());
+        }
+
+        if(this.els.headerCharInfo) {
+            this.els.headerCharInfo.addEventListener('click', () => {
+                this.switchView('char'); 
+            });
+        }
 
         window.Game = Game;
         window.UI = this;
 
         if(this.initInput) this.initInput();
         
-        // GLOBAL LOOP START
+        // Loop startet den Update-Zyklus
         setInterval(() => {
             if(this.update) this.update();
         }, 1000);
     },
-    
-    // --- HELPER FUNCTIONS ---
-    isMobile: function() { return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0); },
 
-    setConnectionState: function(status) {
-        const v = this.els.version;
-        if(!v) return;
-        if(status === 'online') { v.className = "text-[#39ff14] font-bold tracking-widest"; v.style.textShadow = "0 0 5px #39ff14"; }
-        else if (status === 'offline') { v.className = "text-red-500 font-bold tracking-widest"; v.style.textShadow = "0 0 5px red"; }
-        else { v.className = "text-yellow-400 font-bold tracking-widest animate-pulse"; }
+    isMobile: function() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
     },
-    
-    // --- CORE ACTIONS (Start, Logout, Login) ---
+
     startGame: function(saveData, slotIndex, newName=null) {
         this.charSelectMode = false;
         this.els.charSelectScreen.style.display = 'none';
@@ -178,9 +407,13 @@ const UI = {
         this.els.gameScreen.classList.remove('opacity-0');
         
         const isNewGame = !saveData;
+
         Game.init(saveData, null, slotIndex, newName);
         
-        if(this.isMobile() && isNewGame) this.showMobileControlsHint();
+        if(this.isMobile() && isNewGame) {
+            this.showMobileControlsHint();
+        }
+        
         if(typeof Network !== 'undefined') Network.startPresence();
     },
 
@@ -189,17 +422,22 @@ const UI = {
         this.selectedSlot = -1; 
         this.charSelectMode = false; 
         
-        if(Game.state) { Game.saveGame(true); Game.state = null; }
+        if(Game.state) {
+            Game.saveGame(true); 
+            Game.state = null;
+        }
+
         if(typeof Network !== 'undefined') Network.disconnect();
         
-        // CLEANUP VIEWS
+        // HIER DER FIX: Alle anderen Screens explizit verstecken
         this.els.gameScreen.classList.add('hidden');
+        
         if(this.els.charSelectScreen) this.els.charSelectScreen.style.display = 'none'; 
         if(this.els.newCharOverlay) this.els.newCharOverlay.classList.add('hidden');
         if(this.els.deleteOverlay) this.els.deleteOverlay.style.display = 'none';
         if(this.els.spawnScreen) this.els.spawnScreen.style.display = 'none';
+        // -----------------------------------------------------------
 
-        // SHOW LOGIN
         this.els.loginScreen.style.display = 'flex';
         this.els.loginScreen.classList.remove('hidden');
         
@@ -213,13 +451,13 @@ const UI = {
 
     attemptLogin: async function() {
         if(!this.isSystemReady) {
-            this.els.loginStatus.textContent = "SYSTEM INITIALIZING...";
+            this.els.loginStatus.textContent = "SYSTEM INITIALIZING... PLEASE WAIT";
             this.els.loginStatus.className = "mt-4 text-blue-400 animate-pulse";
             return;
         }
+
         if(this.loginBusy) return;
         this.loginBusy = true;
-        
         const email = this.els.inputEmail.value.trim();
         const pass = this.els.inputPass.value.trim();
         const name = this.els.inputName ? this.els.inputName.value.trim().toUpperCase() : "";
@@ -235,7 +473,7 @@ const UI = {
                 if (email.length < 5 || pass.length < 6 || name.length < 3) throw new Error("Daten unvollständig (PW min 6, Name min 3)");
                 saves = await Network.register(email, pass, name);
             } else {
-                if (email.length < 5 || pass.length < 1) throw new Error("Bitte Daten eingeben");
+                if (email.length < 5 || pass.length < 1) throw new Error("Bitte E-Mail und Passwort eingeben");
                 saves = await Network.login(email, pass);
             }
             
@@ -244,10 +482,11 @@ const UI = {
             
         } catch(e) {
             let msg = e.message;
-            if(msg && (msg.includes("INVALID_LOGIN") || msg.includes("INVALID_EMAIL"))) msg = "Zugangsdaten ungültig!";
-            else if (e.code === "auth/email-already-in-use") msg = "E-Mail vergeben!";
+            if(msg && (msg.includes("INVALID_LOGIN_CREDENTIALS") || msg.includes("INVALID_EMAIL"))) msg = "E-Mail oder Passwort falsch!";
+            else if (e.code === "auth/email-already-in-use") msg = "E-Mail wird bereits verwendet!";
+            else if (e.code === "auth/invalid-email") msg = "Ungültige E-Mail-Adresse!";
             else if (e.code === "auth/wrong-password") msg = "Falsches Passwort!";
-            else if (e.code === "auth/user-not-found") msg = "Account nicht gefunden!";
+            else if (e.code === "auth/user-not-found") msg = "Benutzer nicht gefunden!";
 
             this.els.loginStatus.textContent = "FEHLER: " + msg;
             this.els.loginStatus.className = "mt-4 text-red-500 font-bold blink-red";
@@ -256,7 +495,6 @@ const UI = {
         }
     },
 
-    // --- DIALOGS & ALERTS ---
     handleSaveClick: function() {
         Game.saveGame(true);
         [this.els.btnSave, this.els.btnMenuSave].forEach(btn => {
@@ -265,36 +503,55 @@ const UI = {
             const originalClass = btn.className;
             btn.textContent = "SAVED!";
             btn.className = "header-btn bg-[#39ff14] text-black border-[#39ff14] w-full text-left";
-            setTimeout(() => { btn.textContent = originalText; btn.className = originalClass; }, 1000);
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.className = originalClass;
+            }, 1000);
         });
     },
 
     handleReset: function() {
-        if(this.els.navMenu) { this.els.navMenu.classList.add('hidden'); this.els.navMenu.style.display = 'none'; }
+        if(this.els.navMenu) {
+            this.els.navMenu.classList.add('hidden');
+            this.els.navMenu.style.display = 'none';
+        }
         if(this.els.resetOverlay) this.els.resetOverlay.style.display = 'flex';
     },
+    
     confirmReset: function() { if(typeof Game !== 'undefined') Game.hardReset(); },
     cancelReset: function() { if(this.els.resetOverlay) this.els.resetOverlay.style.display = 'none'; },
 
     selectSpawn: function(mode) {
         this.els.spawnScreen.style.display = 'none';
-        if(mode === 'random') this.startGame(null, this.selectedSlot, null);
+        if(mode === 'random') {
+            this.startGame(null, this.selectedSlot, null);
+        }
     },
     
-    // --- SLOT MANAGEMENT ---
     selectSlot: function(index) {
-        if(this.selectedSlot === index) { this.triggerCharSlot(); return; }
+        if(this.selectedSlot === index) {
+            this.triggerCharSlot();
+            return;
+        }
+
         this.selectedSlot = index;
         if(this.els.charSlotsList && this.els.charSlotsList.children) {
             const slots = this.els.charSlotsList.children;
-            for(let i=0; i<slots.length; i++) slots[i].classList.remove('active-slot');
+            for(let i=0; i<slots.length; i++) {
+                slots[i].classList.remove('active-slot');
+            }
             if(slots[index]) slots[index].classList.add('active-slot');
         }
+        
         const save = this.currentSaves ? this.currentSaves[index] : null;
         if (this.els.btnCharDeleteAction) {
-            this.els.btnCharDeleteAction.disabled = !save;
-            if(save) this.els.btnCharDeleteAction.classList.remove('opacity-50', 'cursor-not-allowed');
-            else this.els.btnCharDeleteAction.classList.add('opacity-50', 'cursor-not-allowed');
+            if (save) {
+                this.els.btnCharDeleteAction.disabled = false;
+                this.els.btnCharDeleteAction.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                this.els.btnCharDeleteAction.disabled = true;
+                this.els.btnCharDeleteAction.classList.add('opacity-50', 'cursor-not-allowed');
+            }
         }
     },
 
@@ -308,8 +565,9 @@ const UI = {
     triggerCharSlot: function() {
         if(this.selectedSlot === -1) return;
         const save = this.currentSaves[this.selectedSlot];
-        if(save) { this.startGame(save, this.selectedSlot); }
-        else {
+        if(save) {
+            this.startGame(save, this.selectedSlot);
+        } else {
             this.els.newCharOverlay.classList.remove('hidden');
             this.els.inputNewCharName.value = "";
             this.els.inputNewCharName.focus();
@@ -337,101 +595,14 @@ const UI = {
     },
 
     showGameOver: function() {
-        if (this.els.gameOver) this.els.gameOver.classList.remove('hidden');
-        Game.selectedSlot = -1; Game.state = null; 
-        console.log("GameOver: State vernichtet.");
-    },
-
-    // --- MODALS ---
-    openBugModal: function(autoErrorMsg = null) {
-        if(document.getElementById('bug-report-overlay')) return;
-        if(this.els.navMenu) this.els.navMenu.classList.add('hidden');
-
-        const title = autoErrorMsg ? "⚠️ SYSTEMFEHLER ERKANNT" : "🐞 BUG MELDEN";
-        const subText = autoErrorMsg ? `CODE: "${autoErrorMsg}"` : "Fehler gefunden? Beschreibe ihn kurz:";
-        
-        const overlay = document.createElement('div');
-        overlay.id = 'bug-report-overlay';
-        overlay.className = "fixed inset-0 z-[9999] bg-black/90 flex flex-col items-center justify-center p-4";
-        
-        overlay.innerHTML = `
-            <div class="bg-[#051105] border-2 border-red-600 p-6 rounded shadow-[0_0_30px_red] max-w-md w-full relative">
-                <h2 class="text-2xl text-red-500 font-bold mb-2 font-vt323 tracking-widest">${title}</h2>
-                <div class="text-red-300 text-sm font-mono mb-4 border-b border-red-900 pb-2">${subText}</div>
-                <label class="block text-green-500 text-sm mb-1 uppercase tracking-wider">Beschreibung</label>
-                <textarea id="bug-desc" class="w-full bg-black border border-green-700 text-green-400 p-2 font-mono text-sm h-24 focus:border-green-400 outline-none mb-4" placeholder="Was ist passiert?"></textarea>
-                <div class="flex gap-2">
-                    <button id="btn-bug-send" class="flex-1 bg-red-900/30 border border-red-500 text-red-400 py-2 font-bold hover:bg-red-500 hover:text-black transition-all uppercase">SENDEN</button>
-                    <button id="btn-bug-close" class="px-4 border border-gray-600 text-gray-500 hover:text-white transition-all uppercase">ABBRECHEN</button>
-                </div>
-            </div>`;
-
-        document.body.appendChild(overlay);
-        const textArea = document.getElementById('bug-desc');
-        if(textArea) {
-            textArea.focus();
-            const stopPropagation = (e) => e.stopPropagation();
-            textArea.addEventListener('keydown', stopPropagation);
-            textArea.addEventListener('keyup', stopPropagation);
+        if (this.els.gameOver) {
+            this.els.gameOver.classList.remove('hidden');
         }
-        document.getElementById('btn-bug-close').onclick = () => overlay.remove();
-        document.getElementById('btn-bug-send').onclick = () => {
-            const desc = document.getElementById('bug-desc').value;
-            this.saveBugReport(autoErrorMsg || "Manuelle Meldung", desc);
-            overlay.remove();
-        };
+        Game.selectedSlot = -1; 
+        Game.state = null; 
+        console.log("GameOver: State vernichtet, Slot entkoppelt.");
     },
-
-    saveBugReport: async function(errorMsg, userDesc) {
-        const playerName = (Game.state && Game.state.playerName) ? Game.state.playerName : "Unbekannt/Login";
-        const report = {
-            timestamp: new Date().toISOString(), playerName: playerName, error: errorMsg,
-            description: userDesc || "Keine Beschreibung",
-            gameState: { view: Game.state ? Game.state.view : 'null', lvl: Game.state ? Game.state.lvl : 0 },
-            userAgent: navigator.userAgent
-        };
-        this.log("Sende Fehlerbericht...", "text-yellow-400 blink-red");
-        let sent = false;
-        if (typeof Network !== 'undefined' && Network.sendBugReport) { sent = await Network.sendBugReport(report); }
-        if (sent) this.log("✅ Bericht gesendet.", "text-green-400 font-bold");
-        else { this.log("❌ Senden fehlgeschlagen.", "text-red-500 font-bold"); }
-    },
-
-    showMobileControlsHint: function() {
-        if(document.getElementById('controls-overlay')) return;
-        const overlay = document.createElement('div');
-        overlay.id = 'controls-overlay';
-        overlay.className = "fixed inset-0 z-[9000] bg-black/95 flex flex-col items-center justify-center p-6 text-center";
-        overlay.innerHTML = `
-            <div class="border-2 border-green-500 p-6 max-w-sm w-full shadow-[0_0_20px_#1aff1a] bg-[#001100]">
-                <div class="text-4xl mb-4">📱</div>
-                <h2 class="text-2xl text-green-400 font-bold mb-4 font-vt323 tracking-widest border-b border-green-800 pb-2">STEUERUNG</h2>
-                <div class="text-green-300 font-mono text-sm space-y-4 text-left mb-6">
-                    <div><strong class="text-green-100">👆 TIPPEN:</strong> Bewegen / Interagieren</div>
-                    <div><strong class="text-green-100">📄 MENÜ:</strong> Oben rechts (☰)</div>
-                </div>
-                <div class="border-t border-green-800 pt-4 mt-4">
-                    <h3 class="text-red-500 font-bold mb-2 animate-pulse">⚠️ PERMADEATH</h3>
-                    <p class="text-red-400 text-xs font-mono">Tod = Spielstand gelöscht.</p>
-                </div>
-                <button id="btn-close-controls" class="mt-6 w-full border-2 border-green-500 text-green-500 py-3 font-bold hover:bg-green-900 transition-colors uppercase tracking-widest">VERSTANDEN</button>
-            </div>`;
-        document.body.appendChild(overlay);
-        document.getElementById('btn-close-controls').onclick = () => overlay.remove();
-    },
-
-    showInfoDialog: function(title, msg) {
-        const dialog = this.els.dialog;
-        if(!dialog) return;
-        dialog.style.display = 'flex';
-        dialog.innerHTML = `
-            <div class="bg-black/95 border-2 border-yellow-500 p-6 max-w-md shadow-[0_0_20px_#aa0] text-center" onclick="event.stopPropagation()">
-                <h2 class="text-2xl text-yellow-400 font-bold mb-4 border-b border-yellow-800 pb-2">${title}</h2>
-                <div class="text-green-300 font-mono text-sm mb-6">${msg}</div>
-                <button class="action-button w-full border-yellow-500 text-yellow-500" onclick="document.getElementById('dialog-overlay').style.display='none'">OK</button>
-            </div>
-        `;
-    }
 };
 
+window.UI = UI;
 console.log("UI Core Loaded.");
