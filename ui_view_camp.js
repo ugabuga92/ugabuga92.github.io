@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-12 17:15:00 - ui_view_camp.js - Fixed Cooking Crash on Missing Items
+// [TIMESTAMP] 2026-01-13 08:35:00 - ui_view_camp.js - Fixed Visual Overlay Glitch (Z-Index & Hiding)
 
 Object.assign(UI, {
 
@@ -63,14 +63,33 @@ Object.assign(UI, {
         const cookingView = document.getElementById('camp-cooking-view');
         const mainActions = document.getElementById('camp-main-actions');
         
+        // FIX: Referenzen auf Elemente holen, die stören könnten
+        const statusBox = document.getElementById('camp-status-box');
+        const upgradeCont = document.getElementById('camp-upgrade-container');
+        
         if(cookingView && mainActions) {
             if(this.campMode === 'cooking') {
                 cookingView.classList.remove('hidden');
+                // FIX: Hintergrund und Z-Index setzen, damit nichts durchscheint
+                cookingView.classList.add('bg-gray-900', 'z-50');
+                
                 mainActions.classList.add('hidden');
+                
+                // FIX: Die darunterliegenden Elemente explizit ausblenden
+                if(statusBox) statusBox.classList.add('hidden');
+                if(upgradeCont) upgradeCont.classList.add('hidden');
+
                 this.renderCampCooking(false); 
             } else {
                 cookingView.classList.add('hidden');
+                // FIX: Cleanup der Klassen
+                cookingView.classList.remove('bg-gray-900', 'z-50');
+
                 mainActions.classList.remove('hidden');
+                
+                // FIX: Elemente wieder einblenden
+                if(statusBox) statusBox.classList.remove('hidden');
+                if(upgradeCont) upgradeCont.classList.remove('hidden');
             }
         }
 
@@ -90,13 +109,13 @@ Object.assign(UI, {
         if(lvl >= 10) healPct = 100;
         if(healPct > 100) healPct = 100;
 
-        const statusBox = document.getElementById('camp-status-box');
+        // statusBox reference already defined above, reusing it if visible
         if(statusBox) {
             let comfort = (lvl === 1) ? "Basis-Zelt" : (lvl >= 10 ? "Luxus-Bunker" : "Komfort-Zelt");
             statusBox.textContent = `${comfort} (Lvl ${lvl}). Heilung ${Math.floor(healPct)}%.`;
         }
 
-        const upgradeCont = document.getElementById('camp-upgrade-container');
+        // upgradeCont reference already defined above
         if(upgradeCont) {
             let upgradeText = "LAGER VERBESSERN";
             let upgradeSub = "Lädt...";
@@ -142,8 +161,21 @@ Object.assign(UI, {
             this.campMode = 'cooking';
             const cookingView = document.getElementById('camp-cooking-view');
             const mainActions = document.getElementById('camp-main-actions');
-            if(cookingView) cookingView.classList.remove('hidden');
+            
+            // FIX: Auch hier Referenzen holen zum Ausblenden
+            const statusBox = document.getElementById('camp-status-box');
+            const upgradeCont = document.getElementById('camp-upgrade-container');
+
+            if(cookingView) {
+                cookingView.classList.remove('hidden');
+                // FIX: Hintergrund und Z-Index
+                cookingView.classList.add('bg-gray-900', 'z-50');
+            }
             if(mainActions) mainActions.classList.add('hidden');
+            
+            // FIX: Explizit ausblenden
+            if(statusBox) statusBox.classList.add('hidden');
+            if(upgradeCont) upgradeCont.classList.add('hidden');
         }
 
         const list = document.getElementById('cooking-list');
