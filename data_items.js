@@ -1,4 +1,4 @@
-// [2026-01-10 01:25:00] data_items.js - Massive Item Expansion (Backpacks & Gear)
+// [2026-01-13 07:15:00] data_items.js - Added missing cooking items (Fly, Scorp, Lurk) & Meat
 
 if(typeof window.GameData === 'undefined') window.GameData = {};
 if(typeof window.GameData.items === 'undefined') window.GameData.items = {}; 
@@ -10,7 +10,6 @@ Object.assign(window.GameData.items, {
     bp_machete: { name: "Bauplan: Machete", type: "blueprint", recipeId: "craft_machete", cost: 150, desc: "Scharfer Stahl." },
     
     // --- RUCKSÄCKE (BACK) ---
-    // WICHTIG: bonus: { slots: X } muss von Game.getMaxSlots() erkannt werden!
     bag_small: { name: "Kleine Umhängetasche", type: "back", slot: "back", cost: 50, bonus: { slots: 3 }, desc: "Besser als die Hosentasche. (+3 Slots)" },
     backpack_school: { name: "Schulrucksack", type: "back", slot: "back", cost: 120, bonus: { slots: 5 }, desc: "Ein alter Vault-Tec Schulranzen. (+5 Slots)" },
     backpack_leather: { name: "Lederrucksack", type: "back", slot: "back", cost: 250, bonus: { slots: 8 }, desc: "Robustes Brahmin-Leder. (+8 Slots)" },
@@ -29,10 +28,18 @@ Object.assign(window.GameData.items, {
     meat_scorp: { name: "Skorpiondrüse", type: "component", cost: 20, desc: "Delikatesse." },
     meat_yao: { name: "Yao Guai Rippchen", type: "component", cost: 35, desc: "Sehr nahrhaft." },
     hide_yao: { name: "Yao Guai Leder", type: "component", cost: 40, desc: "Robustes Fell." },
+    // Fehlendes Fleisch für das Mirelurk Rezept hinzugefügt:
+    meat_lurk: { name: "Mirelurk-Fleisch", type: "component", cost: 15, desc: "Weiches Schalentier-Fleisch." },
     
     // Cooked
     cooked_roach: { name: "Gegrillte Kakerlake", type: "consumable", effect: "heal_rad", val: 15, rad: 2, cost: 10, desc: "+15 HP, +2 RAD" },
     cooked_mole: { name: "Ratten-Steak", type: "consumable", effect: "heal_rad", val: 25, rad: 3, cost: 20, desc: "+25 HP, +3 RAD" },
+    
+    // Fehlende Cooked Items hinzugefügt:
+    cooked_fly: { name: "Gegrillte Fliege", type: "consumable", effect: "heal_rad", val: 15, rad: 2, cost: 10, desc: "+15 HP, +2 RAD" },
+    cooked_scorp: { name: "Skorpion-Überraschung", type: "consumable", effect: "heal_rad", val: 45, rad: 5, cost: 40, desc: "+45 HP, +5 RAD" },
+    cooked_lurk: { name: "Mirelurk-Happen", type: "consumable", effect: "heal_rad", val: 35, rad: 4, cost: 30, desc: "+35 HP, +4 RAD" },
+
     stealth_boy: { name: "Stealth Boy", type: "consumable", effect: "buff", bonus: { AGI: 10 }, duration: 60, cost: 200, desc: "Macht kurzzeitig unsichtbar." },
 
     // --- CONSUMABLES (CHEMIS & MEDS) ---
@@ -99,14 +106,14 @@ Object.assign(window.GameData.items, {
     shotgun: { name: "Doppelflinte", type: "weapon", slot: "weapon", baseDmg: 30, cost: 350, desc: "Zwei Läufe.", usesAmmo: true },
     combat_shotgun: { name: "Kampfflinte", type: "weapon", slot: "weapon", baseDmg: 38, cost: 600, desc: "Magazin-geladen.", usesAmmo: true },
     assault_rifle: { name: "Sturmgewehr", type: "weapon", slot: "weapon", baseDmg: 28, cost: 550, desc: "Militärstandard.", usesAmmo: true },
-    minigun: { name: "Minigun", type: "weapon", slot: "weapon", baseDmg: 15, cost: 1500, desc: "Extremes Schnellfeuer (Mehrfach-Treffer).", usesAmmo: true }, // Logik für Mehrfachtreffer müsste im Combat passieren
+    minigun: { name: "Minigun", type: "weapon", slot: "weapon", baseDmg: 15, cost: 1500, desc: "Extremes Schnellfeuer (Mehrfach-Treffer).", usesAmmo: true },
 
     // Energy
     laser_pistol: { name: "Laserpistole", type: "weapon", slot: "weapon", baseDmg: 22, cost: 400, desc: "Vorsicht, heiß.", usesAmmo: true },
     laser_rifle: { name: "Lasergewehr", type: "weapon", slot: "weapon", baseDmg: 32, cost: 650, desc: "Lange Reichweite.", usesAmmo: true },
     plasma_pistol: { name: "Plasmapistole", type: "weapon", slot: "weapon", baseDmg: 35, cost: 600, desc: "Grüner Schleim.", usesAmmo: true },
     plasma_rifle: { name: "Plasmagewehr", type: "weapon", slot: "weapon", baseDmg: 45, cost: 900, desc: "Schmilzt Rüstung.", usesAmmo: true },
-    alien_blaster: { name: "Alien Blaster", type: "weapon", slot: "weapon", baseDmg: 80, cost: 3000, desc: "Extraterrestrisch.", usesAmmo: false }, // Spezialfall: Keine normale Ammo
+    alien_blaster: { name: "Alien Blaster", type: "weapon", slot: "weapon", baseDmg: 80, cost: 3000, desc: "Extraterrestrisch.", usesAmmo: false },
 
     // ======================================
     // === RÜSTUNGEN (Nach Sets sortiert) ===
