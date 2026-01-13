@@ -1,7 +1,10 @@
-// [2026-01-12 14:00:00] network.js - Fix: Release Name on Delete & Leaderboard Update
+{
+type: uploaded file
+fileName: pipboy3003/pipboy3003.github.io/pipboy3003.github.io-main/network.js
+fullContent:
+// [2026-01-13 14:15:00] network.js - Added Session Check (Prevent Double Login)
 
 const Network = {
-    // ... (restliche Config & Init bleiben gleich) ...
     db: null,
     auth: null,
     myId: null,
@@ -56,14 +59,36 @@ const Network = {
         this.init(); 
         if (!this.active) throw new Error("Verbindung zu Vault-Tec unterbrochen.");
         try {
+            // 1. Authentifizierung bei Firebase
             const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
             const user = userCredential.user;
+
+            // 2. SESSION-CHECK: Prüfen ob User bereits online ist (Doppellogin verhindern)
+            const playerRef = this.db.ref('players/' + user.uid);
+            const playerSnap = await playerRef.once('value');
+            
+            if (playerSnap.exists()) {
+                const pData = playerSnap.val();
+                const now = Date.now();
+                // Wenn der letzte Heartbeat weniger als 2 Minuten her ist, gilt die Session als aktiv.
+                if (pData.lastSeen && (now - pData.lastSeen < 120000)) {
+                    // Wir loggen den lokalen Client sofort wieder aus
+                    await this.auth.signOut();
+                    throw new Error("SESSION_ACTIVE");
+                }
+            }
+
+            // 3. Login erfolgreich
             this.myId = user.uid;
             this.myDisplayName = user.displayName || "Unknown";
             const snapshot = await this.db.ref('saves/' + this.myId).once('value');
             return snapshot.val() || {}; 
+
         } catch(e) {
             console.error("Auth Error:", e);
+            if (e.message === "SESSION_ACTIVE") {
+                throw new Error("Account ist bereits eingeloggt! (Bitte anderen Tab schließen oder kurz warten)");
+            }
             throw e;
         }
     },
@@ -77,7 +102,6 @@ const Network = {
         if (snap.exists()) {
             const val = snap.val();
             // Wenn Status 'alive' ist -> Name besetzt.
-            // Wenn Status 'dead' (oder gelöscht) ist -> Name frei.
             if (val.status === 'alive') {
                 return false; 
             }
@@ -89,8 +113,6 @@ const Network = {
         if(!this.active || !this.myId || !gameState) return;
         const safeName = (gameState.playerName || "Unknown").replace(/[.#$/[\]]/g, "_");
         
-        // Update statt Set, damit wir nicht versehentlich den 'dead' status überschreiben, 
-        // falls async was schief läuft (aber bei Alive chars ok)
         const entry = {
             name: gameState.playerName || "Unknown",
             lvl: gameState.lvl,
@@ -144,7 +166,6 @@ const Network = {
             .catch(e => console.error("Save Error:", e));
     },
 
-    // --- HIER WAR DER FIX NÖTIG ---
     deleteSlot: async function(slotIndex) {
         if(!this.active || !this.myId) {
             console.error("deleteSlot: Nicht eingeloggt!");
@@ -152,19 +173,15 @@ const Network = {
         }
 
         try {
-            // 1. Zuerst den Namen aus dem Save holen, bevor wir ihn löschen
             const snap = await this.db.ref(`saves/${this.myId}/${slotIndex}`).once('value');
             const save = snap.val();
 
             if (save && save.playerName) {
                 const safeName = save.playerName.replace(/[.#$/[\]]/g, "_");
-                
-                // Prüfen ob ein Leaderboard Eintrag existiert
                 const lbRef = this.db.ref(`leaderboard/${safeName}`);
                 const lbSnap = await lbRef.once('value');
                 
                 if (lbSnap.exists()) {
-                    // 2. Status auf DEAD setzen (damit Name frei wird, aber Eintrag bleibt)
                     await lbRef.update({
                         status: 'dead',
                         deathTime: Date.now()
@@ -173,7 +190,6 @@ const Network = {
                 }
             }
 
-            // 3. Jetzt den Save löschen
             await this.db.ref(`saves/${this.myId}/${slotIndex}`).remove();
             console.log(`✅ Slot ${slotIndex} erfolgreich gelöscht.`);
             
@@ -262,3 +278,4 @@ const Network = {
         catch (e) { console.error(e); return false; }
     }
 };
+}
