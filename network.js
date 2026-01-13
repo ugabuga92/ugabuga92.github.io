@@ -1,4 +1,8 @@
-// [2026-01-13 14:45:00] network.js - Added Auth State Listener & Safety Checks
+{
+type: uploaded file
+fileName: pipboy3003/pipboy3003.github.io/pipboy3003.github.io-main/network.js
+fullContent:
+// [2026-01-13 16:30:00] network.js - Fixed: Session Check no longer kicks active player
 
 const Network = {
     db: null,
@@ -28,11 +32,11 @@ const Network = {
                 this.db = firebase.database();
                 this.auth = firebase.auth();
 
-                // FIX: Listener für Auth-Status Änderungen
-                // Wenn Tab 2 ausloggt, merkt Tab 1 das hier sofort und geht ins Menü
+                // AUTH LISTENER: Reagiert nur, wenn wirklich ausgeloggt wird (z.B. manuell)
                 this.auth.onAuthStateChanged((user) => {
+                    // Wenn kein User mehr da ist, aber wir dachten wir wären eingeloggt -> Logout im UI
                     if (!user && this.myId) {
-                        console.warn("Session lost via AuthStateChange (Other Tab logged out?)");
+                        console.warn("Session expired or logged out.");
                         this.disconnect(); 
                         if (typeof UI !== 'undefined' && UI.logout) {
                             UI.logout("VERBINDUNG GETRENNT");
@@ -68,24 +72,31 @@ const Network = {
         this.init(); 
         if (!this.active) throw new Error("Verbindung zu Vault-Tec unterbrochen.");
         try {
-            // 1. Authentifizierung
+            // 1. Authentifizierung (Prüft Passwort)
+            // HINWEIS: Das setzt den Browser-Status auf "Eingeloggt". 
+            // Das ist okay, solange wir bei einem Fehler NICHT signout rufen.
             const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
             const user = userCredential.user;
 
-            // 2. SESSION-CHECK
+            // 2. SESSION-CHECK: Ist der Spieler woanders online?
             const playerRef = this.db.ref('players/' + user.uid);
             const playerSnap = await playerRef.once('value');
             
             if (playerSnap.exists()) {
                 const pData = playerSnap.val();
                 const now = Date.now();
+                // Wenn der letzte Heartbeat jünger als 2 Minuten ist -> Blockieren
                 if (pData.lastSeen && (now - pData.lastSeen < 120000)) {
-                    await this.auth.signOut(); // Logout auf DIESEM Tab
+                    
+                    // WICHTIG: KEIN this.auth.signOut() hier!
+                    // Wenn wir hier ausloggen, fliegt auch der andere Tab raus.
+                    // Wir werfen nur den Fehler, damit DIESER Tab nicht ins Spiel kommt.
+                    
                     throw new Error("SESSION_ACTIVE");
                 }
             }
 
-            // 3. Login erfolgreich
+            // 3. Alles OK -> Spiel starten
             this.myId = user.uid;
             this.myDisplayName = user.displayName || "Unknown";
             const snapshot = await this.db.ref('saves/' + this.myId).once('value');
@@ -94,7 +105,7 @@ const Network = {
         } catch(e) {
             console.error("Auth Error:", e);
             if (e.message === "SESSION_ACTIVE") {
-                throw new Error("Account ist bereits eingeloggt! (Bitte anderen Tab schließen oder kurz warten)");
+                throw new Error("Account ist aktiv! Bitte anderen Tab schließen oder warten.");
             }
             throw e;
         }
@@ -116,7 +127,7 @@ const Network = {
     },
 
     updateHighscore: function(gameState) {
-        // FIX: Check for auth
+        // Safety Check
         if(!this.active || !this.myId || !gameState || !this.auth.currentUser) return;
         
         const safeName = (gameState.playerName || "Unknown").replace(/[.#$/[\]]/g, "_");
@@ -131,7 +142,7 @@ const Network = {
             timestamp: Date.now()
         };
         
-        this.db.ref(`leaderboard/${safeName}`).update(entry).catch(e => {}); // Silent catch
+        this.db.ref(`leaderboard/${safeName}`).update(entry).catch(e => {}); 
     },
 
     registerDeath: function(gameState) {
@@ -161,7 +172,6 @@ const Network = {
     },
 
     saveToSlot: function(slotIndex, gameState) {
-        // FIX: Zusätzlicher Check ob User auth da ist, um Permission Errors zu verhindern
         if(!this.active || !this.myId || !this.auth.currentUser) return;
         
         const saveObj = JSON.parse(JSON.stringify(gameState));
@@ -175,7 +185,6 @@ const Network = {
         this.db.ref().update(updates)
             .then(() => { if(typeof UI !== 'undefined') UI.log("SLOT " + (slotIndex+1) + " GESPEICHERT.", "text-cyan-400"); })
             .catch(e => {
-                // Nur loggen wenn es KEIN Permission Error ist (der wird vom Logout Listener handled)
                 if(e.code !== 'PERMISSION_DENIED') console.error("Save Error:", e);
             });
     },
@@ -233,7 +242,7 @@ const Network = {
         
         this.db.ref('players/' + this.myId).onDisconnect().remove();
         this.db.ref('players').on('value', (snapshot) => {
-            if (!this.active) return; // Stop processing if inactive
+            if (!this.active) return; 
             const rawData = snapshot.val() || {};
             const now = Date.now();
             const cleanData = {};
@@ -268,17 +277,14 @@ const Network = {
 
     disconnect: function() {
         if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
-        // this.auth.signOut() hier NICHT rufen, sonst loop im Listener.
-        // Nur lokalen State clearen.
         if (this.db && this.myId) {
-             this.db.ref('players').off(); // Remove Listener
+             this.db.ref('players').off(); 
         }
         this.active = false;
         this.myId = null;
     },
 
     sendHeartbeat: function() {
-        // FIX: Check for auth
         if (!this.active || !this.myId || !this.auth.currentUser) return;
         
         if(typeof Game !== 'undefined' && Game.state && Game.state.view === 'map') {
@@ -289,7 +295,7 @@ const Network = {
                 y: Game.state.player.y,
                 sector: Game.state.sector,
                 lvl: Game.state.lvl
-            }).catch(e => {}); // Silent fail
+            }).catch(e => {}); 
         }
     },
     
@@ -300,3 +306,5 @@ const Network = {
         catch (e) { console.error(e); return false; }
     }
 };
+
+}
