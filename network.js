@@ -1,4 +1,4 @@
-// [2026-01-13 18:45:00] network.js - Cleaned up dead code (registerDeath, sendMove)
+// [2026-01-14 08:00:00] network.js - Added Instant Session Release on Disconnect
 
 const Network = {
     db: null,
@@ -120,9 +120,6 @@ const Network = {
         this.db.ref(`leaderboard/${safeName}`).update(entry).catch(e => {}); 
     },
 
-    // REMOVED: registerDeath (unused, logic handled in deleteSlot)
-    // REMOVED: getHighscores (unused)
-
     saveToSlot: function(slotIndex, gameState) {
         if(!this.active || !this.myId || !this.auth.currentUser) return;
         
@@ -225,8 +222,19 @@ const Network = {
         this.sendHeartbeat();
     },
 
-    disconnect: function() {
+    disconnect: async function() {
         if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+        
+        // FIX: Sofortiges Freigeben der Session in der Datenbank
+        if (this.active && this.db && this.myId) {
+            try {
+                await this.db.ref('players/' + this.myId).remove();
+                console.log("Session sauber beendet & freigegeben.");
+            } catch(e) {
+                console.error("Fehler beim Session-Freigeben:", e);
+            }
+        }
+
         if (this.db && this.myId) {
              this.db.ref('players').off(); 
         }
@@ -248,8 +256,6 @@ const Network = {
             }).catch(e => {}); 
         }
     },
-    
-    // REMOVED: sendMove (was just an alias for sendHeartbeat with unused args)
     
     sendBugReport: async function(reportData) {
         if (!this.db) return false;
