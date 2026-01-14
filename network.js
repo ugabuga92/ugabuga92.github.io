@@ -1,4 +1,4 @@
-// [2026-01-14 09:30:00] network.js - Fixed Logout Race Condition (Listener firing after state destroy)
+// [2026-01-14 10:00:00] network.js - Restored registerDeath (Fixes Crash on Permadeath)
 
 const Network = {
     db: null,
@@ -120,6 +120,23 @@ const Network = {
         this.db.ref(`leaderboard/${safeName}`).update(entry).catch(e => {}); 
     },
 
+    // WIEDER EINGEFÜGT: Wird von game_combat.js aufgerufen!
+    registerDeath: function(gameState) {
+        if(!this.active || !gameState || !this.auth.currentUser) return;
+        const safeName = (gameState.playerName || "Unknown").replace(/[.#$/[\]]/g, "_");
+        
+        const entry = {
+            name: gameState.playerName || "Unknown",
+            lvl: gameState.lvl,
+            kills: gameState.kills || 0,
+            xp: gameState.xp + (gameState.lvl * 1000),
+            status: 'dead', 
+            owner: this.myId,
+            deathTime: Date.now()
+        };
+        this.db.ref(`leaderboard/${safeName}`).set(entry).catch(e => console.error(e));
+    },
+
     saveToSlot: function(slotIndex, gameState) {
         if(!this.active || !this.myId || !this.auth.currentUser) return;
         
@@ -208,7 +225,6 @@ const Network = {
                 }
                 UI.updatePlayerList();
             }
-            // FIX: Prüfen ob Game.state existiert, bevor wir zeichnen
             if(typeof Game !== 'undefined' && Game.state && Game.draw) Game.draw();
         });
         
@@ -226,12 +242,10 @@ const Network = {
     disconnect: async function() {
         if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
 
-        // FIX: Zuerst Listener abschalten!
         if (this.db) {
              this.db.ref('players').off(); 
         }
 
-        // DANN den Spieler löschen
         if (this.active && this.db && this.myId) {
             try {
                 await this.db.ref('players/' + this.myId).remove();
