@@ -341,3 +341,29 @@ input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
 #game-toast-container::-webkit-scrollbar {
     display: none;
 }
+
+/* Pip-Boy Style Scrollbar */
+.custom-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #39ff14 #000000;
+}
+
+/* Für Webkit-Browser (Chrome, Safari, Edge) */
+.custom-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+    background: #001100; /* Sehr dunkles Grün als Hintergrund */
+    border-left: 1px solid #004400;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+    background-color: #39ff14; /* Pip-Boy Grün */
+    border: 1px solid #000000;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: #1aff1a; /* Heller beim Drüberfahren */
+    box-shadow: 0 0 10px #39ff14;
+}
