@@ -1,4 +1,4 @@
-// [2026-01-14 08:00:00] network.js - Added Instant Session Release on Disconnect
+// [2026-01-14 09:30:00] network.js - Fixed Logout Race Condition (Listener firing after state destroy)
 
 const Network = {
     db: null,
@@ -208,7 +208,8 @@ const Network = {
                 }
                 UI.updatePlayerList();
             }
-            if(typeof Game !== 'undefined' && Game.draw) Game.draw();
+            // FIX: Prüfen ob Game.state existiert, bevor wir zeichnen
+            if(typeof Game !== 'undefined' && Game.state && Game.draw) Game.draw();
         });
         
         if(typeof UI !== 'undefined') {
@@ -224,8 +225,13 @@ const Network = {
 
     disconnect: async function() {
         if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
-        
-        // FIX: Sofortiges Freigeben der Session in der Datenbank
+
+        // FIX: Zuerst Listener abschalten!
+        if (this.db) {
+             this.db.ref('players').off(); 
+        }
+
+        // DANN den Spieler löschen
         if (this.active && this.db && this.myId) {
             try {
                 await this.db.ref('players/' + this.myId).remove();
@@ -235,9 +241,6 @@ const Network = {
             }
         }
 
-        if (this.db && this.myId) {
-             this.db.ref('players').off(); 
-        }
         this.active = false;
         this.myId = null;
     },
