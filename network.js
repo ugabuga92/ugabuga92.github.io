@@ -1,4 +1,4 @@
-// [2026-01-13 16:30:00] network.js - Fixed: Session Check no longer kicks active player
+// [2026-01-13 18:45:00] network.js - Cleaned up dead code (registerDeath, sendMove)
 
 const Network = {
     db: null,
@@ -28,9 +28,7 @@ const Network = {
                 this.db = firebase.database();
                 this.auth = firebase.auth();
 
-                // AUTH LISTENER: Reagiert nur, wenn wirklich ausgeloggt wird (z.B. manuell)
                 this.auth.onAuthStateChanged((user) => {
-                    // Wenn kein User mehr da ist, aber wir dachten wir wären eingeloggt -> Logout im UI
                     if (!user && this.myId) {
                         console.warn("Session expired or logged out.");
                         this.disconnect(); 
@@ -49,46 +47,35 @@ const Network = {
 
     register: async function(email, password, name) {
         if(!this.active) throw new Error("Netzwerk nicht aktiv (Init Failed)");
-        try {
-            const isFree = await this.checkNameAvailability(name);
-            if (!isFree) throw new Error("Dieser Name ist bereits vergeben (Charakter lebt noch).");
+        const isFree = await this.checkNameAvailability(name);
+        if (!isFree) throw new Error("Dieser Name ist bereits vergeben (Charakter lebt noch).");
 
-            const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
-            const user = userCredential.user;
-            await user.updateProfile({ displayName: name });
-            this.myId = user.uid;
-            this.myDisplayName = name;
-            return {}; 
-        } catch(e) {
-            throw e;
-        }
+        const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        await user.updateProfile({ displayName: name });
+        this.myId = user.uid;
+        this.myDisplayName = name;
+        return {}; 
     },
 
     login: async function(email, password) {
         this.init(); 
         if (!this.active) throw new Error("Verbindung zu Vault-Tec unterbrochen.");
         try {
-            // 1. Authentifizierung (Prüft Passwort)
             const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
             const user = userCredential.user;
 
-            // 2. SESSION-CHECK: Ist der Spieler woanders online?
             const playerRef = this.db.ref('players/' + user.uid);
             const playerSnap = await playerRef.once('value');
             
             if (playerSnap.exists()) {
                 const pData = playerSnap.val();
                 const now = Date.now();
-                // Wenn der letzte Heartbeat jünger als 2 Minuten ist -> Blockieren
                 if (pData.lastSeen && (now - pData.lastSeen < 120000)) {
-                    
-                    // WICHTIG: KEIN this.auth.signOut() hier!
-                    // Wir werfen nur den Fehler, damit DIESER Tab nicht ins Spiel kommt.
                     throw new Error("SESSION_ACTIVE");
                 }
             }
 
-            // 3. Alles OK -> Spiel starten
             this.myId = user.uid;
             this.myDisplayName = user.displayName || "Unknown";
             const snapshot = await this.db.ref('saves/' + this.myId).once('value');
@@ -111,19 +98,15 @@ const Network = {
         const snap = await ref.once('value');
         if (snap.exists()) {
             const val = snap.val();
-            if (val.status === 'alive') {
-                return false; 
-            }
+            if (val.status === 'alive') return false; 
         }
         return true;
     },
 
     updateHighscore: function(gameState) {
-        // Safety Check
         if(!this.active || !this.myId || !gameState || !this.auth.currentUser) return;
         
         const safeName = (gameState.playerName || "Unknown").replace(/[.#$/[\]]/g, "_");
-        
         const entry = {
             name: gameState.playerName || "Unknown",
             lvl: gameState.lvl,
@@ -137,31 +120,8 @@ const Network = {
         this.db.ref(`leaderboard/${safeName}`).update(entry).catch(e => {}); 
     },
 
-    registerDeath: function(gameState) {
-        if(!this.active || !gameState || !this.auth.currentUser) return;
-        const safeName = (gameState.playerName || "Unknown").replace(/[.#$/[\]]/g, "_");
-        
-        const entry = {
-            name: gameState.playerName || "Unknown",
-            lvl: gameState.lvl,
-            kills: gameState.kills || 0,
-            xp: gameState.xp + (gameState.lvl * 1000),
-            status: 'dead', 
-            owner: this.myId,
-            deathTime: Date.now()
-        };
-        this.db.ref(`leaderboard/${safeName}`).set(entry).catch(e => console.error(e));
-    },
-
-    getHighscores: async function() {
-        if(!this.active) return [];
-        const snap = await this.db.ref('leaderboard').once('value');
-        const list = [];
-        snap.forEach(child => {
-            list.push(child.val());
-        });
-        return list;
-    },
+    // REMOVED: registerDeath (unused, logic handled in deleteSlot)
+    // REMOVED: getHighscores (unused)
 
     saveToSlot: function(slotIndex, gameState) {
         if(!this.active || !this.myId || !this.auth.currentUser) return;
@@ -183,7 +143,6 @@ const Network = {
 
     deleteSlot: async function(slotIndex) {
         if(!this.active || !this.myId || !this.auth.currentUser) {
-            console.error("deleteSlot: Nicht eingeloggt!");
             return Promise.reject("Not authenticated");
         }
 
@@ -201,7 +160,6 @@ const Network = {
                         status: 'dead',
                         deathTime: Date.now()
                     });
-                    console.log(`Leaderboard: ${save.playerName} wurde begraben (Status: dead).`);
                 }
             }
 
@@ -291,7 +249,8 @@ const Network = {
         }
     },
     
-    sendMove: function(x, y, level, sector) { this.sendHeartbeat(); },
+    // REMOVED: sendMove (was just an alias for sendHeartbeat with unused args)
+    
     sendBugReport: async function(reportData) {
         if (!this.db) return false;
         try { await this.db.ref("bug_reports").push(reportData); return true; } 
