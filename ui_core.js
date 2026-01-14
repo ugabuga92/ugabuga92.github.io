@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-13 18:30:00 - ui_core.js - Fixed AFK Logout View Transition (Hide CharSelect)
+// [TIMESTAMP] 2026-01-14 08:00:00 - ui_core.js - Added Async Logout for Instant Session Release
 
 const UI = {
     els: {},
@@ -417,7 +417,7 @@ const UI = {
         if(typeof Network !== 'undefined') Network.startPresence();
     },
 
-    logout: function(msg) {
+    logout: async function(msg) {
         this.loginBusy = false;
         this.selectedSlot = -1; 
         this.charSelectMode = false; 
@@ -427,16 +427,17 @@ const UI = {
             Game.state = null;
         }
 
-        if(typeof Network !== 'undefined') Network.disconnect();
+        // FIX: Warten auf sauberen Disconnect (DB Bereinigung)
+        if(typeof Network !== 'undefined') {
+            await Network.disconnect();
+        }
         
-        // HIER DER FIX: Alle anderen Screens explizit verstecken
         this.els.gameScreen.classList.add('hidden');
         
         if(this.els.charSelectScreen) this.els.charSelectScreen.style.display = 'none'; 
         if(this.els.newCharOverlay) this.els.newCharOverlay.classList.add('hidden');
         if(this.els.deleteOverlay) this.els.deleteOverlay.style.display = 'none';
         if(this.els.spawnScreen) this.els.spawnScreen.style.display = 'none';
-        // -----------------------------------------------------------
 
         this.els.loginScreen.style.display = 'flex';
         this.els.loginScreen.classList.remove('hidden');
