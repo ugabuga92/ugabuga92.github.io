@@ -1,48 +1,120 @@
-/* [TIMESTAMP] 2026-01-12 20:00:00 - style.css - Fullscreen Fixes */
+/* [TIMESTAMP] 2026-01-14 13:15:00 - style.css - Layout & Scrolling Fixes Final */
 
-/* Layout Container Reset */
-#main-panel {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100% !important;
-    height: 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: hidden !important;
-    background: black; /* Sicherheitshintergrund */
+/* --- LAYOUT RESET & SCROLLING LOGIC --- */
+
+/* 1. Hauptcontainer: Darf niemals größer als der Screen sein */
+#pipboy-case {
+    background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+    padding: 10px;
+    border-radius: 20px;
+    box-shadow: inset 0 0 20px #000, 0 0 0 5px #2a2a2a, 0 0 30px rgba(0,0,0,0.8);
+    width: 100%;
+    max-width: 1200px;
+    height: 100vh !important;     /* Erzwingt Bildschirmhöhe */
+    max-height: 100vh !important; /* Sicherheit */
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden !important;  /* Alles was übersteht, wird abgeschnitten */
 }
 
-/* Der Spielbereich soll alles ausfüllen */
+@media (min-width: 768px) {
+    #pipboy-case {
+        height: 95vh !important;
+        border-radius: 30px;
+        padding: 15px;
+    }
+}
+
+/* 2. Game Screen: Flex-Container, der den Inhalt begrenzt */
+#game-screen {
+    background-color: var(--pip-bg);
+    border: 2px solid var(--pip-dim);
+    border-radius: 10px;
+    flex: 1 1 auto !important;    /* Wächst/Schrumpft um Platz zu füllen */
+    min-height: 0 !important;     /* CRITICAL: Erlaubt Flex-Items zu scrollen */
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden !important;
+    width: 100%;
+}
+
+/* 3. View Container: Hier findet das Scrolling statt! */
 #view-container {
-    flex-grow: 1 !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
     width: 100% !important;
-    height: 100% !important;
     border: none !important;
     position: relative !important;
+    overflow-y: auto !important;  /* Vertikales Scrollen erlaubt */
+    overflow-x: hidden !important;
+    background-color: #000;
 }
 
-/* Kill switch für alte Elemente */
-#log-panel, 
-#layout-split, 
-#log-area {
-    display: none !important;
-    height: 0 !important;
-    width: 0 !important;
-    visibility: hidden !important;
-    position: absolute !important;
-}
+/* --- LEICHEN IM KELLER (Old Layout) --- */
+#main-panel { display: flex !important; flex-direction: column !important; width: 100% !important; height: 100% !important; padding: 0; margin: 0; overflow: hidden; background: black; }
+#log-panel, #layout-split, #log-area { display: none !important; }
 
-/* ... Deine restlichen Styles (Animationen, Colors, etc.) bleiben hier ... */
+/* --- VARIABLES & BASE --- */
 :root { --pip-green: #1aff1a; --pip-glow: #2bff2b; --pip-dim: #0d330d; --pip-bg: #051105; }
 
 html, body { width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; position: fixed; }
 body { background-color: #000; color: var(--pip-green); font-family: 'VT323', monospace; display: flex; justify-content: center; align-items: center; user-select: none; -webkit-user-select: none; cursor: crosshair; }
 
-canvas { image-rendering: pixelated; image-rendering: crisp-edges; image-rendering: -moz-crisp-edges; }
+canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+#view-container > * { max-width: 100%; }
 
-#view-container > * { max-width: 100%; overflow-x: hidden; }
+/* --- SCROLLBAR STYLING (Global & Container) --- */
+/* Firefox */
+* { scrollbar-width: thin; scrollbar-color: var(--pip-green) #001100; box-sizing: border-box; }
 
-/* --- ANIMATIONEN --- */
+/* Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #001100; border-left: 1px solid var(--pip-dim); }
+::-webkit-scrollbar-thumb { background: var(--pip-dim); border: 1px solid var(--pip-green); }
+::-webkit-scrollbar-thumb:hover { background: var(--pip-green); }
+::-webkit-scrollbar-corner { background: #000; }
+
+/* Speziell für View-Container & Login Boxen */
+#view-container::-webkit-scrollbar, .login-box::-webkit-scrollbar {
+    width: 8px;
+}
+#view-container::-webkit-scrollbar-thumb, .login-box::-webkit-scrollbar-thumb {
+    background-color: #39ff14;
+    border: 1px solid #000;
+}
+
+/* --- OVERLAY BOXEN (Login, Char Select, Spawn) --- */
+/* WICHTIG: Max-Height damit sie scrollbar werden auf kleinen Screens */
+.login-box {
+    border: 2px solid var(--pip-green);
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 0 20px var(--pip-dim);
+    width: 90%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    background: rgba(0, 10, 0, 0.95);
+    z-index: 20;
+    position: relative;
+    /* FIXES: */
+    max-height: 90vh;      /* Niemals höher als 90% des Bildschirms */
+    overflow-y: auto;      /* Scrollen wenn Inhalt zu groß */
+    justify-content: flex-start; /* Inhalt oben anfangen lassen beim Scrollen */
+}
+
+/* Fullscreen Overlays Container */
+#login-screen, #spawn-screen, #reset-overlay, #manual-overlay, #changelog-overlay, #char-select-screen, #delete-confirm-overlay {
+    position: absolute; inset: 0; z-index: 999;
+    background: #000;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    width: 100%; height: 100%;
+}
+
+/* --- ANIMATIONS & EFFECTS --- */
 @keyframes fireFlicker {
     0% { opacity: 0.8; transform: scale(1); text-shadow: 0 0 4px red; }
     50% { opacity: 1; transform: scale(1.1); text-shadow: 0 0 10px orange; }
@@ -50,7 +122,6 @@ canvas { image-rendering: pixelated; image-rendering: crisp-edges; image-renderi
 }
 .fire-anim { display: inline-block; animation: fireFlicker 0.8s infinite alternate ease-in-out; }
 
-/* [FIX] Scanline darf KEINE Klicks abfangen! */
 .scanline {
     width: 100%; height: 100px; z-index: 10;
     background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(26, 255, 26, 0.04) 50%, rgba(0,0,0,0) 100%);
@@ -69,301 +140,58 @@ canvas { image-rendering: pixelated; image-rendering: crisp-edges; image-renderi
 .crt-flicker { animation: flicker 0.15s infinite; }
 @keyframes flicker { 0% { opacity: 0.97; } 50% { opacity: 1; } 100% { opacity: 0.98; } }
 
-.gear-spin { animation: spin 4s linear infinite; transform-origin: center; }
-@keyframes spin { 100% { transform: rotate(360deg); } }
-
-.vault-wink { animation: wink 2s infinite steps(1); }
-@keyframes wink { 0%, 45%, 55%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-/* --- ALERTS & GLOWS --- */
-.alert-glow-red { animation: pulse-red-intense 1.5s infinite !important; border-width: 2px !important; font-weight: bold !important; }
-@keyframes pulse-red-intense { 
-    0% { box-shadow: 0 0 5px red; border-color: #800000; color: #ffcccc; } 
-    50% { box-shadow: 0 0 25px red, inset 0 0 10px red; border-color: red; color: white; background-color: rgba(255, 0, 0, 0.2); } 
-    100% { box-shadow: 0 0 5px red; border-color: #800000; color: #ffcccc; } 
+/* Pointer Events Fix für CRT Overlay */
+.crt-effect-container::before {
+    content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    z-index: 10; background-size: 100% 3px, 4px 100%;
+    pointer-events: none !important;
 }
 
-.alert-glow-yellow, .lvl-ready-glow { animation: pulse-yellow-intense 1.5s infinite !important; border: 2px solid #ffd700 !important; font-weight: bold !important; }
-@keyframes pulse-yellow-intense { 
-    0% { box-shadow: 0 0 5px #ffd700; border-color: #b8860b; color: #ffffcc; } 
-    50% { box-shadow: 0 0 25px #ffd700, inset 0 0 10px #ffd700; border-color: #ffd700; color: white; background-color: rgba(255, 215, 0, 0.2); } 
-    100% { box-shadow: 0 0 5px #ffd700; border-color: #b8860b; color: #ffffcc; } 
-}
+/* Interaktionselemente immer klickbar machen */
+button, .action-button, .header-btn, .shop-item-row { position: relative; z-index: 50; pointer-events: auto !important; }
 
-.alert-glow-cyan { animation: pulse-cyan-intense 1.5s infinite !important; border-width: 2px !important; font-weight: bold !important; }
-@keyframes pulse-cyan-intense { 
-    0% { box-shadow: 0 0 5px cyan; border-color: #008b8b; color: #e0ffff; } 
-    50% { box-shadow: 0 0 25px cyan, inset 0 0 10px cyan; border-color: cyan; color: white; background-color: rgba(0, 255, 255, 0.2); } 
-    100% { box-shadow: 0 0 5px cyan; border-color: #008b8b; color: #e0ffff; } 
-}
-
-.key-focus { outline: 2px solid var(--pip-green) !important; box-shadow: 0 0 15px var(--pip-green), inset 0 0 5px var(--pip-green) !important; background-color: rgba(57, 255, 20, 0.15) !important; z-index: 60; position: relative; animation: pulse-focus 1.5s infinite; }
-@keyframes pulse-focus { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
-/* --- COMPONENTS --- */
-.lock-container { position: relative; width: 250px; height: 250px; border-radius: 50%; border: 4px solid #333; background: radial-gradient(circle, #222, #000); box-shadow: inset 0 0 30px #000; margin: 0 auto; }
-.lock-inner { position: absolute; top: 10%; left: 10%; width: 80%; height: 80%; border-radius: 50%; border: 2px dashed #444; transition: transform 0.1s; }
-.lock-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; background: #111; border-radius: 50%; border: 1px solid #555; }
-.bobby-pin { position: absolute; top: 50%; left: 50%; width: 120px; height: 4px; background: silver; transform-origin: 0% 50%; transform: rotate(-90deg); transition: transform 0.05s; z-index: 20; border-radius: 2px; box-shadow: 0 0 5px black; }
-.screwdriver { position: absolute; bottom: 0; left: 50%; width: 20px; height: 100px; background: orange; transform: translateX(-50%); z-index: 10; opacity: 0.5; }
-
-.hack-row { font-family: 'VT323', monospace; letter-spacing: 2px; cursor: pointer; padding: 2px 5px; }
-.hack-row:hover, .hack-row.selected { background-color: var(--pip-green); color: black; font-weight: bold; }
-.hack-hex { color: #0d47a1; margin-right: 10px; }
-
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #001100; border-left: 1px solid var(--pip-dim); }
-::-webkit-scrollbar-thumb { background: var(--pip-dim); border: 1px solid var(--pip-green); }
-::-webkit-scrollbar-thumb:hover { background: var(--pip-green); }
-::-webkit-scrollbar-corner { background: #000; }
-* { scrollbar-width: thin; scrollbar-color: var(--pip-dim) #001100; box-sizing: border-box; }
-
-#pipboy-case { background: linear-gradient(145deg, #1a1a1a, #0d0d0d); padding: 10px; border-radius: 20px; box-shadow: inset 0 0 20px #000, 0 0 0 5px #2a2a2a, 0 0 30px rgba(0,0,0,0.8); width: 100%; max-width: 1200px; height: 100vh; display: flex; flex-direction: column; position: relative; }
-@media (min-width: 768px) { #pipboy-case { height: 95vh; padding: 15px; border-radius: 30px; } }
-
-#game-screen { background-color: var(--pip-bg); border: 2px solid var(--pip-dim); border-radius: 10px; flex-grow: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; width: 100%; }
-.crt-effect-container { position: relative; overflow: hidden; background-color: #000; width: 100%; height: 100%; }
-
-/* [FIX] WICHTIG: Pointer Events NONE damit Klicks durchgehen! */
-.crt-effect-container::before { 
-    content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; 
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); 
-    z-index: 10; background-size: 100% 3px, 4px 100%; 
-    pointer-events: none !important; 
-}
-
-/* [FIX] Buttons und Container Interaktion */
-button, .action-button, .header-btn {
-    position: relative;
-    z-index: 100; 
-    pointer-events: auto !important;
-}
-
-/* Der Shop Container Zeile */
-.shop-item-row {
-    position: relative;
-    z-index: 50; /* Über den Effekten */
-    cursor: pointer;
-    user-select: none;
-}
-.shop-item-row:active {
-    transform: scale(0.98);
-    opacity: 0.8;
-}
-
+/* --- ALERTS, GLOWS & BUTTON STYLES --- */
 .action-button { background-color: #0f1f0f; color: var(--pip-green); border: 1px solid var(--pip-green); padding: 5px 10px; margin: 2px; cursor: pointer; text-transform: uppercase; font-size: 1.25rem; transition: all 0.1s; font-family: 'VT323', monospace; display: flex; align-items: center; justify-content: center; }
 .action-button:hover { background-color: var(--pip-green); color: black; }
 .action-button:active { transform: scale(0.95); }
-.action-button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(100%); pointer-events: none; border-color: #333; color: #555; }
+.action-button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(100%); }
 
 .header-btn { padding: 5px 15px; font-size: 1.25rem; display: flex; align-items: center; justify-content: center; border: 2px solid var(--pip-green); background: rgba(0, 20, 0, 0.8); color: var(--pip-green); text-transform: uppercase; font-weight: bold; min-width: 100px; transition: all 0.2s; }
 .header-btn:hover { background-color: var(--pip-green); color: black; }
-.header-btn:active { transform: scale(0.95); }
-.blink-red { animation: blink-red-anim 1s infinite; }
-@keyframes blink-red-anim { 0%, 100% { opacity: 1; color: red; } 50% { opacity: 0.5; } }
 
-/* --- CHARACTER SLOTS --- */
+.alert-glow-red { animation: pulse-red-intense 1.5s infinite !important; border-width: 2px !important; font-weight: bold !important; }
+@keyframes pulse-red-intense { 0% { box-shadow: 0 0 5px red; border-color: #800000; color: #ffcccc; } 50% { box-shadow: 0 0 25px red; border-color: red; color: white; background-color: rgba(255, 0, 0, 0.2); } 100% { box-shadow: 0 0 5px red; border-color: #800000; color: #ffcccc; } }
+
+.alert-glow-yellow, .lvl-ready-glow { animation: pulse-yellow-intense 1.5s infinite !important; border: 2px solid #ffd700 !important; font-weight: bold !important; }
+@keyframes pulse-yellow-intense { 0% { box-shadow: 0 0 5px #ffd700; border-color: #b8860b; color: #ffffcc; } 50% { box-shadow: 0 0 25px #ffd700; border-color: #ffd700; color: white; background-color: rgba(255, 215, 0, 0.2); } 100% { box-shadow: 0 0 5px #ffd700; border-color: #b8860b; color: #ffffcc; } }
+
+/* --- CHAR SLOTS --- */
 .char-slot { border: 1px solid var(--pip-dim); background: rgba(0,20,0,0.5); padding: 10px; margin-bottom: 5px; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
 @media (hover: hover) { .char-slot:hover { border-color: var(--pip-green); background: rgba(0,40,0,0.8); } }
 .char-slot.active-slot { border-color: #ffd700; background: rgba(255, 215, 0, 0.08); box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); }
-.char-slot.active-slot button { background-color: #39ff14; color: black; box-shadow: 0 0 10px #39ff14; transform: scale(1.05); border-color: #39ff14; }
-.char-slot.empty-slot { opacity: 0.5; font-style: italic; }
 
-#login-screen, #spawn-screen, #reset-overlay, #manual-overlay, #changelog-overlay, #char-select-screen, #delete-confirm-overlay { position: absolute; inset: 0; z-index: 999; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; }
-.login-box { border: 2px solid var(--pip-green); padding: 20px; text-align: center; box-shadow: 0 0 20px var(--pip-dim); width: 90%; max-width: 400px; display: flex; flex-direction: column; background: rgba(0, 10, 0, 0.9); z-index: 20; position: relative; min-height: 400px; justify-content: center; }
+/* --- MISC & HELPERS --- */
 #login-form { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
 input.login-input { background: #000; border: 2px solid var(--pip-green); color: var(--pip-green); font-family: inherit; font-size: 20px; padding: 10px; text-align: center; outline: none; width: 100%; }
-input.login-input::placeholder { color: rgba(26, 255, 26, 0.5); }
 
-#boot-sequence { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
-.boot-icon { width: 80px; height: 80px; margin-bottom: 20px; }
 .boot-line { margin-bottom: 2px; white-space: nowrap; overflow: hidden; opacity: 0; animation: type-line 0.1s forwards; text-align: left; width: 100%; padding-left: 20px; font-size: 0.9rem; }
 @keyframes type-line { to { opacity: 1; } }
 
-#main-content { flex-grow: 1; display: flex; overflow: hidden; min-height: 0; position: relative; width: 100%; }
-/* main-panel wurde oben überschrieben durch !important Rules, hier Reste für Backup */
+/* CITY CARD STYLES */
+.city-grid { display: grid; grid-template-columns: 1fr; gap: 15px; padding: 15px; flex-grow: 1; overflow-y: auto; min-height: 0; }
+@media (min-width: 768px) { .city-grid { grid-template-columns: 1fr 1fr; } .city-card.trader { grid-column: span 2; } }
 
-#player-list-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 90; background: rgba(0, 0, 0, 0.95); border: 2px solid var(--pip-green); padding: 20px; min-width: 300px; display: none; flex-direction: column; box-shadow: 0 0 30px var(--pip-dim); }
-
-.char-grid-container { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: auto auto auto auto; gap: 8px; max-width: 300px; margin: 0 auto; }
-.equip-slot { border: 1px solid #1b5e20; background: rgba(0, 20, 0, 0.5); min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4px; position: relative; transition: all 0.2s; cursor: default; }
-.equip-slot.filled { border-color: #39ff14; background: rgba(57, 255, 20, 0.1); cursor: pointer; }
-.equip-slot.filled:hover { background: rgba(57, 255, 20, 0.2); box-shadow: 0 0 10px #39ff14; }
-.equip-slot.empty { opacity: 0.5; border-style: dashed; }
-.equip-slot .icon { font-size: 1.5rem; margin-bottom: 2px; }
-.equip-slot .label { font-size: 0.6rem; text-transform: uppercase; color: #888; }
-.equip-slot .item-name { font-size: 0.7rem; font-weight: bold; color: #39ff14; line-height: 1.1; word-break: break-word; }
-.slot-head { grid-column: 2; grid-row: 1; }
-.slot-body { grid-column: 2; grid-row: 2; }
-.slot-legs { grid-column: 2; grid-row: 3; }
-.slot-feet { grid-column: 2; grid-row: 4; }
-.slot-weapon { grid-column: 1; grid-row: 2; } 
-.slot-arms { grid-column: 3; grid-row: 2; }
-.slot-back { grid-column: 3; grid-row: 1; }
-
-.char-tab-btn { border-bottom: 2px solid transparent; opacity: 0.6; transition: all 0.2s; }
-.char-tab-btn:hover { opacity: 1; background: rgba(0, 50, 0, 0.3); }
-.char-tab-btn.active { border-bottom: 2px solid #39ff14; color: #39ff14; opacity: 1; text-shadow: 0 0 5px #39ff14; background: rgba(0, 30, 0, 0.5); }
-
-/* --- [FIXED & FLEXIBLE] CITY DASHBOARD --- */
-.city-header {
-    background: linear-gradient(to bottom, #051505, #000);
-    border-bottom: 2px solid #39ff14;
-    padding: 20px;
-    text-align: center;
-    position: relative;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.8);
-    flex-shrink: 0;
-}
-
-.city-grid {
-    display: grid;
-    grid-template-columns: 1fr; 
-    grid-auto-rows: min-content; 
-    gap: 15px;
-    padding: 15px;
-    flex-grow: 1;
-    overflow-y: auto;
-    min-height: 0; 
-}
-
-@media (min-width: 768px) {
-    .city-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-    .city-card.trader {
-        grid-column: span 2; 
-    }
-}
-
-.city-card {
-    border: 1px solid #1b5e20;
-    background: rgba(0, 20, 0, 0.8);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-    padding: 25px 15px; 
-    height: auto; 
-    min-height: 120px; 
-}
-
-@media (hover: hover) {
-    .city-card:hover {
-        border-color: #39ff14;
-        background: rgba(57, 255, 20, 0.1);
-        box-shadow: 0 0 15px #39ff14, inset 0 0 10px rgba(57, 255, 20, 0.2);
-        transform: translateY(-2px);
-        z-index: 10;
-    }
-}
-
-.city-card .icon { 
-    font-size: 3.5rem; margin-bottom: 10px; 
-    filter: drop-shadow(0 0 5px rgba(57,255,20,0.5));
-    transition: transform 0.2s; flex-shrink: 0;
-}
+.city-card { border: 1px solid #1b5e20; background: rgba(0, 20, 0, 0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; padding: 25px 15px; min-height: 120px; }
+@media (hover: hover) { .city-card:hover { border-color: #39ff14; background: rgba(57, 255, 20, 0.1); transform: translateY(-2px); } }
+.city-card .icon { font-size: 3.5rem; margin-bottom: 10px; transition: transform 0.2s; }
 .city-card:hover .icon { transform: scale(1.1); }
+.city-card .label { font-size: 1.2rem; font-weight: bold; color: #39ff14; text-transform: uppercase; margin-bottom: 5px; }
 
-@media (min-width: 768px) {
-    .city-card .icon { font-size: 5rem; }
-    .city-card.trader .icon { font-size: 6rem; }
-}
+/* TOASTS */
+@keyframes slideInRight { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+.animate-slide-in { animation: slideInRight 0.3s ease-out forwards; }
+#game-toast-container::-webkit-scrollbar { display: none; }
 
-.city-card .label { 
-    font-size: 1.2rem; font-weight: bold; color: #39ff14; 
-    text-transform: uppercase; letter-spacing: 2px; 
-    text-shadow: 0 0 5px rgba(57,255,20,0.5);
-    z-index: 2; margin-bottom: 5px; word-break: break-word; 
-}
-
-.city-card .sub { 
-    font-size: 0.8rem; color: #888; font-style: italic; font-family: monospace; z-index: 2; line-height: 1.2;
-}
-
-.city-card.trader {
-    background: linear-gradient(45deg, rgba(20, 20, 0, 0.9), rgba(60, 50, 0, 0.3));
-    border-color: #b8860b; 
-}
-@media (hover: hover) {
-    .city-card.trader:hover {
-        border-color: #ffd700;
-        box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
-    }
-}
-.city-card.trader .icon {
-    color: #ffd700;
-    animation: pulse-trader 4s infinite ease-in-out;
-}
-.city-card.trader .label { color: #ffd700; font-size: 1.5rem; }
-.city-card.trader .sub { color: #eecfa1; }
-
-@keyframes pulse-trader { 
-    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 5px #b8860b); } 
-    50% { transform: scale(1.05); filter: drop-shadow(0 0 20px #ffd700); } 
-}
-
-.city-card::before {
-    content: " "; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.4) 50%);
-    background-size: 100% 4px; pointer-events: none;
-}
-
-/* --- NEW ITEM GLOW --- */
-.new-item-glow {
-    border-color: #ffd700 !important; /* Goldener Rand */
-    box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.3) !important;
-    animation: newItemPulse 2s infinite;
-}
-
-@keyframes newItemPulse {
-    0% { box-shadow: inset 0 0 5px rgba(255, 215, 0, 0.1); border-color: #b8860b; }
-    50% { box-shadow: inset 0 0 25px rgba(255, 215, 0, 0.5); border-color: #ffd700; }
-    100% { box-shadow: inset 0 0 5px rgba(255, 215, 0, 0.1); border-color: #b8860b; }
-}
-
-/* [TIMESTAMP] 2026-01-12 17:30:00 - Toast Animations */
-
-@keyframes slideInRight {
-    from { opacity: 0; transform: translateX(100%); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-.animate-slide-in {
-    animation: slideInRight 0.3s ease-out forwards;
-}
-
-/* Optional: Scrollbar ausblenden für den Toast Container, falls nötig */
-#game-toast-container::-webkit-scrollbar {
-    display: none;
-}
-
-/* Pip-Boy Style Scrollbar */
-.custom-scroll {
-    scrollbar-width: thin;
-    scrollbar-color: #39ff14 #000000;
-}
-
-/* Für Webkit-Browser (Chrome, Safari, Edge) */
-.custom-scroll::-webkit-scrollbar {
-    width: 8px;
-}
-
-.custom-scroll::-webkit-scrollbar-track {
-    background: #001100; /* Sehr dunkles Grün als Hintergrund */
-    border-left: 1px solid #004400;
-}
-
-.custom-scroll::-webkit-scrollbar-thumb {
-    background-color: #39ff14; /* Pip-Boy Grün */
-    border: 1px solid #000000;
-}
-
-.custom-scroll::-webkit-scrollbar-thumb:hover {
-    background-color: #1aff1a; /* Heller beim Drüberfahren */
-    box-shadow: 0 0 10px #39ff14;
-}
+/* Custom Scroll Class for Menus */
+.custom-scroll { scrollbar-width: thin; scrollbar-color: #39ff14 #000000; }
