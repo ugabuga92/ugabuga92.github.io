@@ -238,7 +238,7 @@ Object.assign(UI, {
                 this.toggleControls(false);
             }
             
-            if (name === 'char') this.renderChar();
+            if (name === 'char') this.renderStats('stats');
             if (name === 'inventory') this.renderInventory();
             if (name === 'wiki') this.renderWiki();
             if (name === 'worldmap') this.renderWorldMap();
