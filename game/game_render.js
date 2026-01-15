@@ -1,10 +1,12 @@
+// [2026-01-15 07:00:00] game_render.js - HiDPI Fixes & Atmospheric Lighting
+
 Object.assign(Game, {
     // Initialisiert den Cache-Kontext, falls noch nicht geschehen
     initCache: function() {
         this.cacheCanvas = document.createElement('canvas');
         this.cacheCanvas.width = this.MAP_W * this.TILE;
         this.cacheCanvas.height = this.MAP_H * this.TILE;
-        this.cacheCtx = this.cacheCanvas.getContext('2d');
+        this.cacheCtx = this.cacheCanvas.getContext('2d'); // Typo 'a' entfernt
     },
 
     // Zeichnet die gesamte Karte einmalig auf die Offscreen-Canvas
@@ -36,24 +38,34 @@ Object.assign(Game, {
         const ctx = this.ctx; 
         const cvs = ctx.canvas; 
         
+        // [HiDPI FIX] Wir nutzen clientWidth (logisch), nicht width (physisch)
+        // Dies harmoniert mit dem ctx.scale() aus game_core.js
+        const viewW = cvs.clientWidth;
+        const viewH = cvs.clientHeight;
+        
         // Kamera-Position berechnen (zentriert auf den Spieler)
-        let targetCamX = (this.state.player.x * this.TILE) - (cvs.width / 2); 
-        let targetCamY = (this.state.player.y * this.TILE) - (cvs.height / 2); 
+        let targetCamX = (this.state.player.x * this.TILE) - (viewW / 2); 
+        let targetCamY = (this.state.player.y * this.TILE) - (viewH / 2); 
         
         // Maximale Kamera-Grenzen berechnen
-        const maxCamX = (this.MAP_W * this.TILE) - cvs.width; 
-        const maxCamY = (this.MAP_H * this.TILE) - cvs.height; 
+        const maxCamX = (this.MAP_W * this.TILE) - viewW; 
+        const maxCamY = (this.MAP_H * this.TILE) - viewH; 
         
         // Kamera innerhalb der Grenzen halten
         this.camera.x = Math.max(0, Math.min(targetCamX, maxCamX)); 
         this.camera.y = Math.max(0, Math.min(targetCamY, maxCamY)); 
         
-        // Sichtbaren Bereich löschen
+        // Sichtbaren Bereich löschen (logische Größe)
         ctx.fillStyle = "#000"; 
-        ctx.fillRect(0, 0, cvs.width, cvs.height); 
+        ctx.fillRect(0, 0, viewW, viewH); 
         
         // Den relevanten Ausschnitt aus dem Cache auf die sichtbare Canvas kopieren
-        ctx.drawImage(this.cacheCanvas, this.camera.x, this.camera.y, cvs.width, cvs.height, 0, 0, cvs.width, cvs.height); 
+        // Quelle: Cache (absolute Pixel) -> Ziel: Screen (logische Pixel, skaliert)
+        ctx.drawImage(
+            this.cacheCanvas, 
+            this.camera.x, this.camera.y, viewW, viewH, // Quell-Rechteck
+            0, 0, viewW, viewH                          // Ziel-Rechteck
+        ); 
         
         // Kontext für dynamische Objekte vorbereiten (Kamera-Verschiebung)
         ctx.save(); 
@@ -62,8 +74,8 @@ Object.assign(Game, {
         // Sichtbaren Bereich in Tile-Koordinaten berechnen
         const startX = Math.floor(this.camera.x / this.TILE); 
         const startY = Math.floor(this.camera.y / this.TILE); 
-        const endX = startX + Math.ceil(cvs.width / this.TILE) + 1; 
-        const endY = startY + Math.ceil(cvs.height / this.TILE) + 1; 
+        const endX = startX + Math.ceil(viewW / this.TILE) + 1; 
+        const endY = startY + Math.ceil(viewH / this.TILE) + 1; 
         
         const secKey = `${this.state.sector.x},${this.state.sector.y}`;
         const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7; // Pulsierender Effekt
@@ -88,7 +100,6 @@ Object.assign(Game, {
                     const t = this.state.currentMap[y][x]; 
                     
                     // Dynamische/Animierte Tiles neu zeichnen (über den statischen Hintergrund)
-                    // [v3.3] Added 'R' to special render list
                     if(['V', 'S', 'C', 'G', 'H', 'R', '^', 'v', '<', '>', '$', '&', 'P', 'E', 'F', 'X'].includes(t)) { 
                         this.drawTile(ctx, x, y, t, pulse); 
                     } 
@@ -156,6 +167,22 @@ Object.assign(Game, {
         ctx.restore(); // Rotation zurücksetzen
         
         ctx.restore(); // Kamera-Translation zurücksetzen
+
+        // [NEU] ATMOSPHÄRISCHE VIGNETTE (Lichtkegel)
+        const centerX = viewW / 2;
+        const centerY = viewH / 2;
+        // Radius flackert leicht basierend auf Zeit (CRT-Effekt)
+        const time = Date.now();
+        const flicker = (Math.sin(time / 150) * 5) + (Math.random() * 2); 
+        const radius = Math.max(viewW, viewH) * 0.6 + flicker;
+
+        const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.4, centerX, centerY, radius);
+        gradient.addColorStop(0, "rgba(0, 0, 0, 0)");        // Mitte: Transparent
+        gradient.addColorStop(0.7, "rgba(0, 20, 0, 0.2)");    // Übergang: Dunkelgrün
+        gradient.addColorStop(1, "rgba(0, 0, 0, 0.85)");      // Rand: Fast Schwarz
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, viewW, viewH);
     },
 
     // Zeichnet ein einzelnes Tile
@@ -222,7 +249,7 @@ Object.assign(Game, {
                 ctx.textBaseline = "alphabetic";
                 break; 
 
-            // [v3.3] SUPER-MART (Raider Fortress)
+            // SUPER-MART
             case 'R':
                 ctx.globalAlpha = 1;
                 ctx.shadowBlur = 8;
