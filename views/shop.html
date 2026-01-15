@@ -1,6 +1,6 @@
 <div class="w-full h-full flex flex-col overflow-hidden relative">
     
-    <div class="flex-1 w-full p-4 overflow-y-auto overflow-x-hidden custom-scroll flex flex-col items-center">
+    <div class="flex-1 w-full h-full overflow-y-auto overflow-x-hidden custom-scroll p-4 pb-20">
         
         <h1 class="text-3xl font-bold mb-4 text-center border-b border-green-500 w-full tracking-widest text-yellow-400">HANDELSPOSTEN</h1>
         
@@ -9,23 +9,31 @@
             <span>KK: <span id="shop-caps" class="text-yellow-400 font-bold">0</span></span>
         </div>
 
-        <button class="action-button w-full mb-4 border-yellow-400 text-yellow-400 whitespace-normal break-words shadow-[0_0_10px_#b8860b]" onclick="Game.buyAmmo()">
+        <button class="action-button w-full mb-6 border-yellow-400 text-yellow-400 whitespace-normal break-words shadow-[0_0_10px_#b8860b]" onclick="Game.buyAmmo()">
             MUNITION KAUFEN (10 STK / 10 KK)
         </button>
 
-        <div id="shop-list" class="w-full space-y-2 pb-4">
+        <div id="shop-list" class="w-full space-y-2">
             </div>
+        
+        <div class="h-8 w-full"></div>
     </div>
 
-    <div class="w-full p-4 bg-black border-t-2 border-green-900 shrink-0 z-20 shadow-[0_-5px_15px_rgba(0,0,0,0.8)]">
-        <button class="action-button w-full" onclick="UI.switchView('city')">ZURÜCK ZUR STADT</button>
+    <div class="absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-green-900 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.9)]">
+        <button class="action-button w-full bg-black hover:bg-green-900" onclick="UI.switchView('city')">ZURÜCK ZUR STADT</button>
     </div>
 
 </div>
+
 <script>
+    // Initialisierung beim Laden der View
     if(Game.state) {
         const capsEl = document.getElementById('shop-caps');
         if(capsEl) capsEl.textContent = Game.state.caps;
-        UI.renderShop(document.getElementById('shop-list'));
+        
+        // Liste rendern
+        if(typeof UI.renderShop === 'function') {
+            UI.renderShop(document.getElementById('shop-list'));
+        }
     }
 </script>
