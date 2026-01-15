@@ -1,24 +1,31 @@
-/* [TIMESTAMP] 2026-01-15 23:10:00 - ui_render_core.js - Full Recovery & Fix for updatePlayerList */
+// [2026-01-13 18:00:00] ui_render_core.js - Added AFK Check (Fix for Char Select)
 
 Object.assign(UI, {
     
     update: function() {
-        // --- AFK LOGIC ---
+        // --- AFK LOGIC (Muss VOR Game.state Check stehen!) ---
+        // Da diese Funktion die update() aus ui_core.js überschreibt, muss der Check hier rein.
+        
         const loginScreen = document.getElementById('login-screen');
+        // Wir sind "eingeloggt", wenn der Login-Screen weg ist (hidden Klasse oder display none)
         const isLoginHidden = loginScreen && (loginScreen.style.display === 'none' || loginScreen.classList.contains('hidden'));
+        // Und wenn wir eine Network ID haben
         const isAuth = (typeof Network !== 'undefined' && Network.myId);
 
         if (isLoginHidden && isAuth) {
+            // 300000 ms = 5 Minuten
             if (Date.now() - (this.lastInputTime || Date.now()) > 300000) { 
-                console.log("AFK Trigger: Zeitüberschreitung");
-                if(typeof this.logout === 'function') this.logout("AFK: ZEITÜBERSCHREITUNG");
-                return;
+                console.log("AFK Trigger: Zeitüberschreitung im UI Render Loop");
+                if(typeof this.logout === 'function') {
+                    this.logout("AFK: ZEITÜBERSCHREITUNG");
+                }
+                return; // Nichts weiter rendern
             }
         }
+        // -----------------------------------------------------
 
         if (!Game.state) return;
         
-        // Element-Caching & Basis-Stats
         if(!this.els.ammo) this.els.ammo = document.getElementById('val-ammo');
         if(!this.els.caps) this.els.caps = document.getElementById('val-caps');
         if(!this.els.hp) this.els.hp = document.getElementById('bar-hp');
@@ -26,27 +33,66 @@ Object.assign(UI, {
 
         const sectorDisplay = document.getElementById('val-sector-display');
         const hasPoints = (Game.state.statPoints > 0) || (Game.state.perkPoints > 0);
-        const displayName = Game.state.playerName || (typeof Network !== 'undefined' ? Network.myDisplayName : "SURVIVOR");
-        
-        if(this.els.name) this.els.name.textContent = displayName;
-        if(this.els.headerCharInfo) this.els.headerCharInfo.classList.toggle('lvl-ready-glow', hasPoints);
-        if(this.els.lvl) this.els.lvl.textContent = Game.state.lvl;
 
-        // Bars: HP, RADS, XP
+        const displayName = Game.state.playerName || (typeof Network !== 'undefined' ? Network.myDisplayName : "SURVIVOR");
+        if(this.els.name) this.els.name.textContent = displayName;
+        
+        if(this.els.headerCharInfo) {
+            if(hasPoints) this.els.headerCharInfo.classList.add('lvl-ready-glow');
+            else this.els.headerCharInfo.classList.remove('lvl-ready-glow');
+        }
+
+        const dtName = document.querySelector('.desktop-name-target');
+        if(dtName) dtName.textContent = displayName;
+
+        if(sectorDisplay) {
+            const sx = Game.state.sector ? Game.state.sector.x : 0;
+            const sy = Game.state.sector ? Game.state.sector.y : 0;
+            sectorDisplay.innerHTML = `🌍 SEKTOR [${sx},${sy}]`;
+            sectorDisplay.classList.remove('border-yellow-500');
+        }
+
+        if(this.els.lvl) this.els.lvl.textContent = Game.state.lvl;
+        const dtLvl = document.querySelector('.desktop-lvl-target');
+        if(dtLvl) dtLvl.textContent = Game.state.lvl;
+
+        // HP Logic
         const maxHp = Game.state.maxHp;
         const hp = Game.state.hp;
         const rads = Game.state.rads || 0;
         const effectiveMax = Math.max(1, maxHp - rads);
+        
         const hpPct = Math.min(100, Math.max(0, (hp / maxHp) * 100));
         const radPct = Math.min(100, (rads / maxHp) * 100);
         
+        const hpText = `TP ${Math.round(hp)}/${Math.round(effectiveMax)}`;
+        
         const valHpEl = document.getElementById('val-hp');
-        if(valHpEl) valHpEl.textContent = `TP ${Math.round(hp)}/${Math.round(effectiveMax)}`;
+        if(valHpEl) valHpEl.textContent = hpText;
 
-        if(this.els.hp) this.els.hp.style.width = `${hpPct}%`;
+        let barColor = "bg-green-500";
+        if(hpPct < 25) barColor = "bg-red-500 animate-pulse";
+        else if(hpPct < 50) barColor = "bg-yellow-500";
+
+        if(this.els.hp) {
+             this.els.hp.className = `absolute top-0 left-0 h-full transition-all duration-300 ${barColor}`;
+             this.els.hp.style.width = `${hpPct}%`;
+             
+             if(this.els.hp.parentElement) {
+                 const p = this.els.hp.parentElement;
+                 p.classList.remove('bg-green-900', 'bg-green-800', 'bg-green-700', 'bg-opacity-50');
+                 p.style.backgroundColor = 'rgba(10, 10, 10, 0.9)'; 
+                 p.style.borderColor = '#14532d'; 
+             }
+        }
+        
         const radBar = document.getElementById('bar-rads');
-        if(radBar) radBar.style.width = `${radPct}%`;
+        if(radBar) {
+            radBar.style.width = `${radPct}%`;
+            radBar.className = "absolute top-0 right-0 h-full bg-red-600 transition-all duration-300 opacity-90";
+        }
 
+        // XP
         const nextXp = Game.expToNextLevel(Game.state.lvl);
         const expPct = Math.min(100, Math.floor((Game.state.xp / nextXp) * 100));
         if(this.els.xpTxt) this.els.xpTxt.textContent = expPct;
@@ -56,106 +102,223 @@ Object.assign(UI, {
         const ammoItem = Game.state.inventory ? Game.state.inventory.find(i => i.id === 'ammo') : null;
         if(this.els.ammo) this.els.ammo.textContent = ammoItem ? ammoItem.count : 0;
 
-        if(sectorDisplay) {
-            const sx = Game.state.sector ? Game.state.sector.x : 0;
-            const sy = Game.state.sector ? Game.state.sector.y : 0;
-            sectorDisplay.innerHTML = `🌍 SEKTOR [${sx},${sy}]`;
-        }
-
-        this.updateCampButton();
-        this.updateMenuAlerts(hasPoints);
-    },
-
-    updateCampButton: function() {
+        // Camp Button
         const campBtn = document.getElementById('btn-camp-overlay');
-        if(!campBtn) return;
-        const hasKit = Game.state.inventory && Game.state.inventory.some(i => i.id === 'camp_kit');
-        const campDeployed = !!Game.state.camp;
-        const inCampSector = campDeployed && Game.state.camp.sector.x === Game.state.sector.x && Game.state.camp.sector.y === Game.state.sector.y;
+        if(campBtn) {
+            const hasKit = Game.state.inventory && Game.state.inventory.some(i => i.id === 'camp_kit');
+            const campDeployed = !!Game.state.camp;
+            const inCampSector = campDeployed && 
+                                 Game.state.camp.sector.x === Game.state.sector.x && 
+                                 Game.state.camp.sector.y === Game.state.sector.y;
 
-        if (campDeployed && inCampSector) {
-            campBtn.classList.remove('hidden');
-            campBtn.innerHTML = '<span class="text-2xl">⛺</span><span class="text-xs font-bold">LAGER</span>';
-            campBtn.onclick = () => UI.switchView('camp');
-        } else if (!campDeployed && hasKit) {
-            campBtn.classList.remove('hidden');
-            campBtn.innerHTML = '<span class="text-2xl">⛺</span><span class="text-xs font-bold">BAUEN</span>';
-            campBtn.onclick = () => Game.deployCamp();
-        } else {
-            campBtn.classList.add('hidden');
+            if (campDeployed) {
+                if (inCampSector) {
+                    campBtn.classList.remove('hidden');
+                    campBtn.className = "absolute top-4 left-4 flex flex-col items-center justify-center p-2 rounded-lg border-2 z-20 shadow-[0_0_15px_#ffd700] cursor-pointer bg-black/80 animate-pulse border-yellow-400 text-yellow-400";
+                    campBtn.innerHTML = '<span class="text-2xl">⛺</span><span class="text-xs font-bold">LAGER</span>';
+                    campBtn.onclick = () => UI.switchView('camp');
+                } else {
+                    campBtn.classList.add('hidden');
+                }
+            } else {
+                if (hasKit) {
+                    campBtn.classList.remove('hidden');
+                    campBtn.className = "absolute top-4 left-4 flex flex-col items-center justify-center p-2 rounded-lg border-2 z-20 shadow-[0_0_10px_#39ff14] cursor-pointer bg-black/80 border-green-500 text-green-500 hover:bg-green-900 transition-colors";
+                    campBtn.innerHTML = '<span class="text-2xl">⛺</span><span class="text-xs font-bold">BAUEN</span>';
+                    campBtn.onclick = () => Game.deployCamp();
+                } else {
+                    campBtn.classList.add('hidden');
+                }
+            }
         }
-    },
-
-    updateMenuAlerts: function(hasPoints) {
+        
+        let hasAlert = false;
+        if(this.els.btnChar) {
+            if(hasPoints) { this.els.btnChar.classList.add('alert-glow-yellow'); hasAlert = true; } 
+            else { this.els.btnChar.classList.remove('alert-glow-yellow'); }
+        } 
         const questsList = Game.state.quests || [];
         const unreadQuests = questsList.some(q => !q.read);
-        if(this.els.btnChar) this.els.btnChar.classList.toggle('alert-glow-yellow', hasPoints);
-        if(this.els.btnQuests) this.els.btnQuests.classList.toggle('alert-glow-cyan', unreadQuests);
-        if(this.els.btnMenu) this.els.btnMenu.classList.toggle('alert-glow-yellow', hasPoints || unreadQuests);
+        if(this.els.btnQuests) {
+            if(unreadQuests) { this.els.btnQuests.classList.add('alert-glow-cyan'); hasAlert = true; } 
+            else { this.els.btnQuests.classList.remove('alert-glow-cyan'); }
+        }
+        if(this.els.btnMenu) {
+            if(hasAlert) this.els.btnMenu.classList.add('alert-glow-yellow');
+            else this.els.btnMenu.classList.remove('alert-glow-yellow');
+        }
+
+        const inCombat = Game.state.view === 'combat';
+        [this.els.btnWiki, this.els.btnMap, this.els.btnChar, this.els.btnQuests, this.els.btnLogout, this.els.btnInv].forEach(btn => { if(btn) btn.disabled = inCombat; });
+        
+        if(this.els.lvl) {
+            if(Game.state.buffEndTime && Date.now() < Game.state.buffEndTime) this.els.lvl.classList.add('blink-red');
+            else this.els.lvl.classList.remove('blink-red');
+        }
+        
+        if(typeof Network !== 'undefined' && Network.active) {
+            const count = Object.keys(Network.otherPlayers).length + 1;
+            const onlineBadge = document.getElementById('online-badge');
+            if(onlineBadge) {
+                onlineBadge.innerHTML = `● ${count} ONLINE`;
+                onlineBadge.className = "absolute top-2 right-2 text-[10px] font-mono border border-green-900 bg-black/80 px-1 rounded " + (count > 1 ? "text-green-400" : "text-gray-600");
+            }
+        }
+    },
+
+    shakeView: function() {
+        if(this.els.view) {
+            this.els.view.classList.remove('shake');
+            void this.els.view.offsetWidth;
+            this.els.view.classList.add('shake');
+            setTimeout(() => { if(this.els.view) this.els.view.classList.remove('shake'); }, 300);
+        }
+    },
+
+    toggleView: function(name) {
+        if(Game.state.view === name) {
+            this.switchView('map');
+        } else {
+            this.switchView(name);
+        }
     },
 
     switchView: async function(name) {
         this.stopJoystick();
         this.focusIndex = -1;
-        if(this.els.navMenu) { this.els.navMenu.classList.add('hidden'); this.els.navMenu.style.display = 'none'; }
+
+        if(this.els.navMenu) {
+            this.els.navMenu.classList.add('hidden');
+            this.els.navMenu.style.display = 'none';
+        }
         if(this.els.playerList) this.els.playerList.style.display = 'none';
 
-        const ver = document.getElementById('version-display')?.textContent.trim() || Date.now();
+        const verDisplay = document.getElementById('version-display');
+        const ver = verDisplay ? verDisplay.textContent.trim() : Date.now();
         
         if (name === 'map') {
             this.els.view.innerHTML = `
                 <div id="map-view" class="w-full h-full flex justify-center items-center bg-black relative">
                     <canvas id="game-canvas" class="w-full h-full object-contain" style="image-rendering: pixelated;"></canvas>
-                    <div id="val-sector-display" onclick="UI.switchView('worldmap')" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/80 border border-green-500 text-green-500 px-3 py-1 text-sm font-bold z-20 shadow-[0_0_10px_#39ff14] cursor-pointer rounded">🌍 SEKTOR [?,?]</div>
-                    <button id="btn-camp-overlay" class="hidden absolute top-4 left-4 bg-black/80 border-2 border-green-500 text-green-500 p-2 rounded-lg z-20 shadow-[0_0_15px_#39ff14] cursor-pointer flex flex-col items-center"></button>
+                    <div id="val-sector-display" onclick="UI.switchView('worldmap')" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/80 border border-green-500 text-green-500 px-3 py-1 text-sm font-bold tracking-widest z-20 shadow-[0_0_10px_#39ff14] cursor-pointer hover:text-yellow-400 hover:border-yellow-500 transition-all active:scale-95 group rounded">🌍 SEKTOR [?,?]</div>
+                    <button id="btn-camp-overlay" class="hidden absolute top-4 left-4 bg-black/80 border-2 border-green-500 text-green-500 p-2 rounded-lg hover:bg-green-900 transition-all z-20 shadow-[0_0_15px_#39ff14] cursor-pointer flex flex-col items-center">
+                        <span class="text-2xl">⛺</span>
+                        <span class="text-xs font-bold">BAUEN</span>
+                    </button>
                 </div>`;
-            Game.state.view = 'map';
+            Game.state.view = name;
+            if(Game.state) Game.state.inDialog = false;
+            if(document.activeElement) document.activeElement.blur();
             Game.initCanvas();
             this.restoreOverlay();
             this.toggleControls(true);
-            this.updateButtonStates('map');
+            this.updateButtonStates(name);
+            this.update();
             return;
         }
 
+        if(name === 'hacking') { this.renderHacking(); Game.state.view = name; return; }
+        if(name === 'lockpicking') { this.renderLockpicking(true); Game.state.view = name; return; }
+
+        const path = `views/${name}.html?v=${ver}`;
         try {
-            const res = await fetch(`views/${name}.html?v=${ver}`);
+            const res = await fetch(path);
             if (!res.ok) throw new Error(`View '${name}' not found`);
-            this.els.view.innerHTML = await res.text();
+            const html = await res.text();
+            this.els.view.innerHTML = html;
             Game.state.view = name;
+            
             this.restoreOverlay();
 
-            if (name === 'char') this.renderStats('stats'); 
-            else if (name === 'inventory') this.renderInventory();
-            else if (name === 'wiki') this.renderWiki();
-            else if (name === 'worldmap') this.renderWorldMap();
-            else if (name === 'city') this.renderCity();
-            else if (name === 'quests') this.renderQuests();
-            else if (name === 'crafting') this.renderCrafting();
-            else if (name === 'shop') this.renderShop(document.getElementById('shop-list'));
-            else if (name === 'clinic') this.renderClinic();
-            else if (name === 'camp' && typeof this.renderCamp === 'function') this.renderCamp();
+            if (name === 'combat') {
+                this.toggleControls(false);
+                if(typeof Combat !== 'undefined' && typeof Combat.render === 'function') Combat.render();
+                else this.renderCombat();
+            } else {
+                this.toggleControls(false);
+            }
+            
+            if (name === 'char') this.renderChar();
+            if (name === 'inventory') this.renderInventory();
+            if (name === 'wiki') this.renderWiki();
+            if (name === 'worldmap') this.renderWorldMap();
+            if (name === 'city') this.renderCity();
+            if (name === 'quests') this.renderQuests();
+            if (name === 'crafting') this.renderCrafting();
+            if (name === 'shop') this.renderShop(document.getElementById('shop-list'));
+            if (name === 'clinic') this.renderClinic();
+            
+            if (name === 'camp') {
+                if(typeof this.renderCamp === 'function') this.renderCamp();
+            }
             
             this.updateButtonStates(name);
             this.update();
-        } catch (e) { console.error("Ladefehler:", e); }
+            
+            setTimeout(() => this.refreshFocusables(), 100);
+
+        } catch (e) { this.error(`Ladefehler: ${e.message}`); }
     },
 
     updateButtonStates: function(activeName) {
-        const btns = { wiki: this.els.btnWiki, worldmap: this.els.btnMap, char: this.els.btnChar, inventory: this.els.btnInv, quests: this.els.btnQuests };
-        for(let key in btns) { if(btns[key]) btns[key].classList.toggle('active', activeName === key || (key==='char' && activeName==='stats')); }
+        if(this.els.btnWiki) this.els.btnWiki.classList.toggle('active', activeName === 'wiki');
+        if(this.els.btnMap) this.els.btnMap.classList.toggle('active', activeName === 'worldmap');
+        if(this.els.btnChar) this.els.btnChar.classList.toggle('active', activeName === 'char');
+        if(this.els.btnInv) this.els.btnInv.classList.toggle('active', activeName === 'inventory');
+        if(this.els.btnQuests) this.els.btnQuests.classList.toggle('active', activeName === 'quests');
     },
 
     restoreOverlay: function() {
         if(document.getElementById('joystick-base')) return;
-        const html = `
-            <div id="joystick-base" style="position: absolute; width: 100px; height: 100px; border-radius: 50%; border: 2px solid rgba(57, 255, 20, 0.5); display: none; pointer-events: none; z-index: 9999;"></div>
-            <div id="joystick-stick" style="position: absolute; width: 50px; height: 50px; border-radius: 50%; background: rgba(57, 255, 20, 0.8); display: none; pointer-events: none; z-index: 10000;"></div>
-            <div id="dialog-overlay" onclick="if(event.target===this){this.style.display='none';this.innerHTML='';}" style="position: fixed; inset: 0; z-index: 10001; display: none; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);"></div>
+        
+        const joystickHTML = `
+            <div id="joystick-base" style="position: absolute; width: 100px; height: 100px; border-radius: 50%; border: 2px solid rgba(57, 255, 20, 0.5); background: rgba(0, 0, 0, 0.2); display: none; pointer-events: none; z-index: 9999;"></div>
+            <div id="joystick-stick" style="position: absolute; width: 50px; height: 50px; border-radius: 50%; background: rgba(57, 255, 20, 0.8); display: none; pointer-events: none; z-index: 10000; box-shadow: 0 0 10px #39ff14;"></div>
+            
+            <div id="dialog-overlay" 
+                 onclick="if(event.target === this) { this.style.display='none'; this.innerHTML=''; event.stopPropagation(); event.preventDefault(); }"
+                 style="position: fixed; inset: 0; z-index: 10001; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 5px; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);">
+            </div>
         `;
-        document.body.insertAdjacentHTML('beforeend', html);
+        
+        document.body.insertAdjacentHTML('beforeend', joystickHTML);
+        
         this.els.joyBase = document.getElementById('joystick-base');
         this.els.joyStick = document.getElementById('joystick-stick');
         this.els.dialog = document.getElementById('dialog-overlay');
+
+        if(!window.escListenerAdded) {
+            window.addEventListener('keydown', (e) => {
+                if(e.key === 'Escape') {
+                    const d = document.getElementById('dialog-overlay');
+                    if(d && d.style.display !== 'none') {
+                        d.style.display = 'none';
+                        d.innerHTML = '';
+                        e.stopPropagation(); 
+                        e.stopImmediatePropagation();
+                        e.preventDefault();
+                    }
+                }
+            }, true); 
+            window.escListenerAdded = true;
+        }
+    },
+    
+    toggleControls: function(show) { if (!show && this.els.dialog) this.els.dialog.innerHTML = ''; },
+
+    showMobileControlsHint: function() {
+        if(document.getElementById('mobile-hint')) return;
+        const hintHTML = `
+            <div id="mobile-hint" class="absolute inset-0 z-[100] flex flex-col justify-center items-center bg-black/80 pointer-events-auto backdrop-blur-sm opacity-0 transition-opacity duration-500" onclick="this.style.opacity='0'; setTimeout(() => this.remove(), 500)">
+                <div class="border-2 border-[#39ff14] bg-black p-6 text-center shadow-[0_0_20px_#39ff14] max-w-sm mx-4">
+                    <div class="text-5xl mb-4 animate-bounce">👆</div>
+                    <h2 class="text-2xl font-bold text-[#39ff14] mb-2 tracking-widest border-b border-[#39ff14] pb-2">TOUCH STEUERUNG</h2>
+                    <p class="text-green-300 mb-6 font-mono leading-relaxed">Tippe und halte IRGENDWO auf dem Hauptschirm (auch im Log), um den Joystick zu aktivieren.</p>
+                    <div class="text-xs text-[#39ff14] animate-pulse font-bold bg-[#39ff14]/20 py-2 rounded">> TIPPEN ZUM STARTEN <</div>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', hintHTML);
+        setTimeout(() => { const el = document.getElementById('mobile-hint'); if(el) el.classList.remove('opacity-0'); }, 10);
     },
 
     updatePlayerList: function() {
@@ -184,16 +347,6 @@ Object.assign(UI, {
         } else {
             this.els.playerList.style.display = 'flex';
             this.updatePlayerList();
-        }
-    },
-
-    toggleControls: function(show) { if (!show && this.els.dialog) this.els.dialog.innerHTML = ''; },
-    
-    shakeView: function() {
-        if(this.els.view) {
-            this.els.view.classList.remove('shake');
-            void this.els.view.offsetWidth;
-            this.els.view.classList.add('shake');
         }
     }
 });
