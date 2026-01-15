@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-10 04:30:00 - ui_view_town.js - All City Views (Hub, Shop, Clinic, Crafting)
+// [TIMESTAMP] 2026-01-15 11:30:00 - ui_view_town.js - Fixed Shop Scrolling Layout
 
 Object.assign(UI, {
     
@@ -286,52 +286,54 @@ Object.assign(UI, {
     },
 
     // ==========================================
-    // === SHOP LOGIC (Integrated) ===
+    // === SHOP LOGIC (FIXED FOOTER) ===
     // ==========================================
     renderShop: function(mode = 'buy') {
         const view = document.getElementById('view-container');
         if(!view) return;
-        view.innerHTML = ''; // Full Reset
+        view.innerHTML = ''; 
 
         // State update
         Game.state.view = 'shop';
         Game.checkShopRestock(); 
 
         const wrapper = document.createElement('div');
-        wrapper.className = "w-full h-full flex flex-col bg-black relative";
+        // Zwingt den Shop über alles andere (Full Screen Overlay Style)
+        wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-20 overflow-hidden";
 
-        // HEADER
-        const header = document.createElement('div');
-        header.className = "flex-shrink-0 flex justify-between items-end p-4 border-b-4 border-yellow-600 bg-[#1a1500] shadow-md z-10";
+        // === SCROLL BEREICH (Oben) ===
+        // p-3 pb-24: Padding unten WICHTIG damit der Footer nicht den Inhalt verdeckt
+        const scrollContainer = document.createElement('div');
+        scrollContainer.className = "flex-1 overflow-y-auto overflow-x-hidden custom-scroll p-3 pb-24";
         
+        // HEADER INHALT (in den Scroll Bereich packen)
         const usedSlots = Game.getUsedSlots();
         const maxSlots = Game.getMaxSlots();
         const isFull = usedSlots >= maxSlots;
         const invColor = isFull ? "text-red-500 animate-pulse" : "text-yellow-300";
 
-        header.innerHTML = `
-            <div>
-                <h2 class="text-3xl text-yellow-400 font-bold font-vt323 tracking-wider">HANDELSPOSTEN</h2>
-                <div class="text-xs text-yellow-700 font-mono mt-1">HÄNDLER: <span class="font-bold text-yellow-500">${Game.state.shop.merchantCaps} KK</span></div>
-            </div>
-            
-            <div class="flex gap-2">
-                <div class="bg-black/50 border-2 border-yellow-500 p-2 flex flex-col items-end shadow-inner">
-                     <span class="text-[10px] text-yellow-600 uppercase tracking-widest">GEWICHT</span>
-                     <span class="text-2xl ${invColor} font-bold font-vt323">${usedSlots} / ${maxSlots}</span>
+        scrollContainer.innerHTML = `
+            <div class="flex justify-between items-end p-4 border-b-4 border-yellow-600 bg-[#1a1500] shadow-md mb-4">
+                <div>
+                    <h2 class="text-3xl text-yellow-400 font-bold font-vt323 tracking-wider">HANDELSPOSTEN</h2>
+                    <div class="text-xs text-yellow-700 font-mono mt-1">HÄNDLER: <span class="font-bold text-yellow-500">${Game.state.shop.merchantCaps} KK</span></div>
                 </div>
-
-                <div class="bg-black/50 border-2 border-yellow-500 p-2 flex flex-col items-end shadow-inner">
-                    <span class="text-[10px] text-yellow-600 uppercase tracking-widest">DEIN VERMÖGEN</span>
-                    <span class="text-2xl text-yellow-300 font-bold font-vt323">${Game.state.caps} KK</span>
+                <div class="flex gap-2">
+                    <div class="bg-black/50 border-2 border-yellow-500 p-2 flex flex-col items-end shadow-inner">
+                         <span class="text-[10px] text-yellow-600 uppercase tracking-widest">GEWICHT</span>
+                         <span class="text-2xl ${invColor} font-bold font-vt323">${usedSlots} / ${maxSlots}</span>
+                    </div>
+                    <div class="bg-black/50 border-2 border-yellow-500 p-2 flex flex-col items-end shadow-inner">
+                        <span class="text-[10px] text-yellow-600 uppercase tracking-widest">DEIN VERMÖGEN</span>
+                        <span class="text-2xl text-yellow-300 font-bold font-vt323">${Game.state.caps} KK</span>
+                    </div>
                 </div>
             </div>
         `;
-        wrapper.appendChild(header);
 
-        // CONTROLS HEADER (Menge & Modus)
+        // CONTROLS (Menge & Modus)
         const controlsDiv = document.createElement('div');
-        controlsDiv.className = "flex-shrink-0 bg-[#002200] border-b-2 border-green-500 p-3 z-20 shadow-lg";
+        controlsDiv.className = "bg-[#002200] border-b-2 border-green-500 p-3 shadow-lg mb-4";
         
         // Helper für Button Style
         const getBtnClass = (val) => {
@@ -368,25 +370,28 @@ Object.assign(UI, {
                 <button onclick="UI.renderShop('sell')" class="flex-1 py-2 text-center font-bold ${mode==='sell' ? 'bg-red-500 text-black' : 'text-red-600 hover:text-red-300'}">VERKAUFEN</button>
             </div>
         `;
-        wrapper.appendChild(controlsDiv);
+        
+        scrollContainer.appendChild(controlsDiv);
 
-        // ITEM LIST CONTAINER
-        const content = document.createElement('div');
-        content.id = "shop-list";
-        content.className = "flex-grow overflow-y-auto p-3 custom-scrollbar bg-[#0a0800]";
-        wrapper.appendChild(content);
+        // ITEM LIST CONTAINER (direkt im Scroll Container)
+        const listContent = document.createElement('div');
+        listContent.id = "shop-list";
+        listContent.className = "space-y-2";
+        scrollContainer.appendChild(listContent);
 
-        // FOOTER
+        // === FOOTER (Absolut Positioniert) ===
         const footer = document.createElement('div');
-        footer.className = "flex-shrink-0 p-3 border-t-4 border-yellow-900 bg-[#1a1500]";
-        footer.innerHTML = `<button class="action-button w-full border-2 border-yellow-800 text-yellow-700 hover:border-yellow-500 hover:text-yellow-400 transition-colors py-3 font-bold tracking-widest uppercase" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>`;
-        wrapper.appendChild(footer);
+        footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-yellow-900 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.9)]";
+        footer.innerHTML = `<button class="action-button w-full border-2 border-yellow-800 text-yellow-700 hover:border-yellow-500 hover:text-yellow-400 transition-colors py-3 font-bold tracking-widest uppercase bg-black" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>`;
 
+        // Alles zusammenbauen
+        wrapper.appendChild(scrollContainer);
+        wrapper.appendChild(footer);
         view.appendChild(wrapper);
 
         // Content rendern
-        if(mode === 'buy') this.renderShopBuy(content);
-        else this.renderShopSell(content);
+        if(mode === 'buy') this.renderShopBuy(listContent);
+        else this.renderShopSell(listContent);
     },
 
     renderShopBuy: function(container) {
@@ -415,12 +420,11 @@ Object.assign(UI, {
             }
 
             const row = document.createElement('div');
-            row.className = `shop-item-row flex justify-between items-center mb-2 border-2 ${colorBorder} ${colorBg} h-16 relative z-50 transition-all select-none`;
+            row.className = `shop-item-row flex justify-between items-center mb-2 border-2 ${colorBorder} ${colorBg} h-16 relative z-10 transition-all select-none`;
             
             if (canBuy) {
                 row.style.cursor = 'pointer';
                 row.setAttribute('onclick', `Game.buyItem('${key}', UI.shopQty)`);
-                row.setAttribute('role', 'button');
             } else {
                 row.style.cursor = 'not-allowed';
             }
@@ -508,7 +512,7 @@ Object.assign(UI, {
             const name = item.props ? item.props.name : def.name;
 
             const div = document.createElement('div');
-            div.className = `shop-item-row flex justify-between items-center mb-2 border-2 ${canSell ? 'border-green-700 bg-green-900/10 hover:bg-green-900/20' : 'border-red-900 opacity-50'} h-14 transition-all select-none relative z-50`;
+            div.className = `shop-item-row flex justify-between items-center mb-2 border-2 ${canSell ? 'border-green-700 bg-green-900/10 hover:bg-green-900/20' : 'border-red-900 opacity-50'} h-14 transition-all select-none relative z-10`;
             
             if(canSell) {
                 div.style.cursor = 'pointer';
