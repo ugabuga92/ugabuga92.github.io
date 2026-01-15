@@ -54,7 +54,7 @@ Object.assign(UI, {
         view.appendChild(wrapper);
     },
 
-    // ==========================================
+  // ==========================================
     // === WERKBANK (Crafting & Scrap) ===
     // ==========================================
     renderCrafting: function(tab = 'create') {
@@ -64,32 +64,56 @@ Object.assign(UI, {
         view.innerHTML = '';
 
         const wrapper = document.createElement('div');
-        wrapper.className = "w-full h-full flex flex-col bg-black/95 relative";
+        // Zwingt das Fenster über alles andere (Full Screen Overlay Style)
+        wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black/95 z-20 overflow-hidden";
 
-        wrapper.innerHTML = `
-            <div class="flex-shrink-0 p-4 border-b-2 border-blue-500 bg-blue-900/20 flex justify-between items-end shadow-lg shadow-blue-900/20">
-                <div>
-                    <h2 class="text-3xl text-blue-400 font-bold font-vt323 tracking-widest">WERKBANK</h2>
-                    <div class="text-xs text-blue-300 tracking-wider">Zustand: Rostig, aber funktional</div>
-                </div>
-                <div class="text-4xl text-blue-500 opacity-50">🛠️</div>
-            </div>
-            
-            <div class="flex-shrink-0 flex w-full border-b border-blue-900 bg-black">
-                <button class="flex-1 py-3 font-bold transition-colors uppercase tracking-wider ${tab==='create' ? 'bg-blue-900/40 text-blue-300 border-b-4 border-blue-500' : 'text-gray-600 hover:text-blue-300 hover:bg-blue-900/20'}" onclick="UI.renderCrafting('create')">HERSTELLEN</button>
-                <button class="flex-1 py-3 font-bold transition-colors uppercase tracking-wider ${tab==='scrap' ? 'bg-orange-900/40 text-orange-300 border-b-4 border-orange-500' : 'text-gray-600 hover:text-orange-300 hover:bg-orange-900/20'}" onclick="UI.renderCrafting('scrap')">ZERLEGEN</button>
-            </div>
+        // === SCROLL BEREICH (Oben) ===
+        // p-0: Kein Padding am Container selbst, damit Header/Tabs volle Breite haben
+        // pb-24: Padding unten WICHTIG damit der Footer nicht den Inhalt verdeckt
+        const scrollContainer = document.createElement('div');
+        scrollContainer.className = "flex-1 overflow-y-auto overflow-x-hidden custom-scroll pb-24";
 
-            <div id="crafting-list" class="flex-grow overflow-y-auto custom-scrollbar p-3 space-y-2 bg-[#00050a]"></div>
-            
-            <div class="flex-shrink-0 p-3 border-t border-blue-900 bg-[#000205]">
-                <button onclick="UI.renderCity()" class="action-button w-full border-gray-600 text-gray-500 hover:text-white hover:border-white transition-colors">ZURÜCK ZUM ZENTRUM</button>
+        // HEADER (Scrollt mit)
+        const header = document.createElement('div');
+        header.className = "p-4 border-b-2 border-blue-500 bg-blue-900/20 flex justify-between items-end shadow-lg shadow-blue-900/20";
+        header.innerHTML = `
+            <div>
+                <h2 class="text-3xl text-blue-400 font-bold font-vt323 tracking-widest">WERKBANK</h2>
+                <div class="text-xs text-blue-300 tracking-wider">Zustand: Rostig, aber funktional</div>
             </div>
+            <div class="text-4xl text-blue-500 opacity-50">🛠️</div>
         `;
+        scrollContainer.appendChild(header);
+        
+        // TABS (Scrollen mit)
+        const tabsDiv = document.createElement('div');
+        tabsDiv.className = "flex w-full border-b border-blue-900 bg-black";
+        tabsDiv.innerHTML = `
+            <button class="flex-1 py-3 font-bold transition-colors uppercase tracking-wider ${tab==='create' ? 'bg-blue-900/40 text-blue-300 border-b-4 border-blue-500' : 'text-gray-600 hover:text-blue-300 hover:bg-blue-900/20'}" onclick="UI.renderCrafting('create')">HERSTELLEN</button>
+            <button class="flex-1 py-3 font-bold transition-colors uppercase tracking-wider ${tab==='scrap' ? 'bg-orange-900/40 text-orange-300 border-b-4 border-orange-500' : 'text-gray-600 hover:text-orange-300 hover:bg-orange-900/20'}" onclick="UI.renderCrafting('scrap')">ZERLEGEN</button>
+        `;
+        scrollContainer.appendChild(tabsDiv);
+
+        // LIST CONTENT
+        const listContent = document.createElement('div');
+        listContent.id = "crafting-list";
+        listContent.className = "p-3 space-y-2 bg-[#00050a]";
+        scrollContainer.appendChild(listContent);
+
+        // === FOOTER (Absolut Positioniert) ===
+        const footer = document.createElement('div');
+        footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-blue-900 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.9)]";
+        footer.innerHTML = `
+            <button onclick="UI.renderCity()" class="action-button w-full border-gray-600 text-gray-500 hover:text-white hover:border-white transition-colors py-3 font-bold tracking-widest uppercase bg-black">
+                ZURÜCK ZUM ZENTRUM
+            </button>
+        `;
+
+        wrapper.appendChild(scrollContainer);
+        wrapper.appendChild(footer);
         view.appendChild(wrapper);
 
-        const container = wrapper.querySelector('#crafting-list');
-        
+        // LOGIK ZUM BEFÜLLEN (bleibt gleich, schreibt jetzt in 'listContent')
         if (tab === 'create') {
             const recipes = Game.recipes || [];
             const known = Game.state.knownRecipes || [];
@@ -126,9 +150,9 @@ Object.assign(UI, {
                     </div>
                     <button class="action-button text-sm px-4 py-2 border-2 ${canCraft ? 'border-green-500 text-green-500 hover:bg-green-500 hover:text-black font-bold' : 'border-gray-600 text-gray-600 cursor-not-allowed'}" onclick="Game.craftItem('${recipe.id}')" ${canCraft ? '' : 'disabled'}>FERTIGEN</button>
                 `;
-                container.appendChild(div);
+                listContent.appendChild(div);
             });
-            if(knownCount === 0) container.innerHTML = '<div class="text-gray-500 italic mt-10 text-center">Keine bekannten Baupläne.</div>';
+            if(knownCount === 0) listContent.innerHTML = '<div class="text-gray-500 italic mt-10 text-center">Keine bekannten Baupläne.</div>';
         } else {
             let scrappables = [];
             Game.state.inventory.forEach((item, idx) => {
@@ -144,7 +168,7 @@ Object.assign(UI, {
             });
 
             if(scrappables.length === 0) {
-                container.innerHTML = '<div class="text-center text-gray-500 mt-10 p-4 border-2 border-dashed border-gray-800">Kein zerlegbarer Schrott im Inventar.</div>';
+                listContent.innerHTML = '<div class="text-center text-gray-500 mt-10 p-4 border-2 border-dashed border-gray-800">Kein zerlegbarer Schrott im Inventar.</div>';
             } else {
                 scrappables.forEach(entry => {
                     const name = entry.item.props && entry.item.props.name ? entry.item.props.name : entry.def.name;
@@ -154,7 +178,7 @@ Object.assign(UI, {
                         <div class="font-bold text-orange-300">${name} <span class="text-xs text-orange-600 font-normal ml-2">(${entry.item.count}x)</span></div>
                         <button class="border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black px-3 py-1 text-xs font-bold transition-colors uppercase" onclick="Game.scrapItem(${entry.idx})">ZERLEGEN</button>
                     `;
-                    container.appendChild(div);
+                    listContent.appendChild(div);
                 });
             }
         }
