@@ -31,15 +31,21 @@
                 <div class="flex justify-between border-b border-green-900/30 pb-1"><span class="text-gray-500">KRITISCH</span> <span id="sheet-crit" class="text-yellow-400 font-bold font-mono">5%</span></div>
             </div>
 
-            <div id="paperdoll-container" class="paperdoll-container">
-                <div class="doll-background"></div>
+            <div class="char-grid-container flex-grow">
+                <div></div> <div id="slot-head" class="equip-slot slot-head" onclick="UI.showEquippedDialog('head')"><span class="label">KOPF</span><span class="icon">🪖</span><span class="item-name">---</span></div>
+                <div id="slot-back" class="equip-slot slot-back" onclick="UI.showEquippedDialog('back')"><span class="label">RÜCKEN</span><span class="icon">🎒</span><span class="item-name">---</span></div>
                 
-                <div class="doll-slot slot-head" data-slot="head" title="Kopf"></div>
-                <div class="doll-slot slot-body" data-slot="body" title="Körper"></div>
-                <div class="doll-slot slot-legs" data-slot="legs" title="Beine"></div>
-                <div class="doll-slot slot-feet" data-slot="feet" title="Füße"></div>
-                <div class="doll-slot slot-hands" data-slot="hands" title="Hände"></div>
-                <div class="doll-slot slot-weapon" data-slot="weapon" title="Waffe"></div>
+                <div id="slot-weapon" class="equip-slot slot-weapon" onclick="UI.showEquippedDialog('weapon')"><span class="label">WAFFE</span><span class="icon">🔫</span><span class="item-name">---</span></div>
+                <div id="slot-body" class="equip-slot slot-body" onclick="UI.showEquippedDialog('body')"><span class="label">KÖRPER</span><span class="icon">🛡️</span><span class="item-name">---</span></div>
+                <div id="slot-arms" class="equip-slot slot-arms" onclick="UI.showEquippedDialog('arms')"><span class="label">ARME</span><span class="icon">🦾</span><span class="item-name">---</span></div>
+
+                <div></div>
+                <div id="slot-legs" class="equip-slot slot-legs" onclick="UI.showEquippedDialog('legs')"><span class="label">BEINE</span><span class="icon">👖</span><span class="item-name">---</span></div>
+                <div></div>
+
+                <div></div>
+                <div id="slot-feet" class="equip-slot slot-feet" onclick="UI.showEquippedDialog('feet')"><span class="label">FÜSSE</span><span class="icon">🥾</span><span class="item-name">---</span></div>
+                <div></div>
             </div>
         </div>
 
