@@ -74,8 +74,10 @@
 /* BURGER MENÜ FIX */
 #main-nav {
     z-index: 2000 !important; /* Über alles drüber */
-    max-height: 70vh; /* Nicht höher als 70% des Screens */
-    overflow-y: auto; /* Scrollbar wenn zu lang */
+    max-height: 90vh;         /* Nicht höher als 70% des Screens */
+    overflow-y: auto;         /* Vertikal scrollen erlaubt */
+    overflow-x: hidden;       /* FIX: Horizontales Wackeln/Scrollen verboten */
+    width: 14rem;             /* Entspricht w-56, erzwingt feste Breite */
 }
 
 /* --- LEICHEN IM KELLER (Old Layout entfernen) --- */
