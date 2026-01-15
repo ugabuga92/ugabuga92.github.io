@@ -1,9 +1,9 @@
-/* [TIMESTAMP] 2026-01-15 21:30:00 - ui_render_views.js - Full Recovery & Paper-Doll Layout Fix */
+// [2026-01-15 22:15:00] ui_render_views.js - Full Recovery with Procedural Vault-Boy Canvas
 
 Object.assign(UI, {
 
     // ==========================================
-    // === CHARAKTER & STATS MENU (NEU) ===
+    // === CHARAKTER & STATS MENU ===
     // ==========================================
     renderStats: function(tab = 'stats') {
         Game.state.view = 'stats';
@@ -63,21 +63,25 @@ Object.assign(UI, {
         wrapper.appendChild(footer);
 
         view.appendChild(wrapper);
+
+        // WICHTIG: Das Männchen zeichnen, nachdem das HTML im DOM ist
+        if(tab === 'stats') {
+            setTimeout(() => this.drawVaultBoy('char-silhouette-canvas'), 50);
+        }
     },
 
-    // UNTERFUNKTION: Das "Paper Doll" Layout (Die Visualisierung)
+    // UNTERFUNKTION: Das "Paper Doll" Layout
     renderCharacterVisuals: function(container) {
         const p = Game.state;
         const eq = p.equip;
 
-        // Helper für Slot-Darstellung
         const renderSlot = (slotName, item, iconFallback) => {
             const hasItem = !!item;
             const name = hasItem ? (item.props && item.props.name ? item.props.name : item.name) : "LEER";
             const style = hasItem ? "border-green-500 bg-green-900/20 text-green-300 shadow-[0_0_10px_rgba(57,255,20,0.2)]" : "border-green-900/50 text-green-900 bg-black";
             
             return `
-                <div class="flex flex-col items-center justify-center p-2 border-2 ${style} rounded min-h-[80px] transition-all relative group cursor-pointer" onclick="UI.openEquipMenu('${slotName}')">
+                <div class="flex flex-col items-center justify-center p-2 border-2 ${style} rounded min-h-[80px] transition-all relative group cursor-pointer z-10" onclick="UI.openEquipMenu('${slotName}')">
                     <div class="text-[8px] uppercase tracking-widest opacity-50 mb-1">${slotName}</div>
                     <div class="text-2xl mb-1">${hasItem && item.icon ? item.icon : iconFallback}</div>
                     <div class="text-[9px] text-center font-bold uppercase leading-tight max-w-full overflow-hidden text-ellipsis">${name}</div>
@@ -88,7 +92,6 @@ Object.assign(UI, {
 
         container.innerHTML = `
             <div class="flex flex-col items-center gap-6 max-w-md mx-auto">
-                
                 <div class="w-full text-center border-b border-green-900 pb-4">
                     <div class="text-4xl font-bold text-green-400 mb-1 tracking-tighter">${p.playerName}</div>
                     <div class="flex justify-center gap-4 text-xs font-mono text-green-600">
@@ -99,34 +102,16 @@ Object.assign(UI, {
                 </div>
 
                 <div class="grid grid-cols-3 grid-rows-4 gap-3 w-full relative">
+                    <div class="col-start-2 row-start-1">${renderSlot('head', eq.head, '🧢')}</div>
+                    <div class="col-start-1 row-start-2">${renderSlot('weapon', eq.weapon, '👊')}</div>
+                    <div class="col-start-2 row-start-2">${renderSlot('body', eq.body, '👕')}</div>
+                    <div class="col-start-3 row-start-2">${renderSlot('arms', eq.arms, '💪')}</div>
+                    <div class="col-start-2 row-start-3">${renderSlot('legs', eq.legs, '👖')}</div>
+                    <div class="col-start-3 row-start-3">${renderSlot('back', eq.back, '🎒')}</div>
+                    <div class="col-start-2 row-start-4">${renderSlot('feet', eq.feet, '🥾')}</div>
                     
-                    <div class="col-start-2 row-start-1">
-                        ${renderSlot('head', eq.head, '🧢')}
-                    </div>
-
-                    <div class="col-start-1 row-start-2">
-                        ${renderSlot('weapon', eq.weapon, '👊')}
-                    </div>
-                    <div class="col-start-2 row-start-2">
-                        ${renderSlot('body', eq.body, '👕')}
-                    </div>
-                    <div class="col-start-3 row-start-2">
-                        ${renderSlot('arms', eq.arms, '💪')}
-                    </div>
-
-                    <div class="col-start-2 row-start-3">
-                        ${renderSlot('legs', eq.legs, '👖')}
-                    </div>
-                    <div class="col-start-3 row-start-3">
-                        ${renderSlot('back', eq.back, '🎒')}
-                    </div>
-
-                    <div class="col-start-2 row-start-4">
-                        ${renderSlot('feet', eq.feet, '🥾')}
-                    </div>
-                    
-                    <div class="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none z-0">
-                         <span class="text-[150px]">👤</span>
+                    <div class="absolute inset-0 flex items-center justify-center opacity-40 pointer-events-none z-0">
+                         <canvas id="char-silhouette-canvas" width="240" height="300"></canvas>
                     </div>
                 </div>
 
@@ -152,10 +137,47 @@ Object.assign(UI, {
         `;
     },
 
+    // Die neue Zeichenfunktion
+    drawVaultBoy: function(canvasId) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.strokeStyle = "#1aff1a"; 
+        ctx.fillStyle = "#1aff1a";
+        ctx.lineWidth = 2.5;
+
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        // Kopf
+        ctx.beginPath(); ctx.arc(cx, cy - 60, 30, 0, Math.PI * 2); ctx.stroke();
+        // Haare (Tolle)
+        ctx.beginPath(); ctx.arc(cx - 10, cy - 85, 12, Math.PI, 0); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx + 5, cy - 85, 10, Math.PI, 0); ctx.stroke();
+        // Torso
+        ctx.beginPath(); ctx.moveTo(cx - 18, cy - 30); ctx.lineTo(cx + 18, cy - 30);
+        ctx.lineTo(cx + 22, cy + 30); ctx.lineTo(cx - 22, cy + 30); ctx.closePath(); ctx.stroke();
+        // Rechter Arm (Daumen hoch)
+        ctx.beginPath(); ctx.moveTo(cx + 18, cy - 20); ctx.lineTo(cx + 50, cy - 35);
+        ctx.lineTo(cx + 50, cy - 55); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx + 50, cy - 62, 6, 0, Math.PI * 2); ctx.fill();
+        // Linker Arm (Hüfte)
+        ctx.beginPath(); ctx.moveTo(cx - 18, cy - 20); ctx.lineTo(cx - 40, cy - 5);
+        ctx.lineTo(cx - 20, cy + 15); ctx.stroke();
+        // Beine
+        ctx.beginPath(); ctx.moveTo(cx - 12, cy + 30); ctx.lineTo(cx - 18, cy + 85); ctx.lineTo(cx - 30, cy + 85); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + 12, cy + 30); ctx.lineTo(cx + 18, cy + 85); ctx.lineTo(cx + 30, cy + 85); ctx.stroke();
+        // Gesicht
+        ctx.beginPath(); ctx.arc(cx - 10, cy - 65, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 10, cy - 65, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx, cy - 60, 15, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
+    },
+
     renderSpecialStats: function(container) {
         const stats = Game.state.stats;
         const points = Game.state.statPoints;
-        
         let html = `
             <div class="text-center mb-6">
                 <div class="text-xs text-green-600 uppercase tracking-widest mb-2">VERFÜGBARE PUNKTE</div>
@@ -163,7 +185,6 @@ Object.assign(UI, {
             </div>
             <div class="space-y-3 max-w-md mx-auto">
         `;
-
         const labels = {
             STR: "STÄRKE (Nahkampf, Tragekraft)",
             PER: "WAHRNEHMUNG (Trefferchance, Loot)",
@@ -172,11 +193,9 @@ Object.assign(UI, {
             AGI: "BEWEGLICHKEIT (Ausweichen, AP)",
             LUC: "GLÜCK (Kritische Treffer)"
         };
-
         for (let key in stats) {
             const val = stats[key];
             const canAdd = points > 0 && val < 10;
-            
             html += `
                 <div class="flex items-center justify-between bg-black/40 p-3 border border-green-900 hover:border-green-500 transition-colors">
                     <div class="flex flex-col">
@@ -198,7 +217,6 @@ Object.assign(UI, {
         const perks = Game.perkDefs || [];
         const myPerks = Game.state.perks || {};
         const points = Game.state.perkPoints || 0;
-
         let html = `
             <div class="text-center mb-6">
                 <div class="text-xs text-green-600 uppercase tracking-widest mb-2">VERFÜGBARE PERK-PUNKTE</div>
@@ -206,35 +224,20 @@ Object.assign(UI, {
             </div>
             <div class="grid grid-cols-1 gap-3">
         `;
-
         perks.forEach(p => {
             const currentLvl = myPerks[p.id] || 0;
             const maxed = currentLvl >= p.maxLvl;
             const canBuy = points > 0 && !maxed && Game.state.lvl >= p.reqLvl;
-            
-            let btnState = "";
-            let btnClass = "border-gray-800 text-gray-600 cursor-not-allowed";
-            let btnText = "LOCKED";
-
-            if (maxed) {
-                btnClass = "border-green-800 text-green-800 bg-green-900/20";
-                btnText = "MAX";
-            } else if (canBuy) {
-                btnClass = "border-yellow-500 text-yellow-400 hover:bg-yellow-400 hover:text-black cursor-pointer animate-pulse";
-                btnText = "LERNEN";
-                btnState = `onclick="Game.learnPerk('${p.id}')"`;
-            } else if (Game.state.lvl < p.reqLvl) {
-                 btnText = `LVL ${p.reqLvl}`;
-            }
-
+            let btnText = maxed ? "MAX" : (canBuy ? "LERNEN" : (Game.state.lvl < p.reqLvl ? `LVL ${p.reqLvl}` : "LOCKED"));
+            let btnClass = maxed ? "border-green-800 text-green-800 bg-green-900/20" : (canBuy ? "border-yellow-500 text-yellow-400 animate-pulse" : "border-gray-800 text-gray-600");
             html += `
-                <div class="flex flex-col p-3 border ${currentLvl > 0 ? 'border-green-600 bg-green-900/10' : 'border-green-900/30 bg-black'} transition-all">
+                <div class="flex flex-col p-3 border ${currentLvl > 0 ? 'border-green-600 bg-green-900/10' : 'border-green-900/30 bg-black'}">
                     <div class="flex justify-between items-start mb-2">
                         <div>
                             <div class="font-bold text-lg ${currentLvl > 0 ? 'text-green-300' : 'text-gray-400'}">${p.name}</div>
                             <div class="text-xs text-green-700">Rang: ${currentLvl} / ${p.maxLvl}</div>
                         </div>
-                        <button class="px-3 py-1 border text-xs font-bold uppercase transition-colors ${btnClass}" ${btnState}>
+                        <button class="px-3 py-1 border text-xs font-bold uppercase transition-colors ${btnClass}" ${canBuy ? `onclick="Game.learnPerk('${p.id}')"` : ''}>
                             ${btnText}
                         </button>
                     </div>
@@ -242,7 +245,6 @@ Object.assign(UI, {
                 </div>
             `;
         });
-        
         html += '</div>';
         container.innerHTML = html;
     },
@@ -250,106 +252,60 @@ Object.assign(UI, {
     renderCharacterSelection: function(saves) {
         this.charSelectMode = true;
         this.currentSaves = saves;
-        
         if(this.els.loginScreen) this.els.loginScreen.style.display = 'none';
         if(this.els.charSelectScreen) this.els.charSelectScreen.style.display = 'flex';
-        
         if(this.els.charSlotsList) this.els.charSlotsList.innerHTML = '';
-
         const btnBack = document.getElementById('btn-char-back');
         if (btnBack) {
             btnBack.onclick = () => {
                 this.charSelectMode = false;
                 if(this.els.charSelectScreen) this.els.charSelectScreen.style.display = 'none';
-                if(this.els.loginScreen) {
-                    this.els.loginScreen.style.display = 'flex'; 
-                }
+                if(this.els.loginScreen) this.els.loginScreen.style.display = 'flex'; 
             };
         }
-
         for (let i = 0; i < 5; i++) {
             const slot = document.createElement('div');
             slot.className = "char-slot border-2 border-green-900 bg-black/80 p-4 mb-2 cursor-pointer hover:border-yellow-400 transition-all flex justify-between items-center group relative overflow-hidden";
-            slot.dataset.index = i;
-            
             const save = saves[i];
-            
             if (save) {
-                const name = save.playerName || "UNBEKANNT";
-                const lvl = save.lvl || 1;
-                const loc = save.sector ? `[${save.sector.x},${save.sector.y}]` : "[?,?]";
-                
                 const isDead = (save.hp !== undefined && save.hp <= 0);
-                const statusIcon = isDead ? "💀" : "👤";
-                const statusClass = isDead ? "text-red-500" : "text-yellow-400";
-
                 slot.innerHTML = `
                     <div class="flex flex-col z-10">
-                        <span class="text-xl ${statusClass} font-bold tracking-wider">${statusIcon} ${name}</span>
-                        <span class="text-xs text-green-300 font-mono">Level ${lvl} | Sektor ${loc}</span>
+                        <span class="text-xl ${isDead ? 'text-red-500' : 'text-yellow-400'} font-bold tracking-wider">${isDead ? '💀' : '👤'} ${save.playerName}</span>
+                        <span class="text-xs text-green-300 font-mono">Level ${save.lvl} | Sektor [${save.sector.x},${save.sector.y}]</span>
                     </div>
                     <div class="z-10 flex items-center gap-2">
-                        <div class="text-xs text-gray-500 font-bold mr-2">SLOT ${i+1}</div>
-                        <button class="bg-green-700 text-black font-bold px-4 py-1 text-xs rounded transition-all duration-200 shadow-[0_0_5px_#1b5e20] 
-                                       group-hover:bg-[#39ff14] group-hover:shadow-[0_0_20px_#39ff14] group-hover:scale-110">
-                            START ▶
-                        </button>
+                        <button class="bg-green-700 text-black font-bold px-4 py-1 text-xs rounded group-hover:bg-[#39ff14]">START ▶</button>
                     </div>
                 `;
             } else {
-                slot.className = "char-slot border-2 border-dashed border-gray-700 bg-black/50 p-4 mb-2 cursor-pointer hover:border-yellow-400 hover:bg-yellow-900/10 transition-all flex justify-center items-center group min-h-[80px]";
-                slot.innerHTML = `
-                    <div class="text-gray-500 group-hover:text-yellow-400 font-bold tracking-widest flex items-center gap-2 transition-colors">
-                        <span class="text-3xl">+</span> NEUEN CHARAKTER ERSTELLEN
-                    </div>
-                `;
+                slot.className = "char-slot border-2 border-dashed border-gray-700 bg-black/50 p-4 mb-2 cursor-pointer hover:border-yellow-400 flex justify-center items-center group min-h-[80px]";
+                slot.innerHTML = `<div class="text-gray-500 group-hover:text-yellow-400 font-bold">+ NEUEN CHARAKTER</div>`;
             }
-            
-            slot.onclick = () => {
-                if(typeof this.selectSlot === 'function') {
-                    this.selectSlot(i);
-                }
-            };
-            
+            slot.onclick = () => { if(typeof this.selectSlot === 'function') this.selectSlot(i); };
             if(this.els.charSlotsList) this.els.charSlotsList.appendChild(slot);
         }
-        
-        if(typeof this.selectSlot === 'function') {
-            this.selectSlot(0);
-        }
+        if(typeof this.selectSlot === 'function') this.selectSlot(0);
     },
 
     renderSpawnList: function(players) {
         if(!this.els.spawnList) return;
         this.els.spawnList.innerHTML = '';
-        
         if(!players || Object.keys(players).length === 0) {
             this.els.spawnList.innerHTML = '<div class="text-gray-500 italic p-2">Keine Signale gefunden...</div>';
             return;
         }
-        
         for(let pid in players) {
             const p = players[pid];
             const btn = document.createElement('button');
-            btn.className = "action-button w-full mb-2 text-left text-xs border-green-800 hover:border-green-500 text-green-400 p-2";
-            
-            const sectorStr = p.sector ? `[${p.sector.x},${p.sector.y}]` : "[?,?]";
-            
-            btn.innerHTML = `
-                <div class="font-bold">SIGNAL: ${p.name}</div>
-                <div class="text-[10px] text-gray-400 float-right mt-[-1rem]">${sectorStr}</div>
-            `;
-            
+            btn.className = "action-button w-full mb-2 text-left text-xs border-green-800 text-green-400 p-2";
+            btn.innerHTML = `<div>SIGNAL: ${p.name}</div><div class="text-[10px] text-gray-400 float-right mt-[-1rem]">[${p.sector.x},${p.sector.y}]</div>`;
             btn.onclick = () => {
                 if(this.els.spawnScreen) this.els.spawnScreen.style.display = 'none';
                 this.startGame(null, this.selectedSlot, null); 
                 if(Game.state && Game.state.player) {
-                    Game.state.player.x = p.x;
-                    Game.state.player.y = p.y;
-                    if(p.sector) {
-                        Game.state.sector = p.sector;
-                        Game.changeSector(p.sector.x, p.sector.y);
-                    }
+                    Game.state.player.x = p.x; Game.state.player.y = p.y;
+                    if(p.sector) { Game.state.sector = p.sector; Game.changeSector(p.sector.x, p.sector.y); }
                 }
             };
             this.els.spawnList.appendChild(btn);
@@ -359,41 +315,29 @@ Object.assign(UI, {
     renderCombat: function() {
         const enemy = Game.state.enemy;
         if(!enemy) return;
-        
         const nameEl = document.getElementById('enemy-name');
         if(nameEl) nameEl.textContent = enemy.name;
-        
         const hpText = document.getElementById('enemy-hp-text');
         const hpBar = document.getElementById('enemy-hp-bar');
-        
         if(hpText) hpText.textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`;
         if(hpBar) hpBar.style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`;
-        
         if(typeof Combat !== 'undefined' && typeof Combat.calculateHitChance === 'function') {
              const cHead = Combat.calculateHitChance(0);
              const cTorso = Combat.calculateHitChance(1);
              const cLegs = Combat.calculateHitChance(2);
-             
              const elHead = document.getElementById('chance-vats-0');
              const elTorso = document.getElementById('chance-vats-1');
              const elLegs = document.getElementById('chance-vats-2');
-             
              if(elHead) elHead.textContent = cHead + "%";
              if(elTorso) elTorso.textContent = cTorso + "%";
              if(elLegs) elLegs.textContent = cLegs + "%";
         }
-        
         if(typeof Combat !== 'undefined' && Combat.selectedPart !== undefined) {
             for(let i=0; i<3; i++) {
                 const btn = document.getElementById(`btn-vats-${i}`);
                 if(btn) {
-                    if(i === Combat.selectedPart) {
-                        btn.classList.add('bg-green-500', 'text-black');
-                        btn.classList.remove('bg-green-900/20');
-                    } else {
-                        btn.classList.remove('bg-green-500', 'text-black');
-                        btn.classList.add('bg-green-900/20');
-                    }
+                    btn.classList.toggle('bg-green-500', i === Combat.selectedPart);
+                    btn.classList.toggle('text-black', i === Combat.selectedPart);
                 }
             }
         }
