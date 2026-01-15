@@ -1,57 +1,48 @@
 Object.assign(UI, {
 
-// ==========================================
-    // === CHARAKTER & STATS MENU ===
     // ==========================================
-    renderStats: function(tab = 'status') { // Standard Tab ist 'status' wie in deinem HTML
+    // === CHARAKTER & STATS MENU (NEU) ===
+    // ==========================================
+    renderStats: function(tab = 'stats') {
         Game.state.view = 'stats';
         const view = document.getElementById('view-container');
         if(!view) return;
         view.innerHTML = '';
 
-        // 1. Wrapper (Absolut Fullscreen)
+        // 1. Wrapper (Absolut Fullscreen wie Shop)
         const wrapper = document.createElement('div');
-        wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black/95 z-20 overflow-hidden";
+        wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-20 overflow-hidden";
 
-        // 2. Header (Statisch)
+        // 2. Tab Navigation (Fixiert oben)
+        const getTabClass = (t) => {
+            return (tab === t) 
+                ? "bg-green-500 text-black border-b-4 border-green-700 font-bold shadow-[0_0_15px_#39ff14]" 
+                : "bg-[#001100] text-green-600 border-b border-green-900 hover:text-green-400 hover:bg-green-900/30";
+        };
+
         const header = document.createElement('div');
-        header.className = "flex justify-between items-center p-4 border-b border-green-900 bg-green-900/10 shrink-0";
+        header.className = "flex-shrink-0 flex w-full border-b-2 border-green-900 bg-black z-30";
         header.innerHTML = `
-            <div class="flex flex-col">
-                <span class="text-xs text-green-600 tracking-widest">BEWOHNER</span>
-                <span class="text-2xl font-bold text-yellow-400">${Game.state.playerName || 'PLAYER'}</span>
-            </div>
-            <div class="text-right">
-                <span class="text-3xl font-bold text-[#39ff14]">${Game.state.lvl}</span>
-                <div class="text-[10px] text-green-500">LEVEL</div>
-            </div>
+            <button onclick="UI.renderStats('stats')" class="flex-1 py-3 transition-all uppercase tracking-widest font-vt323 text-xl ${getTabClass('stats')}">
+                STATUS
+            </button>
+            <button onclick="UI.renderStats('special')" class="flex-1 py-3 transition-all uppercase tracking-widest font-vt323 text-xl ${getTabClass('special')}">
+                S.P.E.C.I.A.L.
+            </button>
+            <button onclick="UI.renderStats('perks')" class="flex-1 py-3 transition-all uppercase tracking-widest font-vt323 text-xl ${getTabClass('perks')}">
+                PERKS
+            </button>
         `;
         wrapper.appendChild(header);
 
-        // 3. Tabs (Statisch)
-        const getTabClass = (t) => {
-            return (tab === t) 
-                ? "bg-green-500 text-black border-b-4 border-green-700 shadow-[0_0_15px_#39ff14]" 
-                : "bg-black text-green-200 border-b border-green-800 hover:text-green-400 hover:bg-green-900/30";
-        };
-
-        const tabsDiv = document.createElement('div');
-        tabsDiv.className = "flex justify-around bg-black shrink-0 z-30";
-        tabsDiv.innerHTML = `
-            <button onclick="UI.renderStats('status')" class="flex-1 py-3 font-bold text-lg uppercase transition-all ${getTabClass('status')}">Status</button>
-            <button onclick="UI.renderStats('stats')" class="flex-1 py-3 font-bold text-lg uppercase transition-all ${getTabClass('stats')}">S.P.E.C.I.A.L.</button>
-            <button onclick="UI.renderStats('perks')" class="flex-1 py-3 font-bold text-lg uppercase transition-all ${getTabClass('perks')}">Perks</button>
-        `;
-        wrapper.appendChild(tabsDiv);
-
-        // 4. Scrollbarer Inhalt (Mitte)
+        // 3. Scrollbarer Inhalt
         const content = document.createElement('div');
-        content.className = "flex-1 w-full overflow-y-auto custom-scroll p-4 pb-24 bg-black relative"; // pb-24 für Footer Platz
-
-        // Inhalt rendern
-        if (tab === 'status') {
-            this.renderStatusTab(content);
-        } else if (tab === 'stats') { // Das ist "S.P.E.C.I.A.L" in deiner Logik
+        content.className = "flex-1 w-full overflow-y-auto custom-scroll p-4 pb-24 bg-[radial-gradient(circle_at_center,_#0a1a0a_0%,_#000000_100%)]";
+        
+        // Inhalt basierend auf Tab
+        if (tab === 'stats') {
+            this.renderCharacterVisuals(content);
+        } else if (tab === 'special') {
             this.renderSpecialStats(content);
         } else if (tab === 'perks') {
             this.renderPerksList(content);
@@ -59,91 +50,18 @@ Object.assign(UI, {
 
         wrapper.appendChild(content);
 
-        // 5. Footer (Fixiert Absolut unten)
+        // 4. Footer (Fixiert unten)
         const footer = document.createElement('div');
-        footer.className = "absolute bottom-0 left-0 w-full p-4 border-t border-green-900 bg-black shrink-0 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.9)]";
+        footer.className = "absolute bottom-0 left-0 w-full p-3 bg-black border-t-2 border-green-900 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.9)]";
         footer.innerHTML = `
-            <button class="action-button w-full border-green-500 text-green-500 py-3 font-bold text-lg hover:bg-green-900 bg-black" onclick="UI.switchView('map')">SCHLIESSEN</button>
+            <button class="action-button w-full border-2 border-green-600 text-green-500 py-3 font-bold text-xl hover:bg-green-900/50 hover:text-green-200 transition-all uppercase tracking-[0.15em]" onclick="UI.switchView('map')">
+                <span class="mr-2">📺</span> ZURÜCK ZUR KARTE (TAB)
+            </button>
         `;
         wrapper.appendChild(footer);
 
         view.appendChild(wrapper);
     },
-
-    // UNTERFUNKTION: Status Tab (Dein Grid Layout)
-    renderStatusTab: function(container) {
-        const p = Game.state;
-        const eq = p.equip;
-
-        // Level Up Alert
-        if (p.statPoints > 0 || p.perkPoints > 0) {
-            container.innerHTML += `
-                <div onclick="UI.renderStats('stats')" class="w-full text-center mb-6 cursor-pointer transition-transform hover:scale-105">
-                    <span class="bg-yellow-500 text-black px-4 py-2 text-sm font-bold rounded animate-pulse shadow-[0_0_10px_gold]">🌟 LEVEL UP VERFÜGBAR! 🌟</span>
-                </div>
-            `;
-        }
-
-        // Stats Übersicht
-        container.innerHTML += `
-            <div class="grid grid-cols-2 gap-x-8 gap-y-2 mb-8 text-sm border-b border-green-900/50 pb-6">
-                <div class="flex justify-between border-b border-green-900/30 pb-1"><span class="text-gray-500">TP</span> <span class="text-white font-bold font-mono">${Math.floor(p.hp)}/${p.maxHp}</span></div>
-                <div class="flex justify-between border-b border-green-900/30 pb-1"><span class="text-gray-500">XP</span> <span class="text-white font-bold font-mono">${p.xp}/${Game.expToNextLevel(p.lvl)}</span></div>
-                <div class="flex justify-between border-b border-green-900/30 pb-1"><span class="text-gray-500">TRAGLAST</span> <span class="text-white font-bold font-mono">${Game.getUsedSlots()}/${Game.getMaxSlots()}</span></div>
-                <div class="flex justify-between border-b border-green-900/30 pb-1"><span class="text-gray-500">KRITISCH</span> <span class="text-yellow-400 font-bold font-mono">${p.critChance || 5}%</span></div>
-            </div>
-        `;
-
-        // Slot Helper
-        const renderSlotDiv = (id, label, icon, slotName) => {
-            const item = eq[slotName];
-            const itemName = item ? (item.props && item.props.name ? item.props.name : item.name) : "---";
-            const filledClass = item ? "filled border-green-500 bg-green-900/20" : "empty border-green-900/50 opacity-70";
-            
-            return `
-                <div id="${id}" class="equip-slot ${filledClass} flex flex-col items-center justify-center p-2 border min-h-[80px] cursor-pointer hover:border-yellow-400 transition-all" onclick="UI.openEquipMenu('${slotName}')">
-                    <span class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">${label}</span>
-                    <span class="text-2xl mb-1 filter drop-shadow-md">${item && item.icon ? item.icon : icon}</span>
-                    <span class="text-[10px] text-green-400 font-bold text-center leading-tight truncate w-full px-1">${itemName}</span>
-                </div>
-            `;
-        };
-
-        // Das Grid Layout (angepasst an Tailwind Grid)
-        // Wir nutzen ein CSS Grid für die Körper-Form
-        container.innerHTML += `
-            <div class="grid grid-cols-3 gap-4 w-full max-w-md mx-auto">
-                <div class="col-start-2">
-                    ${renderSlotDiv('slot-head', 'KOPF', '🪖', 'head')}
-                </div>
-
-                <div class="col-start-1 row-start-2">
-                    ${renderSlotDiv('slot-weapon', 'WAFFE', '🔫', 'weapon')}
-                </div>
-
-                <div class="col-start-2 row-start-2">
-                    ${renderSlotDiv('slot-body', 'KÖRPER', '🛡️', 'body')}
-                </div>
-
-                <div class="col-start-3 row-start-2">
-                    ${renderSlotDiv('slot-arms', 'ARME', '🦾', 'arms')}
-                </div>
-
-                <div class="col-start-2 row-start-3">
-                    ${renderSlotDiv('slot-legs', 'BEINE', '👖', 'legs')}
-                </div>
-
-                <div class="col-start-2 row-start-4">
-                    ${renderSlotDiv('slot-feet', 'FÜSSE', '🥾', 'feet')}
-                </div>
-
-                <div class="col-start-3 row-start-3">
-                    ${renderSlotDiv('slot-back', 'RÜCKEN', '🎒', 'back')}
-                </div>
-            </div>
-        `;
-    },
-
 
     // UNTERFUNKTION: Das "Paper Doll" Layout (Die Visualisierung)
     renderCharacterVisuals: function(container) {
