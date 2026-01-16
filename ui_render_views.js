@@ -1,15 +1,14 @@
-// [2026-01-16 07:55:00] ui_render_views.js - Fixed Tab-Closing Issue & Event Propagation
+// [2026-01-16 08:15:00] ui_render_views.js - Header scrolls with content, Footer remains fixed
+//
 
 Object.assign(UI, {
 
     renderStats: function(tab = 'stats', event = null) {
-        // Verhindert, dass der Klick das Menü schließt, falls ein Parent-Element darauf reagiert
         if (event) {
             event.stopPropagation();
             event.preventDefault();
         }
 
-        // Status im Game-State setzen
         Game.state.view = 'char';
         Game.state.charTab = tab;
         
@@ -17,34 +16,42 @@ Object.assign(UI, {
         if(!view) return;
         view.innerHTML = ''; 
 
+        // Haupt-Wrapper: Nimmt den vollen Platz ein
         const wrapper = document.createElement('div');
         wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-20 overflow-hidden";
-        // Verhindert Schließen beim Klicken innerhalb des Menüs
         wrapper.onclick = (e) => e.stopPropagation();
+
+        // Scrollbarer Bereich: Hier liegen Header UND Inhalt drin
+        const scrollContainer = document.createElement('div');
+        scrollContainer.className = "flex-1 w-full overflow-y-auto pb-24 bg-black"; // pb-24 für Platz vor dem Footer
 
         const getTabClass = (t) => (tab === t) 
             ? "bg-green-500 text-black border-b-4 border-green-700 font-bold" 
             : "bg-[#001100] text-green-600 border-b border-green-900";
 
+        // Der Header wird nun INSIDE den scrollContainer gepackt
         const header = document.createElement('div');
-        header.className = "flex-shrink-0 flex w-full border-b-2 border-green-900 bg-black z-30";
+        header.className = "flex w-full border-b-2 border-green-900 bg-black sticky top-0 z-30"; 
+        // "sticky top-0" sorgt dafür, dass er beim Scrollen erst oben bleibt, wenn man ihn erreicht
         header.innerHTML = `
             <button onclick="UI.renderStats('stats', event)" class="flex-1 py-3 uppercase font-vt323 text-xl ${getTabClass('stats')}">STATUS</button>
             <button onclick="UI.renderStats('special', event)" class="flex-1 py-3 uppercase font-vt323 text-xl ${getTabClass('special')}">S.P.E.C.I.A.L.</button>
             <button onclick="UI.renderStats('perks', event)" class="flex-1 py-3 uppercase font-vt323 text-xl ${getTabClass('perks')}">PERKS</button>
         `;
-        wrapper.appendChild(header);
+        scrollContainer.appendChild(header);
 
+        // Der eigentliche Content-Bereich
         const content = document.createElement('div');
-        content.className = "flex-1 w-full overflow-y-auto p-4 pb-24 bg-black";
+        content.className = "w-full p-4";
         
-        // Expliziter Aufruf über UI-Objekt
         if (tab === 'stats') UI.renderCharacterVisuals(content);
         else if (tab === 'special') UI.renderSpecialStats(content);
         else if (tab === 'perks') UI.renderPerksList(content);
 
-        wrapper.appendChild(content);
+        scrollContainer.appendChild(content);
+        wrapper.appendChild(scrollContainer);
 
+        // Footer: Bleibt fest am unteren Rand des Wrappers (außerhalb des scrollContainers)
         const footer = document.createElement('div');
         footer.className = "absolute bottom-0 left-0 w-full p-3 bg-black border-t-2 border-green-900 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.9)]";
         footer.innerHTML = `<button class="action-button w-full border-2 border-green-600 text-green-500 py-3 font-bold text-xl uppercase" onclick="UI.switchView('map')">ZURÜCK</button>`;
@@ -153,7 +160,6 @@ Object.assign(UI, {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.strokeStyle = "#1aff1a"; ctx.fillStyle = "#1aff1a"; ctx.lineWidth = 2.5;
         const cx = canvas.width / 2; const cy = canvas.height / 2;
-        // Zeichnungscode bleibt identisch...
         ctx.beginPath(); ctx.arc(cx, cy - 60, 30, 0, Math.PI * 2); ctx.stroke();
         ctx.beginPath(); ctx.arc(cx - 10, cy - 85, 12, Math.PI, 0); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(cx-18, cy-30); ctx.lineTo(cx+18, cy-30); ctx.lineTo(cx+22, cy+30); ctx.lineTo(cx-22, cy+30); ctx.closePath(); ctx.stroke();
@@ -166,6 +172,7 @@ Object.assign(UI, {
         ctx.beginPath(); ctx.arc(cx, cy - 60, 15, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
     },
 
+    // System-Logik bleibt unverändert...
     renderCharacterSelection: function(saves) {
         this.charSelectMode = true; this.currentSaves = saves;
         if(this.els.loginScreen) this.els.loginScreen.style.display = 'none';
