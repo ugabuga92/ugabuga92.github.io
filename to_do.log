@@ -1,6 +1,9 @@
 🐛 Aktuelle Bugs & Anpassungen:
 Schrift rendering wie ICONS und Map? mehr render und dann wieder kleiner machen. Schrift ist oft schlecht lesbar.
 
+menü bleibt offen und on top nach logout drücken.
+special und perks, direkte aktuallisierung nach punkte verteilen.
+Abfragen bei klick auf namen / Lvl sollte direkt auf die Tabs die punkte zu verteilen haben. 
 
 - Wo sind die Rucksäcke hin?
 - Lock Picking auf Truhen in Dungeons legen
