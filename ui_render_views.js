@@ -3,7 +3,12 @@
 Object.assign(UI, {
 
     renderStats: function(tab = 'stats') {
-        Game.state.view = 'stats';
+        
+        // new try start
+        Game.state.view = 'char';
+        Game.state.charTab = tab;
+        //new try end
+        
         const view = document.getElementById('view-container');
         if(!view) return;
         view.innerHTML = ''; // Container säubern
