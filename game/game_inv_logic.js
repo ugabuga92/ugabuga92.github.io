@@ -1,4 +1,4 @@
-// [2026-01-12 11:30:00] game_inv_logic.js - Robust Standard Gear Fallback
+// [2026-01-17 19:35:00] game_inv_logic.js - Linking Crafting to Quest Progress
 
 Object.assign(Game, {
 
@@ -87,6 +87,11 @@ Object.assign(Game, {
             }
             
             if (itemId === 'ammo') this.syncAmmo();
+            
+            // [QUEST HOOK] Check if this added item is a quest target
+            if(typeof Game.updateQuestProgress === 'function') {
+                Game.updateQuestProgress('collect', itemId, count);
+            }
             
             if(isActuallyNew && typeof UI !== 'undefined' && UI.triggerInventoryAlert) {
                 UI.triggerInventoryAlert();
@@ -223,6 +228,11 @@ Object.assign(Game, {
         
         UI.log(`Hergestellt: ${recipe.count}x ${recipe.out === "AMMO" ? "Munition" : this.items[recipe.out].name}`, "text-green-400 font-bold");
 
+        // [FIX] Hier triggern wir die Quest-Logik explizit auch fürs Crafting
+        if(typeof Game.updateQuestProgress === 'function' && recipe.out !== "AMMO") {
+            Game.updateQuestProgress('collect', recipe.out, recipe.count);
+        }
+
         if(recipe.type === 'cooking') {
             if(typeof UI.renderCampCooking === 'function') UI.renderCampCooking();
         } else {
@@ -271,7 +281,10 @@ Object.assign(Game, {
         }
 
         this.recalcStats();
-        if(typeof UI !== 'undefined' && this.state.view === 'char') UI.renderChar(); 
+        if(typeof UI !== 'undefined') {
+            if(this.state.view === 'char') UI.renderChar(); 
+            if(this.state.view === 'inventory') UI.renderInventory(); // Refresh Inventory UI too
+        }
         this.saveGame();
     },
 
@@ -289,14 +302,23 @@ Object.assign(Game, {
         if (itemDef.type === 'back') {
             const slot = 'back';
             let oldEquip = this.state.equip[slot];
+            
+            // Remove from inventory first
             this.state.inventory.splice(index, 1);
+            
+            // Add old item back if exists
             if(oldEquip) {
                 const oldItem = { id: oldEquip.id, count: 1, props: oldEquip.props, isNew: true };
                 this.state.inventory.push(oldItem);
             }
+            
+            // Equip new item
             this.state.equip[slot] = { ...itemDef, ...invItem.props };
+            
             UI.log(`Rucksack angelegt: ${itemDef.name}`, "text-yellow-400");
+            
             if(this.getUsedSlots() > this.getMaxSlots()) UI.log("WARNUNG: Überladen!", "text-red-500 blink-red");
+            
             UI.update();
             if(this.state.view === 'inventory') UI.renderInventory();
             this.saveGame();
