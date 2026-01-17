@@ -1,3 +1,5 @@
+// [2026-01-17 19:30:00] data_core.js - Added Backpack Tutorial Quest
+
 window.GameData = window.GameData || {};
 
 // [v0.7.3] PERK SYSTEM (10 Perks)
@@ -90,6 +92,17 @@ window.GameData.questDefs = [
         amount: 3, 
         minLvl: 1, 
         reward: { xp: 50, caps: 25 } 
+    },
+    // [NEU] RUCKSACK TUTORIAL QUEST
+    { 
+        id: "q_backpack", 
+        title: "Der Packesel", 
+        desc: "Deine Taschen sind voll. Sammle Schrott und baue an einer Werkbank ein Rucksack-Gestell.", 
+        type: "collect", 
+        target: "backpack_frame", 
+        amount: 1, 
+        minLvl: 1, 
+        reward: { xp: 100, items: [{id:'leather', c:4}] } // Belohnung: Leder für das nächste Upgrade!
     },
     { 
         id: "q_explore", 
