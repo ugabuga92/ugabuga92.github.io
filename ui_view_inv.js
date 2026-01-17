@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-12 12:00:00 - ui_view_inv.js - Show Standard Gear & Inventory Visuals
+// [2026-01-17 19:40:00] ui_view_inv.js - Active Backpack Visualization
 
 Object.assign(UI, {
 
@@ -19,8 +19,33 @@ Object.assign(UI, {
         const usedSlots = Game.getUsedSlots();
         const maxSlots = Game.getMaxSlots();
         
+        // [NEU] Rucksack-Anzeige im Header
         if(countDisplay) {
-            countDisplay.textContent = `${usedSlots} / ${maxSlots}`;
+            // Prüfung: Welcher Rucksack ist angelegt?
+            let backpackName = "";
+            let bpBonus = 0;
+            if (Game.state.equip && Game.state.equip.back) {
+                const bp = Game.state.equip.back;
+                backpackName = bp.props && bp.props.name ? bp.props.name : bp.name;
+                // Icon für den Namen
+                backpackName = `🎒 ${backpackName}`;
+            }
+
+            // Basis-Info
+            let text = `${usedSlots} / ${maxSlots}`;
+            
+            // Wenn Rucksack da ist, zeigen wir ihn an (als kleines Sub-Label oder direkt daneben)
+            // Um Platz zu sparen: Wir nutzen das "inv-count" Element für die Zahlen und fügen
+            // ein neues Element für den Rucksack-Namen ein, falls es noch nicht existiert.
+            
+            // Cleaner way: Setze TextContent neu
+            countDisplay.innerHTML = `
+                <div class="flex flex-col items-end leading-none">
+                    <span>${usedSlots} / ${maxSlots}</span>
+                    ${backpackName ? `<span class="text-[10px] text-yellow-400 font-normal tracking-wide mt-0.5">${backpackName}</span>` : '<span class="text-[9px] text-gray-600">KEIN RUCKSACK</span>'}
+                </div>
+            `;
+            
             countDisplay.className = usedSlots >= maxSlots ? "text-red-500 font-bold animate-pulse" : "text-green-500 font-mono";
         }
         
