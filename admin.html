@@ -308,8 +308,9 @@
 </div>
 
 <script>
+    // INITIALIZATION SCRIPT
     window.Game = { items: {}, recipes: [] };
-    window.GameData = { items: {}, recipes: [] };
+    window.GameData = { items: {}, recipes: [], monsters: {} };
     
     const v = Date.now();
     const load = (src) => new Promise((res, rej) => {
@@ -319,9 +320,11 @@
         document.body.appendChild(s);
     });
 
+    // Korrekte Lade-Reihenfolge inkl. data_monsters.js
     load('data_core.js')
     .then(() => load('data_items.js')) 
     .then(() => load('data_recipes.js'))
+    .then(() => load('data_monsters.js')) // WICHTIG für Monster/Loot
     .then(() => load('network.js'))
     .then(() => load('admin.js'))
     .catch(e => document.body.innerHTML = `<h1 style="color:red;padding:20px">BOOT ERROR: ${e}</h1>`);
