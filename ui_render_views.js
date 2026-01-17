@@ -1,22 +1,31 @@
-// [2026-01-17 14:15:00] ui_render_views.js - Full Header Click Logic & Giant VATS
+// [2026-01-17 14:30:00] ui_render_views.js - Fix Header Click Logic & Debugging
 
 Object.assign(UI, {
 
-    // [NEU] Zentrale Logik für den Klick auf Name/Level/Header
+    // [FIX] Robuste Klick-Logik mit Debugging und Typ-Sicherheit
     handleHeaderClick: function() {
-        if(!Game.state) return;
-        const s = Game.state;
+        if(!Game.state) {
+            console.warn("UI: HandleHeaderClick - Kein Game State!");
+            return;
+        }
         
-        // Prio 1: Wenn Stat-Punkte da sind -> Ab zu SPECIAL
-        if (s.statPoints > 0) {
+        // Sicherstellen, dass es Zahlen sind (falls mal "1" als String kommt)
+        const sPoints = Number(Game.state.statPoints || 0);
+        const pPoints = Number(Game.state.perkPoints || 0);
+
+        console.log(`UI: Header Clicked. Stats: ${sPoints}, Perks: ${pPoints}`);
+
+        // Logik gemäß Anforderung: Prio Special > Prio Perks > Fallback Special
+        if (sPoints > 0) {
+            console.log("-> Gehe zu SPECIAL (Prio 1)");
             this.renderStats('special'); 
         } 
-        // Prio 2: Wenn Perk-Punkte da sind -> Ab zu PERKS
-        else if (s.perkPoints > 0) {
+        else if (pPoints > 0) {
+            console.log("-> Gehe zu PERKS (Prio 2)");
             this.renderStats('perks');   
         } 
-        // Fallback: Keine Punkte? -> Trotzdem zu SPECIAL (als "Details")
         else {
+            console.log("-> Gehe zu SPECIAL (Fallback/Details)");
             this.renderStats('special'); 
         }
     },
@@ -87,34 +96,36 @@ Object.assign(UI, {
             const hasItem = !!item;
             const name = hasItem ? (item.props?.name || item.name) : "LEER";
             return `
-                <div class="flex flex-col items-center justify-center p-2 border-2 ${hasItem ? 'border-green-500 bg-green-900/20' : 'border-green-900/50'} rounded min-h-[80px] z-10 relative" onclick="UI.openEquipMenu('${slotName}')">
-                    <div class="text-[8px] uppercase opacity-50 mb-1">${slotName}</div>
-                    <div class="text-2xl mb-1">${hasItem && item.icon ? item.icon : iconFallback}</div>
-                    <div class="text-[9px] text-center font-bold truncate w-full">${name}</div>
+                <div class="flex flex-col items-center justify-center p-2 border-2 ${hasItem ? 'border-green-500 bg-green-900/20' : 'border-green-900/50'} rounded min-h-[80px] z-10 relative cursor-pointer hover:bg-green-900/40 transition-colors" onclick="UI.openEquipMenu('${slotName}')">
+                    <div class="text-[8px] uppercase opacity-50 mb-1 pointer-events-none">${slotName}</div>
+                    <div class="text-2xl mb-1 pointer-events-none">${hasItem && item.icon ? item.icon : iconFallback}</div>
+                    <div class="text-[9px] text-center font-bold truncate w-full pointer-events-none">${name}</div>
                 </div>
             `;
         };
         
-        // Dynamischer Hinweis-Text
         let actionText = '<span class="ml-2 text-xs uppercase border border-green-700 px-1 rounded text-green-500 opacity-50">Details ▶</span>';
         let highlightClass = "";
         
-        if (p.statPoints > 0 || p.perkPoints > 0) {
+        // Prüfung erzwingen für Visualisierung
+        if ((p.statPoints || 0) > 0 || (p.perkPoints || 0) > 0) {
             actionText = '<span class="ml-2 text-xs uppercase border border-yellow-500 bg-yellow-900/40 px-1 rounded text-yellow-400 font-bold animate-pulse">LEVEL UP! ▶</span>';
-            highlightClass = "border-yellow-500/50 bg-yellow-900/10"; // Rahmen leuchtet leicht gelb
+            highlightClass = "border-yellow-500/50 bg-yellow-900/10 shadow-[0_0_15px_rgba(255,255,0,0.1)]"; 
         }
 
         container.innerHTML = `
             <div class="flex flex-col items-center gap-4 max-w-md mx-auto">
-                <div class="text-center w-full border-b border-green-900 pb-2 cursor-pointer hover:bg-green-900/20 transition-all group rounded p-2 ${highlightClass}" onclick="UI.handleHeaderClick()">
-                    <div class="text-4xl font-bold text-green-400 group-hover:text-yellow-400 transition-colors text-shadow-md">${p.playerName}</div>
-                    <div class="text-xs font-mono text-green-600 group-hover:text-green-300 mt-1">
+                <div class="text-center w-full border-b border-green-900 pb-2 cursor-pointer hover:bg-green-900/20 transition-all group rounded p-2 relative z-50 ${highlightClass}" 
+                     onclick="UI.handleHeaderClick(event)">
+                    
+                    <div class="text-4xl font-bold text-green-400 group-hover:text-yellow-400 transition-colors text-shadow-md pointer-events-none">${p.playerName}</div>
+                    <div class="text-xs font-mono text-green-600 group-hover:text-green-300 mt-1 pointer-events-none">
                         LVL ${p.lvl} | XP: ${p.xp} / ${Game.expToNextLevel(p.lvl)}
                         ${actionText}
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-3 grid-rows-4 gap-2 w-full relative mt-2">
+                <div class="grid grid-cols-3 grid-rows-4 gap-2 w-full relative mt-2 z-10">
                     <div class="col-start-2 row-start-1">${renderSlot('head', eq.head, '🧢')}</div>
                     <div class="col-start-1 row-start-2">${renderSlot('weapon', eq.weapon, '👊')}</div>
                     <div class="col-start-2 row-start-2">${renderSlot('body', eq.body, '👕')}</div>
@@ -126,7 +137,7 @@ Object.assign(UI, {
                         <canvas id="char-silhouette-canvas" width="240" height="300"></canvas>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2 w-full text-xs font-mono bg-green-900/10 p-3 rounded border border-green-900/50 mt-2">
+                <div class="grid grid-cols-2 gap-2 w-full text-xs font-mono bg-green-900/10 p-3 rounded border border-green-900/50 mt-2 z-10">
                     <div class="flex justify-between border-b border-green-900/20 pb-1"><span>TP</span><span class="text-green-400 font-bold">${Math.round(p.hp)}/${p.maxHp}</span></div>
                     <div class="flex justify-between border-b border-green-900/20 pb-1"><span>DEF</span><span class="text-green-400 font-bold">${(typeof Game.getStat === 'function') ? Game.getStat('DEF') : 0}</span></div>
                     <div class="flex justify-between border-b border-green-900/20 pb-1"><span>KRIT</span><span class="text-green-400 font-bold">${p.critChance || 5}%</span></div>
@@ -242,7 +253,6 @@ Object.assign(UI, {
         const hpText = document.getElementById('enemy-hp-text'); if(hpText) hpText.textContent = `${Math.max(0, enemy.hp)}/${enemy.maxHp} TP`;
         const hpBar = document.getElementById('enemy-hp-bar'); if(hpBar) hpBar.style.width = `${Math.max(0, (enemy.hp/enemy.maxHp)*100)}%`;
 
-        // VATS Layout: Links Name (RIESIG), Rechts Prozent (RIESIG)
         if(typeof Combat !== 'undefined' && Combat.bodyParts) {
              Combat.bodyParts.forEach((part, index) => {
                  const btn = document.getElementById(`btn-vats-${index}`);
