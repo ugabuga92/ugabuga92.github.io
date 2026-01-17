@@ -1,4 +1,4 @@
-// [2026-01-13 07:15:00] data_items.js - Added missing cooking items (Fly, Scorp, Lurk) & Meat
+// [2026-01-17 19:00:00] data_items.js - New Modular Backpack System
 
 if(typeof window.GameData === 'undefined') window.GameData = {};
 if(typeof window.GameData.items === 'undefined') window.GameData.items = {}; 
@@ -7,14 +7,47 @@ Object.assign(window.GameData.items, {
     // --- BLUEPRINTS ---
     bp_ammo: { name: "Bauplan: Munition", type: "blueprint", recipeId: "craft_ammo", cost: 50, desc: "Lerne Munition herzustellen." },
     bp_stimpack: { name: "Bauplan: Stimpack", type: "blueprint", recipeId: "craft_stimpack", cost: 100, desc: "Medizinische Grundlagen." },
-    bp_machete: { name: "Bauplan: Machete", type: "blueprint", recipeId: "craft_machete", cost: 150, desc: "Scharfer Stahl." },
     
-    // --- RUCKSÄCKE (BACK) ---
-    bag_small: { name: "Kleine Umhängetasche", type: "back", slot: "back", cost: 50, bonus: { slots: 3 }, desc: "Besser als die Hosentasche. (+3 Slots)" },
-    backpack_school: { name: "Schulrucksack", type: "back", slot: "back", cost: 120, bonus: { slots: 5 }, desc: "Ein alter Vault-Tec Schulranzen. (+5 Slots)" },
-    backpack_leather: { name: "Lederrucksack", type: "back", slot: "back", cost: 250, bonus: { slots: 8 }, desc: "Robustes Brahmin-Leder. (+8 Slots)" },
-    backpack_military: { name: "Taktischer Rucksack", type: "back", slot: "back", cost: 500, bonus: { slots: 12, END: 1 }, desc: "Viele Taschen und Gurte. (+12 Slots, +1 END)" },
-    backpack_highcap: { name: "Brahmin-Lastenkiepe", type: "back", slot: "back", cost: 800, bonus: { slots: 20, AGI: -1 }, desc: "Riesig, aber sperrig. (+20 Slots, -1 AGI)" },
+    // --- RUCKSÄCKE (MODULAR SYSTEM) ---
+    // Tier 0: Das Gestell (Startpunkt)
+    backpack_frame: { 
+        name: "Rucksack-Gestell", 
+        type: "back", slot: "back", cost: 20, 
+        bonus: { slots: 2 }, 
+        desc: "Ein nackter Aluminiumrahmen. Besser als nichts. (+2 Slots)" 
+    },
+
+    // Tier 1: Leder (Standard)
+    backpack_leather: { 
+        name: "Leder-Rucksack", 
+        type: "back", slot: "back", cost: 100, 
+        bonus: { slots: 6 }, 
+        desc: "Solide Taschen am Gestell. (+6 Slots)" 
+    },
+
+    // Tier 2: Metall / Verstärkt (Heavy)
+    backpack_metal: { 
+        name: "Verstärkter Rucksack", 
+        type: "back", slot: "back", cost: 250, 
+        bonus: { slots: 10, AGI: -1 }, 
+        desc: "Mit Metallplatten verstärkt. Schwer. (+10 Slots, -1 AGI)" 
+    },
+
+    // Tier 3a: Militär (Tactical - High End)
+    backpack_military: { 
+        name: "Taktischer Rucksack", 
+        type: "back", slot: "back", cost: 600, 
+        bonus: { slots: 14, END: 1 }, 
+        desc: "Militärstandard. Ergonomisch & Robust. (+14 Slots, +1 END)" 
+    },
+
+    // Tier 3b: Lastesel (Cargo - High Capacity)
+    backpack_cargo: { 
+        name: "Brahmin-Kiepe", 
+        type: "back", slot: "back", cost: 550, 
+        bonus: { slots: 22, AGI: -2 }, 
+        desc: "Ein gigantischer Aufbau. Du bist ein Packesel. (+22 Slots, -2 AGI)" 
+    },
 
     // --- CAMP & TOOLS ---
     camp_kit: { name: "Zelt-Bausatz", type: "tool", cost: 150, desc: "Errichtet ein Lager im Ödland.", weight: 5 },
@@ -28,14 +61,11 @@ Object.assign(window.GameData.items, {
     meat_scorp: { name: "Skorpiondrüse", type: "component", cost: 20, desc: "Delikatesse." },
     meat_yao: { name: "Yao Guai Rippchen", type: "component", cost: 35, desc: "Sehr nahrhaft." },
     hide_yao: { name: "Yao Guai Leder", type: "component", cost: 40, desc: "Robustes Fell." },
-    // Fehlendes Fleisch für das Mirelurk Rezept hinzugefügt:
     meat_lurk: { name: "Mirelurk-Fleisch", type: "component", cost: 15, desc: "Weiches Schalentier-Fleisch." },
     
     // Cooked
     cooked_roach: { name: "Gegrillte Kakerlake", type: "consumable", effect: "heal_rad", val: 15, rad: 2, cost: 10, desc: "+15 HP, +2 RAD" },
     cooked_mole: { name: "Ratten-Steak", type: "consumable", effect: "heal_rad", val: 25, rad: 3, cost: 20, desc: "+25 HP, +3 RAD" },
-    
-    // Fehlende Cooked Items hinzugefügt:
     cooked_fly: { name: "Gegrillte Fliege", type: "consumable", effect: "heal_rad", val: 15, rad: 2, cost: 10, desc: "+15 HP, +2 RAD" },
     cooked_scorp: { name: "Skorpion-Überraschung", type: "consumable", effect: "heal_rad", val: 45, rad: 5, cost: 40, desc: "+45 HP, +5 RAD" },
     cooked_lurk: { name: "Mirelurk-Happen", type: "consumable", effect: "heal_rad", val: 35, rad: 4, cost: 30, desc: "+35 HP, +4 RAD" },
@@ -119,37 +149,31 @@ Object.assign(window.GameData.items, {
     // === RÜSTUNGEN (Nach Sets sortiert) ===
     // ======================================
 
-    // Set: Ödland / Raider (Schrott-Look)
     raider_armor: { name: "Raider-Rüstung", type: "body", slot: "body", cost: 80, bonus: {END: 1, STR: 1}, desc: "Stachelig." },
     raider_helm: { name: "Sackgassen-Helm", type: "head", slot: "head", cost: 40, bonus: {PER: -1, END: 1}, desc: "Furchteinflößend." },
     raider_arm_l: { name: "Raider-Armschiene (L)", type: "arms", slot: "arms", cost: 30, bonus: {STR: 1}, desc: "Aus Reifen." },
     raider_leg_r: { name: "Raider-Beinschutz", type: "legs", slot: "legs", cost: 35, bonus: {END: 1}, desc: "Rostiges Blech." },
 
-    // Set: Leder (Leicht & Stealth)
     leather_armor: { name: "Lederrüstung", type: "body", slot: "body", cost: 150, bonus: {END: 2, AGI: 2}, desc: "Leicht und leise." },
     leather_helm: { name: "Lederkappe", type: "head", slot: "head", cost: 60, bonus: {PER: 1}, desc: "Fliegerbrille inklusive." },
     bracers_leather: { name: "Lederarmschienen", type: "arms", slot: "arms", cost: 80, bonus: {STR: 1}, desc: "Klassisch." },
     pants_leather: { name: "Lederhose", type: "legs", slot: "legs", cost: 100, bonus: {AGI: 1}, desc: "Eng anliegend." },
     boots_leather: { name: "Lederstiefel", type: "feet", slot: "feet", cost: 70, bonus: {AGI: 1}, desc: "Guter Halt." },
 
-    // Set: Metall (Schwer & Laut)
     metal_armor: { name: "Metallrüstung", type: "body", slot: "body", cost: 300, bonus: {END: 5, AGI: -2}, desc: "Hält Kugeln ab." },
     helmet_metal: { name: "Metallhelm", type: "head", slot: "head", cost: 150, bonus: {END: 2, PER: -1}, desc: "Eingeschränkte Sicht." },
     metal_arms: { name: "Metallarme", type: "arms", slot: "arms", cost: 120, bonus: {STR: 1, END: 1}, desc: "Schwer." },
     greaves_metal: { name: "Metallbeinschienen", type: "legs", slot: "legs", cost: 140, bonus: {END: 2, AGI: -1}, desc: "Klappert laut." },
 
-    // Set: Kampf (Militär / High End)
     combat_armor: { name: "Kampfrüstung", type: "body", slot: "body", cost: 600, bonus: {END: 6, STR: 1}, desc: "Polymer-Verbund." },
     helmet_combat: { name: "Kampfhelm", type: "head", slot: "head", cost: 300, bonus: {END: 2, PER: 1}, desc: "Taktisch." },
     combat_arms: { name: "Kampfarmschienen", type: "arms", slot: "arms", cost: 250, bonus: {STR: 2}, desc: "Verstärkt." },
     combat_legs: { name: "Kampfbeinschützer", type: "legs", slot: "legs", cost: 280, bonus: {END: 2, AGI: 1}, desc: "Beweglich." },
     boots_combat: { name: "Kampfstiefel", type: "feet", slot: "feet", cost: 150, bonus: {AGI: 1, END: 1}, desc: "Militärstandard." },
 
-    // Set: Synth (High Tech)
     synth_armor: { name: "Synth-Rüstung", type: "body", slot: "body", cost: 800, bonus: {END: 5, INT: 2}, desc: "Institut-Technologie." },
     synth_helmet: { name: "Synth-Feldhelm", type: "head", slot: "head", cost: 400, bonus: {PER: 2, INT: 1}, desc: "Volle Abdeckung." },
 
-    // Spezial / Einzelstücke
     vault_suit: { name: "Vault-Anzug", type: "body", slot: "body", cost: 0, bonus: {END: 1, INT: 1}, desc: "Blau und eng." },
     power_armor: { name: "Power Rüstung T-45", type: "body", slot: "body", cost: 2500, bonus: {END: 12, STR: 4, RAD: 100, AGI: -3}, desc: "Ein Panzer zum Anziehen." },
     hazmat_suit: { name: "Strahlenschutzanzug", type: "body", slot: "body", cost: 400, bonus: {RAD: 1000, END: -2}, desc: "Perfekt für das Leuchtende Meer." },
