@@ -1,4 +1,4 @@
-// [2026-01-17 12:45:00] ui_render_views.js - VATS Layout Update: Huge Body Part Names
+// [2026-01-17 13:00:00] ui_render_views.js - Fixed Header Click & Huge VATS
 
 Object.assign(UI, {
 
@@ -76,12 +76,17 @@ Object.assign(UI, {
             `;
         };
 
+        // [FIX] Hier ist der Header jetzt klickbar und führt zu SPECIAL
         container.innerHTML = `
             <div class="flex flex-col items-center gap-4 max-w-md mx-auto">
-                <div class="text-center w-full border-b border-green-900 pb-2">
-                    <div class="text-4xl font-bold text-green-400">${p.playerName}</div>
-                    <div class="text-xs font-mono text-green-600">LVL ${p.lvl} | XP: ${p.xp} / ${Game.expToNextLevel(p.lvl)}</div>
+                <div class="text-center w-full border-b border-green-900 pb-2 cursor-pointer hover:bg-green-900/10 transition-colors group" onclick="UI.renderStats('special')">
+                    <div class="text-4xl font-bold text-green-400 group-hover:text-yellow-400 transition-colors">${p.playerName}</div>
+                    <div class="text-xs font-mono text-green-600 group-hover:text-green-300">
+                        LVL ${p.lvl} | XP: ${p.xp} / ${Game.expToNextLevel(p.lvl)}
+                        <span class="ml-2 text-xs uppercase border border-green-700 px-1 rounded text-green-500">Stats ändern ▶</span>
+                    </div>
                 </div>
+                
                 <div class="grid grid-cols-3 grid-rows-4 gap-2 w-full relative">
                     <div class="col-start-2 row-start-1">${renderSlot('head', eq.head, '🧢')}</div>
                     <div class="col-start-1 row-start-2">${renderSlot('weapon', eq.weapon, '👊')}</div>
