@@ -1,4 +1,4 @@
-// [2026-01-17 18:30:00] game_core.js - Fixed Backpack availability in Shop & HiDPI
+// [2026-01-17 19:10:00] game_core.js - Removed Store-Bought Backpacks
 
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
@@ -35,7 +35,6 @@ window.Game = {
         if(!cvs) return; 
         const viewContainer = document.getElementById('view-container'); 
         
-        // HiDPI Scaling für scharfe Darstellung auf Retina/Mobile
         const dpr = window.devicePixelRatio || 1;
         const rect = viewContainer.getBoundingClientRect();
 
@@ -47,31 +46,24 @@ window.Game = {
 
         this.ctx = cvs.getContext('2d'); 
         this.ctx.scale(dpr, dpr);
-        
-        // Standard: Pixel-Art Look (keine Glättung)
         this.ctx.imageSmoothingEnabled = false; 
         
         if(this.loopId) cancelAnimationFrame(this.loopId); 
         this.drawLoop(); 
     },
 
-    // [NEU] Globale Text-Funktion für gestochen scharfe Schrift (Supersampling)
     drawText: function(ctx, text, x, y, size, color, align="center", shadow=false) {
         if(!ctx) return;
         ctx.save();
         ctx.translate(x, y);
         
-        const scale = 0.25; // Rendert intern 4x größer für maximale Schärfe
+        const scale = 0.25; 
         ctx.scale(scale, scale); 
         
         ctx.font = "bold " + (size / scale) + "px monospace";
         ctx.fillStyle = color;
         ctx.textAlign = align;
-        
-        // Vertikale Ausrichtung standardisieren (Mitte ist meist am besten für Tiles)
         ctx.textBaseline = "middle"; 
-        
-        // WICHTIG: Nur für den Text die Glättung einschalten!
         ctx.imageSmoothingEnabled = true; 
         
         if(shadow) {
@@ -287,13 +279,9 @@ window.Game = {
                 if(a) stock[a] = 1;
             }
             
-            // [FIX] Hier waren alte IDs. Jetzt: Richtige Rucksack-IDs aus data_items.js
-            if(Math.random() < 0.4) stock['bag_small'] = 1;       // Kleine Tasche
-            if(Math.random() < 0.2) stock['backpack_school'] = 1; // Schulrucksack
-            if(Math.random() < 0.1) stock['backpack_leather'] = 1;// Lederrucksack
-            if(Math.random() < 0.05) stock['backpack_military'] = 1;// Militärrucksack
-
+            // [FIX] Rucksäcke entfernt! Nur noch über Crafting.
             stock['camp_kit'] = 1;
+            
             this.state.shop.merchantCaps = 500 + Math.floor(Math.random() * 1000);
             this.state.shop.stock = stock;
             this.state.shop.nextRestock = now + (60 * 60 * 1000); 
@@ -341,11 +329,18 @@ window.Game = {
                 if(!this.state.completedQuests) this.state.completedQuests = [];
                 if(!this.state.quests) this.state.quests = [];
                 if(!this.state.camp) this.state.camp = null;
-                if(!this.state.knownRecipes) this.state.knownRecipes = ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp']; 
+                
+                // [FIX] Neue Rezepte für Rucksäcke automatisch lernen (für bestehende Saves)
+                const newRecs = ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp', 
+                                 'craft_bp_frame', 'craft_bp_leather', 'craft_bp_metal', 'craft_bp_military', 'craft_bp_cargo'];
+                if(!this.state.knownRecipes) this.state.knownRecipes = [];
+                newRecs.forEach(r => {
+                    if(!this.state.knownRecipes.includes(r)) this.state.knownRecipes.push(r);
+                });
+
                 if(!this.state.perks) this.state.perks = {}; 
                 if(!this.state.shop) this.state.shop = { nextRestock: 0, stock: {}, merchantCaps: 1000 };
                 
-                // Fixes
                 if(!this.state.equip.weapon) this.state.equip.weapon = { ...this.items['fists'] };
                 if(!this.state.equip.body) this.state.equip.body = { ...this.items['vault_suit'] };
 
@@ -379,7 +374,11 @@ window.Game = {
                     inventory: [], hp: 100, maxHp: 100, xp: 0, lvl: 1, caps: 50, ammo: 0, statPoints: 0, perkPoints: 0, perks: {}, 
                     camp: null, rads: 0, kills: 0, view: 'map', zone: 'Ödland', inDialog: false, isGameOver: false, 
                     explored: {}, visitedSectors: ["4,4"], tutorialsShown: { hacking: false, lockpicking: false },
-                    activeQuests: [], completedQuests: [], quests: [], knownRecipes: ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp'], 
+                    activeQuests: [], completedQuests: [], quests: [], 
+                    
+                    // [FIX] Start-Rezepte für Rucksäcke
+                    knownRecipes: ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp', 'craft_bp_frame', 'craft_bp_leather', 'craft_bp_metal', 'craft_bp_military', 'craft_bp_cargo'], 
+                    
                     hiddenItems: {}, shop: { nextRestock: 0, stock: {}, merchantCaps: 1000 }, startTime: Date.now()
                 };
                 
