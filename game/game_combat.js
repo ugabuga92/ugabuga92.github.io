@@ -1,4 +1,4 @@
-// [2026-01-11 09:30] game_combat.js - FIXED: Correct slot reference (saveSlot) and deletion order
+// [2026-01-17 12:00:00] game_combat.js - VATS Logic Cleaned
 
 window.Combat = {
     enemy: null,
@@ -43,7 +43,8 @@ window.Combat = {
     },
 
     render: function() {
-        UI.renderCombat();
+        // Ruft das UI-Rendering auf, das jetzt die %-Zahlen berechnet
+        if(typeof UI.renderCombat === 'function') UI.renderCombat();
         this.renderLogs();
     },
 
@@ -57,13 +58,15 @@ window.Combat = {
         for(let i=0; i<3; i++) {
             const btn = document.getElementById(`btn-vats-${i}`);
             if(btn) {
+                // Style Reset
                 btn.classList.remove('border-yellow-400', 'text-yellow-400', 'bg-yellow-900/40');
+                // Active Style
                 if(i === this.selectedPart) {
                     btn.classList.add('border-yellow-400', 'text-yellow-400', 'bg-yellow-900/40');
                 }
             }
         }
-        UI.renderCombat(); 
+        // Kein kompletter Re-Render nötig, nur Styles
     },
     
     selectPart: function(index) {
@@ -281,7 +284,6 @@ window.Combat = {
                     Network.registerDeath(Game.state);
                 }
                 
-                // Löschvorgang in Firebase triggern BEVOR der State genullt wird
                 if (typeof Network !== 'undefined' && slotToDelete !== undefined && slotToDelete !== null && slotToDelete !== -1) {
                     Network.deleteSlot(slotToDelete)
                         .then(() => console.log(`✅ Slot ${slotToDelete} permanent entfernt.`))
