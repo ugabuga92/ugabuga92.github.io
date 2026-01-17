@@ -1,4 +1,4 @@
-// [2026-01-17 15:30:00] ui_core.js - Dynamic Toast Width & Layout Fixes
+// [2026-01-17 16:00:00] ui_core.js - Toast Queue System (Max 1 at a time)
 
 const UI = {
     els: {},
@@ -19,38 +19,52 @@ const UI = {
     focusableEls: [],
     inputMethod: 'touch', 
 
-    // --- NEW LOG SYSTEM (TOASTS) ---
+    // [NEU] Queue System für Toasts
+    toastQueue: [],
+    isToastShowing: false,
+
+    // --- NEW LOG SYSTEM (QUEUE BASED) ---
     log: function(message, colorClass = "text-green-500") {
+        // Nachricht in die Warteschlange schieben
+        this.toastQueue.push({ message, colorClass });
+        // Verarbeitung anstoßen
+        this.processToastQueue();
+    },
+
+    processToastQueue: function() {
+        // Abbruch wenn gerade einer angezeigt wird oder Queue leer ist
+        if (this.isToastShowing || this.toastQueue.length === 0) return;
+
         const container = this.els.toastContainer || document.getElementById('game-toast-container');
-        if(!container) {
-            console.log(`[LOG BACKUP]: ${message}`); 
-            return;
-        }
+        if(!container) return;
+
+        this.isToastShowing = true;
+        const item = this.toastQueue.shift(); // Nächsten holen
 
         // Style Definition basierend auf Textfarbe
         let borderColor = "border-green-500"; 
         let icon = "ℹ️"; 
 
-        if(colorClass.includes("red")) { 
+        if(item.colorClass.includes("red")) { 
             borderColor = "border-red-600"; 
             icon = "⚠️"; 
         }
-        else if(colorClass.includes("yellow") || colorClass.includes("orange")) { 
+        else if(item.colorClass.includes("yellow") || item.colorClass.includes("orange")) { 
             borderColor = "border-yellow-500"; 
             icon = "⚡"; 
         }
-        else if(colorClass.includes("blue") || colorClass.includes("cyan")) { 
+        else if(item.colorClass.includes("blue") || item.colorClass.includes("cyan")) { 
             borderColor = "border-blue-500"; 
             icon = "💾"; 
         }
-        else if(colorClass.includes("gray")) {
+        else if(item.colorClass.includes("gray")) {
             borderColor = "border-gray-500";
             icon = "📝";
         }
 
         const el = document.createElement('div');
         
-        // [FIX] Layout angepasst: w-fit, max-w, self-end für dynamische Breite
+        // Layout: Dynamic Width, Right Aligned
         el.className = `
             pointer-events-auto 
             bg-black/95 
@@ -59,7 +73,7 @@ const UI = {
             shadow-[0_0_15px_rgba(0,0,0,0.8)] 
             animate-slide-in 
             flex items-start justify-between gap-4
-            transition-all duration-500 ease-out
+            transition-all duration-300 ease-out
             mb-1 backdrop-blur-sm
             w-fit max-w-[90vw] md:max-w-md self-end rounded-l
         `;
@@ -67,34 +81,38 @@ const UI = {
         el.innerHTML = `
             <div class="flex items-center gap-3">
                 <span class="text-lg opacity-80 select-none">${icon}</span>
-                <span class="font-mono text-sm md:text-base font-bold ${colorClass} tracking-wide drop-shadow-md whitespace-nowrap md:whitespace-normal">
-                    ${message}
+                <span class="font-mono text-sm md:text-base font-bold ${item.colorClass} tracking-wide drop-shadow-md whitespace-nowrap md:whitespace-normal">
+                    ${item.message}
                 </span>
             </div>
             <button class="text-gray-600 hover:text-white font-bold text-xs self-start mt-0.5 px-1 ml-2">✕</button>
         `;
 
-        el.querySelector('button').onclick = () => {
+        // Funktion zum Schließen und nächsten triggern
+        const closeToast = () => {
+            if (el.classList.contains('closing')) return; // Verhindert doppeltes Auslösen
+            el.classList.add('closing'); // Markierung
+            
             el.classList.add('opacity-0', 'translate-x-full');
-            setTimeout(() => el.remove(), 300);
+            
+            setTimeout(() => {
+                if(el.parentNode) el.remove();
+                this.isToastShowing = false;
+                // Kurze Pause bevor der nächste kommt (ästhetischer Flow)
+                setTimeout(() => this.processToastQueue(), 150);
+            }, 300); // Warten auf CSS Transition
         };
 
-        // Oben einfügen
-        container.insertBefore(el, container.firstChild);
+        el.querySelector('button').onclick = closeToast;
 
-        // Limitierung
-        if (container.children.length > 5) {
-            const last = container.lastElementChild;
-            if(last) last.remove();
-        }
+        // Container leeren (sicherheitshalber, da wir nur 1 wollen), dann hinzufügen
+        container.innerHTML = ''; 
+        container.appendChild(el);
 
-        // Auto-Close Timer
-        const duration = colorClass.includes("red") ? 6000 : 4000;
+        // Auto-Close Timer (etwas schneller als vorher, damit die Queue nicht staut)
+        const duration = item.colorClass.includes("red") ? 4000 : 2500;
         setTimeout(() => {
-            if(document.body.contains(el)) {
-                el.classList.add('opacity-0', 'translate-x-full'); 
-                setTimeout(() => { if(document.body.contains(el)) el.remove(); }, 500);
-            }
+            if(document.body.contains(el)) closeToast();
         }, duration);
     },
 
@@ -284,17 +302,20 @@ const UI = {
     },
 
     update: function() {
+        // Robust Check for Active Session
         const loginScreen = this.els.loginScreen;
         const isLoginHidden = loginScreen && (loginScreen.style.display === 'none' || loginScreen.classList.contains('hidden'));
         const isAuth = (typeof Network !== 'undefined' && Network.myId);
 
         if (isLoginHidden && isAuth) {
+            // Auto Logout bei Inaktivität (300000ms = 5 Minuten)
             if(Date.now() - this.lastInputTime > 300000) { 
                 console.log("AFK Trigger: Logout initiiert.");
                 this.logout("AFK: ZEITÜBERSCHREITUNG");
             }
         }
         
+        // Platzhalter für UI Updates
         if(typeof this.renderChar === 'function' && this.charTab === 'status') this.renderChar();
     },
 
@@ -396,6 +417,7 @@ const UI = {
 
         if(this.initInput) this.initInput();
         
+        // Loop startet den Update-Zyklus
         setInterval(() => {
             if(this.update) this.update();
         }, 1000);
@@ -432,6 +454,7 @@ const UI = {
             Game.state = null;
         }
 
+        // FIX: Warten auf sauberen Disconnect (DB Bereinigung)
         if(typeof Network !== 'undefined') {
             await Network.disconnect();
         }
@@ -450,10 +473,12 @@ const UI = {
         this.els.loginStatus.className = "mt-4 text-yellow-400";
         this.els.inputPass.value = "";
         
+        // [FIX: MENU LOGIC] Erzwinge das Schließen des Menüs beim Logout
         if(this.els.navMenu) {
             this.els.navMenu.classList.add('hidden');
-            this.els.navMenu.style.display = 'none';
+            this.els.navMenu.style.display = 'none'; // WICHTIG: Überschreibt etwaige Inline-Styles!
         }
+        
         if(this.els.playerList) this.els.playerList.style.display = 'none';
     },
 
