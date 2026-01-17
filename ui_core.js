@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-14 08:00:00 - ui_core.js - Added Async Logout for Instant Session Release
+// [2026-01-16 10:15:00] ui_core.js - Fix Menu Logout State & Interaction Logic
 
 const UI = {
     els: {},
@@ -446,7 +446,12 @@ const UI = {
         this.els.loginStatus.className = "mt-4 text-yellow-400";
         this.els.inputPass.value = "";
         
-        if(this.els.navMenu) this.els.navMenu.classList.add('hidden');
+        // [FIX: MENU LOGIC] Erzwinge das Schließen des Menüs beim Logout
+        if(this.els.navMenu) {
+            this.els.navMenu.classList.add('hidden');
+            this.els.navMenu.style.display = 'none'; // WICHTIG: Überschreibt etwaige Inline-Styles!
+        }
+        
         if(this.els.playerList) this.els.playerList.style.display = 'none';
     },
 
