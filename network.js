@@ -1,4 +1,4 @@
-// [2026-01-14 10:15:00] network.js - Restored getHighscores & registerDeath, kept Instant Logout
+// [2026-01-17 15:00:00] network.js - Save Message uses Player Name
 
 const Network = {
     db: null,
@@ -120,7 +120,6 @@ const Network = {
         this.db.ref(`leaderboard/${safeName}`).update(entry).catch(e => {}); 
     },
 
-    // WIEDER DA: Für Permadeath nötig
     registerDeath: function(gameState) {
         if(!this.active || !gameState || !this.auth.currentUser) return;
         const safeName = (gameState.playerName || "Unknown").replace(/[.#$/[\]]/g, "_");
@@ -137,7 +136,6 @@ const Network = {
         this.db.ref(`leaderboard/${safeName}`).set(entry).catch(e => console.error(e));
     },
 
-    // WIEDER DA: Für Vault Legends Button nötig
     getHighscores: async function() {
         if(!this.active) return [];
         const snap = await this.db.ref('leaderboard').once('value');
@@ -160,7 +158,13 @@ const Network = {
         updates[`saves/${this.myId}/${slotIndex}`] = saveObj;
         
         this.db.ref().update(updates)
-            .then(() => { if(typeof UI !== 'undefined') UI.log("SLOT " + (slotIndex+1) + " GESPEICHERT.", "text-cyan-400"); })
+            .then(() => { 
+                if(typeof UI !== 'undefined') {
+                    // [FIX] Hier wird jetzt der Spielername verwendet statt "SLOT X"
+                    const displayName = (gameState && gameState.playerName) ? gameState.playerName : ("SLOT " + (slotIndex+1));
+                    UI.log(displayName + " GESPEICHERT.", "text-cyan-400"); 
+                }
+            })
             .catch(e => {
                 if(e.code !== 'PERMISSION_DENIED') console.error("Save Error:", e);
             });
