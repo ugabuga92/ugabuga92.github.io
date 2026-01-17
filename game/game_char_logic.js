@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-17 12:05:00 - game_char_logic.js - Stats, Perks & Immediate UI Refresh
+// [2026-01-17 13:00:00] game_char_logic.js - Instant UI Refresh on Stat Change
 
 Object.assign(Game, {
 
@@ -9,7 +9,7 @@ Object.assign(Game, {
             this.state.statPoints--; 
             this.recalcStats();
             
-            // FIX: Refresh current tab immediately
+            // [FIX] Sofortiges Neuladen des aktuellen Tabs (damit man das Ergebnis direkt sieht)
             if(typeof UI.renderStats === 'function') {
                 UI.renderStats(Game.state.charTab || 'special');
             }
@@ -50,7 +50,7 @@ Object.assign(Game, {
         this.recalcStats();
         this.saveGame();
         
-        // FIX: Refresh Perks UI immediately
+        // [FIX] Sofortiges Neuladen der Perks-Liste
         if(typeof UI.renderStats === 'function') {
             UI.renderStats('perks');
         }
