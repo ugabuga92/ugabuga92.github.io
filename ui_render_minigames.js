@@ -1,39 +1,47 @@
-// [TIMESTAMP] 2026-01-18 17:00:00 - ui_render_minigames.js - Added Memory UI & Args Support
+// [TIMESTAMP] 2026-01-18 18:30:00 - ui_render_minigames.js - Added Safety Check & Memory UI
 
 Object.assign(UI, {
     
-    // Updated: Supports Arguments for Minigames (like callback for memory)
     startMinigame: function(type, ...args) {
-        if (!MiniGames[type]) return;
+        // [FIX] Safety check falls minigames.js nicht geladen ist
+        if (typeof MiniGames === 'undefined') {
+            console.error("CRITICAL: MiniGames object not found! Check minigames.js loading.");
+            UI.log("Fehler: Minigame-System nicht bereit.", "text-red-500");
+            return;
+        }
+        if (!MiniGames[type]) {
+            console.error(`Minigame type '${type}' not found.`);
+            return;
+        }
+        
         MiniGames.active = type;
-        MiniGames[type].init(...args);
+        // Sicherstellen, dass init existiert
+        if(typeof MiniGames[type].init === 'function') {
+            MiniGames[type].init(...args);
+        }
     },
 
     stopMinigame: function() {
-        // Aufräumen Defusal Loop
-        if(MiniGames.defusal && MiniGames.defusal.gameLoop) {
+        if (typeof MiniGames !== 'undefined' && MiniGames.defusal && MiniGames.defusal.gameLoop) {
             clearInterval(MiniGames.defusal.gameLoop);
         }
         
-        MiniGames.active = null;
+        if (typeof MiniGames !== 'undefined') MiniGames.active = null;
         
-        // Overlays verstecken
         const dice = document.getElementById('dice-overlay');
         if(dice) dice.classList.add('hidden');
         
-        // WICHTIGER FIX:
-        // Wir nutzen switchView('map'), damit der Canvas und der Game-Loop
-        // sauber neu initialisiert werden. Das verhindert den Blackscreen.
         if(typeof UI.switchView === 'function') {
             UI.switchView('map'); 
         } else {
-            // Fallback (sollte nicht passieren)
             if(Game.state) Game.state.view = 'map';
             if(this.els && this.els.view) this.els.view.innerHTML = ''; 
         }
     },
 
     renderMinigame: function() {
+       if (typeof MiniGames === 'undefined' || !MiniGames.active) return;
+       
        if (MiniGames.active === 'hacking') UI.renderHacking();
        if (MiniGames.active === 'lockpicking') UI.renderLockpicking();
        if (MiniGames.active === 'defusal') UI.renderDefusal();
@@ -120,7 +128,7 @@ Object.assign(UI, {
         if(lock) lock.style.transform = `rotate(${MiniGames.lockpicking.lockAngle}deg)`;
     },
 
-    // --- DICE (FIX: Auto-Create Overlay & 3 Würfel) ---
+    // --- DICE ---
     renderDice: function(game, finalResult = null) {
         let container = document.getElementById('dice-overlay');
         
