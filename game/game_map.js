@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-18 12:30:00 - game_map.js - Added Chest Minigame Logic
+// [TIMESTAMP] 2026-01-18 17:00:00 - game_map.js - Added Minigame Test Spot (?)
 
 Object.assign(Game, {
     reveal: function(px, py) { 
@@ -45,6 +45,7 @@ Object.assign(Game, {
         // --- INTERAKTIONEN ---
         if (tile === 'X') { this.openChest(nx, ny); return; } 
         if (tile === 'v') { this.descendDungeon(); return; }
+        if (tile === '?') { this.testMinigames(); return; } // <--- TEST SPOT
 
         // --- KOLLISION ---
         if(['M', 'W', '#', 'U', 't', 'o', 'Y', '|', 'F', 'T', 'R'].includes(tile) && tile !== 'R') { 
@@ -166,6 +167,12 @@ Object.assign(Game, {
         const data = this.worldData[key]; 
         this.state.currentMap = data.layout; 
         
+        // --- DEV TEST SPOT ---
+        // Erzeugt ein '?' bei 22,20 (neben dem 20,20 Spawn)
+        if(this.state.currentMap[20] && this.state.currentMap[20][22]) {
+            this.state.currentMap[20][22] = '?';
+        }
+
         if(this.state.visitedSectors && !this.state.visitedSectors.includes(key)) {
             this.state.visitedSectors.push(key);
         }
@@ -225,7 +232,7 @@ Object.assign(Game, {
         const isSafe = (x, y) => {
             if(x < 0 || x >= this.MAP_W || y < 0 || y >= this.MAP_H) return false;
             const t = this.state.currentMap[y][x];
-            return !['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F', 'R', 'A', 'K'].includes(t);
+            return !['M', 'W', '#', 'U', 't', 'T', 'o', 'Y', '|', 'F', 'R', 'A', 'K', '?'].includes(t);
         };
         if(isSafe(this.state.player.x, this.state.player.y)) return;
         const rMax = 6;
@@ -305,9 +312,8 @@ Object.assign(Game, {
         UI.log("Du steigst tiefer hinab...", "text-purple-400 font-bold");
     },
     
-    // [MODIFIED] Truhe öffnen mit Minigame Check
     openChest: function(x, y) {
-        // Wenn Ebene >= 3 (meist letzte Ebene), starte Minigame
+        // Sicherung: Level 3+ startet Minigame
         if(this.state.dungeonLevel >= 3) {
              UI.log("Sicherheitsmechanismus aktiv...", "text-yellow-400 animate-pulse");
              UI.startMinigame('memory', () => {
@@ -319,7 +325,6 @@ Object.assign(Game, {
         this.forceOpenChest(x, y);
     },
 
-    // [NEW] Tatsächliche Loot-Logik (ausgelagert)
     forceOpenChest: function(x, y) {
         this.state.currentMap[y][x] = 'B'; 
         this.renderStaticMap(); 
@@ -355,6 +360,27 @@ Object.assign(Game, {
         if(Math.random() < 0.5) this.addToInventory('nuclear_mat', 1);
         
         setTimeout(() => { this.leaveCity(); }, 4000);
+    },
+
+    // --- NEUE FUNKTION: TEST MENÜ ---
+    testMinigames: function() {
+        if(typeof UI !== 'undefined' && UI.els.dialog) {
+             UI.els.dialog.style.display = 'flex';
+             UI.els.dialog.innerHTML = `
+                <div class="bg-black/95 border-2 border-yellow-400 p-6 rounded-lg shadow-[0_0_20px_#ffd700] text-center w-full max-w-md pointer-events-auto relative z-50">
+                    <h3 class="text-xl font-bold text-yellow-400 mb-4 tracking-widest">MINIGAME TEST STATION</h3>
+                    <p class="text-xs text-gray-400 mb-4">Wähle ein System zum Testen:</p>
+                    <div class="grid grid-cols-1 gap-3 mb-4">
+                        <button onclick="UI.startMinigame('hacking'); UI.els.dialog.style.display='none';" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">TERMINAL HACKING</button>
+                        <button onclick="UI.startMinigame('lockpicking'); UI.els.dialog.style.display='none';" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">LOCKPICKING</button>
+                        <button onclick="UI.startMinigame('dice'); UI.els.dialog.style.display='none';" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">WASTELAND DICE</button>
+                        <button onclick="UI.startMinigame('defusal'); UI.els.dialog.style.display='none';" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">BOMB DEFUSAL</button>
+                        <button onclick="UI.startMinigame('memory', () => UI.log('Test erfolgreich!', 'text-yellow-400')); UI.els.dialog.style.display='none';" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">SECURITY MEMORY</button>
+                    </div>
+                    <button onclick="UI.els.dialog.style.display='none'; UI.els.dialog.innerHTML='';" class="border border-red-500 text-red-500 px-4 py-2 hover:bg-red-900 w-full uppercase">Schließen</button>
+                </div>
+             `;
+        }
     },
 
     // [v0.8.3 FIX] CITY LOGIC
