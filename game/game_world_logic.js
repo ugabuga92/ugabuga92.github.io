@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-18 12:30:00 - game_world_logic.js - Fixed Selling Logic (Target Specific Stack)
+// [TIMESTAMP] 2026-01-18 13:00:00 - game_world_logic.js - Persistent Camp Level & Fixes
 
 Object.assign(Game, {
 
@@ -43,19 +43,29 @@ Object.assign(Game, {
         }
 
         this.state.caps -= cost;
+        
+        // [FIX] Level wiederherstellen (oder 1 starten)
+        const startLevel = this.state.savedCampLevel || 1;
+
         this.state.camp = { 
             sector: { x: this.state.sector.x, y: this.state.sector.y }, 
-            x: this.state.player.x, y: this.state.player.y, level: 1 
+            x: this.state.player.x, y: this.state.player.y, 
+            level: startLevel 
         };
-        UI.log(`Lager aufgeschlagen! (-${cost} KK)`, "text-green-400 font-bold");
+        
+        UI.log(`Lager aufgeschlagen! (Stufe ${startLevel})`, "text-green-400 font-bold");
         UI.switchView('camp');
         this.saveGame();
     },
 
     packCamp: function() {
         if(!this.state.camp) return;
+        
+        // [FIX] Aktuelles Level für später speichern
+        this.state.savedCampLevel = this.state.camp.level;
+        
         this.state.camp = null;
-        UI.log("Lager eingepackt.", "text-yellow-400");
+        UI.log(`Lager eingepackt. (Level ${this.state.savedCampLevel} gesichert)`, "text-yellow-400");
         UI.switchView('map');
         this.saveGame();
     },
@@ -68,7 +78,7 @@ Object.assign(Game, {
         const cost = this.getCampUpgradeCost(lvl);
         if(!cost) { UI.log("Kein weiteres Upgrade verfügbar.", "text-gray-500"); return; }
 
-        // [FIX] 1. Gesamtmenge im Inventar prüfen (über alle Stacks hinweg)
+        // [FIX] Gesamtmenge im Inventar prüfen (über alle Stacks hinweg)
         const totalOwned = this.state.inventory.reduce((sum, item) => {
             return (item.id === cost.id) ? sum + item.count : sum;
         }, 0);
@@ -78,7 +88,7 @@ Object.assign(Game, {
              return;
         }
 
-        // [FIX] 2. Kosten von den Stacks abziehen
+        // [FIX] Kosten von den Stacks abziehen (Stack-übergreifend)
         let remainingCost = cost.count;
         
         for (let i = 0; i < this.state.inventory.length; i++) {
@@ -92,7 +102,7 @@ Object.assign(Game, {
             }
         }
         
-        // [FIX] 3. Leere Stacks aufräumen
+        // [FIX] Leere Stacks aufräumen
         this.state.inventory = this.state.inventory.filter(i => i.count > 0);
 
         this.state.camp.level++;
@@ -268,7 +278,7 @@ Object.assign(Game, {
         Game.state.caps += totalValue;
         Game.state.shop.merchantCaps -= totalValue;
 
-        // [FIX] Direktes Manipulieren des spezifischen Stacks statt globaler Löschung
+        // [FIX] Direktes Manipulieren des spezifischen Stacks
         entry.count -= amount;
         if(entry.count <= 0) {
             Game.state.inventory.splice(invIndex, 1);
