@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-15 11:30:00 - ui_view_town.js - Fixed Shop Scrolling Layout
+// [TIMESTAMP] 2026-01-18 15:00:00 - ui_view_town.js - Hide Camp Kit Recipe if Owned/Built
 
 Object.assign(UI, {
     
@@ -113,7 +113,7 @@ Object.assign(UI, {
         wrapper.appendChild(footer);
         view.appendChild(wrapper);
 
-        // LOGIK ZUM BEFÜLLEN (bleibt gleich, schreibt jetzt in 'listContent')
+        // LOGIK ZUM BEFÜLLEN
         if (tab === 'create') {
             const recipes = Game.recipes || [];
             const known = Game.state.knownRecipes || [];
@@ -122,6 +122,14 @@ Object.assign(UI, {
             recipes.forEach(recipe => {
                 if(recipe.type === 'cooking') return; 
                 if(!known.includes(recipe.id) && recipe.lvl > 1) return; 
+
+                // [FIX] Zelt ausblenden, wenn man schon eins hat (Item oder aufgebaut)
+                if (recipe.out === 'camp_kit') {
+                    const hasKit = Game.state.inventory.some(i => i.id === 'camp_kit');
+                    const hasBuilt = !!Game.state.camp;
+                    if (hasKit || hasBuilt) return;
+                }
+
                 knownCount++;
 
                 const outItem = (recipe.out === 'AMMO' ? {name: "15x Munition"} : Game.items[recipe.out]) || {name: "Unbekanntes Item"};
