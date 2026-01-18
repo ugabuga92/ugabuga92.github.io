@@ -1,8 +1,7 @@
-// [TIMESTAMP] 2026-01-18 20:15:00 - ui_render_minigames.js - Auto-Tutorial Logic added
+// [TIMESTAMP] 2026-01-18 20:45:00 - ui_render_minigames.js - FIXED: Robust Start Logic
 
 Object.assign(UI, {
     
-    // Hilfsfunktion: Texte zentral verwalten (für Tutorial & Hilfe-Button)
     getMinigameInfo: function(type) {
         let title = "MINIGAME", text = "";
         
@@ -26,51 +25,65 @@ Object.assign(UI, {
         return { title, text };
     },
 
-    // Startet das Spiel (mit Tutorial-Check)
     startMinigame: function(type, ...args) {
-        // Safety Check
+        console.log(`[UI] Attempting to start minigame: ${type}`);
+
+        // 1. Safety Checks
         if (typeof MiniGames === 'undefined') {
-            console.error("CRITICAL: MiniGames object not found!");
+            console.error("[UI] CRITICAL: MiniGames object missing!");
+            UI.log("Fehler: Minigame-System fehlt.", "text-red-500");
             return;
         }
         if (!MiniGames[type]) {
-            console.error(`Minigame type '${type}' not found.`);
+            console.error(`[UI] Minigame '${type}' not defined.`);
+            UI.log(`Fehler: Spiel '${type}' unbekannt.`, "text-red-500");
             return;
         }
 
-        // State initialisieren falls nötig
+        // Funktion zum tatsächlichen Starten (wird unten aufgerufen)
+        const launch = () => {
+            console.log(`[UI] Launching ${type}...`);
+            MiniGames.active = type;
+            if(typeof MiniGames[type].init === 'function') {
+                try {
+                    MiniGames[type].init(...args);
+                } catch(e) {
+                    console.error("[UI] Error in MiniGame init:", e);
+                    UI.log("Crash beim Starten des Minigames!", "text-red-500");
+                }
+            } else {
+                console.error(`[UI] ${type}.init is not a function`);
+            }
+        };
+
+        // 2. Tutorial Logic
+        // Falls Game.state noch nicht bereit ist (z.B. Test-Modus ohne Savegame), sofort starten.
+        if (!Game || !Game.state) {
+            launch();
+            return;
+        }
+
         if(!Game.state.tutorialsSeen) {
             Game.state.tutorialsSeen = {};
         }
 
-        // CHECK: Wurde das Tutorial schon gesehen?
+        // Wenn Tutorial noch NICHT gesehen -> Zeigen
         if(!Game.state.tutorialsSeen[type]) {
-            // NEIN -> Zeige Tutorial Overlay
             this.showMinigameTutorial(type, () => {
-                // Wenn Spieler auf "Start" drückt:
-                Game.state.tutorialsSeen[type] = true; // Markiere als gesehen
-                Game.saveGame(); // Speichern
-                this._launchMinigame(type, ...args); // Spiel starten
+                // Callback wenn User auf "START" klickt
+                Game.state.tutorialsSeen[type] = true;
+                Game.saveGame();
+                launch();
             });
         } else {
-            // JA -> Starte direkt
-            this._launchMinigame(type, ...args);
+            // Wenn schon gesehen -> Direkt starten
+            launch();
         }
     },
 
-    // Interne Funktion zum tatsächlichen Starten
-    _launchMinigame: function(type, ...args) {
-        MiniGames.active = type;
-        if(typeof MiniGames[type].init === 'function') {
-            MiniGames[type].init(...args);
-        }
-    },
-
-    // Zeigt das Tutorial-Overlay an (modal)
     showMinigameTutorial: function(type, onConfirm) {
         const info = this.getMinigameInfo(type);
         
-        // Nutze den Dialog-Container (falls vorhanden) oder erstelle overlay
         if(this.els && this.els.dialog) {
             this.els.dialog.style.display = 'flex';
             this.els.dialog.innerHTML = `
@@ -87,18 +100,28 @@ Object.assign(UI, {
                 </div>
             `;
             
-            // Event Listener für den Button
-            const btn = document.getElementById('btn-tutorial-start');
-            if(btn) {
-                btn.onclick = () => {
-                    this.els.dialog.style.display = 'none';
-                    this.els.dialog.innerHTML = '';
+            // Event Listener sicher anhängen
+            setTimeout(() => {
+                const btn = document.getElementById('btn-tutorial-start');
+                if(btn) {
+                    btn.onclick = function() {
+                        if(UI.els.dialog) {
+                            UI.els.dialog.style.display = 'none';
+                            UI.els.dialog.innerHTML = '';
+                        }
+                        if(onConfirm) onConfirm();
+                    };
+                    btn.focus(); // Fokus auf Button für Tastatur-User
+                } else {
+                    console.error("[UI] Tutorial button not found!");
+                    // Notfall-Fallback
                     if(onConfirm) onConfirm();
-                };
-            }
+                }
+            }, 50); // Kleines Delay damit DOM sicher bereit ist
+            
         } else {
-            // Fallback falls Dialog-Element fehlt (sollte nicht passieren)
-            alert(info.title + "\n\n" + info.text.replace(/<br>/g, "\n"));
+            // Fallback ohne Fancy UI
+            alert(`${info.title}\n\n${info.text.replace(/<br>/g, "\n")}`);
             if(onConfirm) onConfirm();
         }
     },
@@ -113,6 +136,7 @@ Object.assign(UI, {
         const dice = document.getElementById('dice-overlay');
         if(dice) dice.classList.add('hidden');
         
+        // Zurück zur Map
         if(typeof UI.switchView === 'function') {
             UI.switchView('map'); 
         } else {
@@ -133,7 +157,8 @@ Object.assign(UI, {
     // --- HACKING ---
     renderHacking: function() {
         const h = MiniGames.hacking;
-        
+        if(!h) return;
+
         let html = `
             <div class="w-full h-full flex flex-col p-2 font-mono text-green-500 bg-black overflow-hidden relative">
                 <div class="flex justify-between border-b border-green-500 mb-2 pb-1">
@@ -153,7 +178,7 @@ Object.assign(UI, {
             </div>
         `;
 
-        if(!this.els.view.innerHTML.includes('ROBCO')) {
+        if(this.els.view && !this.els.view.innerHTML.includes('ROBCO')) {
             this.els.view.innerHTML = html;
         } else {
              const log = document.getElementById('hack-log');
@@ -177,7 +202,7 @@ Object.assign(UI, {
 
     // --- LOCKPICKING ---
     renderLockpicking: function(init=false) {
-        if(init) {
+        if(init && this.els.view) {
             this.els.view.innerHTML = `
                 <div class="w-full h-full flex flex-col items-center justify-center bg-black relative select-none">
                     <div class="absolute top-2 left-2 text-xs text-gray-500">LEVEL: ${MiniGames.lockpicking.difficulty.toUpperCase()}</div>
@@ -264,7 +289,7 @@ Object.assign(UI, {
     renderDefusal: function() {
         const game = MiniGames.defusal;
         
-        if(!document.getElementById('defusal-game-root')) {
+        if(!document.getElementById('defusal-game-root') && this.els.view) {
              this.els.view.innerHTML = `
                 <div id="defusal-game-root" class="w-full h-full flex flex-col items-center justify-center bg-black p-4 select-none relative font-mono text-green-500">
                     <div class="border-2 border-green-500 bg-[#001100] p-6 w-full max-w-lg shadow-[0_0_20px_#0f0] relative">
@@ -322,7 +347,7 @@ Object.assign(UI, {
         const game = MiniGames.memory;
         
         // Base Layout nur einmal erstellen
-        if(!document.getElementById('memory-game-root')) {
+        if(!document.getElementById('memory-game-root') && this.els.view) {
             this.els.view.innerHTML = `
                 <div id="memory-game-root" class="w-full h-full flex flex-col items-center justify-center bg-black p-4 select-none relative font-mono text-green-500">
                     <div class="border-2 border-green-500 bg-[#001100] p-6 shadow-[0_0_25px_#0f0] flex flex-col items-center gap-4">
