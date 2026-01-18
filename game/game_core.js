@@ -1,4 +1,4 @@
-// [2026-01-17 19:10:00] game_core.js - Removed Store-Bought Backpacks
+// [2026-01-18 07:10:00] game_core.js - Quest Alert Trigger added
 
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
@@ -29,7 +29,6 @@ window.Game = {
         this.cacheCtx = this.cacheCanvas.getContext('2d'); 
     }, 
     
-    // [HiDPI Support]
     initCanvas: function() { 
         const cvs = document.getElementById('game-canvas'); 
         if(!cvs) return; 
@@ -215,6 +214,10 @@ window.Game = {
                     this.state.activeQuests.push({
                         id: def.id, progress: 0, max: def.amount, type: def.type, target: def.target
                     });
+                    
+                    // [NEU] Alert Trigger setzen
+                    this.state.newQuestAlert = true; 
+                    
                     UI.log(`QUEST: "${def.title}" erhalten!`, "text-cyan-400 font-bold animate-pulse");
                 }
             }
@@ -279,7 +282,7 @@ window.Game = {
                 if(a) stock[a] = 1;
             }
             
-            // [FIX] Rucksäcke entfernt! Nur noch über Crafting.
+            // Crafting Only - Keine Rucksäcke kaufen
             stock['camp_kit'] = 1;
             
             this.state.shop.merchantCaps = 500 + Math.floor(Math.random() * 1000);
@@ -330,7 +333,7 @@ window.Game = {
                 if(!this.state.quests) this.state.quests = [];
                 if(!this.state.camp) this.state.camp = null;
                 
-                // [FIX] Neue Rezepte für Rucksäcke automatisch lernen (für bestehende Saves)
+                // Rezepte Fix
                 const newRecs = ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp', 
                                  'craft_bp_frame', 'craft_bp_leather', 'craft_bp_metal', 'craft_bp_military', 'craft_bp_cargo'];
                 if(!this.state.knownRecipes) this.state.knownRecipes = [];
@@ -376,7 +379,6 @@ window.Game = {
                     explored: {}, visitedSectors: ["4,4"], tutorialsShown: { hacking: false, lockpicking: false },
                     activeQuests: [], completedQuests: [], quests: [], 
                     
-                    // [FIX] Start-Rezepte für Rucksäcke
                     knownRecipes: ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp', 'craft_bp_frame', 'craft_bp_leather', 'craft_bp_metal', 'craft_bp_military', 'craft_bp_cargo'], 
                     
                     hiddenItems: {}, shop: { nextRestock: 0, stock: {}, merchantCaps: 1000 }, startTime: Date.now()
