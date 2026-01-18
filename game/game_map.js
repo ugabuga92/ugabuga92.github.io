@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-18 18:30:00 - game_map.js - Fix Script Error in Test Menu
+// [TIMESTAMP] 2026-01-18 21:30:00 - game_map.js - Fixed Menu Closing Order
 
 Object.assign(Game, {
     reveal: function(px, py) { 
@@ -45,7 +45,7 @@ Object.assign(Game, {
         // --- INTERAKTIONEN ---
         if (tile === 'X') { this.openChest(nx, ny); return; } 
         if (tile === 'v') { this.descendDungeon(); return; }
-        if (tile === '?') { this.testMinigames(); return; } // <--- TEST SPOT
+        if (tile === '?') { this.testMinigames(); return; } // TEST SPOT
 
         // --- KOLLISION ---
         if(['M', 'W', '#', 'U', 't', 'o', 'Y', '|', 'F', 'T', 'R'].includes(tile) && tile !== 'R') { 
@@ -168,7 +168,6 @@ Object.assign(Game, {
         this.state.currentMap = data.layout; 
         
         // --- DEV TEST SPOT ---
-        // Erzeugt ein '?' bei 22,20 (neben dem 20,20 Spawn)
         if(this.state.currentMap[20] && this.state.currentMap[20][22]) {
             this.state.currentMap[20][22] = '?';
         }
@@ -313,7 +312,6 @@ Object.assign(Game, {
     },
     
     openChest: function(x, y) {
-        // Sicherung: Level 3+ startet Minigame
         if(this.state.dungeonLevel >= 3) {
              UI.log("Sicherheitsmechanismus aktiv...", "text-yellow-400 animate-pulse");
              UI.startMinigame('memory', () => {
@@ -362,8 +360,7 @@ Object.assign(Game, {
         setTimeout(() => { this.leaveCity(); }, 4000);
     },
 
-    // --- NEUE FUNKTION: TEST MENÜ ---
-    // [FIX] onclick ohne komplexe Callback-Funktion, um Script-Fehler zu vermeiden
+    // --- TEST MENÜ (FIXED ORDER) ---
     testMinigames: function() {
         if(typeof UI !== 'undefined' && UI.els.dialog) {
              UI.els.dialog.style.display = 'flex';
@@ -372,11 +369,11 @@ Object.assign(Game, {
                     <h3 class="text-xl font-bold text-yellow-400 mb-4 tracking-widest">MINIGAME TEST STATION</h3>
                     <p class="text-xs text-gray-400 mb-4">Wähle ein System zum Testen:</p>
                     <div class="grid grid-cols-1 gap-3 mb-4">
-                        <button onclick="UI.startMinigame('hacking'); UI.els.dialog.style.display='none';" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">TERMINAL HACKING</button>
-                        <button onclick="UI.startMinigame('lockpicking'); UI.els.dialog.style.display='none';" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">LOCKPICKING</button>
-                        <button onclick="UI.startMinigame('dice'); UI.els.dialog.style.display='none';" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">WASTELAND DICE</button>
-                        <button onclick="UI.startMinigame('defusal'); UI.els.dialog.style.display='none';" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">BOMB DEFUSAL</button>
-                        <button onclick="UI.startMinigame('memory'); UI.els.dialog.style.display='none';" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">SECURITY MEMORY</button>
+                        <button onclick="UI.els.dialog.style.display='none'; UI.startMinigame('hacking');" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">TERMINAL HACKING</button>
+                        <button onclick="UI.els.dialog.style.display='none'; UI.startMinigame('lockpicking');" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">LOCKPICKING</button>
+                        <button onclick="UI.els.dialog.style.display='none'; UI.startMinigame('dice');" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">WASTELAND DICE</button>
+                        <button onclick="UI.els.dialog.style.display='none'; UI.startMinigame('defusal');" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">BOMB DEFUSAL</button>
+                        <button onclick="UI.els.dialog.style.display='none'; UI.startMinigame('memory');" class="border border-green-500 text-green-400 p-3 hover:bg-green-900 font-mono">SECURITY MEMORY</button>
                     </div>
                     <button onclick="UI.els.dialog.style.display='none'; UI.els.dialog.innerHTML='';" class="border border-red-500 text-red-500 px-4 py-2 hover:bg-red-900 w-full uppercase">Schließen</button>
                 </div>
@@ -384,7 +381,6 @@ Object.assign(Game, {
         }
     },
 
-    // [v0.8.3 FIX] CITY LOGIC
     enterCity: function() {
         this.state.savedPosition = { x: this.state.player.x, y: this.state.player.y };
         this.state.view = 'city';
