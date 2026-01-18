@@ -1,9 +1,8 @@
-// [TIMESTAMP] 2026-01-18 12:00:00 - game_world_logic.js - Fixed Upgrade Logic (Multi-Stack Consumption)
+// [TIMESTAMP] 2026-01-18 12:30:00 - game_world_logic.js - Fixed Selling Logic (Target Specific Stack)
 
 Object.assign(Game, {
 
     getCampUpgradeCost: function(currentLevel) {
-        // IDs abgeglichen mit data_items.js: 'junk_metal' ist korrekt.
         switch(currentLevel) {
             case 1: return { id: 'junk_metal', count: 25, name: 'Schrott' };
             case 2: return { id: 'cloth', count: 10, name: 'Stoff' };
@@ -82,7 +81,6 @@ Object.assign(Game, {
         // [FIX] 2. Kosten von den Stacks abziehen
         let remainingCost = cost.count;
         
-        // Wir iterieren durch und ziehen ab
         for (let i = 0; i < this.state.inventory.length; i++) {
             if (remainingCost <= 0) break;
             
@@ -266,12 +264,21 @@ Object.assign(Game, {
         const totalValue = unitPrice * amount;
         if (Game.state.shop.merchantCaps < totalValue) { UI.error("Händler hat nicht genug Kronkorken."); return; }
 
+        // UPDATE STATE
         Game.state.caps += totalValue;
         Game.state.shop.merchantCaps -= totalValue;
 
-        Game.removeFromInventory(entry.id, amount); 
-        
-        if (entry.id === 'ammo') Game.state.shop.ammoStock = (Game.state.shop.ammoStock || 0) + amount;
+        // [FIX] Direktes Manipulieren des spezifischen Stacks statt globaler Löschung
+        entry.count -= amount;
+        if(entry.count <= 0) {
+            Game.state.inventory.splice(invIndex, 1);
+        }
+
+        // Shop Stock Logic
+        if (entry.id === 'ammo') {
+            Game.state.shop.ammoStock = (Game.state.shop.ammoStock || 0) + amount;
+            if(this.syncAmmo) this.syncAmmo();
+        }
         else {
              if (!Game.state.shop.stock[entry.id]) Game.state.shop.stock[entry.id] = 0;
              Game.state.shop.stock[entry.id] += amount;
