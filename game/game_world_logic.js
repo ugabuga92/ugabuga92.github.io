@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-18 13:00:00 - game_world_logic.js - Persistent Camp Level & Fixes
+// [TIMESTAMP] 2026-01-18 16:00:00 - game_world_logic.js - Camp Kit Trading Blocked
 
 Object.assign(Game, {
 
@@ -44,7 +44,6 @@ Object.assign(Game, {
 
         this.state.caps -= cost;
         
-        // [FIX] Level wiederherstellen (oder 1 starten)
         const startLevel = this.state.savedCampLevel || 1;
 
         this.state.camp = { 
@@ -61,7 +60,6 @@ Object.assign(Game, {
     packCamp: function() {
         if(!this.state.camp) return;
         
-        // [FIX] Aktuelles Level für später speichern
         this.state.savedCampLevel = this.state.camp.level;
         
         this.state.camp = null;
@@ -78,7 +76,6 @@ Object.assign(Game, {
         const cost = this.getCampUpgradeCost(lvl);
         if(!cost) { UI.log("Kein weiteres Upgrade verfügbar.", "text-gray-500"); return; }
 
-        // [FIX] Gesamtmenge im Inventar prüfen (über alle Stacks hinweg)
         const totalOwned = this.state.inventory.reduce((sum, item) => {
             return (item.id === cost.id) ? sum + item.count : sum;
         }, 0);
@@ -88,7 +85,6 @@ Object.assign(Game, {
              return;
         }
 
-        // [FIX] Kosten von den Stacks abziehen (Stack-übergreifend)
         let remainingCost = cost.count;
         
         for (let i = 0; i < this.state.inventory.length; i++) {
@@ -102,7 +98,6 @@ Object.assign(Game, {
             }
         }
         
-        // [FIX] Leere Stacks aufräumen
         this.state.inventory = this.state.inventory.filter(i => i.count > 0);
 
         this.state.camp.level++;
@@ -197,6 +192,9 @@ Object.assign(Game, {
     buyAmmo: function(qty) { this.buyItem('ammo', qty); },
 
     buyItem: function(id, qtyMode = 1) {
+        // [FIX] Camp Kit nicht kaufbar
+        if (id === 'camp_kit') { if(typeof UI !== 'undefined') UI.error("Nicht käuflich!"); return; }
+
         const item = Game.items[id];
         if (!item) { if(typeof UI !== 'undefined') UI.error("Error: " + id); return; }
 
@@ -229,12 +227,6 @@ Object.assign(Game, {
         if (totalItemsReceived > stock) { if(typeof UI !== 'undefined') UI.error("Nicht genug auf Lager."); return; }
         if (Game.state.caps < totalCost) { if(typeof UI !== 'undefined') UI.error("Nicht genug Kronkorken!"); return; }
 
-        if (id === 'camp_kit') {
-            if (this.state.inventory.some(i => i.id === 'camp_kit') || this.state.camp) {
-                UI.error("Du hast bereits ein Zelt!"); return;
-            }
-        }
-
         Game.state.caps -= totalCost;
         Game.state.shop.merchantCaps += totalCost; 
         
@@ -253,6 +245,10 @@ Object.assign(Game, {
     sellItem: function(invIndex, qtyMode = 1) {
         const entry = Game.state.inventory[invIndex];
         if (!entry) return;
+        
+        // [FIX] Camp Kit nicht verkaufbar
+        if (entry.id === 'camp_kit') { if(typeof UI !== 'undefined') UI.error("Das brauchst du noch!"); return; }
+
         const item = Game.items[entry.id];
         if (!item) return;
 
@@ -274,17 +270,14 @@ Object.assign(Game, {
         const totalValue = unitPrice * amount;
         if (Game.state.shop.merchantCaps < totalValue) { UI.error("Händler hat nicht genug Kronkorken."); return; }
 
-        // UPDATE STATE
         Game.state.caps += totalValue;
         Game.state.shop.merchantCaps -= totalValue;
 
-        // [FIX] Direktes Manipulieren des spezifischen Stacks
         entry.count -= amount;
         if(entry.count <= 0) {
             Game.state.inventory.splice(invIndex, 1);
         }
 
-        // Shop Stock Logic
         if (entry.id === 'ammo') {
             Game.state.shop.ammoStock = (Game.state.shop.ammoStock || 0) + amount;
             if(this.syncAmmo) this.syncAmmo();
