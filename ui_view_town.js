@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-18 15:00:00 - ui_view_town.js - Hide Camp Kit Recipe if Owned/Built
+// [TIMESTAMP] 2026-01-18 16:00:00 - ui_view_town.js - Camp Kit is now permanent (No Buy/Sell/Scrap)
 
 Object.assign(UI, {
     
@@ -68,12 +68,10 @@ Object.assign(UI, {
         wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black/95 z-20 overflow-hidden";
 
         // === SCROLL BEREICH (Oben) ===
-        // p-0: Kein Padding am Container selbst, damit Header/Tabs volle Breite haben
-        // pb-24: Padding unten WICHTIG damit der Footer nicht den Inhalt verdeckt
         const scrollContainer = document.createElement('div');
         scrollContainer.className = "flex-1 overflow-y-auto overflow-x-hidden custom-scroll pb-24";
 
-        // HEADER (Scrollt mit)
+        // HEADER
         const header = document.createElement('div');
         header.className = "p-4 border-b-2 border-blue-500 bg-blue-900/20 flex justify-between items-end shadow-lg shadow-blue-900/20";
         header.innerHTML = `
@@ -85,7 +83,7 @@ Object.assign(UI, {
         `;
         scrollContainer.appendChild(header);
         
-        // TABS (Scrollen mit)
+        // TABS
         const tabsDiv = document.createElement('div');
         tabsDiv.className = "flex w-full border-b border-blue-900 bg-black";
         tabsDiv.innerHTML = `
@@ -100,7 +98,7 @@ Object.assign(UI, {
         listContent.className = "p-3 space-y-2 bg-[#00050a]";
         scrollContainer.appendChild(listContent);
 
-        // === FOOTER (Absolut Positioniert) ===
+        // === FOOTER ===
         const footer = document.createElement('div');
         footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-blue-900 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.9)]";
         footer.innerHTML = `
@@ -123,7 +121,7 @@ Object.assign(UI, {
                 if(recipe.type === 'cooking') return; 
                 if(!known.includes(recipe.id) && recipe.lvl > 1) return; 
 
-                // [FIX] Zelt ausblenden, wenn man schon eins hat (Item oder aufgebaut)
+                // Zelt-Rezept ausblenden, wenn schon vorhanden (da permanent)
                 if (recipe.out === 'camp_kit') {
                     const hasKit = Game.state.inventory.some(i => i.id === 'camp_kit');
                     const hasBuilt = !!Game.state.camp;
@@ -162,12 +160,14 @@ Object.assign(UI, {
             });
             if(knownCount === 0) listContent.innerHTML = '<div class="text-gray-500 italic mt-10 text-center">Keine bekannten Baupläne.</div>';
         } else {
+            // SCRAP LIST
             let scrappables = [];
             Game.state.inventory.forEach((item, idx) => {
                 const def = Game.items[item.id];
                 if(!def) return;
                 
-                if (item.id === 'junk_metal') return;
+                // [FIX] Camp Kit nicht zerlegbar machen
+                if (item.id === 'junk_metal' || item.id === 'camp_kit') return;
                 if (def.type === 'blueprint') return;
 
                 if (['weapon','body','head','legs','feet','arms','junk'].includes(def.type)) {
@@ -193,7 +193,7 @@ Object.assign(UI, {
     },
 
     // ==========================================
-    // === CITY HUB (Startseite) ===
+    // === CITY HUB ===
     // ==========================================
     renderCity: function(cityId = 'rusty_springs') {
         const view = document.getElementById('view-container');
@@ -334,11 +334,10 @@ Object.assign(UI, {
         wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-20 overflow-hidden";
 
         // === SCROLL BEREICH (Oben) ===
-        // p-3 pb-24: Padding unten WICHTIG damit der Footer nicht den Inhalt verdeckt
         const scrollContainer = document.createElement('div');
         scrollContainer.className = "flex-1 overflow-y-auto overflow-x-hidden custom-scroll p-3 pb-24";
         
-        // HEADER INHALT (in den Scroll Bereich packen)
+        // HEADER INHALT
         const usedSlots = Game.getUsedSlots();
         const maxSlots = Game.getMaxSlots();
         const isFull = usedSlots >= maxSlots;
@@ -363,11 +362,10 @@ Object.assign(UI, {
             </div>
         `;
 
-        // CONTROLS (Menge & Modus)
+        // CONTROLS
         const controlsDiv = document.createElement('div');
         controlsDiv.className = "bg-[#002200] border-b-2 border-green-500 p-3 shadow-lg mb-4";
         
-        // Helper für Button Style
         const getBtnClass = (val) => {
             if (UI.shopQty === val) return "bg-yellow-400 text-black border-yellow-400 font-bold shadow-[0_0_10px_#ffd700]"; 
             return "bg-black text-green-500 border-green-500 hover:border-yellow-400 hover:text-yellow-400"; 
@@ -405,18 +403,17 @@ Object.assign(UI, {
         
         scrollContainer.appendChild(controlsDiv);
 
-        // ITEM LIST CONTAINER (direkt im Scroll Container)
+        // ITEM LIST CONTAINER
         const listContent = document.createElement('div');
         listContent.id = "shop-list";
         listContent.className = "space-y-2";
         scrollContainer.appendChild(listContent);
 
-        // === FOOTER (Absolut Positioniert) ===
+        // === FOOTER ===
         const footer = document.createElement('div');
         footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-yellow-900 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.9)]";
         footer.innerHTML = `<button class="action-button w-full border-2 border-yellow-800 text-yellow-700 hover:border-yellow-500 hover:text-yellow-400 transition-colors py-3 font-bold tracking-widest uppercase bg-black" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>`;
 
-        // Alles zusammenbauen
         wrapper.appendChild(scrollContainer);
         wrapper.appendChild(footer);
         view.appendChild(wrapper);
@@ -492,11 +489,10 @@ Object.assign(UI, {
 
         Object.keys(stock).forEach(key => {
             if (key === 'fists' || key === 'vault_suit' || key === 'mele') return;
-            if (key === 'camp_kit') {
-                const hasKit = Game.state.inventory.some(i => i.id === 'camp_kit');
-                const hasBuilt = !!Game.state.camp;
-                if (hasKit || hasBuilt) return; 
-            }
+            
+            // [FIX] Zelt-Kit nie im Shop anzeigen
+            if (key === 'camp_kit') return;
+            
             if(stock[key] <= 0) return;
             
             const item = Game.items[key];
@@ -535,7 +531,8 @@ Object.assign(UI, {
             const def = Game.items[item.id];
             if(!def) return;
             
-            if (item.id === 'fists') return;
+            // [FIX] Fäuste & Camp Kit können nicht verkauft werden
+            if (item.id === 'fists' || item.id === 'camp_kit') return;
 
             let valMult = item.props && item.props.valMult ? item.props.valMult : 1;
             let sellPrice = Math.floor((def.cost * 0.25) * valMult);
@@ -587,7 +584,6 @@ Object.assign(UI, {
     },
 
     updateShopQtyVisuals: function() {
-        // Um den Fokus nicht zu verlieren, rendern wir nur neu wenn NICHT im Input
         if (document.activeElement.id !== 'shop-qty-input') {
             const sellBtn = document.querySelector('button.bg-red-500'); 
             const mode = sellBtn ? 'sell' : 'buy';
