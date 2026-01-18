@@ -1,312 +1,223 @@
-// [2026-01-18 19:15:00] game_render.js - FINAL GRAPHICS ENGINE OVERHAUL
-
-if(typeof Game === 'undefined') Game = {};
+// [2026-01-15 09:05:00] game_render.js - Applied Global drawText for consistently Sharp Text
 
 Object.assign(Game, {
-    
-    // Speicher für Grafik-Assets (Canvases)
-    tiles: {},
-    tileSize: 32, // Größe eines Tiles in Pixeln
-
-    // --- 1. TILE GENERATOR (Einmalig beim Start) ---
-    generateTiles: function() {
-        console.log("[RENDER] Building Graphics Assets...");
-        
-        const createTile = (key, colorBase, drawDetails) => {
-            const canvas = document.createElement('canvas');
-            canvas.width = this.tileSize;
-            canvas.height = this.tileSize;
-            const ctx = canvas.getContext('2d');
-
-            // Basis-Farbe
-            ctx.fillStyle = colorBase;
-            ctx.fillRect(0, 0, this.tileSize, this.tileSize);
-
-            // Details zeichnen
-            if (drawDetails) drawDetails(ctx, this.tileSize);
-
-            this.tiles[key] = canvas;
-        };
-
-        // > ÖDLAND (Basis) - Staubiges Braun
-        createTile('wasteland', '#4e4033', (ctx, s) => { 
-            ctx.fillStyle = 'rgba(0,0,0,0.15)';
-            for(let i=0; i<10; i++) { 
-                let x = Math.random() * s, y = Math.random() * s;
-                ctx.fillRect(x, y, 2, 2);
-            }
-        });
-
-        // > GRASLAND - Radioaktives Grün
-        createTile('grass', '#1a331a', (ctx, s) => { 
-            ctx.fillStyle = '#2b552b';
-            for(let i=0; i<15; i++) { 
-                let x = Math.random() * s, y = Math.random() * s;
-                ctx.fillRect(x, y, 1, 4);
-            }
-        });
-
-        // > WALD - Dunkel & Dicht
-        createTile('forest', '#0a1a0a', (ctx, s) => {
-            ctx.fillStyle = '#0f2f0f';
-            // Baum 1 (Links)
-            ctx.beginPath(); ctx.moveTo(8, 26); ctx.lineTo(16, 6); ctx.lineTo(24, 26); ctx.fill();
-            // Baum 2 (Rechts)
-            ctx.fillStyle = '#0a220a';
-            ctx.beginPath(); ctx.moveTo(12, 28); ctx.lineTo(20, 10); ctx.lineTo(28, 28); ctx.fill();
-        });
-
-        // > WASSER - Dunkelblau & Wellen
-        createTile('water', '#081820', (ctx, s) => {
-            ctx.strokeStyle = '#103040';
-            ctx.lineWidth = 1;
-            for(let i=6; i<s; i+=8) {
-                ctx.beginPath(); ctx.moveTo(2, i); ctx.lineTo(s-2, i); ctx.stroke();
-            }
-        });
-
-        // > BERGE - Grau & Felsig
-        createTile('mountain', '#2a2a2a', (ctx, s) => {
-            ctx.fillStyle = '#1a1a1a'; // Berg-Körper
-            ctx.beginPath(); ctx.moveTo(0, s); ctx.lineTo(s/2, 2); ctx.lineTo(s, s); ctx.fill();
-            ctx.fillStyle = '#555'; // Spitze (Schnee/Licht)
-            ctx.beginPath(); ctx.moveTo(s/2 - 4, 10); ctx.lineTo(s/2, 2); ctx.lineTo(s/2 + 4, 10); ctx.fill();
-        });
-
-        // > STADT - Beton & Ruinen
-        createTile('city', '#1a1a1a', (ctx, s) => {
-            ctx.fillStyle = '#333'; 
-            ctx.fillRect(4, 10, 8, 22); // Gebäude 1
-            ctx.fillStyle = '#2a2a2a'; 
-            ctx.fillRect(16, 6, 12, 26); // Gebäude 2
-            
-            // Leuchtendes Fenster
-            ctx.fillStyle = 'rgba(57, 255, 20, 0.6)'; 
-            ctx.fillRect(18, 10, 2, 2);
-            ctx.fillRect(22, 18, 2, 2);
-        });
-
-        // > SUMPF - Matschig
-        createTile('swamp', '#1f1f10', (ctx, s) => {
-            ctx.fillStyle = 'rgba(40, 60, 20, 0.5)';
-            ctx.fillRect(0,0, s, s);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.beginPath(); ctx.arc(10, 10, 6, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(24, 22, 4, 0, Math.PI*2); ctx.fill();
-        });
+    initCache: function() {
+        this.cacheCanvas = document.createElement('canvas');
+        this.cacheCanvas.width = this.MAP_W * this.TILE;
+        this.cacheCanvas.height = this.MAP_H * this.TILE;
+        this.cacheCtx = this.cacheCanvas.getContext('2d'); 
     },
 
-    // --- 2. HAUPT RENDER LOOP ---
-    
-    // WICHTIG: Das ersetzt die alte draw()-Funktion komplett!
-    draw: function() {
-        const canvas = document.getElementById('game-canvas');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
+    renderStaticMap: function() { 
+        if(!this.cacheCtx) this.initCache();
+        const ctx = this.cacheCtx; 
         
-        // Pixel-Art Look erzwingen
-        ctx.imageSmoothingEnabled = false;
-
-        // Assets bauen (falls noch nicht da)
-        if (!this.tiles['wasteland']) this.generateTiles();
-
-        // Screen löschen (CRT Schwarz)
-        ctx.fillStyle = '#000500';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Welchen Modus rendern wir?
-        if (this.state.view === 'map') {
-            this.renderWorldMap(ctx, canvas);
-        } 
-        else if (this.state.view === 'dungeon') {
-            this.renderDungeonMap(ctx, canvas); // Neu hinzugefügt
-        }
-    },
-
-    // --- 3. WELTKARTE (Overworld) ---
-    renderWorldMap: function(ctx, canvas) {
-        if (!this.state.player || !this.worldData) return;
-
-        const pX = this.state.player.x;
-        const pY = this.state.player.y;
+        ctx.fillStyle = "#000"; 
+        ctx.fillRect(0, 0, this.cacheCanvas.width, this.cacheCanvas.height); 
         
-        // Raster-Größe (Zoom) - etwas größer für bessere Sichtbarkeit
-        const tileSize = 48; 
-        
-        // Tiles berechnen (+1 Puffer für Ränder)
-        const tilesX = Math.ceil(canvas.width / tileSize) + 1;
-        const tilesY = Math.ceil(canvas.height / tileSize) + 1;
-        
-        const startX = pX - Math.floor(tilesX / 2);
-        const startY = pY - Math.floor(tilesY / 2);
+        if(!this.state.currentMap) return;
 
-        // A) KACHELN ZEICHNEN
-        for (let y = 0; y < tilesY; y++) {
-            for (let x = 0; x < tilesX; x++) {
-                const worldX = startX + x;
-                const worldY = startY + y;
-                const key = `${worldX},${worldY}`;
-                
-                // Position auf dem Canvas
-                const screenX = (x * tileSize) - (tileSize/2); // Leichter Offset
-                const screenY = (y * tileSize) - (tileSize/2);
-
-                const sector = this.worldData[key];
-                let biome = 'wasteland';
-                
-                if (sector) {
-                    biome = sector.biome || 'wasteland';
-                    if (sector.isCity) biome = 'city';
-                }
-
-                const img = this.tiles[biome] || this.tiles['wasteland'];
-                
-                // Tile zeichnen
-                ctx.drawImage(img, screenX, screenY, tileSize, tileSize);
-
-                // Grid (sehr dezent)
-                ctx.strokeStyle = 'rgba(0, 10, 0, 0.2)';
-                ctx.strokeRect(screenX, screenY, tileSize, tileSize);
-            }
-        }
-
-        // B) SPIELER (Zentriert)
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        
-        // Schatten unter Spieler
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY + 12, 12, 6, 0, 0, Math.PI*2);
-        ctx.fill();
-
-        // Spieler-Icon (Neon-Dreieck für Blickrichtung)
-        ctx.save();
-        ctx.translate(centerX, centerY);
-        ctx.rotate(this.state.player.rot || 0); // Rotation anwenden
-        
-        // Körper (Dreieck)
-        ctx.fillStyle = '#39ff14'; // Pip-Boy Grün
-        ctx.beginPath();
-        ctx.moveTo(0, -12); // Spitze vorne
-        ctx.lineTo(10, 12); // Rechts hinten
-        ctx.lineTo(0, 8);   // Einbuchtung hinten
-        ctx.lineTo(-10, 12);// Links hinten
-        ctx.closePath();
-        ctx.fill();
-        
-        // Rand
-        ctx.strokeStyle = '#003300';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
-        ctx.restore();
-
-        // C) LOKATIONEN (Camp, POIs)
-        // Wir iterieren nochmal über den sichtbaren Bereich für Overlays
-        for (let y = 0; y < tilesY; y++) {
-            for (let x = 0; x < tilesX; x++) {
-                const worldX = startX + x;
-                const worldY = startY + y;
-                
-                const screenX = (x * tileSize) - (tileSize/2);
-                const screenY = (y * tileSize) - (tileSize/2);
-
-                // Camp?
-                if (this.state.camp && this.state.camp.x === worldX && this.state.camp.y === worldY) {
-                    ctx.font = '24px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('⛺', screenX + tileSize/2, screenY + tileSize/2 + 8);
+        for(let y=0; y<this.MAP_H; y++) {
+            for(let x=0; x<this.MAP_W; x++) {
+                if(this.state.currentMap[y]) {
+                    this.drawTile(ctx, x, y, this.state.currentMap[y][x]); 
                 }
             }
         }
     },
 
-    // --- 4. DUNGEON RENDERER (Neu!) ---
-    renderDungeonMap: function(ctx, canvas) {
-        if (!this.state.currentMap) return;
+    draw: function() { 
+        if(!this.ctx || !this.cacheCanvas) return; 
+        if(!this.state.currentMap) return;
 
-        const map = this.state.currentMap;
-        const pX = this.state.player.x;
-        const pY = this.state.player.y;
+        const ctx = this.ctx; 
+        const cvs = ctx.canvas; 
         
-        const tileSize = 40;
-        const tilesX = Math.ceil(canvas.width / tileSize);
-        const tilesY = Math.ceil(canvas.height / tileSize);
+        const viewW = cvs.clientWidth;
+        const viewH = cvs.clientHeight;
         
-        const startX = pX - Math.floor(tilesX / 2);
-        const startY = pY - Math.floor(tilesY / 2);
+        let targetCamX = (this.state.player.x * this.TILE) - (viewW / 2); 
+        let targetCamY = (this.state.player.y * this.TILE) - (viewH / 2); 
+        
+        const maxCamX = (this.MAP_W * this.TILE) - viewW; 
+        const maxCamY = (this.MAP_H * this.TILE) - viewH; 
+        
+        this.camera.x = Math.max(0, Math.min(targetCamX, maxCamX)); 
+        this.camera.y = Math.max(0, Math.min(targetCamY, maxCamY)); 
+        
+        ctx.fillStyle = "#000"; 
+        ctx.fillRect(0, 0, viewW, viewH); 
+        
+        ctx.drawImage(
+            this.cacheCanvas, 
+            this.camera.x, this.camera.y, viewW, viewH, 
+            0, 0, viewW, viewH                          
+        ); 
+        
+        ctx.save(); 
+        ctx.translate(-this.camera.x, -this.camera.y); 
+        
+        const startX = Math.floor(this.camera.x / this.TILE); 
+        const startY = Math.floor(this.camera.y / this.TILE); 
+        const endX = startX + Math.ceil(viewW / this.TILE) + 1; 
+        const endY = startY + Math.ceil(viewH / this.TILE) + 1; 
+        
+        const secKey = `${this.state.sector.x},${this.state.sector.y}`;
+        const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7; 
 
-        for (let y = 0; y < tilesY; y++) {
-            for (let x = 0; x < tilesX; x++) {
-                const mapX = startX + x;
-                const mapY = startY + y;
-                const screenX = x * tileSize;
-                const screenY = y * tileSize;
+        for(let y=startY; y<endY; y++) { 
+            for(let x=startX; x<endX; x++) { 
+                if(y>=0 && y<this.MAP_H && x>=0 && x<this.MAP_W) { 
+                    
+                    const tileKey = `${secKey}_${x},${y}`;
+                    const isCity = (this.state.zone && this.state.zone.includes("Stadt")); 
+                    
+                    if(!isCity && !this.state.explored[tileKey]) {
+                        ctx.fillStyle = "#000";
+                        ctx.fillRect(x * this.TILE, y * this.TILE, this.TILE, this.TILE);
+                        continue; 
+                    }
 
-                // Außerhalb der Map? -> Schwarz
-                if (mapY < 0 || mapY >= map.length || mapX < 0 || mapX >= map[0].length) {
-                    ctx.fillStyle = '#000';
-                    ctx.fillRect(screenX, screenY, tileSize, tileSize);
-                    continue;
-                }
+                    if(!this.state.currentMap[y]) continue; 
 
-                const tile = map[mapY][mapX];
-
-                // Wände (#)
-                if (tile === '#') {
-                    ctx.fillStyle = '#444'; // Dunkelgrau
-                    ctx.fillRect(screenX, screenY, tileSize, tileSize);
-                    ctx.strokeStyle = '#222';
-                    ctx.strokeRect(screenX, screenY, tileSize, tileSize);
+                    const t = this.state.currentMap[y][x]; 
+                    
+                    if(['V', 'S', 'C', 'G', 'H', 'R', '^', 'v', '<', '>', '$', '&', 'P', 'E', 'F', 'X'].includes(t)) { 
+                        this.drawTile(ctx, x, y, t, pulse); 
+                    } 
+                    
+                    if(this.state.hiddenItems && this.state.hiddenItems[`${x},${y}`]) {
+                        const shimmer = (Math.sin(Date.now() / 200) + 1) / 2;
+                        ctx.globalAlpha = 0.3 + (shimmer * 0.5);
+                        ctx.fillStyle = "#ffffff";
+                        ctx.beginPath();
+                        ctx.arc(x * this.TILE + this.TILE/2, y * this.TILE + this.TILE/2, 4 + shimmer * 2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.globalAlpha = 1.0;
+                    }
                 } 
-                // Boden (.)
-                else {
-                    ctx.fillStyle = '#111'; // Fast Schwarz
-                    ctx.fillRect(screenX, screenY, tileSize, tileSize);
-                    // Kleiner Punkt für Bodenstruktur
-                    ctx.fillStyle = '#222';
-                    ctx.fillRect(screenX + tileSize/2, screenY + tileSize/2, 2, 2);
-                }
-
-                // Loot (L)
-                if (tile === 'L') {
-                    ctx.font = '20px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('🎁', screenX + tileSize/2, screenY + tileSize/2 + 8);
-                }
+            } 
+        } 
+        
+        if(typeof Network !== 'undefined' && Network.otherPlayers) { 
+            for(let pid in Network.otherPlayers) { 
+                const p = Network.otherPlayers[pid]; 
+                if(p.sector && (p.sector.x !== this.state.sector.x || p.sector.y !== this.state.sector.y)) continue; 
                 
-                // Ausgang (E)
-                if (tile === 'E') {
-                    ctx.font = '20px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('🚪', screenX + tileSize/2, screenY + tileSize/2 + 8);
-                }
-            }
-        }
+                const ox = p.x * this.TILE + this.TILE/2; 
+                const oy = p.y * this.TILE + this.TILE/2; 
+                
+                ctx.fillStyle = "#00ffff"; 
+                ctx.shadowBlur = 5; 
+                ctx.shadowColor = "#00ffff"; 
+                ctx.beginPath(); 
+                ctx.arc(ox, oy, 5, 0, Math.PI*2); 
+                ctx.fill(); 
+                
+                // Name mit der neuen globalen Funktion zeichnen
+                Game.drawText(ctx, p.name ? p.name.substring(0,3) : "P", ox+6, oy, 10, "white", "left");
+                ctx.shadowBlur = 0; 
+            } 
+        } 
+        
+        const px = this.state.player.x * this.TILE + this.TILE/2; 
+        const py = this.state.player.y * this.TILE + this.TILE/2; 
+        
+        ctx.save();
+        ctx.translate(px, py); 
+        ctx.rotate(this.state.player.rot); 
+        ctx.translate(-px, -py); 
+        
+        ctx.fillStyle = "#39ff14"; 
+        ctx.shadowBlur = 10; 
+        ctx.shadowColor = "#39ff14"; 
+        ctx.beginPath(); 
+        ctx.moveTo(px, py - 8); 
+        ctx.lineTo(px + 6, py + 8); 
+        ctx.lineTo(px, py + 5); 
+        ctx.lineTo(px - 6, py + 8); 
+        ctx.fill(); 
+        ctx.shadowBlur = 0; 
+        
+        ctx.restore(); 
+        
+        ctx.restore(); 
 
-        // Spieler im Dungeon (Zentriert)
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
+        const centerX = viewW / 2;
+        const centerY = viewH / 2;
+        const time = Date.now();
+        const flicker = (Math.sin(time / 150) * 5) + (Math.random() * 2); 
+        const radius = Math.max(viewW, viewH) * 0.6 + flicker;
 
-        ctx.fillStyle = '#39ff14';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 8, 0, Math.PI*2);
-        ctx.fill();
+        const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.4, centerX, centerY, radius);
+        gradient.addColorStop(0, "rgba(0, 0, 0, 0)");        
+        gradient.addColorStop(0.7, "rgba(0, 20, 0, 0.2)");    
+        gradient.addColorStop(1, "rgba(0, 0, 0, 0.85)");      
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, viewW, viewH);
     },
-    
-    // Helfer: Canvas Größe anpassen
-    resizeCanvas: function() {
-        const canvas = document.getElementById('game-canvas');
-        const container = document.getElementById('game-screen'); 
-        if(canvas && container) {
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
-            this.draw();
+
+    drawTile: function(ctx, x, y, type, pulse = 1) { 
+        const ts = this.TILE; const px = x * ts; const py = y * ts; 
+        const cx = px + ts/2; const cy = py + ts/2;
+        
+        let bg = this.colors['.']; 
+        if(['_', ',', ';', '=', 'W', 'M', '~', '|', 'B'].includes(type)) bg = this.colors[type]; 
+        
+        if (!['^','v','<','>'].includes(type) && type !== '#') { ctx.fillStyle = bg; ctx.fillRect(px, py, ts, ts); } 
+        if(!['^','v','<','>','M','W','~','X'].includes(type) && type !== '#') { ctx.strokeStyle = "rgba(40, 90, 40, 0.05)"; ctx.lineWidth = 1; ctx.strokeRect(px, py, ts, ts); } 
+        
+        if(['^', 'v', '<', '>'].includes(type)) { 
+            ctx.fillStyle = "#000"; ctx.fillRect(px, py, ts, ts); ctx.fillStyle = "#1aff1a"; ctx.strokeStyle = "#000"; ctx.beginPath(); 
+            if (type === '^') { ctx.moveTo(px + ts/2, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); ctx.lineTo(px + 5, py + ts - 5); } 
+            else if (type === 'v') { ctx.moveTo(px + ts/2, py + ts - 5); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + 5, py + 5); } 
+            else if (type === '<') { ctx.moveTo(px + 5, py + ts/2); ctx.lineTo(px + ts - 5, py + 5); ctx.lineTo(px + ts - 5, py + ts - 5); } 
+            else if (type === '>') { ctx.moveTo(px + ts - 5, py + ts/2); ctx.lineTo(px + 5, py + 5); ctx.lineTo(px + 5, py + ts - 5); } 
+            ctx.fill(); ctx.stroke(); return; 
         }
+        
+        ctx.beginPath(); 
+        
+        switch(type) { 
+            case '#': ctx.fillStyle = "#222"; ctx.fillRect(px, py, ts, ts); ctx.lineWidth=1; ctx.strokeStyle="#444"; ctx.strokeRect(px, py, ts, ts); break; 
+            case 't': ctx.fillStyle = this.colors['t']; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts - 4, py + ts - 2); ctx.lineTo(px + 4, py + ts - 2); ctx.fill(); break;
+            case 'T': ctx.fillStyle = this.colors['T']; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts - 2, py + ts - 2); ctx.lineTo(px + 2, py + ts - 2); ctx.fill(); break;
+            case 'x': ctx.strokeStyle = this.colors['x']; ctx.lineWidth = 2; ctx.moveTo(px+5, py+ts-5); ctx.lineTo(px+ts-5, py+5); ctx.moveTo(px+5, py+5); ctx.lineTo(px+ts-5, py+ts-5); ctx.stroke(); break;
+            case '"': ctx.strokeStyle = this.colors['"']; ctx.lineWidth = 1; ctx.moveTo(px+5, py+ts-5); ctx.lineTo(px+5, py+10); ctx.moveTo(px+15, py+ts-5); ctx.lineTo(px+15, py+5); ctx.moveTo(px+25, py+ts-5); ctx.lineTo(px+25, py+12); ctx.stroke(); break;
+            case 'Y': ctx.strokeStyle = this.colors['Y']; ctx.lineWidth = 3; ctx.moveTo(px+15, py+ts-5); ctx.lineTo(px+15, py+5); ctx.moveTo(px+15, py+15); ctx.lineTo(px+5, py+10); ctx.moveTo(px+15, py+10); ctx.lineTo(px+25, py+5); ctx.stroke(); break;
+            case 'o': ctx.fillStyle = this.colors['o']; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); break;
+            case '+': ctx.fillStyle = this.colors['+']; ctx.fillRect(px+5, py+10, 5, 5); ctx.fillRect(px+15, py+20, 4, 4); ctx.fillRect(px+20, py+5, 6, 6); break;
+            case 'M': ctx.fillStyle = "#3e2723"; ctx.moveTo(px + ts/2, py + 2); ctx.lineTo(px + ts, py + ts); ctx.lineTo(px, py + ts); ctx.fill(); break;
+            case 'W': ctx.strokeStyle = "#4fc3f7"; ctx.lineWidth = 2; ctx.moveTo(px+5, py+15); ctx.lineTo(px+15, py+10); ctx.lineTo(px+25, py+15); ctx.stroke(); break;
+            case '~': ctx.strokeStyle = "#556b2f"; ctx.lineWidth = 2; ctx.moveTo(px+5, py+15); ctx.lineTo(px+15, py+10); ctx.lineTo(px+25, py+15); ctx.stroke(); break;
+            case '=': ctx.strokeStyle = "#5d4037"; ctx.lineWidth = 2; ctx.moveTo(px, py+5); ctx.lineTo(px+ts, py+5); ctx.moveTo(px, py+25); ctx.lineTo(px+ts, py+25); ctx.stroke(); break;
+            case 'U': ctx.fillStyle = "#000"; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI, true); ctx.fill(); break;
+            
+            // --- HIER: Alles auf Game.drawText umgestellt ---
+            case 'V': 
+                Game.drawText(ctx, "⚙️", cx, cy, 35, "#ffff00", "center", true);
+                Game.drawText(ctx, "VAULT 101", cx, py + ts - 2, 10, "#ffffff", "center", true);
+                break; 
+
+            case 'R':
+                Game.drawText(ctx, "🛒", cx, cy, 30, "#ff3333", "center", true);
+                Game.drawText(ctx, "SUPER-MART", cx, py + ts - 2, 9, "#ffffff", "center", true);
+                break;
+
+            case 'C': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['C']; ctx.fillRect(px+6, py+14, 18, 12); ctx.beginPath(); ctx.moveTo(px+4, py+14); ctx.lineTo(px+15, py+4); ctx.lineTo(px+26, py+14); ctx.fill(); break; 
+            case 'S': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['S']; ctx.arc(px+ts/2, py+12, 6, 0, Math.PI*2); ctx.fill(); ctx.fillRect(px+10, py+18, 10, 6); break; 
+            case 'H': ctx.globalAlpha = pulse; ctx.fillStyle = this.colors['H']; ctx.arc(px+ts/2, py+ts/2, ts/2.5, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(px+ts/2, py+ts/2, ts/4, 0, Math.PI*2); ctx.fill(); break; 
+            
+            case '$': Game.drawText(ctx, "$$", cx, py+20, 12, this.colors['$']); break;
+            case '&': Game.drawText(ctx, "🔧", cx, py+20, 12, this.colors['&']); break;
+            case 'P': Game.drawText(ctx, "✚", cx, py+20, 12, this.colors['P']); break;
+            case 'E': Game.drawText(ctx, "EXIT", cx, py+20, 10, this.colors['E']); break;
+            
+            case 'F': ctx.fillStyle = this.colors['F']; ctx.arc(px+ts/2, py+ts/2, ts/3, 0, Math.PI*2); ctx.fill(); break;
+            case '|': ctx.fillStyle = this.colors['|']; ctx.fillRect(px, py, ts, ts); break;
+            case 'X': ctx.fillStyle = this.colors['X']; ctx.fillRect(px+5, py+10, 20, 15); ctx.fillStyle = "#ffd700"; ctx.fillRect(px+12, py+15, 6, 5); break;
+        } 
+        ctx.globalAlpha = 1; 
     }
 });
-
-// Listener
-window.addEventListener('resize', () => { if(Game.resizeCanvas) Game.resizeCanvas(); });
-setTimeout(() => { if(Game.resizeCanvas) Game.resizeCanvas(); }, 500);
