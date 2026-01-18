@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-10 22:00:00 - minigames.js - 3 Dice Logic
+// [TIMESTAMP] 2026-01-18 12:30:00 - minigames.js - Added Memory Game for Chests
 
 window.MiniGames = {
     active: null,
@@ -117,7 +117,7 @@ window.MiniGames = {
             const rollInterval = setInterval(() => {
                 this.d1 = Math.floor(Math.random() * 6) + 1;
                 this.d2 = Math.floor(Math.random() * 6) + 1;
-                this.d3 = Math.floor(Math.random() * 6) + 1; // 3. Würfel
+                this.d3 = Math.floor(Math.random() * 6) + 1; 
                 this.render();
                 rolls++;
                 if(rolls >= 10) {
@@ -129,7 +129,7 @@ window.MiniGames = {
         },
 
         finish: function() {
-            const sum = this.d1 + this.d2 + this.d3; // Summe aus 3 Würfeln
+            const sum = this.d1 + this.d2 + this.d3; 
             const luck = Game.getStat('LUC') || 1;
             const bonus = Math.floor(luck / 2);
             const total = sum + bonus;
@@ -235,6 +235,94 @@ window.MiniGames = {
             setTimeout(() => {
                 UI.stopMinigame();
             }, 1500);
+        }
+    },
+
+    // --- MEMORY OVERRIDE (CHEST UNLOCK) ---
+    memory: {
+        sequence: [], playerInput: [], showing: false, activeCell: null, onSuccess: null,
+        
+        init: function(callback) {
+            this.onSuccess = callback;
+            this.sequence = [];
+            this.playerInput = [];
+            this.showing = false;
+            this.activeCell = null;
+            
+            const int = Game.getStat('INT') || 1;
+            const len = Math.max(3, 7 - Math.floor(int / 3)); // Hohe INT = kürzere Sequenz
+            
+            for(let i=0; i<len; i++) {
+                this.sequence.push(Math.floor(Math.random() * 9)); // 3x3 Grid
+            }
+            
+            setTimeout(() => this.playSequence(), 500);
+            if (typeof UI.renderMemory === 'function') UI.renderMemory();
+        },
+
+        playSequence: function() {
+            this.showing = true;
+            this.playerInput = [];
+            let i = 0;
+            
+            const interval = setInterval(() => {
+                this.activeCell = this.sequence[i];
+                if (typeof UI.renderMemory === 'function') UI.renderMemory();
+                
+                setTimeout(() => {
+                    this.activeCell = null;
+                    if (typeof UI.renderMemory === 'function') UI.renderMemory();
+                }, 400); // Leuchtzeit
+
+                i++;
+                if(i >= this.sequence.length) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        this.showing = false;
+                        if (typeof UI.renderMemory === 'function') UI.renderMemory();
+                        UI.log("Code wiederholen...", "text-blue-400");
+                    }, 500);
+                }
+            }, 800); // Tempo
+        },
+
+        input: function(idx) {
+            if(this.showing) return;
+            
+            this.playerInput.push(idx);
+            
+            // Kurzes Aufleuchten bei Klick
+            this.activeCell = idx;
+            if (typeof UI.renderMemory === 'function') UI.renderMemory();
+            setTimeout(() => {
+                this.activeCell = null;
+                if (typeof UI.renderMemory === 'function') UI.renderMemory();
+            }, 150);
+
+            // Check
+            const currentStep = this.playerInput.length - 1;
+            if(this.playerInput[currentStep] !== this.sequence[currentStep]) {
+                this.end(false);
+                return;
+            }
+
+            if(this.playerInput.length === this.sequence.length) {
+                setTimeout(() => this.end(true), 300);
+            }
+        },
+
+        end: function(success) {
+            if(success) {
+                UI.log("Sicherheitssperre deaktiviert!", "text-green-400 font-bold");
+                if(this.onSuccess) this.onSuccess();
+            } else {
+                UI.log("FEHLER! Alarm ausgelöst!", "text-red-500 font-bold");
+                UI.shakeView();
+                // Strafe bei Fehler (z.B. Falle)
+                if(Game.state.hp) Game.state.hp = Math.max(1, Game.state.hp - 10);
+                UI.update();
+            }
+            setTimeout(() => UI.stopMinigame(), 1500);
         }
     }
 };
