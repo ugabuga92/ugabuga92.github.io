@@ -1,4 +1,4 @@
-/* [TIMESTAMP] 2026-01-15 08:30:00 - style.css - Layout Recovery & Mobile Fixes */
+/* [TIMESTAMP] 2026-01-18 16:30:00 - style.css - Fix Nav Z-Index Layering */
 
 /* --- LAYOUT RESET & SCROLLING LOGIC --- */
 
@@ -73,7 +73,7 @@
 
 /* BURGER MENÜ FIX */
 #main-nav {
-    z-index: 2000 !important; /* Über alles drüber */
+    z-index: 999999 !important; /* [FIX] Über Toasts und allem anderen */
     max-height: 90vh;         /* Nicht höher als 70% des Screens */
     overflow-y: auto;         /* Vertikal scrollen erlaubt */
     overflow-x: hidden;       /* FIX: Horizontales Wackeln/Scrollen verboten */
@@ -229,6 +229,9 @@ input.login-input { background: #000; border: 2px solid var(--pip-green); color:
 .city-card .label { font-size: 1.2rem; font-weight: bold; color: #39ff14; text-transform: uppercase; margin-bottom: 5px; }
 
 /* TOASTS */
+/* Sicherstellen, dass der Toast-Container unter dem Menü liegt */
+#game-toast-container { z-index: 50000 !important; }
+
 @keyframes slideInRight { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
 .animate-slide-in { animation: slideInRight 0.3s ease-out forwards; }
 #game-toast-container::-webkit-scrollbar { display: none; }
