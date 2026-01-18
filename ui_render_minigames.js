@@ -1,32 +1,26 @@
-// [TIMESTAMP] 2026-01-10 22:00:00 - ui_render_minigames.js - Fix Blackscreen & 3 Dice
+// [TIMESTAMP] 2026-01-18 12:30:00 - ui_render_minigames.js - Added Memory UI & Args Support
 
 Object.assign(UI, {
     
-    startMinigame: function(type) {
+    startMinigame: function(type, ...args) {
         if (!MiniGames[type]) return;
         MiniGames.active = type;
-        MiniGames[type].init();
+        MiniGames[type].init(...args);
     },
 
     stopMinigame: function() {
-        // Aufräumen Defusal Loop
         if(MiniGames.defusal && MiniGames.defusal.gameLoop) {
             clearInterval(MiniGames.defusal.gameLoop);
         }
         
         MiniGames.active = null;
         
-        // Overlays verstecken
         const dice = document.getElementById('dice-overlay');
         if(dice) dice.classList.add('hidden');
         
-        // WICHTIGER FIX:
-        // Wir nutzen switchView('map'), damit der Canvas und der Game-Loop
-        // sauber neu initialisiert werden. Das verhindert den Blackscreen.
         if(typeof UI.switchView === 'function') {
             UI.switchView('map'); 
         } else {
-            // Fallback (sollte nicht passieren)
             if(Game.state) Game.state.view = 'map';
             if(this.els && this.els.view) this.els.view.innerHTML = ''; 
         }
@@ -36,6 +30,7 @@ Object.assign(UI, {
        if (MiniGames.active === 'hacking') UI.renderHacking();
        if (MiniGames.active === 'lockpicking') UI.renderLockpicking();
        if (MiniGames.active === 'defusal') UI.renderDefusal();
+       if (MiniGames.active === 'memory') UI.renderMemory();
     },
 
     // --- HACKING ---
@@ -118,7 +113,7 @@ Object.assign(UI, {
         if(lock) lock.style.transform = `rotate(${MiniGames.lockpicking.lockAngle}deg)`;
     },
 
-    // --- DICE (FIX: Auto-Create Overlay & 3 Würfel) ---
+    // --- DICE ---
     renderDice: function(game, finalResult = null) {
         let container = document.getElementById('dice-overlay');
         
@@ -225,6 +220,52 @@ Object.assign(UI, {
         }
     },
 
+    // --- MEMORY UI ---
+    renderMemory: function() {
+        const game = MiniGames.memory;
+        
+        // Base Layout nur einmal erstellen
+        if(!document.getElementById('memory-game-root')) {
+            this.els.view.innerHTML = `
+                <div id="memory-game-root" class="w-full h-full flex flex-col items-center justify-center bg-black p-4 select-none relative font-mono text-green-500">
+                    <div class="border-2 border-green-500 bg-[#001100] p-6 shadow-[0_0_25px_#0f0] flex flex-col items-center gap-4">
+                        <div class="flex justify-between w-full border-b border-green-700 pb-2">
+                            <h2 class="text-xl font-bold tracking-widest animate-pulse">SECURITY OVERRIDE</h2>
+                            <button class="border border-green-500 px-2 text-xs hover:bg-green-900" onclick="UI.showMiniGameHelp('memory')">?</button>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-3 bg-black border border-green-900 p-3">
+                            ${[0,1,2,3,4,5,6,7,8].map(i => `
+                                <button id="mem-btn-${i}" onclick="MiniGames.memory.input(${i})" 
+                                    class="w-16 h-16 border-2 border-green-800 bg-black hover:border-green-400 active:bg-green-900 transition-all shadow-inner relative">
+                                    <div class="absolute inset-2 bg-green-500 opacity-0 transition-opacity duration-100" id="mem-light-${i}"></div>
+                                </button>
+                            `).join('')}
+                        </div>
+
+                        <div class="text-center text-xs h-4">
+                            ${game.showing ? '<span class="text-red-400 animate-pulse">DATEN EMPFANG...</span>' : '<span class="text-green-400">BEREIT FÜR EINGABE</span>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // State Update (Lichter an/aus)
+        for(let i=0; i<9; i++) {
+            const light = document.getElementById(`mem-light-${i}`);
+            if(light) {
+                if(game.activeCell === i) {
+                    light.style.opacity = '1';
+                    light.classList.add('shadow-[0_0_15px_#0f0]');
+                } else {
+                    light.style.opacity = '0';
+                    light.classList.remove('shadow-[0_0_15px_#0f0]');
+                }
+            }
+        }
+    },
+
     showMiniGameHelp: function(type) {
         let title = "", text = "";
         
@@ -240,6 +281,9 @@ Object.assign(UI, {
         } else if (type === 'defusal') {
             title = "BOMBE ENTSCHÄRFEN";
             text = "Drücke 'CUT WIRE', wenn der weiße Balken im grünen Bereich ist.<br>3 Kabel müssen durchtrennt werden.";
+        } else if (type === 'memory') {
+            title = "SECURITY OVERRIDE";
+            text = "Merke dir die Sequenz der aufleuchtenden Felder und gib sie danach exakt ein.";
         }
 
         if (typeof this.showInfoDialog === 'function') {
