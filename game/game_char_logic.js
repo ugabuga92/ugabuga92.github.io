@@ -1,22 +1,38 @@
-// [2026-01-17 13:00:00] game_char_logic.js - Instant UI Refresh on Stat Change
+// [TIMESTAMP] 2026-01-18 13:30:00 - game_char_logic.js - Extended Stat Cap (Soft Cap Logic)
 
 Object.assign(Game, {
 
     upgradeStat: function(key, e) { 
         if(e) e.stopPropagation(); 
-        if(this.state.statPoints > 0) { 
+        
+        const currentVal = this.state.stats[key] || 1;
+        const maxLimit = 20; // Neues Hard-Cap
+        const softCap = 10;  // Ab hier kostet es mehr
+
+        if (currentVal >= maxLimit) {
+            UI.log(`${key} ist bereits auf dem absoluten Maximum!`, "text-yellow-500");
+            return;
+        }
+
+        // Kostenberechnung: Ab SoftCap kostet ein Punkt 2, sonst 1
+        const cost = (currentVal >= softCap) ? 2 : 1;
+
+        if(this.state.statPoints >= cost) { 
             this.state.stats[key]++; 
-            this.state.statPoints--; 
+            this.state.statPoints -= cost; 
             this.recalcStats();
             
-            // [FIX] Sofortiges Neuladen des aktuellen Tabs (damit man das Ergebnis direkt sieht)
+            // [FIX] Sofortiges Neuladen des aktuellen Tabs
             if(typeof UI.renderStats === 'function') {
                 UI.renderStats(Game.state.charTab || 'special');
             }
             
+            UI.log(`${key} erhöht auf ${this.state.stats[key]}!`, "text-green-400 font-bold");
             UI.update(); 
             this.saveGame(); 
-        } 
+        } else {
+             UI.log(`Nicht genügend Punkte! (Benötigt: ${cost} ab Level 10)`, "text-red-500");
+        }
     },
 
     choosePerk: function(perkId) {
