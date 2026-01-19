@@ -1,4 +1,4 @@
-// [2026-01-17 12:00:00] game_combat.js - VATS Logic Cleaned
+// [2026-01-19 12:30:00] game_combat.js - VATS Logic + Legendary Stats Fix
 
 window.Combat = {
     enemy: null,
@@ -43,7 +43,6 @@ window.Combat = {
     },
 
     render: function() {
-        // Ruft das UI-Rendering auf, das jetzt die %-Zahlen berechnet
         if(typeof UI.renderCombat === 'function') UI.renderCombat();
         this.renderLogs();
     },
@@ -58,15 +57,12 @@ window.Combat = {
         for(let i=0; i<3; i++) {
             const btn = document.getElementById(`btn-vats-${i}`);
             if(btn) {
-                // Style Reset
                 btn.classList.remove('border-yellow-400', 'text-yellow-400', 'bg-yellow-900/40');
-                // Active Style
                 if(i === this.selectedPart) {
                     btn.classList.add('border-yellow-400', 'text-yellow-400', 'bg-yellow-900/40');
                 }
             }
         }
-        // Kein kompletter Re-Render nötig, nur Styles
     },
     
     selectPart: function(index) {
@@ -134,6 +130,21 @@ window.Combat = {
         return wpn;
     },
 
+    // [NEU] Helper: Stats priorisieren (Instanz > DB)
+    getWeaponStats: function(item) {
+        const dbItem = Game.items[item.id] || {};
+        
+        // Werte priorisieren: Item-Instanz > Datenbank > Default
+        // WICHTIG: item.baseDmg aus alten Versionen wird auch berücksichtigt
+        const dmg = (item.dmg !== undefined) ? item.dmg : (item.baseDmg || dbItem.dmg || 2);
+        
+        const ammoType = item.ammoType || dbItem.ammoType || null;
+        // Munitionskosten: Standard 1, außer es steht anders im Item
+        const ammoCost = (item.ammoCost !== undefined) ? item.ammoCost : (dbItem.ammoCost || 1);
+        
+        return { dmg, ammoType, ammoCost };
+    },
+
     calculateHitChance: function(partIndex) {
         const part = this.bodyParts[partIndex];
         const perception = Game.getStat('PER');
@@ -160,13 +171,12 @@ window.Combat = {
         const hitChance = this.calculateHitChance(partIndex);
         
         let wpn = this.getSafeWeapon();
+        const stats = this.getWeaponStats(wpn); // [NEU] Stats laden
         const wId = wpn.id.toLowerCase();
 
-        const rangedKeywords = ['pistol', 'rifle', 'gun', 'shotgun', 'smg', 'minigun', 'blaster', 'sniper', 'cannon', 'gewehr', 'flinte', 'revolver'];
-        const isRanged = rangedKeywords.some(k => wId.includes(k));
-        
-        if(isRanged && wId !== 'alien_blaster') { 
-             const hasAmmo = Game.removeFromInventory('ammo', 1);
+        // Munitions-Check mit neuen Stats
+        if(stats.ammoType && wId !== 'alien_blaster') { 
+             const hasAmmo = Game.removeFromInventory(stats.ammoType, stats.ammoCost);
              if(!hasAmmo) {
                  if(typeof UI.showCombatEffect === 'function') {
                      UI.showCombatEffect("* KLICK *", "MUNITION LEER!", "red", 2300);
@@ -192,8 +202,11 @@ window.Combat = {
         }
 
         if(roll <= hitChance) {
-            let dmg = wpn.baseDmg || 2;
+            // [NEU] Schaden basierend auf getWeaponStats
+            let dmg = stats.dmg;
             if(wpn.props && wpn.props.dmgMult) dmg *= wpn.props.dmgMult;
+
+            const isRanged = stats.ammoType !== null; // Wenn Munition, dann Range
 
             if(!isRanged || wpn.id === 'rifle_butt') {
                 dmg += Math.floor(Game.getStat('STR') / 2);
@@ -222,6 +235,12 @@ window.Combat = {
 
             dmg = Math.floor(dmg);
             this.enemy.hp -= dmg;
+            
+            // Effekte (Vampir, etc)
+            if(wpn.effectHeal) {
+                Game.state.hp = Math.min(Game.getMaxHp(), Game.state.hp + wpn.effectHeal);
+                this.log(`Vampir: +${wpn.effectHeal} HP`, "text-green-400");
+            }
             
             this.log(`Treffer: ${part.name} für ${dmg} Schaden!`, 'text-green-400 font-bold');
             this.triggerFeedback(isCrit ? 'crit' : 'hit', dmg);
