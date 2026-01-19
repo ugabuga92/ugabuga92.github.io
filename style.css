@@ -238,3 +238,94 @@ input.login-input { background: #000; border: 2px solid var(--pip-green); color:
 
 /* Custom Scroll Class */
 .custom-scroll { scrollbar-width: thin; scrollbar-color: #39ff14 #000000; }
+
+/* --- MINIGAMES --- */
+
+/* LOCKPICKING */
+.lock-container {
+    position: relative;
+    width: 250px;
+    height: 250px;
+    margin: 20px auto;
+    border-radius: 50%;
+    border: 4px solid #333;
+    background: #111;
+    box-shadow: inset 0 0 30px #000;
+}
+
+.lock-inner {
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    border: 2px solid #555;
+    background: radial-gradient(circle, #333 30%, #1a1a1a 70%);
+    transition: transform 0.1s ease-out; /* Weiche Drehung */
+    box-shadow: 0 0 10px #000;
+}
+
+.lock-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px; /* Schlüsselloch */
+    height: 60px;
+    background: #000;
+    transform: translate(-50%, -50%);
+    border-radius: 10px;
+}
+
+.bobby-pin {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200px;
+    height: 6px;
+    background: linear-gradient(to right, #ccc, #888);
+    transform-origin: 0% 50%; /* Dreht sich um die Mitte des Schlosses */
+    pointer-events: none;
+    z-index: 20;
+    filter: drop-shadow(2px 2px 2px #000);
+}
+
+.screwdriver {
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    width: 20px;
+    height: 150px;
+    background: #444;
+    transform: translateX(-50%);
+    z-index: 10;
+    border-radius: 4px;
+}
+
+/* HACKING */
+.hack-row {
+    cursor: pointer;
+    padding: 2px 8px;
+    font-family: monospace;
+    transition: all 0.1s;
+}
+.hack-row:hover {
+    background: #39ff14;
+    color: #000;
+    font-weight: bold;
+}
+.hack-hex {
+    color: #004d00;
+    margin-right: 12px;
+}
+
+/* DEFUSAL */
+#defusal-lights {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    background: #000;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #1a441a;
+}
