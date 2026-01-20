@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-20 12:00:00 - data_items.js - Added Rusty Weapons & Mods
+// [TIMESTAMP] 2026-01-20 21:30:00 - data_items.js
 
 if(typeof window.GameData === 'undefined') window.GameData = {};
 if(typeof window.GameData.items === 'undefined') window.GameData.items = {}; 
@@ -86,7 +86,6 @@ Object.assign(window.GameData.items, {
         name: "Superhammer", type: "weapon", slot: "weapon", baseDmg: 45, cost: 700, weight: 18, desc: "Raketengetrieben.", usesAmmo: false,
         modSlots: ["head"]
     },
-    // ... andere Melee Waffen aus deiner Liste ...
     baseball_bat: { name: "Baseballschläger", type: "weapon", slot: "weapon", baseDmg: 10, cost: 60, desc: "Aus Holz.", usesAmmo: false },
     sledgehammer: { name: "Vorschlaghammer", type: "weapon", slot: "weapon", baseDmg: 25, cost: 180, desc: "Sehr langsam, sehr schwer.", usesAmmo: false },
 
@@ -108,7 +107,6 @@ Object.assign(window.GameData.items, {
         modSlots: ["receiver", "barrel"]
     },
     
-    // ... andere Guns ...
     pipe_pistol: { name: "Rohrpistole", type: "weapon", slot: "weapon", baseDmg: 5, cost: 15, desc: "Selbstgebaut.", usesAmmo: true },
     shotgun: { name: "Doppelflinte", type: "weapon", slot: "weapon", baseDmg: 30, cost: 350, desc: "Zwei Läufe.", usesAmmo: true },
     minigun: { name: "Minigun", type: "weapon", slot: "weapon", baseDmg: 15, cost: 1500, desc: "Extremes Schnellfeuer.", usesAmmo: true },
