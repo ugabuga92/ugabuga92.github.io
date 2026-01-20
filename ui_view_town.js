@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-20 14:00:00 - ui_view_town.js - Added Smithy UI
+// [TIMESTAMP] 2026-01-20 21:30:00 - ui_view_town.js
 
 Object.assign(UI, {
     
@@ -180,7 +180,7 @@ Object.assign(UI, {
         view.appendChild(wrapper);
     },
 
-    // --- SCHMIED UI (CRASH SAFE) ---
+    // --- SCHMIED UI ---
     renderSmithy: function() {
         try {
             Game.state.view = 'smithy';
@@ -254,6 +254,7 @@ Object.assign(UI, {
             view.appendChild(wrapper);
         } catch(e) {
             console.error("Smithy Crash:", e);
+            UI.log("Fehler beim Öffnen des Schmieds!", "text-red-500");
             UI.renderCity();
         }
     },
