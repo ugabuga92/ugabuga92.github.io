@@ -1,8 +1,7 @@
-// [TIMESTAMP] 2026-01-20 14:00:00 - game_inv_logic.js - Modding, Restoration & Shared Stats
+// [TIMESTAMP] 2026-01-20 21:30:00 - game_inv_logic.js
 
 Object.assign(Game, {
 
-    // [NEU] Zentrale Stats-Berechnung (für Combat UND Schmied)
     getWeaponStats: function(item) {
         if(!item) return { dmg: 1, ammoType: null, ammoCost: 0, name: "Unbekannt" };
         
@@ -155,11 +154,10 @@ Object.assign(Game, {
         this.removeFromInventory('weapon_oil', 1);
         
         const cleanId = item.id.replace('rusty_', '');
-        // Mapping
         let targetId = cleanId;
         if(cleanId === 'pistol') targetId = 'pistol_10mm';
         if(cleanId === 'rifle') targetId = 'hunting_rifle';
-        if(cleanId === 'shotgun') targetId = 'shotgun'; // Falls 'rusty_shotgun' -> 'shotgun' (Doppelflinte)
+        if(cleanId === 'shotgun') targetId = 'shotgun';
 
         this.state.inventory.splice(invIndex, 1);
         this.addToInventory(targetId, 1);
@@ -635,7 +633,6 @@ Object.assign(Game, {
             const needsAmmo = (item.ammoType || def.ammo) && (item.ammoType || def.ammo) !== 'none';
 
             if (isWeaponType && !needsAmmo) {
-                // [MOD] Nutze jetzt getWeaponStats
                 let dmg = Game.getWeaponStats(item).dmg;
                 if (item.props && item.props.dmgMult) dmg *= item.props.dmgMult;
                 
