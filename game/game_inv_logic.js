@@ -1,6 +1,33 @@
-// [TIMESTAMP] 2026-01-20 12:00:00 - game_inv_logic.js - Modding, Restoration & Full Items
+// [TIMESTAMP] 2026-01-20 14:00:00 - game_inv_logic.js - Modding, Restoration & Shared Stats
 
 Object.assign(Game, {
+
+    // [NEU] Zentrale Stats-Berechnung (für Combat UND Schmied)
+    getWeaponStats: function(item) {
+        if(!item) return { dmg: 1, ammoType: null, ammoCost: 0, name: "Unbekannt" };
+        
+        const dbItem = this.items[item.id] || {};
+        
+        // 1. Basis Werte (Instanz > DB > Default)
+        let stats = {
+            dmg: (item.dmg !== undefined) ? item.dmg : (item.baseDmg || dbItem.baseDmg || dbItem.dmg || 1),
+            ammoType: item.ammoType || dbItem.ammo || null, 
+            ammoCost: (item.ammoCost !== undefined) ? item.ammoCost : (dbItem.ammoCost || 1),
+            name: item.name || dbItem.name
+        };
+
+        // 2. Mods berechnen
+        if (item.mods && Array.isArray(item.mods)) {
+            item.mods.forEach(modId => {
+                const modDef = this.items[modId];
+                if (modDef && modDef.stats) {
+                    if (modDef.stats.dmg) stats.dmg += modDef.stats.dmg;
+                    if (modDef.stats.ammoCost) stats.ammoCost += modDef.stats.ammoCost;
+                }
+            });
+        }
+        return stats;
+    },
 
     getMaxSlots: function() {
         let base = 10;
@@ -46,8 +73,6 @@ Object.assign(Game, {
         let added = false;
         let isActuallyNew = false; 
 
-        // 1. Stacken (nur wenn es keine einzigartigen Eigenschaften hat)
-        // Legendaries mit UID oder Mods sollten NICHT gestapelt werden
         if (!props && (!fullItemObj || (!fullItemObj.uid && !fullItemObj.mods))) {
             for (let item of this.state.inventory) {
                 if (item.id === itemId && !item.props && !item.uid && !item.mods && item.count < limit) {
@@ -61,7 +86,6 @@ Object.assign(Game, {
             }
         }
 
-        // 2. Neuer Slot
         if (remaining > 0) {
             const maxSlots = this.getMaxSlots();
             while (remaining > 0) {
@@ -74,7 +98,6 @@ Object.assign(Game, {
                 
                 let newItem;
                 if(fullItemObj && (fullItemObj.uid || fullItemObj.isLegendary || fullItemObj.mods)) {
-                    // [NEU] Wenn es ein Legendary/Mod Item ist, kopiere ALLES
                     newItem = JSON.parse(JSON.stringify(fullItemObj));
                     newItem.count = take;
                     newItem.isNew = true;
@@ -117,7 +140,6 @@ Object.assign(Game, {
         return false;
     }, 
 
-    // --- NEU: RESTAURIERUNG ---
     restoreWeapon: function(invIndex) {
         const item = this.state.inventory[invIndex];
         if(!item || !item.id.startsWith('rusty_')) {
@@ -132,10 +154,12 @@ Object.assign(Game, {
         this.state.caps -= costCaps;
         this.removeFromInventory('weapon_oil', 1);
         
-        // rusty_pistol -> pistol
         const cleanId = item.id.replace('rusty_', '');
-        // Mapping für 10mm (Sonderfall im Namen)
-        const targetId = cleanId === 'pistol' ? 'pistol_10mm' : (cleanId === 'rifle' ? 'hunting_rifle' : cleanId);
+        // Mapping
+        let targetId = cleanId;
+        if(cleanId === 'pistol') targetId = 'pistol_10mm';
+        if(cleanId === 'rifle') targetId = 'hunting_rifle';
+        if(cleanId === 'shotgun') targetId = 'shotgun'; // Falls 'rusty_shotgun' -> 'shotgun' (Doppelflinte)
 
         this.state.inventory.splice(invIndex, 1);
         this.addToInventory(targetId, 1);
@@ -144,7 +168,6 @@ Object.assign(Game, {
         return true;
     },
 
-    // --- NEU: MOD INSTALLIEREN ---
     installMod: function(weaponInvIndex, modInvIndex) {
         const weapon = this.state.inventory[weaponInvIndex];
         const mod = this.state.inventory[modInvIndex];
@@ -168,7 +191,6 @@ Object.assign(Game, {
 
         if(!weapon.mods) weapon.mods = [];
         
-        // Alten Mod im selben Slot entfernen/überschreiben
         const existingModIndex = weapon.mods.findIndex(mid => {
             const md = this.items[mid];
             return md && md.slot === mDef.slot;
@@ -184,14 +206,12 @@ Object.assign(Game, {
             if(!weapon.name) weapon.name = wDef.name + " (+)";
         }
 
-        // Unique machen
         if(!weapon.uid) weapon.uid = Date.now() + Math.random();
 
         UI.log("Modifikation installiert!", "text-green-400 font-bold");
         return true;
     },
 
-    // --- LEGENDARY LOOT (Minigame Reward) ---
     gambleLegendaryLoot: function(score) {
         const roll = Math.random() * 100;
         const chance = score * 2; 
@@ -218,7 +238,6 @@ Object.assign(Game, {
 
         const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
         
-        // Das Legendäre Item bauen und Werte festschreiben
         const legendaryItem = JSON.parse(JSON.stringify(baseItem));
         
         legendaryItem.id = baseId; 
@@ -616,8 +635,8 @@ Object.assign(Game, {
             const needsAmmo = (item.ammoType || def.ammo) && (item.ammoType || def.ammo) !== 'none';
 
             if (isWeaponType && !needsAmmo) {
-                // [FIX] Nutze echte Item Stats
-                let dmg = item.dmg || def.dmg || 0;
+                // [MOD] Nutze jetzt getWeaponStats
+                let dmg = Game.getWeaponStats(item).dmg;
                 if (item.props && item.props.dmgMult) dmg *= item.props.dmgMult;
                 
                 if (dmg > bestDmg) {
