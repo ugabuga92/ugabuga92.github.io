@@ -1,201 +1,11 @@
-// [TIMESTAMP] 2026-01-18 16:00:00 - ui_view_town.js - Camp Kit is now permanent (No Buy/Sell/Scrap)
+// [TIMESTAMP] 2026-01-20 12:00:00 - ui_view_town.js - Added Smithy UI
 
 Object.assign(UI, {
     
-    // Default Shop Menge
     shopQty: 1,
 
-    // ==========================================
-    // === KLINIK (Dr. Zimmermann) ===
-    // ==========================================
-    renderClinic: function() {
-        Game.state.view = 'clinic';
-        const view = document.getElementById('view-container');
-        if(!view) return;
-        view.innerHTML = '';
-
-        const wrapper = document.createElement('div');
-        wrapper.className = "w-full h-full flex flex-col bg-black/95 relative";
-
-        wrapper.innerHTML = `
-            <div class="flex-shrink-0 p-4 border-b-2 border-red-600 bg-red-900/20 text-center shadow-lg shadow-red-900/20">
-                <h2 class="text-3xl text-red-500 font-bold tracking-widest font-vt323">DR. ZIMMERMANN</h2>
-                <div class="text-xs text-red-300 tracking-wider">MEDIZINISCHES ZENTRUM</div>
-            </div>
-            
-            <div class="flex-grow flex flex-col items-center justify-center p-6 gap-6 text-center overflow-y-auto">
-                <div class="text-7xl animate-pulse filter drop-shadow-[0_0_15px_red]">⚕️</div>
-                
-                <div class="border-2 border-red-800 p-4 bg-black/80 w-full max-w-md shadow-inner shadow-red-900/30">
-                    <div class="text-red-400 mb-2 font-bold border-b border-red-900 pb-1 tracking-widest text-sm">PATIENTEN STATUS</div>
-                    <div class="flex justify-between text-lg font-mono mb-1">
-                        <span>GESUNDHEIT:</span> 
-                        <span class="${Game.state.hp < Game.state.maxHp ? 'text-red-500 blink-red' : 'text-green-500'}">${Math.floor(Game.state.hp)} / ${Game.state.maxHp}</span>
-                    </div>
-                    <div class="flex justify-between text-lg font-mono">
-                        <span>STRAHLUNG:</span> 
-                        <span class="${Game.state.rads > 0 ? 'text-red-500 animate-pulse' : 'text-green-500'}">${Math.floor(Game.state.rads)} RADS</span>
-                    </div>
-                </div>
-
-                <div class="text-gray-400 italic text-sm max-w-md leading-relaxed border-l-2 border-red-900 pl-3 text-left">
-                    "Ich kann Sie wieder zusammenflicken. Entfernt Strahlung und heilt alle Verletzungen. Kostet aber ein bisschen was für die... Materialien."
-                </div>
-
-                <button onclick="Game.heal()" class="action-button w-full max-w-md py-4 text-xl border-2 border-red-500 text-red-500 hover:bg-red-900/50 font-bold transition-all" ${Game.state.caps < 25 ? 'disabled' : ''}>
-                    KOMPLETTBEHANDLUNG (25 KK)
-                </button>
-            </div>
-
-            <div class="flex-shrink-0 p-3 border-t border-red-900 bg-[#0a0000]">
-                <button class="action-button w-full border-gray-600 text-gray-500 hover:text-white hover:border-white transition-colors" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>
-            </div>
-        `;
-        view.appendChild(wrapper);
-    },
-
-  // ==========================================
-    // === WERKBANK (Crafting & Scrap) ===
-    // ==========================================
-    renderCrafting: function(tab = 'create') {
-        Game.state.view = 'crafting';
-        const view = document.getElementById('view-container');
-        if(!view) return;
-        view.innerHTML = '';
-
-        const wrapper = document.createElement('div');
-        // Zwingt das Fenster über alles andere (Full Screen Overlay Style)
-        wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black/95 z-20 overflow-hidden";
-
-        // === SCROLL BEREICH (Oben) ===
-        const scrollContainer = document.createElement('div');
-        scrollContainer.className = "flex-1 overflow-y-auto overflow-x-hidden custom-scroll pb-24";
-
-        // HEADER
-        const header = document.createElement('div');
-        header.className = "p-4 border-b-2 border-blue-500 bg-blue-900/20 flex justify-between items-end shadow-lg shadow-blue-900/20";
-        header.innerHTML = `
-            <div>
-                <h2 class="text-3xl text-blue-400 font-bold font-vt323 tracking-widest">WERKBANK</h2>
-                <div class="text-xs text-blue-300 tracking-wider">Zustand: Rostig, aber funktional</div>
-            </div>
-            <div class="text-4xl text-blue-500 opacity-50">🛠️</div>
-        `;
-        scrollContainer.appendChild(header);
-        
-        // TABS
-        const tabsDiv = document.createElement('div');
-        tabsDiv.className = "flex w-full border-b border-blue-900 bg-black";
-        tabsDiv.innerHTML = `
-            <button class="flex-1 py-3 font-bold transition-colors uppercase tracking-wider ${tab==='create' ? 'bg-blue-900/40 text-blue-300 border-b-4 border-blue-500' : 'text-gray-600 hover:text-blue-300 hover:bg-blue-900/20'}" onclick="UI.renderCrafting('create')">HERSTELLEN</button>
-            <button class="flex-1 py-3 font-bold transition-colors uppercase tracking-wider ${tab==='scrap' ? 'bg-orange-900/40 text-orange-300 border-b-4 border-orange-500' : 'text-gray-600 hover:text-orange-300 hover:bg-orange-900/20'}" onclick="UI.renderCrafting('scrap')">ZERLEGEN</button>
-        `;
-        scrollContainer.appendChild(tabsDiv);
-
-        // LIST CONTENT
-        const listContent = document.createElement('div');
-        listContent.id = "crafting-list";
-        listContent.className = "p-3 space-y-2 bg-[#00050a]";
-        scrollContainer.appendChild(listContent);
-
-        // === FOOTER ===
-        const footer = document.createElement('div');
-        footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-blue-900 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.9)]";
-        footer.innerHTML = `
-            <button onclick="UI.renderCity()" class="action-button w-full border-gray-600 text-gray-500 hover:text-white hover:border-white transition-colors py-3 font-bold tracking-widest uppercase bg-black">
-                ZURÜCK ZUM ZENTRUM
-            </button>
-        `;
-
-        wrapper.appendChild(scrollContainer);
-        wrapper.appendChild(footer);
-        view.appendChild(wrapper);
-
-        // LOGIK ZUM BEFÜLLEN
-        if (tab === 'create') {
-            const recipes = Game.recipes || [];
-            const known = Game.state.knownRecipes || [];
-            let knownCount = 0; 
-
-            recipes.forEach(recipe => {
-                if(recipe.type === 'cooking') return; 
-                if(!known.includes(recipe.id) && recipe.lvl > 1) return; 
-
-                // Zelt-Rezept ausblenden, wenn schon vorhanden (da permanent)
-                if (recipe.out === 'camp_kit') {
-                    const hasKit = Game.state.inventory.some(i => i.id === 'camp_kit');
-                    const hasBuilt = !!Game.state.camp;
-                    if (hasKit || hasBuilt) return;
-                }
-
-                knownCount++;
-
-                const outItem = (recipe.out === 'AMMO' ? {name: "15x Munition"} : Game.items[recipe.out]) || {name: "Unbekanntes Item"};
-                let reqHtml = '';
-                let canCraft = true;
-                
-                for(let reqId in recipe.req) {
-                    const countNeeded = recipe.req[reqId];
-                    const invItem = Game.state.inventory.find(i => i.id === reqId);
-                    const countHave = invItem ? invItem.count : 0;
-                    const reqDef = Game.items[reqId];
-                    const reqName = reqDef ? reqDef.name : reqId;
-                    let color = "text-green-600";
-                    if (countHave < countNeeded) { canCraft = false; color = "text-red-500 font-bold"; }
-                    reqHtml += `<div class="${color} text-xs uppercase">• ${reqName}: ${countHave}/${countNeeded}</div>`;
-                }
-                
-                if(Game.state.lvl < recipe.lvl) { canCraft = false; reqHtml += `<div class="text-red-500 text-xs mt-1 font-bold">Benötigt Level ${recipe.lvl}</div>`; }
-
-                const div = document.createElement('div');
-                div.className = `border ${canCraft ? 'border-green-600 bg-green-900/10' : 'border-gray-800 bg-black opacity-50'} p-3 flex justify-between items-center transition-all hover:bg-green-900/20`;
-                div.innerHTML = `
-                    <div>
-                        <div class="font-bold ${canCraft ? 'text-green-300' : 'text-gray-500'} text-lg">${outItem.name}</div>
-                        <div class="grid grid-cols-2 gap-x-4 mt-1 border-l-2 border-green-900 pl-2">${reqHtml}</div>
-                    </div>
-                    <button class="action-button text-sm px-4 py-2 border-2 ${canCraft ? 'border-green-500 text-green-500 hover:bg-green-500 hover:text-black font-bold' : 'border-gray-600 text-gray-600 cursor-not-allowed'}" onclick="Game.craftItem('${recipe.id}')" ${canCraft ? '' : 'disabled'}>FERTIGEN</button>
-                `;
-                listContent.appendChild(div);
-            });
-            if(knownCount === 0) listContent.innerHTML = '<div class="text-gray-500 italic mt-10 text-center">Keine bekannten Baupläne.</div>';
-        } else {
-            // SCRAP LIST
-            let scrappables = [];
-            Game.state.inventory.forEach((item, idx) => {
-                const def = Game.items[item.id];
-                if(!def) return;
-                
-                // [FIX] Camp Kit nicht zerlegbar machen
-                if (item.id === 'junk_metal' || item.id === 'camp_kit') return;
-                if (def.type === 'blueprint') return;
-
-                if (['weapon','body','head','legs','feet','arms','junk'].includes(def.type)) {
-                    scrappables.push({idx, item, def});
-                }
-            });
-
-            if(scrappables.length === 0) {
-                listContent.innerHTML = '<div class="text-center text-gray-500 mt-10 p-4 border-2 border-dashed border-gray-800">Kein zerlegbarer Schrott im Inventar.</div>';
-            } else {
-                scrappables.forEach(entry => {
-                    const name = entry.item.props && entry.item.props.name ? entry.item.props.name : entry.def.name;
-                    const div = document.createElement('div');
-                    div.className = "flex justify-between items-center p-3 border border-orange-800 bg-orange-900/10 hover:bg-orange-900/20 transition-colors";
-                    div.innerHTML = `
-                        <div class="font-bold text-orange-300">${name} <span class="text-xs text-orange-600 font-normal ml-2">(${entry.item.count}x)</span></div>
-                        <button class="border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black px-3 py-1 text-xs font-bold transition-colors uppercase" onclick="Game.scrapItem(${entry.idx})">ZERLEGEN</button>
-                    `;
-                    listContent.appendChild(div);
-                });
-            }
-        }
-    },
-
-    // ==========================================
-    // === CITY HUB ===
-    // ==========================================
     renderCity: function(cityId = 'rusty_springs') {
+        // [UPDATE] Schmied Button hinzugefügt
         const view = document.getElementById('view-container');
         if(!view) return;
         view.innerHTML = ''; 
@@ -261,6 +71,9 @@ Object.assign(UI, {
             } else if (conf.type === 'craft') {
                 themeColor = "blue";
                 baseClass += " border-blue-600 hover:border-blue-400 shadow-blue-900/20";
+            } else if (conf.type === 'smithy') {
+                themeColor = "orange";
+                baseClass += " border-orange-600 hover:border-orange-400 shadow-orange-900/20";
             } else {
                 baseClass += " border-green-600 hover:border-green-400 shadow-green-900/20";
             }
@@ -299,6 +112,11 @@ Object.assign(UI, {
         }));
 
         grid.appendChild(createCard({
+            type: 'smithy', icon: "⚒️", label: "DER SCHMIED", sub: "Reparaturen & Mods",
+            onClick: () => { if(UI.renderSmithy) UI.renderSmithy(); }
+        }));
+
+        grid.appendChild(createCard({
             type: 'craft', icon: "🛠️", label: "WERKBANK", sub: "Zerlegen & Bauen",
             onClick: () => { if(UI.renderCrafting) UI.renderCrafting(); }
         }));
@@ -317,27 +135,327 @@ Object.assign(UI, {
         view.appendChild(wrapper);
     },
 
-    // ==========================================
-    // === SHOP LOGIC (FIXED FOOTER) ===
-    // ==========================================
+    renderClinic: function() {
+        Game.state.view = 'clinic';
+        const view = document.getElementById('view-container');
+        if(!view) return;
+        view.innerHTML = '';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = "w-full h-full flex flex-col bg-black/95 relative";
+
+        wrapper.innerHTML = `
+            <div class="flex-shrink-0 p-4 border-b-2 border-red-600 bg-red-900/20 text-center shadow-lg shadow-red-900/20">
+                <h2 class="text-3xl text-red-500 font-bold tracking-widest font-vt323">DR. ZIMMERMANN</h2>
+                <div class="text-xs text-red-300 tracking-wider">MEDIZINISCHES ZENTRUM</div>
+            </div>
+            
+            <div class="flex-grow flex flex-col items-center justify-center p-6 gap-6 text-center overflow-y-auto">
+                <div class="text-7xl animate-pulse filter drop-shadow-[0_0_15px_red]">⚕️</div>
+                
+                <div class="border-2 border-red-800 p-4 bg-black/80 w-full max-w-md shadow-inner shadow-red-900/30">
+                    <div class="text-red-400 mb-2 font-bold border-b border-red-900 pb-1 tracking-widest text-sm">PATIENTEN STATUS</div>
+                    <div class="flex justify-between text-lg font-mono mb-1">
+                        <span>GESUNDHEIT:</span> 
+                        <span class="${Game.state.hp < Game.state.maxHp ? 'text-red-500 blink-red' : 'text-green-500'}">${Math.floor(Game.state.hp)} / ${Game.state.maxHp}</span>
+                    </div>
+                    <div class="flex justify-between text-lg font-mono">
+                        <span>STRAHLUNG:</span> 
+                        <span class="${Game.state.rads > 0 ? 'text-red-500 animate-pulse' : 'text-green-500'}">${Math.floor(Game.state.rads)} RADS</span>
+                    </div>
+                </div>
+
+                <div class="text-gray-400 italic text-sm max-w-md leading-relaxed border-l-2 border-red-900 pl-3 text-left">
+                    "Ich kann Sie wieder zusammenflicken. Entfernt Strahlung und heilt alle Verletzungen. Kostet aber ein bisschen was für die... Materialien."
+                </div>
+
+                <button onclick="Game.heal()" class="action-button w-full max-w-md py-4 text-xl border-2 border-red-500 text-red-500 hover:bg-red-900/50 font-bold transition-all" ${Game.state.caps < 25 ? 'disabled' : ''}>
+                    KOMPLETTBEHANDLUNG (25 KK)
+                </button>
+            </div>
+
+            <div class="flex-shrink-0 p-3 border-t border-red-900 bg-[#0a0000]">
+                <button class="action-button w-full border-gray-600 text-gray-500 hover:text-white hover:border-white transition-colors" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>
+            </div>
+        `;
+        view.appendChild(wrapper);
+    },
+
+    // --- SCHMIED UI ---
+    renderSmithy: function() {
+        Game.state.view = 'smithy';
+        const view = document.getElementById('view-container');
+        if(!view) return;
+        view.innerHTML = '';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-20 overflow-hidden";
+
+        // HEADER
+        const header = document.createElement('div');
+        header.className = "p-4 border-b-2 border-orange-500 bg-orange-900/20 flex justify-between items-end shadow-lg";
+        header.innerHTML = `
+            <div>
+                <h2 class="text-3xl text-orange-400 font-bold font-vt323 tracking-widest">DER SCHMIED</h2>
+                <div class="text-xs text-orange-300 tracking-wider">"Aus Alt mach Neu..."</div>
+            </div>
+            <div class="text-4xl text-orange-500 opacity-50">⚒️</div>
+        `;
+        wrapper.appendChild(header);
+
+        // CONTENT
+        const content = document.createElement('div');
+        content.className = "flex-1 overflow-y-auto custom-scroll p-4 space-y-2 bg-[#0a0500]";
+
+        // Waffen filtern
+        const weapons = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(i => {
+            const def = Game.items[i.id];
+            return def && def.type === 'weapon';
+        });
+
+        if(weapons.length === 0) {
+            content.innerHTML = '<div class="text-center text-orange-800 mt-10 p-4 border-2 border-dashed border-orange-900">Keine Waffen im Inventar.</div>';
+        } else {
+            weapons.forEach(w => {
+                const def = Game.items[w.id];
+                const name = w.name || def.name;
+                const isRusty = w.id.startsWith('rusty_');
+                const stats = Game.getWeaponStats(w);
+                
+                let actionBtn = '';
+                
+                if(isRusty) {
+                    actionBtn = `<button onclick="if(Game.restoreWeapon(${w.idx})) UI.renderSmithy()" class="bg-blue-900/30 text-xs px-3 py-2 border border-blue-500 hover:bg-blue-600 hover:text-black font-bold uppercase transition-colors">Restaurieren (50 KK + Öl)</button>`;
+                } else {
+                    actionBtn = `<button onclick="UI.renderModdingScreen(${w.idx})" class="bg-orange-900/30 text-xs px-3 py-2 border border-orange-500 hover:bg-orange-500 hover:text-black font-bold uppercase transition-colors">Modifizieren</button>`;
+                }
+
+                const div = document.createElement('div');
+                div.className = `flex justify-between items-center bg-black/40 p-3 border border-gray-700 hover:border-orange-500/50 transition-colors`;
+                div.innerHTML = `
+                    <div>
+                        <div class="${isRusty ? 'text-red-400' : 'text-orange-300'} font-bold text-lg">${name}</div>
+                        <div class="text-xs text-gray-500 font-mono">DMG: ${stats.dmg} | Mods: ${w.mods ? w.mods.length : 0}</div>
+                    </div>
+                    ${actionBtn}
+                `;
+                content.appendChild(div);
+            });
+        }
+        wrapper.appendChild(content);
+
+        // FOOTER
+        const footer = document.createElement('div');
+        footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-orange-900 z-50";
+        footer.innerHTML = `<button class="action-button w-full border-2 border-orange-800 text-orange-700 hover:border-orange-500 hover:text-orange-400 transition-colors py-3 font-bold tracking-widest uppercase bg-black" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>`;
+        wrapper.appendChild(footer);
+
+        view.appendChild(wrapper);
+    },
+
+    renderModdingScreen: function(weaponIdx) {
+        const view = document.getElementById('view-container');
+        if(!view) return;
+        view.innerHTML = ''; // Clear for full screen modding
+
+        const weapon = Game.state.inventory[weaponIdx];
+        if(!weapon) { this.renderSmithy(); return; }
+        
+        const wDef = Game.items[weapon.id];
+
+        const wrapper = document.createElement('div');
+        wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-30 overflow-hidden";
+
+        wrapper.innerHTML = `
+            <div class="p-4 border-b-2 border-orange-500 bg-orange-900/20">
+                <h2 class="text-2xl text-orange-400 font-bold font-vt323 tracking-widest">MODIFIZIEREN</h2>
+                <div class="text-white font-bold">${weapon.name || wDef.name}</div>
+            </div>
+            <div class="p-4 bg-black/60 border-b border-gray-800 text-sm text-gray-400 font-mono">
+                <p>Verfügbare Slots: <span class="text-yellow-500">${wDef.modSlots ? wDef.modSlots.join(', ') : 'Keine'}</span></p>
+                <p>Installierte Mods: <span class="text-white">${weapon.mods ? weapon.mods.length : 0}</span></p>
+            </div>
+        `;
+
+        const content = document.createElement('div');
+        content.className = "flex-1 overflow-y-auto custom-scroll p-4 space-y-2 bg-[#0a0500]";
+
+        // Finde kompatible Mods im Inventar
+        const compatibleMods = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(m => {
+            const mDef = Game.items[m.id];
+            return mDef && mDef.type === 'mod' && mDef.target === weapon.id;
+        });
+
+        if(compatibleMods.length === 0) {
+            content.innerHTML = '<div class="text-red-500 text-sm text-center mt-10">Keine passenden Mods im Inventar gefunden.</div>';
+        } else {
+            compatibleMods.forEach(m => {
+                const mDef = Game.items[m.id];
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-black/40 p-3 border border-orange-500/30 hover:bg-orange-900/10";
+                div.innerHTML = `
+                    <div>
+                        <div class="text-orange-300 font-bold">${mDef.name}</div>
+                        <div class="text-xs text-gray-400">${mDef.desc}</div>
+                        <div class="text-xs text-green-500 mt-1">${JSON.stringify(mDef.stats).replace(/[{""}]/g,'').replace(/,/g, ', ')}</div>
+                    </div>
+                    <button onclick="if(Game.installMod(${weaponIdx}, ${m.idx})) UI.renderSmithy()" class="bg-green-900/30 text-xs px-3 py-2 border border-green-500 hover:bg-green-500 hover:text-black font-bold uppercase transition-colors">
+                        EINBAUEN
+                    </button>
+                `;
+                content.appendChild(div);
+            });
+        }
+        wrapper.appendChild(content);
+
+        const footer = document.createElement('div');
+        footer.className = "p-4 bg-black border-t-2 border-gray-800";
+        footer.innerHTML = `<button onclick="UI.renderSmithy()" class="w-full text-gray-500 hover:text-white uppercase font-bold text-sm">ZURÜCK</button>`;
+        wrapper.appendChild(footer);
+
+        view.appendChild(wrapper);
+    },
+
+    renderCrafting: function(tab = 'create') {
+        Game.state.view = 'crafting';
+        const view = document.getElementById('view-container');
+        if(!view) return;
+        view.innerHTML = '';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black/95 z-20 overflow-hidden";
+
+        const scrollContainer = document.createElement('div');
+        scrollContainer.className = "flex-1 overflow-y-auto overflow-x-hidden custom-scroll pb-24";
+
+        const header = document.createElement('div');
+        header.className = "p-4 border-b-2 border-blue-500 bg-blue-900/20 flex justify-between items-end shadow-lg shadow-blue-900/20";
+        header.innerHTML = `
+            <div>
+                <h2 class="text-3xl text-blue-400 font-bold font-vt323 tracking-widest">WERKBANK</h2>
+                <div class="text-xs text-blue-300 tracking-wider">Zustand: Rostig, aber funktional</div>
+            </div>
+            <div class="text-4xl text-blue-500 opacity-50">🛠️</div>
+        `;
+        scrollContainer.appendChild(header);
+        
+        const tabsDiv = document.createElement('div');
+        tabsDiv.className = "flex w-full border-b border-blue-900 bg-black";
+        tabsDiv.innerHTML = `
+            <button class="flex-1 py-3 font-bold transition-colors uppercase tracking-wider ${tab==='create' ? 'bg-blue-900/40 text-blue-300 border-b-4 border-blue-500' : 'text-gray-600 hover:text-blue-300 hover:bg-blue-900/20'}" onclick="UI.renderCrafting('create')">HERSTELLEN</button>
+            <button class="flex-1 py-3 font-bold transition-colors uppercase tracking-wider ${tab==='scrap' ? 'bg-orange-900/40 text-orange-300 border-b-4 border-orange-500' : 'text-gray-600 hover:text-orange-300 hover:bg-orange-900/20'}" onclick="UI.renderCrafting('scrap')">ZERLEGEN</button>
+        `;
+        scrollContainer.appendChild(tabsDiv);
+
+        const listContent = document.createElement('div');
+        listContent.id = "crafting-list";
+        listContent.className = "p-3 space-y-2 bg-[#00050a]";
+        scrollContainer.appendChild(listContent);
+
+        const footer = document.createElement('div');
+        footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-blue-900 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.9)]";
+        footer.innerHTML = `
+            <button onclick="UI.renderCity()" class="action-button w-full border-gray-600 text-gray-500 hover:text-white hover:border-white transition-colors py-3 font-bold tracking-widest uppercase bg-black">
+                ZURÜCK ZUM ZENTRUM
+            </button>
+        `;
+
+        wrapper.appendChild(scrollContainer);
+        wrapper.appendChild(footer);
+        view.appendChild(wrapper);
+
+        if (tab === 'create') {
+            const recipes = Game.recipes || [];
+            const known = Game.state.knownRecipes || [];
+            let knownCount = 0; 
+
+            recipes.forEach(recipe => {
+                if(recipe.type === 'cooking') return; 
+                if(!known.includes(recipe.id) && recipe.lvl > 1) return; 
+
+                if (recipe.out === 'camp_kit') {
+                    const hasKit = Game.state.inventory.some(i => i.id === 'camp_kit');
+                    const hasBuilt = !!Game.state.camp;
+                    if (hasKit || hasBuilt) return;
+                }
+
+                knownCount++;
+
+                const outItem = (recipe.out === 'AMMO' ? {name: "15x Munition"} : Game.items[recipe.out]) || {name: "Unbekanntes Item"};
+                let reqHtml = '';
+                let canCraft = true;
+                
+                for(let reqId in recipe.req) {
+                    const countNeeded = recipe.req[reqId];
+                    const invItem = Game.state.inventory.find(i => i.id === reqId);
+                    const countHave = invItem ? invItem.count : 0;
+                    const reqDef = Game.items[reqId];
+                    const reqName = reqDef ? reqDef.name : reqId;
+                    let color = "text-green-600";
+                    if (countHave < countNeeded) { canCraft = false; color = "text-red-500 font-bold"; }
+                    reqHtml += `<div class="${color} text-xs uppercase">• ${reqName}: ${countHave}/${countNeeded}</div>`;
+                }
+                
+                if(Game.state.lvl < recipe.lvl) { canCraft = false; reqHtml += `<div class="text-red-500 text-xs mt-1 font-bold">Benötigt Level ${recipe.lvl}</div>`; }
+
+                const div = document.createElement('div');
+                div.className = `border ${canCraft ? 'border-green-600 bg-green-900/10' : 'border-gray-800 bg-black opacity-50'} p-3 flex justify-between items-center transition-all hover:bg-green-900/20`;
+                div.innerHTML = `
+                    <div>
+                        <div class="font-bold ${canCraft ? 'text-green-300' : 'text-gray-500'} text-lg">${outItem.name}</div>
+                        <div class="grid grid-cols-2 gap-x-4 mt-1 border-l-2 border-green-900 pl-2">${reqHtml}</div>
+                    </div>
+                    <button class="action-button text-sm px-4 py-2 border-2 ${canCraft ? 'border-green-500 text-green-500 hover:bg-green-500 hover:text-black font-bold' : 'border-gray-600 text-gray-600 cursor-not-allowed'}" onclick="Game.craftItem('${recipe.id}')" ${canCraft ? '' : 'disabled'}>FERTIGEN</button>
+                `;
+                listContent.appendChild(div);
+            });
+            if(knownCount === 0) listContent.innerHTML = '<div class="text-gray-500 italic mt-10 text-center">Keine bekannten Baupläne.</div>';
+        } else {
+            // SCRAP LIST
+            let scrappables = [];
+            Game.state.inventory.forEach((item, idx) => {
+                const def = Game.items[item.id];
+                if(!def) return;
+                
+                if (item.id === 'junk_metal' || item.id === 'camp_kit') return;
+                if (def.type === 'blueprint') return;
+
+                if (['weapon','body','head','legs','feet','arms','junk'].includes(def.type)) {
+                    scrappables.push({idx, item, def});
+                }
+            });
+
+            if(scrappables.length === 0) {
+                listContent.innerHTML = '<div class="text-center text-gray-500 mt-10 p-4 border-2 border-dashed border-gray-800">Kein zerlegbarer Schrott im Inventar.</div>';
+            } else {
+                scrappables.forEach(entry => {
+                    const name = entry.item.props && entry.item.props.name ? entry.item.props.name : entry.def.name;
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center p-3 border border-orange-800 bg-orange-900/10 hover:bg-orange-900/20 transition-colors";
+                    div.innerHTML = `
+                        <div class="font-bold text-orange-300">${name} <span class="text-xs text-orange-600 font-normal ml-2">(${entry.item.count}x)</span></div>
+                        <button class="border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black px-3 py-1 text-xs font-bold transition-colors uppercase" onclick="Game.scrapItem(${entry.idx})">ZERLEGEN</button>
+                    `;
+                    listContent.appendChild(div);
+                });
+            }
+        }
+    },
+
     renderShop: function(mode = 'buy') {
         const view = document.getElementById('view-container');
         if(!view) return;
         view.innerHTML = ''; 
 
-        // State update
         Game.state.view = 'shop';
         Game.checkShopRestock(); 
 
         const wrapper = document.createElement('div');
-        // Zwingt den Shop über alles andere (Full Screen Overlay Style)
         wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-20 overflow-hidden";
 
-        // === SCROLL BEREICH (Oben) ===
         const scrollContainer = document.createElement('div');
         scrollContainer.className = "flex-1 overflow-y-auto overflow-x-hidden custom-scroll p-3 pb-24";
         
-        // HEADER INHALT
         const usedSlots = Game.getUsedSlots();
         const maxSlots = Game.getMaxSlots();
         const isFull = usedSlots >= maxSlots;
@@ -362,7 +480,6 @@ Object.assign(UI, {
             </div>
         `;
 
-        // CONTROLS
         const controlsDiv = document.createElement('div');
         controlsDiv.className = "bg-[#002200] border-b-2 border-green-500 p-3 shadow-lg mb-4";
         
@@ -403,13 +520,11 @@ Object.assign(UI, {
         
         scrollContainer.appendChild(controlsDiv);
 
-        // ITEM LIST CONTAINER
         const listContent = document.createElement('div');
         listContent.id = "shop-list";
         listContent.className = "space-y-2";
         scrollContainer.appendChild(listContent);
 
-        // === FOOTER ===
         const footer = document.createElement('div');
         footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-yellow-900 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.9)]";
         footer.innerHTML = `<button class="action-button w-full border-2 border-yellow-800 text-yellow-700 hover:border-yellow-500 hover:text-yellow-400 transition-colors py-3 font-bold tracking-widest uppercase bg-black" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>`;
@@ -418,7 +533,6 @@ Object.assign(UI, {
         wrapper.appendChild(footer);
         view.appendChild(wrapper);
 
-        // Content rendern
         if(mode === 'buy') this.renderShopBuy(listContent);
         else this.renderShopSell(listContent);
     },
@@ -489,10 +603,7 @@ Object.assign(UI, {
 
         Object.keys(stock).forEach(key => {
             if (key === 'fists' || key === 'vault_suit' || key === 'mele') return;
-            
-            // [FIX] Zelt-Kit nie im Shop anzeigen
             if (key === 'camp_kit') return;
-            
             if(stock[key] <= 0) return;
             
             const item = Game.items[key];
@@ -531,7 +642,6 @@ Object.assign(UI, {
             const def = Game.items[item.id];
             if(!def) return;
             
-            // [FIX] Fäuste & Camp Kit können nicht verkauft werden
             if (item.id === 'fists' || item.id === 'camp_kit') return;
 
             let valMult = item.props && item.props.valMult ? item.props.valMult : 1;
