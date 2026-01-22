@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-20 21:30:00 - data_items.js
+// [TIMESTAMP] 2026-01-20 22:00:00 - data_items.js - Added Rusty Weapons & Mods
 
 if(typeof window.GameData === 'undefined') window.GameData = {};
 if(typeof window.GameData.items === 'undefined') window.GameData.items = {}; 
