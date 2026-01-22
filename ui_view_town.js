@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-22 13:00:00 - ui_view_town.js - Debug Smithy
+// [TIMESTAMP] 2026-01-20 22:30:00 - ui_view_town.js - Debug Version
 
 Object.assign(UI, {
     
@@ -15,12 +15,7 @@ Object.assign(UI, {
             'rusty_springs': {
                 name: "RUSTY SPRINGS",
                 pop: 142, sec: "HOCH", rad: "NIEDRIG",
-                flairs: [
-                    "Die Luft riecht nach Rost und Ozon.",
-                    "Ein Generator brummt in der Ferne.",
-                    "Händler schreien ihre Preise aus.",
-                    "Der sicherste Ort im Sektor."
-                ]
+                flairs: ["Die Luft riecht nach Rost.", "Ein Generator brummt.", "Händler schreien.", "Sicher ist es nur hier."]
             }
         };
 
@@ -44,11 +39,9 @@ Object.assign(UI, {
                     <span class="text-2xl text-yellow-400 font-bold font-vt323 tracking-wider">${Game.state.caps} KK</span>
                 </div>
             </div>
-
             <div class="flex gap-4 mt-2 pt-2 border-t border-green-900/50 text-xs font-mono z-10 uppercase tracking-widest">
                 <div class="bg-green-900/30 px-2 py-1 border-l-2 border-green-500">POP: <span class="text-green-300 font-bold">${data.pop}</span></div>
                 <div class="bg-cyan-900/30 px-2 py-1 border-l-2 border-cyan-500">SEC: <span class="text-cyan-300 font-bold">${data.sec}</span></div>
-                <div class="bg-yellow-900/30 px-2 py-1 border-l-2 border-yellow-500">RAD: <span class="text-yellow-300 font-bold">${data.rad}</span></div>
             </div>
         `;
         wrapper.appendChild(header);
@@ -59,76 +52,42 @@ Object.assign(UI, {
         const createCard = (conf) => {
             const card = document.createElement('div');
             let baseClass = "relative overflow-hidden group cursor-pointer p-4 flex items-center gap-4 border-2 transition-all duration-200 bg-black/80 hover:bg-[#0a1a0a] shadow-md min-h-[100px]";
-            
             let themeColor = "green";
-            if(conf.type === 'trader') {
-                themeColor = "yellow";
-                baseClass += " md:col-span-2 border-yellow-600 hover:border-yellow-400 shadow-yellow-900/20 h-32";
-            } else if (conf.type === 'clinic') {
-                themeColor = "red";
-                baseClass += " border-red-600 hover:border-red-400 shadow-red-900/20";
-            } else if (conf.type === 'craft') {
-                themeColor = "blue";
-                baseClass += " border-blue-600 hover:border-blue-400 shadow-blue-900/20";
-            } else if (conf.type === 'smithy') {
-                themeColor = "orange";
-                baseClass += " border-orange-600 hover:border-orange-400 shadow-orange-900/20";
-            } else {
-                baseClass += " border-green-600 hover:border-green-400 shadow-green-900/20";
-            }
+            if(conf.type === 'trader') { themeColor = "yellow"; baseClass += " md:col-span-2 border-yellow-600 hover:border-yellow-400 shadow-yellow-900/20 h-32"; }
+            else if (conf.type === 'clinic') { themeColor = "red"; baseClass += " border-red-600 hover:border-red-400 shadow-red-900/20"; }
+            else if (conf.type === 'craft') { themeColor = "blue"; baseClass += " border-blue-600 hover:border-blue-400 shadow-blue-900/20"; }
+            else if (conf.type === 'smithy') { themeColor = "orange"; baseClass += " border-orange-600 hover:border-orange-400 shadow-orange-900/20"; }
+            else { baseClass += " border-green-600 hover:border-green-400 shadow-green-900/20"; }
 
             card.className = baseClass;
             card.onclick = conf.onClick;
-
             const iconSize = conf.type === 'trader' ? 'text-6xl' : 'text-5xl';
-            
             let titleClass = `text-${themeColor}-500 group-hover:text-${themeColor}-300`;
-            let subClass = `text-${themeColor}-700 group-hover:text-${themeColor}-500`;
             
-            if(conf.type === 'trader') { titleClass = "text-yellow-500 group-hover:text-yellow-300"; subClass = "text-yellow-700 group-hover:text-yellow-500"; }
+            if(conf.type === 'trader') titleClass = "text-yellow-500 group-hover:text-yellow-300";
 
             card.innerHTML = `
                 <div class="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-${themeColor}-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-0"></div>
-                
                 <div class="icon flex-shrink-0 ${iconSize} z-10 relative filter drop-shadow-md">${conf.icon}</div>
                 <div class="flex flex-col z-10 relative">
                     <span class="text-2xl font-bold ${titleClass} tracking-wider font-vt323 uppercase">${conf.label}</span>
-                    <span class="text-xs ${subClass} font-mono uppercase tracking-widest mt-1">${conf.sub}</span>
+                    <span class="text-xs text-${themeColor}-700 font-mono uppercase tracking-widest mt-1">${conf.sub}</span>
                 </div>
                 <div class="absolute right-4 text-2xl opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all ${titleClass}">▶</div>
             `;
             return card;
         };
 
-        grid.appendChild(createCard({
-            type: 'trader', icon: "🛒", label: "HANDELSPOSTEN", sub: "Waffen • Munition • An- & Verkauf",
-            onClick: () => { if(UI.renderShop) UI.renderShop(); }
-        }));
-
-        grid.appendChild(createCard({
-            type: 'clinic', icon: "⚕️", label: "KLINIK", sub: "Dr. Zimmermann",
-            onClick: () => { if(UI.renderClinic) UI.renderClinic(); }
-        }));
-
-        grid.appendChild(createCard({
-            type: 'smithy', icon: "⚒️", label: "DER SCHMIED", sub: "Reparaturen & Mods",
-            onClick: () => { if(UI.renderSmithy) UI.renderSmithy(); }
-        }));
-
-        grid.appendChild(createCard({
-            type: 'craft', icon: "🛠️", label: "WERKBANK", sub: "Zerlegen & Bauen",
-            onClick: () => { if(UI.renderCrafting) UI.renderCrafting(); }
-        }));
+        grid.appendChild(createCard({ type: 'trader', icon: "🛒", label: "HANDELSPOSTEN", sub: "Waffen & Munition", onClick: () => { if(UI.renderShop) UI.renderShop(); } }));
+        grid.appendChild(createCard({ type: 'clinic', icon: "⚕️", label: "KLINIK", sub: "Dr. Zimmermann", onClick: () => { if(UI.renderClinic) UI.renderClinic(); } }));
+        grid.appendChild(createCard({ type: 'smithy', icon: "⚒️", label: "DER SCHMIED", sub: "Reparaturen & Mods", onClick: () => { if(UI.renderSmithy) UI.renderSmithy(); } }));
+        grid.appendChild(createCard({ type: 'craft', icon: "🛠️", label: "WERKBANK", sub: "Zerlegen & Bauen", onClick: () => { if(UI.renderCrafting) UI.renderCrafting(); } }));
 
         wrapper.appendChild(grid);
 
         const footer = document.createElement('div');
         footer.className = "flex-shrink-0 p-3 border-t-4 border-green-900 bg-[#001100]";
-        footer.innerHTML = `
-            <button class="action-button w-full border-2 border-green-600 text-green-500 py-3 font-bold text-xl hover:bg-green-900/50 hover:text-green-200 transition-all uppercase tracking-[0.15em]" onclick="Game.leaveCity()">
-                <span class="mr-2">🚪</span> ZURÜCK INS ÖDLAND (ESC)
-            </button>
-        `;
+        footer.innerHTML = `<button class="action-button w-full border-2 border-green-600 text-green-500 py-3 font-bold text-xl hover:bg-green-900/50 hover:text-green-200 transition-all uppercase tracking-[0.15em]" onclick="Game.leaveCity()">ZURÜCK INS ÖDLAND</button>`;
         wrapper.appendChild(footer);
 
         view.appendChild(wrapper);
@@ -136,7 +95,6 @@ Object.assign(UI, {
 
     // --- SCHMIED UI (DEBUG VERSION) ---
     renderSmithy: function() {
-        // Wir entfernen das try-catch hier nicht komplett, sondern zeigen den Fehler an!
         try {
             Game.state.view = 'smithy';
             const view = document.getElementById('view-container');
@@ -166,7 +124,7 @@ Object.assign(UI, {
             if(!Game.state.inventory) Game.state.inventory = [];
 
             const weapons = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(i => {
-                const def = Game.items[i.id];
+                const def = (Game.items && Game.items[i.id]) ? Game.items[i.id] : null;
                 return def && (def.type === 'weapon' || def.type === 'melee');
             });
 
@@ -174,10 +132,7 @@ Object.assign(UI, {
                 content.innerHTML = '<div class="text-center text-orange-800 mt-10 p-4 border-2 border-dashed border-orange-900">Keine Waffen im Inventar.</div>';
             } else {
                 weapons.forEach(w => {
-                    const def = Game.items[w.id];
-                    // Safety check, falls Item gelöscht wurde
-                    if(!def) return; 
-                    
+                    const def = (Game.items && Game.items[w.id]) ? Game.items[w.id] : { name: w.id };
                     const name = w.name || def.name;
                     const isRusty = w.id.startsWith('rusty_');
                     
@@ -243,7 +198,7 @@ Object.assign(UI, {
             const weapon = Game.state.inventory[weaponIdx];
             if(!weapon) { this.renderSmithy(); return; }
             
-            const wDef = Game.items[weapon.id];
+            const wDef = (Game.items && Game.items[weapon.id]) ? Game.items[weapon.id] : { name: weapon.id };
 
             const wrapper = document.createElement('div');
             wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-30 overflow-hidden";
@@ -262,9 +217,8 @@ Object.assign(UI, {
             const content = document.createElement('div');
             content.className = "flex-1 overflow-y-auto custom-scroll p-4 space-y-2 bg-[#0a0500]";
 
-            // Finde kompatible Mods im Inventar
             const compatibleMods = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(m => {
-                const mDef = Game.items[m.id];
+                const mDef = (Game.items && Game.items[m.id]) ? Game.items[m.id] : null;
                 return mDef && mDef.type === 'mod' && mDef.target === weapon.id;
             });
 
@@ -402,7 +356,7 @@ Object.assign(UI, {
             // SCRAP LIST
             let scrappables = [];
             Game.state.inventory.forEach((item, idx) => {
-                const def = Game.items[item.id];
+                const def = (Game.items && Game.items[item.id]) ? Game.items[item.id] : null;
                 if(!def) return;
                 
                 if (item.id === 'junk_metal' || item.id === 'camp_kit') return;
@@ -594,7 +548,7 @@ Object.assign(UI, {
             if (key === 'camp_kit') return;
             if(stock[key] <= 0) return;
             
-            const item = Game.items[key];
+            const item = (Game.items && Game.items[key]) ? Game.items[key] : null;
             if(!item) return;
             const cat = categories[item.type] || categories['misc'];
             cat.items.push({key, ...item});
@@ -627,8 +581,8 @@ Object.assign(UI, {
         }
 
         Game.state.inventory.forEach((item, idx) => {
-            const def = Game.items[item.id];
-            if(!def) return;
+            const def = (Game.items && Game.items[item.id]) ? Game.items[item.id] : {};
+            if(!def.name) return; // Skip unknown items
             
             if (item.id === 'fists' || item.id === 'camp_kit') return;
 
