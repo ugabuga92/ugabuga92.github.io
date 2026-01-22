@@ -1,26 +1,28 @@
-// [TIMESTAMP] 2026-01-20 22:30:00 - game_inv_logic.js - Syntax Check Passed
+// [TIMESTAMP] 2026-01-22 14:00:00 - game_inv_logic.js - Bulletproof Stats
 
 Object.assign(Game, {
 
     // Helper für Stats (Crash-sicher)
     getWeaponStats: function(item) {
-        if(!item) return { dmg: 1, ammoType: null, ammoCost: 0, name: "Unbekannt" };
+        // Safety First
+        if(!item) return { dmg: 1, ammoType: null, ammoCost: 0, name: "Item Null" };
         
-        // Items DB Check
-        const dbItem = (this.items && this.items[item.id]) ? this.items[item.id] : {};
+        // Items DB Check (Fallback auf leeres Objekt)
+        const itemsDB = Game.items || {};
+        const dbItem = itemsDB[item.id] || {};
         
         // Werte berechnen
         let stats = {
             dmg: (item.dmg !== undefined) ? item.dmg : (item.baseDmg || dbItem.baseDmg || dbItem.dmg || 1),
             ammoType: item.ammoType || dbItem.ammo || null, 
             ammoCost: (item.ammoCost !== undefined) ? item.ammoCost : (dbItem.ammoCost || 1),
-            name: item.name || dbItem.name || "Item"
+            name: item.name || dbItem.name || item.id || "Unbekannt"
         };
 
-        // Mods addieren
-        if (item.mods && Array.isArray(item.mods) && this.items) {
+        // Mods addieren (nur wenn Array existiert)
+        if (item.mods && Array.isArray(item.mods)) {
             item.mods.forEach(modId => {
-                const modDef = this.items[modId];
+                const modDef = itemsDB[modId];
                 if (modDef && modDef.stats) {
                     if (modDef.stats.dmg) stats.dmg += modDef.stats.dmg;
                     if (modDef.stats.ammoCost) stats.ammoCost += modDef.stats.ammoCost;
@@ -142,10 +144,8 @@ Object.assign(Game, {
     }, 
 
     restoreWeapon: function(invIndex) {
-        if(!this.state.inventory[invIndex]) return false;
         const item = this.state.inventory[invIndex];
-        
-        if(!item.id.startsWith('rusty_')) {
+        if(!item || !item.id.startsWith('rusty_')) {
             UI.log("Das ist keine rostige Waffe.", "text-red-500");
             return false;
         }
@@ -179,8 +179,6 @@ Object.assign(Game, {
         
         const wDef = this.items[weapon.id];
         const mDef = this.items[mod.id];
-
-        if(!wDef || !mDef) return false;
 
         if(mDef.target !== weapon.id) {
             UI.log("Dieser Mod passt nicht auf diese Waffe.", "text-red-500");
