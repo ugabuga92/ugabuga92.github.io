@@ -1,28 +1,22 @@
-// [TIMESTAMP] 2026-01-22 14:00:00 - game_inv_logic.js - Bulletproof Stats
+// [TIMESTAMP] 2026-01-22 20:00:00 - game_inv_logic.js - Robust Restore
 
 Object.assign(Game, {
 
-    // Helper für Stats (Crash-sicher)
     getWeaponStats: function(item) {
-        // Safety First
-        if(!item) return { dmg: 1, ammoType: null, ammoCost: 0, name: "Item Null" };
+        if(!item) return { dmg: 1, ammoType: null, ammoCost: 0, name: "Unbekannt" };
         
-        // Items DB Check (Fallback auf leeres Objekt)
-        const itemsDB = Game.items || {};
-        const dbItem = itemsDB[item.id] || {};
+        const dbItem = (this.items && this.items[item.id]) ? this.items[item.id] : {};
         
-        // Werte berechnen
         let stats = {
             dmg: (item.dmg !== undefined) ? item.dmg : (item.baseDmg || dbItem.baseDmg || dbItem.dmg || 1),
             ammoType: item.ammoType || dbItem.ammo || null, 
             ammoCost: (item.ammoCost !== undefined) ? item.ammoCost : (dbItem.ammoCost || 1),
-            name: item.name || dbItem.name || item.id || "Unbekannt"
+            name: item.name || dbItem.name || item.id
         };
 
-        // Mods addieren (nur wenn Array existiert)
         if (item.mods && Array.isArray(item.mods)) {
             item.mods.forEach(modId => {
-                const modDef = itemsDB[modId];
+                const modDef = this.items[modId];
                 if (modDef && modDef.stats) {
                     if (modDef.stats.dmg) stats.dmg += modDef.stats.dmg;
                     if (modDef.stats.ammoCost) stats.ammoCost += modDef.stats.ammoCost;
@@ -144,8 +138,10 @@ Object.assign(Game, {
     }, 
 
     restoreWeapon: function(invIndex) {
+        if(!this.state.inventory[invIndex]) return false;
         const item = this.state.inventory[invIndex];
-        if(!item || !item.id.startsWith('rusty_')) {
+        
+        if(!item.id.startsWith('rusty_')) {
             UI.log("Das ist keine rostige Waffe.", "text-red-500");
             return false;
         }
@@ -158,7 +154,8 @@ Object.assign(Game, {
         this.removeFromInventory('weapon_oil', 1);
         
         const cleanId = item.id.replace('rusty_', '');
-        // Mapping (angepasst an data_items.js)
+        
+        // MAPPING FIX: rusty_pistol -> pistol_10mm (nicht 'pistol')
         let targetId = cleanId;
         if(cleanId === 'pistol') targetId = 'pistol_10mm';
         if(cleanId === 'rifle') targetId = 'hunting_rifle';
@@ -179,6 +176,8 @@ Object.assign(Game, {
         
         const wDef = this.items[weapon.id];
         const mDef = this.items[mod.id];
+
+        if(!wDef || !mDef) return false;
 
         if(mDef.target !== weapon.id) {
             UI.log("Dieser Mod passt nicht auf diese Waffe.", "text-red-500");
@@ -209,7 +208,7 @@ Object.assign(Game, {
             if(!weapon.name) weapon.name = wDef.name + " (+)";
         }
 
-        if(!weapon.uid) weapon.uid = Date.now() + Math.random();
+        if(!weapon.uid) weapon.uid = Date.now() + "_" + Math.floor(Math.random()*1000);
 
         UI.log("Modifikation installiert!", "text-green-400 font-bold");
         return true;
@@ -227,7 +226,7 @@ Object.assign(Game, {
 
         const bases = ['pistol_10mm', 'hunting_rifle', 'combat_shotgun', 'machete', 'super_sledge'];
         const baseId = bases[Math.floor(Math.random() * bases.length)];
-        const baseItem = (this.items && this.items[baseId]) ? this.items[baseId] : null;
+        const baseItem = this.items[baseId];
 
         if(!baseItem) return;
 
@@ -250,7 +249,7 @@ Object.assign(Game, {
         legendaryItem.desc = prefix.desc;
         legendaryItem.value = (baseItem.value || 10) * 5;
         
-        const baseDmg = baseItem.baseDmg || baseItem.dmg || 2;
+        const baseDmg = baseItem.baseDmg || 2;
         if(prefix.dmgMod) legendaryItem.dmg = Math.floor(baseDmg * prefix.dmgMod);
         else legendaryItem.dmg = baseDmg;
 
@@ -643,7 +642,7 @@ Object.assign(Game, {
 
             if (isWeaponType && !needsAmmo) {
                 // Fallback falls getWeaponStats fehlt
-                let dmg = (typeof Game.getWeaponStats === 'function') ? Game.getWeaponStats(item).dmg : (def.dmg || 0);
+                let dmg = (typeof Game.getWeaponStats === 'function') ? Game.getWeaponStats(item).dmg : (def.baseDmg || 0);
                 if (item.props && item.props.dmgMult) dmg *= item.props.dmgMult;
                 
                 if (dmg > bestDmg) {
@@ -681,6 +680,11 @@ Object.assign(Game, {
     
     getItemCount: function(id) {
         return this.state.inventory.reduce((acc, i) => i.id === id ? acc + i.count : acc, 0);
+    },
+
+    getUsedSlots: function() {
+        // Fallback implementation if not defined elsewhere
+        return this.state.inventory ? this.state.inventory.length : 0;
     }
 });
 
