@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-20 22:30:00 - ui_view_town.js - Debug Version
+// [TIMESTAMP] 2026-01-22 14:00:00 - ui_view_town.js - Alert Debug
 
 Object.assign(UI, {
     
@@ -93,9 +93,16 @@ Object.assign(UI, {
         view.appendChild(wrapper);
     },
 
-    // --- SCHMIED UI (DEBUG VERSION) ---
+    // --- SCHMIED UI (ALERT DEBUG VERSION) ---
     renderSmithy: function() {
         try {
+            // Test 1: Existiert Game?
+            if(typeof Game === 'undefined') throw new Error("Game Object fehlt");
+            // Test 2: Existiert Stats Funktion?
+            if(typeof Game.getWeaponStats !== 'function') throw new Error("Game.getWeaponStats fehlt in game_inv_logic.js");
+            // Test 3: Existieren Items?
+            if(!Game.items) throw new Error("Game.items Datenbank fehlt");
+
             Game.state.view = 'smithy';
             const view = document.getElementById('view-container');
             if(!view) return;
@@ -120,11 +127,10 @@ Object.assign(UI, {
             const content = document.createElement('div');
             content.className = "flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-[#0a0500]";
 
-            // Inventar Check
             if(!Game.state.inventory) Game.state.inventory = [];
 
             const weapons = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(i => {
-                const def = (Game.items && Game.items[i.id]) ? Game.items[i.id] : null;
+                const def = Game.items[i.id];
                 return def && (def.type === 'weapon' || def.type === 'melee');
             });
 
@@ -132,17 +138,12 @@ Object.assign(UI, {
                 content.innerHTML = '<div class="text-center text-orange-800 mt-10 p-4 border-2 border-dashed border-orange-900">Keine Waffen im Inventar.</div>';
             } else {
                 weapons.forEach(w => {
-                    const def = (Game.items && Game.items[w.id]) ? Game.items[w.id] : { name: w.id };
+                    const def = Game.items[w.id];
+                    if(!def) return; 
+                    
                     const name = w.name || def.name;
                     const isRusty = w.id.startsWith('rusty_');
-                    
-                    // Sicherer Stats Abruf
-                    let stats = { dmg: 0 };
-                    if(typeof Game.getWeaponStats === 'function') {
-                        stats = Game.getWeaponStats(w);
-                    } else {
-                        stats.dmg = def.dmg || def.baseDmg || 0;
-                    }
+                    const stats = Game.getWeaponStats(w);
                     
                     let actionBtn = '';
                     
@@ -174,18 +175,8 @@ Object.assign(UI, {
 
             view.appendChild(wrapper);
         } catch(e) {
+            alert("FATAL SMITHY ERROR:\n" + e.message + "\n\n" + e.stack);
             console.error(e);
-            // Zeige Fehler im UI anstatt zu crashen
-            const view = document.getElementById('view-container');
-            if(view) {
-                view.innerHTML = `
-                    <div class="p-10 text-red-500 bg-black h-full">
-                        <h2 class="text-xl font-bold">SCHMIED ERROR</h2>
-                        <pre class="text-xs mt-4 border border-red-900 p-2 overflow-auto max-h-64">${e.message}\n\n${e.stack}</pre>
-                        <button onclick="UI.renderCity()" class="mt-4 border border-red-500 px-4 py-2 hover:bg-red-900/50 text-white">ZURÜCK (RESCUE)</button>
-                    </div>
-                `;
-            }
         }
     },
 
@@ -251,13 +242,12 @@ Object.assign(UI, {
 
             view.appendChild(wrapper);
         } catch(e) {
-            console.error(e);
-            UI.renderSmithy(); // Zurück zur Liste bei Fehler
+            alert("MODDING ERROR:\n" + e.message);
+            UI.renderSmithy(); 
         }
     },
 
-    // ... (Hier folgen renderCrafting, renderShop, renderShopBuy, renderShopSell, setShopQty etc. wie gehabt)
-    // Ich kopiere der Kürze halber die bestehenden Funktionen hier hinein, damit die Datei komplett ist.
+    // ... (renderCrafting, renderShop etc. unverändert, nur die oben gezeigten Funktionen sind wichtig)
     renderCrafting: function(tab = 'create') {
         Game.state.view = 'crafting';
         const view = document.getElementById('view-container');
@@ -356,7 +346,7 @@ Object.assign(UI, {
             // SCRAP LIST
             let scrappables = [];
             Game.state.inventory.forEach((item, idx) => {
-                const def = (Game.items && Game.items[item.id]) ? Game.items[item.id] : null;
+                const def = Game.items[item.id];
                 if(!def) return;
                 
                 if (item.id === 'junk_metal' || item.id === 'camp_kit') return;
@@ -548,7 +538,7 @@ Object.assign(UI, {
             if (key === 'camp_kit') return;
             if(stock[key] <= 0) return;
             
-            const item = (Game.items && Game.items[key]) ? Game.items[key] : null;
+            const item = Game.items[key];
             if(!item) return;
             const cat = categories[item.type] || categories['misc'];
             cat.items.push({key, ...item});
@@ -581,8 +571,8 @@ Object.assign(UI, {
         }
 
         Game.state.inventory.forEach((item, idx) => {
-            const def = (Game.items && Game.items[item.id]) ? Game.items[item.id] : {};
-            if(!def.name) return; // Skip unknown items
+            const def = Game.items[item.id];
+            if(!def) return;
             
             if (item.id === 'fists' || item.id === 'camp_kit') return;
 
