@@ -1,6 +1,6 @@
-// [TIMESTAMP] 2026-01-24 14:00:00 - ui_view_town.js - CACHE BUSTER VERSION
+// [TIMESTAMP] 2026-01-24 20:00:00 - ui_view_town.js - Decoupled & Crash-Proof
 
-console.log("!!! UI_VIEW_TOWN NEU GELADEN !!!");
+console.log(">> UI VIEW TOWN (DECOUPLED) GELADEN");
 
 Object.assign(UI, {
     
@@ -63,14 +63,13 @@ Object.assign(UI, {
 
             card.className = baseClass;
             
-            // EXTRA SICHERER CLICK HANDLER
+            // ROBUSTER KLICK-HANDLER
             card.onclick = function() {
-                console.log("Klick auf:", conf.label);
                 try {
                     conf.onClick();
                 } catch(err) {
-                    console.error("CRASH BEI KLICK:", err);
-                    alert("Fehler: " + err.message);
+                    console.error("UI ERROR:", err);
+                    alert("UI Fehler: " + err.message);
                 }
             };
 
@@ -91,8 +90,7 @@ Object.assign(UI, {
 
         grid.appendChild(createCard({ type: 'trader', icon: "🛒", label: "HANDELSPOSTEN", sub: "Waffen & Munition", onClick: () => UI.renderShop() }));
         grid.appendChild(createCard({ type: 'clinic', icon: "⚕️", label: "KLINIK", sub: "Dr. Zimmermann", onClick: () => UI.renderClinic() }));
-        // HIER IST DER NAMENS-CHECK - WENN HIER NICHT [FIX] STEHT, IST DIE DATEI ALT
-        grid.appendChild(createCard({ type: 'smithy', icon: "⚒️", label: "DER SCHMIED [FIX]", sub: "Reparaturen & Mods", onClick: () => UI.renderSmithy() }));
+        grid.appendChild(createCard({ type: 'smithy', icon: "⚒️", label: "DER SCHMIED [FIX2]", sub: "Reparaturen & Mods", onClick: () => UI.renderSmithy() }));
         grid.appendChild(createCard({ type: 'craft', icon: "🛠️", label: "WERKBANK", sub: "Zerlegen & Bauen", onClick: () => UI.renderCrafting() }));
 
         wrapper.appendChild(grid);
@@ -106,100 +104,103 @@ Object.assign(UI, {
     },
 
     renderSmithy: function() {
-        console.log(">> UI.renderSmithy gestartet");
-        
-        // 1. Notfall-Check für Logic
-        if (typeof Game.getWeaponStats !== 'function') {
-            console.warn("WARNUNG: Game.getWeaponStats fehlt. Nutze Fallback.");
-            Game.getWeaponStats = function(item) {
-                return { dmg: item.baseDmg || 1, name: item.name || "Error-Waffe" };
-            };
-        }
-
-        // 2. Daten sammeln (BEVOR wir den Screen leeren)
-        let weapons = [];
-        try {
-            if(!Game.state.inventory) Game.state.inventory = [];
-            weapons = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(i => {
-                // Sicherheitscheck, ob Item in DB existiert
-                const def = Game.items[i.id];
-                return def && (def.type === 'weapon' || def.type === 'melee');
-            });
-        } catch(e) {
-            console.error("Fehler beim Laden des Inventars:", e);
-            alert("Inventar-Fehler: " + e.message);
-            return; // Abbrechen, Screen nicht leeren
-        }
-
-        // 3. Screen leeren (Erst jetzt!)
+        // ERROR TRAPPING WRAPPER
         const view = document.getElementById('view-container');
         if(!view) return;
-        view.innerHTML = '';
-        
+        view.innerHTML = ''; // Screen leeren
+
         Game.state.view = 'smithy';
 
-        const wrapper = document.createElement('div');
-        wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-20 overflow-hidden";
-
-        // HEADER
-        const header = document.createElement('div');
-        header.className = "p-4 border-b-2 border-orange-500 bg-orange-900/20 flex justify-between items-end shadow-lg";
-        header.innerHTML = `
-            <div>
-                <h2 class="text-3xl text-orange-400 font-bold font-vt323 tracking-widest">DER SCHMIED</h2>
-                <div class="text-xs text-orange-300 tracking-wider">"Alles kann repariert werden."</div>
-            </div>
-            <div class="text-4xl text-orange-500 opacity-50">⚒️</div>
-        `;
-        wrapper.appendChild(header);
-
-        // CONTENT
-        const content = document.createElement('div');
-        content.className = "flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-[#0a0500]";
-
-        if(weapons.length === 0) {
-            content.innerHTML = '<div class="text-center text-orange-800 mt-10 p-4 border-2 border-dashed border-orange-900">Keine Waffen im Inventar.</div>';
-        } else {
-            weapons.forEach(w => {
-                const def = Game.items[w.id];
-                if(!def) return; 
-                
-                const name = w.name || def.name;
-                const isRusty = w.id.startsWith('rusty_');
-                
-                // Safe Stats Call
-                let stats = { dmg: 0 };
-                try { stats = Game.getWeaponStats(w); } catch(err) { stats.dmg = "?"; }
-                
-                let actionBtn = '';
-                
-                if(isRusty) {
-                    actionBtn = `<button onclick="Game.restoreWeapon(${w.idx}); UI.renderSmithy()" class="bg-blue-900/30 text-xs px-3 py-2 border border-blue-500 hover:bg-blue-600 hover:text-black font-bold uppercase transition-colors">Restaurieren (50 KK + Öl)</button>`;
-                } else {
-                    actionBtn = `<button onclick="UI.renderModdingScreen(${w.idx})" class="bg-orange-900/30 text-xs px-3 py-2 border border-orange-500 hover:bg-orange-500 hover:text-black font-bold uppercase transition-colors">Modifizieren</button>`;
+        try {
+            // LOKALE HELPER FUNKTION - Damit wir nicht von game_inv_logic abhängig sind beim Rendern
+            const calcStatsLocal = (w) => {
+                const def = (Game.items && Game.items[w.id]) ? Game.items[w.id] : {};
+                let dmg = w.baseDmg || def.baseDmg || 1;
+                // Mods simpel addieren (nur fürs Anzeigen)
+                if(w.mods && Array.isArray(w.mods) && Game.items) {
+                    w.mods.forEach(mid => {
+                        const m = Game.items[mid];
+                        if(m && m.stats && m.stats.dmg) dmg += m.stats.dmg;
+                    });
                 }
+                return { dmg: dmg };
+            };
 
-                const div = document.createElement('div');
-                div.className = `flex justify-between items-center bg-black/40 p-3 border border-gray-700 hover:border-orange-500/50 transition-colors`;
-                div.innerHTML = `
-                    <div>
-                        <div class="${isRusty ? 'text-red-400' : 'text-orange-300'} font-bold text-lg">${name}</div>
-                        <div class="text-xs text-gray-500 font-mono">DMG: ${stats.dmg} | Mods: ${w.mods ? w.mods.length : 0}</div>
-                    </div>
-                    ${actionBtn}
-                `;
-                content.appendChild(div);
-            });
+            const wrapper = document.createElement('div');
+            wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-20 overflow-hidden";
+
+            // HEADER
+            const header = document.createElement('div');
+            header.className = "p-4 border-b-2 border-orange-500 bg-orange-900/20 flex justify-between items-end shadow-lg";
+            header.innerHTML = `
+                <div>
+                    <h2 class="text-3xl text-orange-400 font-bold font-vt323 tracking-widest">DER SCHMIED</h2>
+                    <div class="text-xs text-orange-300 tracking-wider">"Alles kann repariert werden."</div>
+                </div>
+                <div class="text-4xl text-orange-500 opacity-50">⚒️</div>
+            `;
+            wrapper.appendChild(header);
+
+            // CONTENT
+            const content = document.createElement('div');
+            content.className = "flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-[#0a0500]";
+
+            // Inventar Check
+            let weapons = [];
+            if(Game.state.inventory && Array.isArray(Game.state.inventory)) {
+                weapons = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(i => {
+                    if(!Game.items) return false;
+                    const def = Game.items[i.id];
+                    return def && (def.type === 'weapon' || def.type === 'melee');
+                });
+            }
+
+            if(weapons.length === 0) {
+                content.innerHTML = '<div class="text-center text-orange-800 mt-10 p-4 border-2 border-dashed border-orange-900">Keine Waffen im Inventar.</div>';
+            } else {
+                weapons.forEach(w => {
+                    const def = Game.items[w.id];
+                    if(!def) return; 
+                    
+                    const name = w.name || def.name;
+                    const isRusty = w.id.startsWith('rusty_');
+                    
+                    // Benutze lokale Funktion statt globaler Logik
+                    let stats = calcStatsLocal(w); 
+                    
+                    let actionBtn = '';
+                    if(isRusty) {
+                        actionBtn = `<button onclick="Game.restoreWeapon(${w.idx}); UI.renderSmithy()" class="bg-blue-900/30 text-xs px-3 py-2 border border-blue-500 hover:bg-blue-600 hover:text-black font-bold uppercase transition-colors">Restaurieren (50 KK + Öl)</button>`;
+                    } else {
+                        actionBtn = `<button onclick="UI.renderModdingScreen(${w.idx})" class="bg-orange-900/30 text-xs px-3 py-2 border border-orange-500 hover:bg-orange-500 hover:text-black font-bold uppercase transition-colors">Modifizieren</button>`;
+                    }
+
+                    const div = document.createElement('div');
+                    div.className = `flex justify-between items-center bg-black/40 p-3 border border-gray-700 hover:border-orange-500/50 transition-colors`;
+                    div.innerHTML = `
+                        <div>
+                            <div class="${isRusty ? 'text-red-400' : 'text-orange-300'} font-bold text-lg">${name}</div>
+                            <div class="text-xs text-gray-500 font-mono">DMG: ${stats.dmg} | Mods: ${w.mods ? w.mods.length : 0}</div>
+                        </div>
+                        ${actionBtn}
+                    `;
+                    content.appendChild(div);
+                });
+            }
+            wrapper.appendChild(content);
+
+            // FOOTER
+            const footer = document.createElement('div');
+            footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-orange-900 z-50";
+            footer.innerHTML = `<button class="action-button w-full border-2 border-orange-800 text-orange-700 hover:border-orange-500 hover:text-orange-400 transition-colors py-3 font-bold tracking-widest uppercase bg-black" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>`;
+            wrapper.appendChild(footer);
+
+            view.appendChild(wrapper);
+
+        } catch(e) {
+            console.error(e);
+            view.innerHTML = `<div class="p-10 text-red-500 font-bold text-center">SCHMIED ABGESTÜRZT:<br>${e.message}<br><br><button onclick="UI.renderCity()" class="border p-2">ZURÜCK</button></div>`;
         }
-        wrapper.appendChild(content);
-
-        // FOOTER
-        const footer = document.createElement('div');
-        footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-orange-900 z-50";
-        footer.innerHTML = `<button class="action-button w-full border-2 border-orange-800 text-orange-700 hover:border-orange-500 hover:text-orange-400 transition-colors py-3 font-bold tracking-widest uppercase bg-black" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>`;
-        wrapper.appendChild(footer);
-
-        view.appendChild(wrapper);
     },
 
     renderModdingScreen: function(weaponIdx) {
