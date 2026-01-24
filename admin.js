@@ -1,4 +1,4 @@
-// [2026-01-18 14:00:00] admin.js - Updated for SPECIAL 20 & Backpack System
+// [TIMESTAMP] 2026-01-25 13:00:00 - admin.js - Added Mods Category to Item Browser
 
 const Admin = {
     gatePass: "bimbo123",
@@ -617,7 +617,8 @@ const Admin = {
             tbody.appendChild(tr);
         });
 
-        const cats = ['ALL', 'WEAPON', 'APPAREL', 'AID', 'JUNK', 'NOTES'];
+        // HIER SIND DIE FILTER BUTTONS
+        const cats = ['ALL', 'WEAPON', 'MODS', 'APPAREL', 'AID', 'JUNK', 'NOTES', 'MISC'];
         const btnContainer = document.getElementById('filter-btns');
         cats.forEach(c => {
             const btn = document.createElement('button');
@@ -638,6 +639,7 @@ const Admin = {
 
     getItemCategory: function(type) {
         if (!type) return 'MISC';
+        if (type === 'mod') return 'MODS';
         if (type === 'weapon' || type === 'ammo') return 'WEAPON';
         if (['body', 'head', 'legs', 'feet', 'arms', 'back'].includes(type)) return 'APPAREL';
         if (type === 'consumable') return 'AID';
@@ -666,6 +668,7 @@ const Admin = {
             
             let icon = "📦";
             if(item.type === 'weapon') icon = "🔫";
+            if(item.type === 'mod') icon = "⚙️"; // MOD ICON
             if(item.type === 'ammo') icon = "🧨";
             if(item.type === 'consumable') icon = "💉";
             if(item.type === 'back') icon = "🎒";
