@@ -1,11 +1,11 @@
-// [TIMESTAMP] 2026-01-25 14:00:00 - ui_view_town.js - 2-Click-System & Modding Fix
+// [TIMESTAMP] 2026-01-25 15:00:00 - ui_view_town.js - Full Help Restore & Modding Fix
 
-console.log(">> UI VIEW TOWN (2-CLICK) GELADEN");
+console.log(">> UI VIEW TOWN (FINAL FIX) GELADEN");
 
 Object.assign(UI, {
     
     shopQty: 1,
-    smithySelection: null, // Speichert, welche Waffe gerade markiert ist
+    smithySelection: null, // Speichert die Auswahl für das 2-Klick-System
 
     renderCity: function(cityId = 'rusty_springs') {
         const view = document.getElementById('view-container');
@@ -13,7 +13,6 @@ Object.assign(UI, {
         view.innerHTML = ''; 
         
         Game.state.view = 'city';
-        // Reset Selection beim Betreten der Stadt
         this.smithySelection = null; 
 
         const cityData = {
@@ -169,7 +168,6 @@ Object.assign(UI, {
                     const isRusty = w.id.startsWith('rusty_');
                     const isSelected = (UI.smithySelection === w.idx);
                     
-                    // --- VISUAL LOGIC ---
                     let containerClass = "relative flex justify-between items-center bg-black/40 p-3 border transition-all cursor-pointer select-none group ";
                     if (isSelected) {
                         containerClass += "border-orange-500 shadow-[0_0_15px_rgba(255,165,0,0.2)] bg-orange-900/10";
@@ -177,7 +175,6 @@ Object.assign(UI, {
                         containerClass += "border-gray-800 hover:border-orange-500/50 hover:bg-[#1a1000]";
                     }
 
-                    // Text für Aktion (Modifizieren/Restaurieren)
                     let actionText = "";
                     let actionClass = "text-xs uppercase font-bold transition-all ";
                     
@@ -202,26 +199,29 @@ Object.assign(UI, {
                     const div = document.createElement('div');
                     div.className = containerClass;
                     
-                    // --- 2-CLICK LOGIC ---
                     div.onclick = () => {
                         if (isSelected) {
                             // ZWEITER KLICK -> AKTION
-                            console.log("Execute Action for idx:", w.idx);
                             if (isRusty) {
                                 if (typeof Game.restoreWeapon === 'function') {
                                     Game.restoreWeapon(w.idx);
-                                    UI.smithySelection = null; // Reset selection after action
+                                    UI.smithySelection = null; 
                                     UI.renderSmithy();
                                 } else {
                                     alert("Fehler: Logic nicht geladen.");
                                 }
                             } else {
-                                UI.renderModdingScreen(w.idx);
+                                try {
+                                    UI.renderModdingScreen(w.idx);
+                                } catch(err) {
+                                    console.error(err);
+                                    alert("Fehler beim Öffnen des Modding-Screens: " + err.message);
+                                }
                             }
                         } else {
                             // ERSTER KLICK -> SELEKTIEREN
                             UI.smithySelection = w.idx;
-                            UI.renderSmithy(); // Re-render um Status anzuzeigen
+                            UI.renderSmithy(); 
                         }
                     };
 
@@ -237,7 +237,6 @@ Object.assign(UI, {
             }
             wrapper.appendChild(content);
 
-            // Footer
             const footer = document.createElement('div');
             footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-orange-900 z-50";
             footer.innerHTML = `<button class="action-button w-full border-2 border-orange-800 text-orange-700 hover:border-orange-500 hover:text-orange-400 transition-colors py-3 font-bold tracking-widest uppercase bg-black" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>`;
@@ -251,7 +250,7 @@ Object.assign(UI, {
         }
     },
 
-    // --- HILFE FENSTER ---
+    // --- HILFE FENSTER (ORIGINAL LANGVERSION) ---
     renderSmithyHelp: function() {
         const view = document.getElementById('view-container');
         if(!view) return;
@@ -262,25 +261,66 @@ Object.assign(UI, {
             <div class="w-full max-w-lg border-2 border-orange-500 bg-[#1a0f00] shadow-[0_0_30px_rgba(255,100,0,0.3)] flex flex-col max-h-full">
                 <div class="p-4 border-b-2 border-orange-500 flex justify-between items-center bg-orange-900/30">
                     <h2 class="text-2xl font-bold text-orange-400 font-vt323 tracking-widest">MODDING HANDBUCH</h2>
-                    <button onclick="this.closest('.absolute').remove()" class="text-orange-500 hover:text-white font-bold border border-orange-500 px-2">X</button>
+                    <button onclick="UI.renderSmithy()" class="text-orange-500 hover:text-white font-bold border border-orange-500 px-2">X</button>
                 </div>
+                
                 <div class="p-6 overflow-y-auto custom-scrollbar text-sm font-mono space-y-6 text-orange-200">
-                    <div><h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">BEDIENUNG</h3><p class="opacity-80">1x Klicken um Waffe zu wählen.<br>2x Klicken um Modding zu öffnen.</p></div>
-                    <div><h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">MODS FINDEN</h3><p class="opacity-80">Händler, Loot von Bossen oder Quests.</p></div>
+                    
+                    <div>
+                        <h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">1. WAS IST MODDING?</h3>
+                        <p class="opacity-80">
+                            Hier kannst du deine Waffen verbessern. Jede Waffe hat bestimmte Slots (z.B. Lauf, Visier, Magazin), in die du Modifikationen einbauen kannst. Mods erhöhen Schaden, Präzision oder ändern den Munitionsverbrauch.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">2. WIE FUNKTIONIERT ES?</h3>
+                        <ul class="list-disc pl-4 space-y-1 opacity-80">
+                            <li>Klicke eine Waffe <span class="text-orange-400">1x</span> an, um sie zu markieren.</li>
+                            <li>Klicke sie ein <span class="text-orange-400">2. Mal</span> an, um das Mod-Menü zu öffnen.</li>
+                            <li>Wähle einen Mod aus der Liste und klicke auf <span class="text-green-400 border border-green-500 px-1 text-xs">EINBAUEN</span>.</li>
+                            <li>Alte Mods im selben Slot werden dabei zerstört/ersetzt.</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">3. FUNDORTE</h3>
+                        <p class="opacity-80 mb-2">Wo bekomme ich Mods her?</p>
+                        <div class="grid grid-cols-1 gap-2">
+                            <div class="bg-black/40 p-2 border-l-2 border-yellow-500 text-xs">
+                                <strong class="text-yellow-500">HANDELSPOSTEN:</strong> Der Händler verkauft oft Basis-Mods.
+                            </div>
+                            <div class="bg-black/40 p-2 border-l-2 border-red-500 text-xs">
+                                <strong class="text-red-500">BEUTE:</strong> Gegner im Ödland lassen selten Mods fallen. Legendäre Gegner haben höhere Chancen.
+                            </div>
+                            <div class="bg-black/40 p-2 border-l-2 border-blue-500 text-xs">
+                                <strong class="text-blue-500">WERKBANK:</strong> (Bald verfügbar) Zerlege Waffen, um Baupläne für Mods zu lernen.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">4. ROSTIGE WAFFEN</h3>
+                        <p class="opacity-80">
+                            Rostige Waffen ("Rusty ...") können nicht modifiziert werden. Du musst sie zuerst <span class="text-blue-400">Restaurieren</span>. Dafür benötigst du <span class="text-yellow-400">50 Kronkorken</span> und <span class="text-gray-400">Waffenöl</span>.
+                        </p>
+                    </div>
+
                 </div>
+
                 <div class="p-4 border-t-2 border-orange-500 bg-orange-900/20 text-center">
-                    <button onclick="this.closest('.absolute').remove()" class="w-full bg-orange-500 text-black font-bold py-2 hover:bg-white transition-colors uppercase">OK</button>
+                    <button onclick="UI.renderSmithy()" class="w-full bg-orange-500 text-black font-bold py-2 hover:bg-white transition-colors uppercase tracking-widest">VERSTANDEN</button>
                 </div>
             </div>
         `;
         view.appendChild(overlay);
     },
 
-    // --- MODDING SCREEN (CRASH FIXED) ---
+    // --- MODDING SCREEN (FIXED) ---
     renderModdingScreen: function(weaponIdx) {
         console.log("Render Modding Screen for:", weaponIdx);
         
-        // 1. Validierung BEVOR wir den Screen löschen
+        // Safety Check
         const weapon = Game.state.inventory[weaponIdx];
         if(!weapon) { 
             alert("Fehler: Waffe nicht gefunden!");
@@ -292,16 +332,16 @@ Object.assign(UI, {
         if(!view) return;
 
         try {
-            // Safe Item Def Access
+            // Item Definition sicher abrufen
             const wDef = (Game.items && Game.items[weapon.id]) ? Game.items[weapon.id] : { name: weapon.id };
             
-            // 2. Screen erst jetzt löschen
+            // Screen erst löschen, wenn wir bereit sind
             view.innerHTML = ''; 
 
             const wrapper = document.createElement('div');
             wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-30 overflow-hidden";
 
-            // CRASH FIX: modSlots Safe Access (|| [])
+            // CRASH FIX: modSlots safe access
             const slotsText = (wDef.modSlots && Array.isArray(wDef.modSlots)) ? wDef.modSlots.join(', ') : 'Keine';
 
             wrapper.innerHTML = `
@@ -318,11 +358,14 @@ Object.assign(UI, {
             const content = document.createElement('div');
             content.className = "flex-1 overflow-y-auto custom-scroll p-4 space-y-2 bg-[#0a0500]";
 
+            // Suche kompatible Mods
             let compatibleMods = [];
             if (Game.items) {
                 compatibleMods = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(m => {
+                    // FIX: Prüfen, ob Item Definition existiert
                     const mDef = Game.items[m.id];
-                    return mDef && mDef.type === 'mod' && mDef.target === weapon.id;
+                    if(!mDef) return false; // Kaputtes Item überspringen
+                    return mDef.type === 'mod' && mDef.target === weapon.id;
                 });
             }
 
@@ -338,7 +381,6 @@ Object.assign(UI, {
                     const div = document.createElement('div');
                     div.className = "flex justify-between items-center bg-black/40 p-3 border border-orange-500/30 hover:bg-orange-900/10";
                     
-                    // Stats formatieren ohne Crash
                     let statsText = "";
                     if(mDef.stats) statsText = JSON.stringify(mDef.stats).replace(/[{""}]/g,'').replace(/,/g, ', ');
 
@@ -366,8 +408,8 @@ Object.assign(UI, {
         } catch(e) {
             console.error("Modding Screen Error:", e);
             alert("MODDING ERROR:\n" + e.message);
-            // Versuche zurück zum Schmied zu gehen, falls View noch existiert
-            if(view) UI.renderSmithy(); 
+            // Zurück zum Hauptmenü bei Crash
+            UI.renderSmithy(); 
         }
     },
 
