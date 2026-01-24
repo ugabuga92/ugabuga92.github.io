@@ -1,20 +1,11 @@
-// [TIMESTAMP] 2026-01-25 12:00:00 - ui_view_town.js - Modding Fix & Help
+// [TIMESTAMP] 2026-01-25 14:00:00 - ui_view_town.js - 2-Click-System & Modding Fix
 
-console.log(">> UI VIEW TOWN (MOD FIX) GELADEN");
-
-// GLOBALE FUNKTION FÜR DEN BUTTON (Damit HTML 'onclick' sie immer findet)
-window.openModding = function(idx) {
-    console.log("Global Modding Call:", idx);
-    if(UI && UI.renderModdingScreen) {
-        UI.renderModdingScreen(idx);
-    } else {
-        alert("FEHLER: UI.renderModdingScreen nicht gefunden!");
-    }
-};
+console.log(">> UI VIEW TOWN (2-CLICK) GELADEN");
 
 Object.assign(UI, {
     
     shopQty: 1,
+    smithySelection: null, // Speichert, welche Waffe gerade markiert ist
 
     renderCity: function(cityId = 'rusty_springs') {
         const view = document.getElementById('view-container');
@@ -22,6 +13,8 @@ Object.assign(UI, {
         view.innerHTML = ''; 
         
         Game.state.view = 'city';
+        // Reset Selection beim Betreten der Stadt
+        this.smithySelection = null; 
 
         const cityData = {
             'rusty_springs': {
@@ -75,16 +68,10 @@ Object.assign(UI, {
 
             card.className = baseClass;
             
-            // ROBUST CLICK HANDLER
             card.onclick = function(e) {
                 e.preventDefault(); 
                 e.stopPropagation();
-                try {
-                    conf.onClick();
-                } catch(err) {
-                    console.error("UI Error:", err);
-                    alert("Kritischer Fehler beim Öffnen: " + err.message);
-                }
+                try { conf.onClick(); } catch(err) { console.error(err); }
             };
 
             const iconSize = conf.type === 'trader' ? 'text-6xl' : 'text-5xl';
@@ -118,9 +105,9 @@ Object.assign(UI, {
         view.appendChild(wrapper);
     },
 
-    // --- DER SCHMIED ---
+    // --- DER SCHMIED (2-CLICK SYSTEM) ---
     renderSmithy: function() {
-        console.log(">> Starte Schmied...");
+        console.log(">> Starte Schmied. Auswahl:", this.smithySelection);
         const view = document.getElementById('view-container');
         if(!view) return;
         
@@ -128,14 +115,13 @@ Object.assign(UI, {
         view.innerHTML = '';
 
         try {
-            // LOKALE STATS BERECHNUNG (Fallback)
+            // LOKALE FALLBACK FUNKTION (Stats Berechnung)
             const getWeaponStatsSafe = (item) => {
                 if (typeof Game.getWeaponStats === 'function') {
                     try { return Game.getWeaponStats(item); } catch(e) {}
                 }
                 const def = (Game.items && Game.items[item.id]) ? Game.items[item.id] : {};
                 let dmg = item.dmg !== undefined ? item.dmg : (item.baseDmg || def.baseDmg || 1);
-                // Mods simulieren
                 if (item.mods && Array.isArray(item.mods) && Game.items) {
                     item.mods.forEach(mid => {
                         const m = Game.items[mid];
@@ -148,7 +134,7 @@ Object.assign(UI, {
             const wrapper = document.createElement('div');
             wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-20 overflow-hidden";
 
-            // HEADER MIT HILFE BUTTON
+            // Header mit Hilfe
             const header = document.createElement('div');
             header.className = "p-4 border-b-2 border-orange-500 bg-orange-900/20 flex justify-between items-center shadow-lg";
             header.innerHTML = `
@@ -156,18 +142,16 @@ Object.assign(UI, {
                     <h2 class="text-3xl text-orange-400 font-bold font-vt323 tracking-widest leading-none">DER SCHMIED</h2>
                     <div class="text-xs text-orange-300 tracking-wider">"Aus Alt mach Neu..."</div>
                 </div>
-                
                 <button onclick="UI.renderSmithyHelp()" class="mx-4 w-10 h-10 border-2 border-orange-500 rounded-full text-orange-500 font-bold text-xl hover:bg-orange-500 hover:text-black transition-colors animate-pulse flex items-center justify-center bg-black" title="Hilfe & Infos">?</button>
-
                 <div class="text-4xl text-orange-500 opacity-50 ml-2">⚒️</div>
             `;
             wrapper.appendChild(header);
 
-            // CONTENT
+            // Content
             const content = document.createElement('div');
             content.className = "flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-[#0a0500]";
 
-            // Inventar filtern
+            // Inventar filtern (Nur Waffen)
             let weapons = [];
             if(Game.state.inventory && Array.isArray(Game.state.inventory)) {
                 weapons = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(i => {
@@ -183,29 +167,70 @@ Object.assign(UI, {
                 weapons.forEach(w => {
                     const stats = getWeaponStatsSafe(w);
                     const isRusty = w.id.startsWith('rusty_');
+                    const isSelected = (UI.smithySelection === w.idx);
                     
-                    let actionBtn = '';
+                    // --- VISUAL LOGIC ---
+                    let containerClass = "relative flex justify-between items-center bg-black/40 p-3 border transition-all cursor-pointer select-none group ";
+                    if (isSelected) {
+                        containerClass += "border-orange-500 shadow-[0_0_15px_rgba(255,165,0,0.2)] bg-orange-900/10";
+                    } else {
+                        containerClass += "border-gray-800 hover:border-orange-500/50 hover:bg-[#1a1000]";
+                    }
+
+                    // Text für Aktion (Modifizieren/Restaurieren)
+                    let actionText = "";
+                    let actionClass = "text-xs uppercase font-bold transition-all ";
                     
-                    if(isRusty) {
-                        const hasRestore = typeof Game.restoreWeapon === 'function';
-                        if(hasRestore) {
-                            actionBtn = `<button onclick="Game.restoreWeapon(${w.idx}); UI.renderSmithy()" class="bg-blue-900/30 text-xs px-3 py-2 border border-blue-500 hover:bg-blue-600 hover:text-black font-bold uppercase transition-colors">Restaurieren (50 KK + Öl)</button>`;
+                    if (isRusty) {
+                        if (isSelected) {
+                            actionText = "> RESTAURIEREN (50 KK) <";
+                            actionClass += "text-blue-400 animate-pulse";
                         } else {
-                            actionBtn = `<div class="text-red-500 text-xs border border-red-500 px-2 py-1">LOGIK FEHLT</div>`;
+                            actionText = "Restaurieren";
+                            actionClass += "text-gray-600 opacity-50 group-hover:opacity-100 group-hover:text-blue-500";
                         }
                     } else {
-                        // NUTZE GLOBALE FUNKTION FÜR MODDING
-                        actionBtn = `<button onclick="window.openModding(${w.idx})" class="bg-orange-900/30 text-xs px-3 py-2 border border-orange-500 hover:bg-orange-500 hover:text-black font-bold uppercase transition-colors">Modifizieren</button>`;
+                        if (isSelected) {
+                            actionText = "> MODIFIZIEREN <";
+                            actionClass += "text-orange-400 animate-pulse";
+                        } else {
+                            actionText = "Modifizieren";
+                            actionClass += "text-gray-600 opacity-30 group-hover:opacity-100 group-hover:text-orange-500";
+                        }
                     }
 
                     const div = document.createElement('div');
-                    div.className = `flex justify-between items-center bg-black/40 p-3 border border-gray-700 hover:border-orange-500/50 transition-colors`;
+                    div.className = containerClass;
+                    
+                    // --- 2-CLICK LOGIC ---
+                    div.onclick = () => {
+                        if (isSelected) {
+                            // ZWEITER KLICK -> AKTION
+                            console.log("Execute Action for idx:", w.idx);
+                            if (isRusty) {
+                                if (typeof Game.restoreWeapon === 'function') {
+                                    Game.restoreWeapon(w.idx);
+                                    UI.smithySelection = null; // Reset selection after action
+                                    UI.renderSmithy();
+                                } else {
+                                    alert("Fehler: Logic nicht geladen.");
+                                }
+                            } else {
+                                UI.renderModdingScreen(w.idx);
+                            }
+                        } else {
+                            // ERSTER KLICK -> SELEKTIEREN
+                            UI.smithySelection = w.idx;
+                            UI.renderSmithy(); // Re-render um Status anzuzeigen
+                        }
+                    };
+
                     div.innerHTML = `
                         <div>
                             <div class="${isRusty ? 'text-red-400' : 'text-orange-300'} font-bold text-lg">${stats.name}</div>
                             <div class="text-xs text-gray-500 font-mono">DMG: ${stats.dmg} | Mods: ${w.mods ? w.mods.length : 0}</div>
                         </div>
-                        ${actionBtn}
+                        <div class="${actionClass}">${actionText}</div>
                     `;
                     content.appendChild(div);
                 });
@@ -222,19 +247,11 @@ Object.assign(UI, {
 
         } catch(e) {
             console.error("FATAL SMITHY ERROR:", e);
-            view.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-red-500 p-6 text-center">
-                    <h1 class="text-2xl font-bold mb-4">SYSTEMFEHLER</h1>
-                    <div class="border border-red-800 p-4 bg-red-900/20 mb-4 font-mono text-xs">
-                        ${e.message}
-                    </div>
-                    <button onclick="UI.renderCity()" class="border border-red-500 px-4 py-2 hover:bg-red-500 hover:text-black">NEUSTART</button>
-                </div>
-            `;
+            view.innerHTML = `<div class="p-6 text-red-500 border border-red-500">CRITICAL ERROR: ${e.message}<br><button onclick="UI.renderCity()" class="mt-4 border p-2">RESET</button></div>`;
         }
     },
 
-    // --- NEU: HILFE FENSTER ---
+    // --- HILFE FENSTER ---
     renderSmithyHelp: function() {
         const view = document.getElementById('view-container');
         if(!view) return;
@@ -247,73 +264,45 @@ Object.assign(UI, {
                     <h2 class="text-2xl font-bold text-orange-400 font-vt323 tracking-widest">MODDING HANDBUCH</h2>
                     <button onclick="this.closest('.absolute').remove()" class="text-orange-500 hover:text-white font-bold border border-orange-500 px-2">X</button>
                 </div>
-                
                 <div class="p-6 overflow-y-auto custom-scrollbar text-sm font-mono space-y-6 text-orange-200">
-                    
-                    <div>
-                        <h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">1. MODDING GRUNDLAGEN</h3>
-                        <p class="opacity-80">
-                            Waffen können durch Mods verbessert werden (Schaden, Munitionsverbrauch, etc.).
-                            Klicke auf <span class="text-orange-400 font-bold">MODIFIZIEREN</span> bei einer Waffe, um verfügbare Mods einzubauen.
-                        </p>
-                    </div>
-
-                    <div>
-                        <h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">2. WO FINDE ICH MODS?</h3>
-                        <div class="space-y-2">
-                            <div class="bg-black/40 p-2 border-l-2 border-yellow-500">
-                                <strong class="text-yellow-500">HANDELSPOSTEN:</strong><br>
-                                Der Händler in der Stadt hat oft eine kleine Auswahl an Basis-Mods.
-                            </div>
-                            <div class="bg-black/40 p-2 border-l-2 border-red-500">
-                                <strong class="text-red-500">PLÜNDERN (LOOT):</strong><br>
-                                Besiege Gegner im Ödland. Legendäre Gegner und Boss-Monster droppen häufig Mods.
-                            </div>
-                            <div class="bg-black/40 p-2 border-l-2 border-blue-500">
-                                <strong class="text-blue-500">QUESTS:</strong><br>
-                                Manche Aufgaben belohnen dich mit seltenen Modifikationen.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">3. ROSTIGE WAFFEN</h3>
-                        <p class="opacity-80">
-                            Rostige Waffen (rote Schrift) sind zu alt für Mods. Du musst sie erst <span class="text-blue-400">RESTAURIEREN</span>.
-                            <br>Kosten: <span class="text-yellow-400">50 KK</span> + <span class="text-gray-400">1x Waffenöl</span> (Findet man im Ödland).
-                        </p>
-                    </div>
-
+                    <div><h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">BEDIENUNG</h3><p class="opacity-80">1x Klicken um Waffe zu wählen.<br>2x Klicken um Modding zu öffnen.</p></div>
+                    <div><h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">MODS FINDEN</h3><p class="opacity-80">Händler, Loot von Bossen oder Quests.</p></div>
                 </div>
-
                 <div class="p-4 border-t-2 border-orange-500 bg-orange-900/20 text-center">
-                    <button onclick="this.closest('.absolute').remove()" class="w-full bg-orange-500 text-black font-bold py-2 hover:bg-white transition-colors uppercase tracking-widest">VERSTANDEN</button>
+                    <button onclick="this.closest('.absolute').remove()" class="w-full bg-orange-500 text-black font-bold py-2 hover:bg-white transition-colors uppercase">OK</button>
                 </div>
             </div>
         `;
         view.appendChild(overlay);
     },
 
+    // --- MODDING SCREEN (CRASH FIXED) ---
     renderModdingScreen: function(weaponIdx) {
         console.log("Render Modding Screen for:", weaponIdx);
-        try {
-            const view = document.getElementById('view-container');
-            if(!view) return;
-            
-            if(!Game.state.inventory || !Game.state.inventory[weaponIdx]) {
-                alert("Fehler: Waffe nicht gefunden! (Index: " + weaponIdx + ")");
-                this.renderSmithy(); 
-                return; 
-            }
+        
+        // 1. Validierung BEVOR wir den Screen löschen
+        const weapon = Game.state.inventory[weaponIdx];
+        if(!weapon) { 
+            alert("Fehler: Waffe nicht gefunden!");
+            this.renderSmithy(); 
+            return; 
+        }
 
-            const weapon = Game.state.inventory[weaponIdx];
+        const view = document.getElementById('view-container');
+        if(!view) return;
+
+        try {
             // Safe Item Def Access
             const wDef = (Game.items && Game.items[weapon.id]) ? Game.items[weapon.id] : { name: weapon.id };
-
+            
+            // 2. Screen erst jetzt löschen
             view.innerHTML = ''; 
 
             const wrapper = document.createElement('div');
             wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-30 overflow-hidden";
+
+            // CRASH FIX: modSlots Safe Access (|| [])
+            const slotsText = (wDef.modSlots && Array.isArray(wDef.modSlots)) ? wDef.modSlots.join(', ') : 'Keine';
 
             wrapper.innerHTML = `
                 <div class="p-4 border-b-2 border-orange-500 bg-orange-900/20">
@@ -321,7 +310,7 @@ Object.assign(UI, {
                     <div class="text-white font-bold">${weapon.name || wDef.name}</div>
                 </div>
                 <div class="p-4 bg-black/60 border-b border-gray-800 text-sm text-gray-400 font-mono">
-                    <p>Verfügbare Slots: <span class="text-yellow-500">${wDef.modSlots ? wDef.modSlots.join(', ') : 'Keine'}</span></p>
+                    <p>Verfügbare Slots: <span class="text-yellow-500">${slotsText}</span></p>
                     <p>Installierte Mods: <span class="text-white">${weapon.mods ? weapon.mods.length : 0}</span></p>
                 </div>
             `;
@@ -333,7 +322,6 @@ Object.assign(UI, {
             if (Game.items) {
                 compatibleMods = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(m => {
                     const mDef = Game.items[m.id];
-                    // Prüfe ob Mod passt
                     return mDef && mDef.type === 'mod' && mDef.target === weapon.id;
                 });
             }
@@ -349,13 +337,18 @@ Object.assign(UI, {
                     const mDef = Game.items[m.id];
                     const div = document.createElement('div');
                     div.className = "flex justify-between items-center bg-black/40 p-3 border border-orange-500/30 hover:bg-orange-900/10";
+                    
+                    // Stats formatieren ohne Crash
+                    let statsText = "";
+                    if(mDef.stats) statsText = JSON.stringify(mDef.stats).replace(/[{""}]/g,'').replace(/,/g, ', ');
+
                     div.innerHTML = `
                         <div>
                             <div class="text-orange-300 font-bold">${mDef.name}</div>
                             <div class="text-xs text-gray-400">${mDef.desc}</div>
-                            <div class="text-xs text-green-500 mt-1">${JSON.stringify(mDef.stats).replace(/[{""}]/g,'').replace(/,/g, ', ')}</div>
+                            <div class="text-xs text-green-500 mt-1">${statsText}</div>
                         </div>
-                        <button onclick="Game.installMod(${weaponIdx}, ${m.idx}); UI.renderSmithy()" class="bg-green-900/30 text-xs px-3 py-2 border border-green-500 hover:bg-green-500 hover:text-black font-bold uppercase transition-colors">
+                        <button onclick="Game.installMod(${weaponIdx}, ${m.idx}); UI.renderModdingScreen(${weaponIdx})" class="bg-green-900/30 text-xs px-3 py-2 border border-green-500 hover:bg-green-500 hover:text-black font-bold uppercase transition-colors">
                             EINBAUEN
                         </button>
                     `;
@@ -372,8 +365,9 @@ Object.assign(UI, {
             view.appendChild(wrapper);
         } catch(e) {
             console.error("Modding Screen Error:", e);
-            alert("FEHLER IM MODDING SCREEN:\n" + e.message);
-            UI.renderSmithy(); 
+            alert("MODDING ERROR:\n" + e.message);
+            // Versuche zurück zum Schmied zu gehen, falls View noch existiert
+            if(view) UI.renderSmithy(); 
         }
     },
 
