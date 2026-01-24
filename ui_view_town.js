@@ -1,6 +1,6 @@
-// [TIMESTAMP] 2026-01-24 20:00:00 - ui_view_town.js - Decoupled & Crash-Proof
+// [TIMESTAMP] 2026-01-24 21:30:00 - ui_view_town.js - STANDALONE VERSION
 
-console.log(">> UI VIEW TOWN (DECOUPLED) GELADEN");
+console.log(">> UI VIEW TOWN (STANDALONE) GELADEN");
 
 Object.assign(UI, {
     
@@ -90,7 +90,8 @@ Object.assign(UI, {
 
         grid.appendChild(createCard({ type: 'trader', icon: "🛒", label: "HANDELSPOSTEN", sub: "Waffen & Munition", onClick: () => UI.renderShop() }));
         grid.appendChild(createCard({ type: 'clinic', icon: "⚕️", label: "KLINIK", sub: "Dr. Zimmermann", onClick: () => UI.renderClinic() }));
-        grid.appendChild(createCard({ type: 'smithy', icon: "⚒️", label: "DER SCHMIED [FIX2]", sub: "Reparaturen & Mods", onClick: () => UI.renderSmithy() }));
+        // [FIX3] - Neuer Name zum Prüfen ob Cache gelöscht ist
+        grid.appendChild(createCard({ type: 'smithy', icon: "⚒️", label: "DER SCHMIED [V3]", sub: "Reparaturen & Mods", onClick: () => UI.renderSmithy() }));
         grid.appendChild(createCard({ type: 'craft', icon: "🛠️", label: "WERKBANK", sub: "Zerlegen & Bauen", onClick: () => UI.renderCrafting() }));
 
         wrapper.appendChild(grid);
@@ -104,7 +105,6 @@ Object.assign(UI, {
     },
 
     renderSmithy: function() {
-        // ERROR TRAPPING WRAPPER
         const view = document.getElementById('view-container');
         if(!view) return;
         view.innerHTML = ''; // Screen leeren
@@ -112,12 +112,15 @@ Object.assign(UI, {
         Game.state.view = 'smithy';
 
         try {
-            // LOKALE HELPER FUNKTION - Damit wir nicht von game_inv_logic abhängig sind beim Rendern
+            // ==========================================
+            // LOKALE LOGIK (UMGEHT game_inv_logic.js)
+            // ==========================================
             const calcStatsLocal = (w) => {
-                const def = (Game.items && Game.items[w.id]) ? Game.items[w.id] : {};
-                let dmg = w.baseDmg || def.baseDmg || 1;
-                // Mods simpel addieren (nur fürs Anzeigen)
-                if(w.mods && Array.isArray(w.mods) && Game.items) {
+                if (!Game.items) return { dmg: "?" };
+                const def = Game.items[w.id] || {};
+                let dmg = w.dmg !== undefined ? w.dmg : (w.baseDmg || def.baseDmg || 1);
+                // Mods simulieren (nur Anzeige)
+                if(w.mods && Array.isArray(w.mods)) {
                     w.mods.forEach(mid => {
                         const m = Game.items[mid];
                         if(m && m.stats && m.stats.dmg) dmg += m.stats.dmg;
@@ -145,12 +148,13 @@ Object.assign(UI, {
             const content = document.createElement('div');
             content.className = "flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-[#0a0500]";
 
-            // Inventar Check
+            // Inventar Check (Robust)
             let weapons = [];
             if(Game.state.inventory && Array.isArray(Game.state.inventory)) {
                 weapons = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(i => {
-                    if(!Game.items) return false;
-                    const def = Game.items[i.id];
+                    // Prüfen ob Item überhaupt existiert und eine ID hat
+                    if (!i || !i.id) return false;
+                    const def = (Game.items && Game.items[i.id]) ? Game.items[i.id] : null;
                     return def && (def.type === 'weapon' || def.type === 'melee');
                 });
             }
@@ -159,18 +163,19 @@ Object.assign(UI, {
                 content.innerHTML = '<div class="text-center text-orange-800 mt-10 p-4 border-2 border-dashed border-orange-900">Keine Waffen im Inventar.</div>';
             } else {
                 weapons.forEach(w => {
-                    const def = Game.items[w.id];
-                    if(!def) return; 
-                    
-                    const name = w.name || def.name;
+                    const def = Game.items ? Game.items[w.id] : { name: w.id };
+                    const name = w.name || (def ? def.name : w.id);
                     const isRusty = w.id.startsWith('rusty_');
                     
-                    // Benutze lokale Funktion statt globaler Logik
+                    // Lokale Berechnung nutzen -> KEIN Absturz wenn Logic fehlt
                     let stats = calcStatsLocal(w); 
                     
                     let actionBtn = '';
                     if(isRusty) {
-                        actionBtn = `<button onclick="Game.restoreWeapon(${w.idx}); UI.renderSmithy()" class="bg-blue-900/30 text-xs px-3 py-2 border border-blue-500 hover:bg-blue-600 hover:text-black font-bold uppercase transition-colors">Restaurieren (50 KK + Öl)</button>`;
+                        // Wir prüfen ob Game.restoreWeapon existiert, sonst Warnung
+                        const hasRestore = typeof Game.restoreWeapon === 'function';
+                        const onclick = hasRestore ? `Game.restoreWeapon(${w.idx}); UI.renderSmithy()` : `alert('Logik-Fehler: restoreWeapon fehlt!')`;
+                        actionBtn = `<button onclick="${onclick}" class="bg-blue-900/30 text-xs px-3 py-2 border border-blue-500 hover:bg-blue-600 hover:text-black font-bold uppercase transition-colors">Restaurieren (50 KK + Öl)</button>`;
                     } else {
                         actionBtn = `<button onclick="UI.renderModdingScreen(${w.idx})" class="bg-orange-900/30 text-xs px-3 py-2 border border-orange-500 hover:bg-orange-500 hover:text-black font-bold uppercase transition-colors">Modifizieren</button>`;
                     }
@@ -199,7 +204,17 @@ Object.assign(UI, {
 
         } catch(e) {
             console.error(e);
-            view.innerHTML = `<div class="p-10 text-red-500 font-bold text-center">SCHMIED ABGESTÜRZT:<br>${e.message}<br><br><button onclick="UI.renderCity()" class="border p-2">ZURÜCK</button></div>`;
+            view.innerHTML = `
+                <div class="w-full h-full flex flex-col justify-center items-center bg-black text-red-500 font-mono p-4 text-center">
+                    <h1 class="text-2xl font-bold mb-4">SYSTEMABSTURZ (CRITICAL ERROR)</h1>
+                    <div class="border border-red-900 p-4 bg-red-900/10 mb-4 max-w-lg overflow-auto">
+                        ${e.message}<br><br><small>${e.stack}</small>
+                    </div>
+                    <button onclick="UI.renderCity()" class="border-2 border-red-500 text-red-500 px-6 py-3 font-bold hover:bg-red-500 hover:text-black transition-colors uppercase">
+                        NOT-NEUSTART (ZURÜCK)
+                    </button>
+                </div>
+            `;
         }
     },
 
@@ -214,6 +229,7 @@ Object.assign(UI, {
                 return; 
             }
             
+            // Safe Access
             const wDef = (Game.items && Game.items[weapon.id]) ? Game.items[weapon.id] : { name: weapon.id };
 
             view.innerHTML = ''; 
@@ -235,10 +251,14 @@ Object.assign(UI, {
             const content = document.createElement('div');
             content.className = "flex-1 overflow-y-auto custom-scroll p-4 space-y-2 bg-[#0a0500]";
 
-            const compatibleMods = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(m => {
-                const mDef = (Game.items && Game.items[m.id]) ? Game.items[m.id] : null;
-                return mDef && mDef.type === 'mod' && mDef.target === weapon.id;
-            });
+            // Robust Filter
+            let compatibleMods = [];
+            if (Game.items) {
+                compatibleMods = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(m => {
+                    const mDef = Game.items[m.id];
+                    return mDef && mDef.type === 'mod' && mDef.target === weapon.id;
+                });
+            }
 
             if(compatibleMods.length === 0) {
                 content.innerHTML = '<div class="text-red-500 text-sm text-center mt-10">Keine passenden Mods im Inventar gefunden.</div>';
@@ -270,8 +290,8 @@ Object.assign(UI, {
             view.appendChild(wrapper);
         } catch(e) {
             console.error("Modding Screen Error:", e);
-            alert("MODDING ERROR:\n" + e.message);
-            UI.renderSmithy(); 
+            // Panic Button im Modding Screen
+            view.innerHTML = `<div class="p-4 text-red-500">MODDING ERROR: ${e.message}<br><button onclick="UI.renderSmithy()" class="mt-4 border p-2">ZURÜCK</button></div>`;
         }
     },
 
