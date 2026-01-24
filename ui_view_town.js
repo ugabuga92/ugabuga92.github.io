@@ -1,12 +1,85 @@
-// [TIMESTAMP] 2026-01-25 19:30:00 - ui_view_town.js - GHOST CLICK FIX
+// [TIMESTAMP] 2026-01-25 20:30:00 - ui_view_town.js - GLOBAL CORE FIX
 
-console.log(">> UI VIEW TOWN (GHOST FIX) GELADEN");
+console.log(">> UI VIEW TOWN (GLOBAL CORE) GELADEN");
+
+// --- GLOBALE STEUERUNG (Unabhängig vom UI Objekt) ---
+window.SmithyCore = {
+    selectedIdx: -1,
+    lastClickTime: 0,
+
+    // Prüft Ghost Clicks und Doppeltipps
+    checkClick: function(idx) {
+        const now = Date.now();
+        // Wenn weniger als 500ms vergangen sind -> Ignorieren (Ghost Click Schutz)
+        if (now - this.lastClickTime < 500) {
+            console.log("Klick ignoriert (Cooldown)");
+            return false;
+        }
+        this.lastClickTime = now;
+        return true;
+    },
+
+    // Setzt die Auswahl zurück
+    reset: function() {
+        this.selectedIdx = -1;
+    },
+
+    // Sichere Daten-Abfrage (Verhindert Absturz bei fehlender Logik)
+    getStats: function(item) {
+        if(!item) return { name: "FEHLER", dmg: 0 };
+        try {
+            // Versuch 1: Game Logic
+            if(typeof Game !== 'undefined' && typeof Game.getWeaponStats === 'function') {
+                return Game.getWeaponStats(item);
+            }
+            // Versuch 2: Direkter DB Zugriff
+            if(typeof Game !== 'undefined' && Game.items) {
+                const def = Game.items[item.id] || {};
+                let dmg = item.baseDmg || def.baseDmg || 0;
+                // Mods simulieren
+                if(item.mods && Array.isArray(item.mods)) {
+                    item.mods.forEach(m => {
+                        const md = Game.items[m];
+                        if(md && md.stats && md.stats.dmg) dmg += md.stats.dmg;
+                    });
+                }
+                return { name: item.name || def.name || item.id, dmg: dmg };
+            }
+        } catch(e) { console.error(e); }
+        return { name: item.id || "Unbekannt", dmg: "?" };
+    },
+
+    // Öffnet das Hilfe-Overlay (OHNE Reload beim Schließen)
+    openHelp: function() {
+        const existing = document.getElementById('smithy-help-overlay');
+        if(existing) existing.remove();
+
+        const div = document.createElement('div');
+        div.id = 'smithy-help-overlay';
+        div.className = "absolute inset-0 z-[999] bg-black/95 flex flex-col justify-center items-center p-4";
+        div.innerHTML = `
+            <div class="border-2 border-orange-500 bg-[#1a0f00] w-full max-w-md flex flex-col max-h-[90%] shadow-[0_0_50px_rgba(255,100,0,0.5)]">
+                <div class="bg-orange-900/50 p-4 border-b border-orange-500 flex justify-between items-center">
+                    <h2 class="text-orange-400 font-bold font-vt323 text-2xl tracking-widest">HANDBUCH</h2>
+                    <button onclick="document.getElementById('smithy-help-overlay').remove()" class="text-red-500 font-bold border border-red-500 px-3 hover:bg-red-500 hover:text-black">X</button>
+                </div>
+                <div class="p-4 overflow-y-auto text-orange-200 text-sm font-mono space-y-4">
+                    <p><strong class="text-orange-500">BEDIENUNG:</strong><br>Tippe eine Waffe an, um sie auszuwählen (orange). Tippe sie <b>nochmal</b> an, um das Menü zu öffnen.</p>
+                    <p><strong class="text-orange-500">MODS:</strong><br>Verbessern Schaden & Stats. Zu finden bei Händlern oder als Loot.</p>
+                    <p><strong class="text-orange-500">ROSTIGE WAFFEN:</strong><br>Müssen für 50 KK restauriert werden, bevor man sie modden kann.</p>
+                </div>
+                <div class="p-4 border-t border-orange-500 bg-black">
+                    <button onclick="document.getElementById('smithy-help-overlay').remove()" class="w-full border-2 border-orange-500 text-orange-500 font-bold py-3 hover:bg-orange-500 hover:text-black transition-colors uppercase">VERSTANDEN</button>
+                </div>
+            </div>
+        `;
+        document.getElementById('view-container').appendChild(div);
+    }
+};
 
 Object.assign(UI, {
     
     shopQty: 1,
-    smithySelection: null, 
-    selectionTime: 0, // Zeitstempel der letzten Auswahl
 
     renderCity: function(cityId = 'rusty_springs') {
         const view = document.getElementById('view-container');
@@ -14,18 +87,11 @@ Object.assign(UI, {
         view.innerHTML = ''; 
         
         Game.state.view = 'city';
-        this.smithySelection = null; 
+        SmithyCore.reset(); // Reset Selection
 
-        const cityData = {
-            'rusty_springs': {
-                name: "RUSTY SPRINGS",
-                pop: 142, sec: "HOCH", rad: "NIEDRIG",
-                flairs: ["Die Luft riecht nach Rost.", "Ein Generator brummt.", "Händler schreien.", "Sicher ist es nur hier."]
-            }
-        };
-
-        const data = cityData[cityId] || cityData['rusty_springs'];
-        const flair = data.flairs[Math.floor(Math.random() * data.flairs.length)];
+        // --- HARDCODED DATA FÜR SICHERHEIT ---
+        const name = "RUSTY SPRINGS";
+        const flair = "Die Luft riecht nach Rost.";
 
         const wrapper = document.createElement('div');
         wrapper.className = "w-full h-full flex flex-col bg-black relative overflow-hidden";
@@ -33,11 +99,10 @@ Object.assign(UI, {
         // HEADER
         const header = document.createElement('div');
         header.className = "flex-shrink-0 flex flex-col border-b-4 border-green-900 bg-[#001100] p-4 relative shadow-lg z-10";
-        
         header.innerHTML = `
             <div class="flex justify-between items-start z-10 relative">
                 <div>
-                    <h1 class="text-5xl md:text-6xl font-bold text-green-400 tracking-widest text-shadow-glow font-vt323 leading-none">${data.name}</h1>
+                    <h1 class="text-5xl md:text-6xl font-bold text-green-400 tracking-widest text-shadow-glow font-vt323 leading-none">${name}</h1>
                     <div class="text-green-600 text-sm italic mt-1 font-mono">"${flair}"</div>
                 </div>
                 <div class="bg-black/60 border-2 border-yellow-600 p-2 flex flex-col items-end shadow-[0_0_15px_rgba(200,150,0,0.3)] min-w-[120px]">
@@ -45,54 +110,40 @@ Object.assign(UI, {
                     <span class="text-2xl text-yellow-400 font-bold font-vt323 tracking-wider">${Game.state.caps} KK</span>
                 </div>
             </div>
-            <div class="flex gap-4 mt-2 pt-2 border-t border-green-900/50 text-xs font-mono z-10 uppercase tracking-widest">
-                <div class="bg-green-900/30 px-2 py-1 border-l-2 border-green-500">POP: <span class="text-green-300 font-bold">${data.pop}</span></div>
-                <div class="bg-cyan-900/30 px-2 py-1 border-l-2 border-cyan-500">SEC: <span class="text-cyan-300 font-bold">${data.sec}</span></div>
-            </div>
         `;
         wrapper.appendChild(header);
 
-        // GRID MENU
+        // GRID
         const grid = document.createElement('div');
         grid.className = "flex-grow overflow-y-auto custom-scrollbar p-4 grid grid-cols-1 md:grid-cols-2 gap-4 content-start bg-[#050a05]";
 
-        const createCard = (conf) => {
+        const createCard = (label, sub, icon, func) => {
             const card = document.createElement('div');
-            let baseClass = "relative overflow-hidden group cursor-pointer p-4 flex items-center gap-4 border-2 transition-all duration-200 bg-black/80 hover:bg-[#0a1a0a] shadow-md min-h-[100px]";
-            let themeColor = "green";
-            if(conf.type === 'trader') { themeColor = "yellow"; baseClass += " md:col-span-2 border-yellow-600 hover:border-yellow-400 shadow-yellow-900/20 h-32"; }
-            else if (conf.type === 'clinic') { themeColor = "red"; baseClass += " border-red-600 hover:border-red-400 shadow-red-900/20"; }
-            else if (conf.type === 'craft') { themeColor = "blue"; baseClass += " border-blue-600 hover:border-blue-400 shadow-blue-900/20"; }
-            else if (conf.type === 'smithy') { themeColor = "orange"; baseClass += " border-orange-600 hover:border-orange-400 shadow-orange-900/20"; }
-            else { baseClass += " border-green-600 hover:border-green-400 shadow-green-900/20"; }
+            let color = "green";
+            if(label.includes("SCHMIED")) color = "orange";
+            if(label.includes("HANDEL")) color = "yellow";
+            if(label.includes("KLINIK")) color = "red";
+            if(label.includes("WERKBANK")) color = "blue";
 
-            card.className = baseClass;
+            card.className = `relative overflow-hidden group cursor-pointer p-4 flex items-center gap-4 border-2 border-${color}-600 bg-black/80 hover:bg-[#0a1a0a] shadow-md min-h-[100px]`;
             
-            card.onclick = function(e) {
-                e.preventDefault(); 
-                e.stopPropagation();
-                try { conf.onClick(); } catch(err) { console.error(err); }
-            };
-
-            const iconSize = conf.type === 'trader' ? 'text-6xl' : 'text-5xl';
-            let titleClass = `text-${themeColor}-500 group-hover:text-${themeColor}-300`;
-            if(conf.type === 'trader') titleClass = "text-yellow-500 group-hover:text-yellow-300";
+            // DIREKTE FUNKTIONSZUWEISUNG
+            card.onclick = function() { func(); };
 
             card.innerHTML = `
-                <div class="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-${themeColor}-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-0"></div>
-                <div class="icon flex-shrink-0 ${iconSize} z-10 relative filter drop-shadow-md">${conf.icon}</div>
+                <div class="icon flex-shrink-0 text-5xl z-10 relative filter drop-shadow-md text-${color}-500">${icon}</div>
                 <div class="flex flex-col z-10 relative">
-                    <span class="text-2xl font-bold ${titleClass} tracking-wider font-vt323 uppercase">${conf.label}</span>
-                    <span class="text-xs text-${themeColor}-700 font-mono uppercase tracking-widest mt-1">${conf.sub}</span>
+                    <span class="text-2xl font-bold text-${color}-500 tracking-wider font-vt323 uppercase">${label}</span>
+                    <span class="text-xs text-${color}-700 font-mono uppercase tracking-widest mt-1">${sub}</span>
                 </div>
             `;
             return card;
         };
 
-        grid.appendChild(createCard({ type: 'trader', icon: "🛒", label: "HANDELSPOSTEN", sub: "Waffen & Munition", onClick: () => UI.renderShop() }));
-        grid.appendChild(createCard({ type: 'clinic', icon: "⚕️", label: "KLINIK", sub: "Dr. Zimmermann", onClick: () => UI.renderClinic() }));
-        grid.appendChild(createCard({ type: 'smithy', icon: "⚒️", label: "DER SCHMIED", sub: "Reparaturen & Mods", onClick: () => UI.renderSmithy() }));
-        grid.appendChild(createCard({ type: 'craft', icon: "🛠️", label: "WERKBANK", sub: "Zerlegen & Bauen", onClick: () => UI.renderCrafting() }));
+        grid.appendChild(createCard("HANDELSPOSTEN", "Waffen & Munition", "🛒", () => UI.renderShop()));
+        grid.appendChild(createCard("KLINIK", "Dr. Zimmermann", "⚕️", () => UI.renderClinic()));
+        grid.appendChild(createCard("DER SCHMIED", "Reparaturen & Mods", "⚒️", () => UI.renderSmithy()));
+        grid.appendChild(createCard("WERKBANK", "Zerlegen & Bauen", "🛠️", () => UI.renderCrafting()));
 
         wrapper.appendChild(grid);
 
@@ -105,235 +156,116 @@ Object.assign(UI, {
         view.appendChild(wrapper);
     },
 
-    // --- DER SCHMIED (GHOST CLICK PROTECTION) ---
+    // --- DER SCHMIED (VERSION 4.0 - ULTRA SAFE) ---
     renderSmithy: function() {
-        console.log(">> Starte Schmied. Auswahl:", this.smithySelection);
         const view = document.getElementById('view-container');
         if(!view) return;
+        view.innerHTML = '';
         
         Game.state.view = 'smithy';
-        view.innerHTML = '';
 
+        const wrapper = document.createElement('div');
+        wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-20 overflow-hidden";
+
+        // HEADER
+        const header = document.createElement('div');
+        header.className = "p-4 border-b-2 border-orange-500 bg-orange-900/20 flex justify-between items-center shadow-lg";
+        header.innerHTML = `
+            <div class="flex-1">
+                <h2 class="text-3xl text-orange-400 font-bold font-vt323 tracking-widest leading-none">DER SCHMIED</h2>
+                <div class="text-xs text-orange-300 tracking-wider">"Aus Alt mach Neu..."</div>
+            </div>
+            <button onclick="SmithyCore.openHelp()" class="mx-4 w-10 h-10 border-2 border-orange-500 rounded-full text-orange-500 font-bold text-xl hover:bg-orange-500 hover:text-black transition-colors animate-pulse flex items-center justify-center bg-black" title="Hilfe & Infos">?</button>
+            <div class="text-4xl text-orange-500 opacity-50 ml-2">⚒️</div>
+        `;
+        wrapper.appendChild(header);
+
+        // LISTE
+        const content = document.createElement('div');
+        content.className = "flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-[#0a0500]";
+
+        let weapons = [];
         try {
-            const getWeaponStatsSafe = (item) => {
-                if (typeof Game.getWeaponStats === 'function') {
-                    try { return Game.getWeaponStats(item); } catch(e) {}
-                }
-                const def = (Game.items && Game.items[item.id]) ? Game.items[item.id] : {};
-                let dmg = item.dmg !== undefined ? item.dmg : (item.baseDmg || def.baseDmg || 1);
-                if (item.mods && Array.isArray(item.mods) && Game.items) {
-                    item.mods.forEach(mid => {
-                        const m = Game.items[mid];
-                        if (m && m.stats && m.stats.dmg) dmg += m.stats.dmg;
-                    });
-                }
-                return { dmg: dmg, name: item.name || def.name || item.id };
-            };
-
-            const wrapper = document.createElement('div');
-            wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-20 overflow-hidden";
-
-            // Header mit Hilfe
-            const header = document.createElement('div');
-            header.className = "p-4 border-b-2 border-orange-500 bg-orange-900/20 flex justify-between items-center shadow-lg";
-            header.innerHTML = `
-                <div class="flex-1">
-                    <h2 class="text-3xl text-orange-400 font-bold font-vt323 tracking-widest leading-none">DER SCHMIED</h2>
-                    <div class="text-xs text-orange-300 tracking-wider">"Aus Alt mach Neu..."</div>
-                </div>
-                <button onclick="UI.renderSmithyHelp()" class="mx-4 w-10 h-10 border-2 border-orange-500 rounded-full text-orange-500 font-bold text-xl hover:bg-orange-500 hover:text-black transition-colors animate-pulse flex items-center justify-center bg-black" title="Hilfe & Infos">?</button>
-                <div class="text-4xl text-orange-500 opacity-50 ml-2">⚒️</div>
-            `;
-            wrapper.appendChild(header);
-
-            // Content
-            const content = document.createElement('div');
-            content.className = "flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-[#0a0500]";
-
-            let weapons = [];
-            if(Game.state.inventory && Array.isArray(Game.state.inventory)) {
+            if(Game.state.inventory) {
                 weapons = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(i => {
-                    if(!i || !i.id) return false;
                     const def = (Game.items && Game.items[i.id]) ? Game.items[i.id] : null;
                     return def && (def.type === 'weapon' || def.type === 'melee');
                 });
             }
+        } catch(e) { console.error(e); }
 
-            if(weapons.length === 0) {
-                content.innerHTML = '<div class="text-center text-orange-800 mt-10 p-4 border-2 border-dashed border-orange-900">Keine Waffen im Inventar.<br><span class="text-gray-500 text-xs">(Klicke oben auf [?] für Infos)</span></div>';
-            } else {
-                weapons.forEach(w => {
-                    const stats = getWeaponStatsSafe(w);
-                    const isRusty = w.id.startsWith('rusty_');
-                    const isSelected = (UI.smithySelection === w.idx);
-                    const modCount = (w.mods && Array.isArray(w.mods)) ? w.mods.length : 0;
-                    
-                    let containerClass = "relative flex justify-between items-center bg-black/40 p-3 border transition-all cursor-pointer select-none group ";
-                    if (isSelected) {
-                        containerClass += "border-orange-500 shadow-[0_0_15px_rgba(255,165,0,0.2)] bg-orange-900/10";
-                    } else {
-                        containerClass += "border-gray-800 hover:border-orange-500/50 hover:bg-[#1a1000]";
-                    }
+        if(weapons.length === 0) {
+            content.innerHTML = '<div class="text-center text-orange-800 mt-10 p-4 border-2 border-dashed border-orange-900">Keine Waffen im Inventar.</div>';
+        } else {
+            weapons.forEach(w => {
+                const stats = SmithyCore.getStats(w);
+                const isSelected = (SmithyCore.selectedIdx === w.idx);
+                const isRusty = w.id.startsWith('rusty_');
+                
+                // Styles basierend auf Auswahl
+                let border = isSelected ? "border-orange-500 bg-orange-900/20 shadow-[0_0_15px_rgba(255,165,0,0.3)]" : "border-gray-800 bg-black/40 hover:bg-[#1a1000]";
+                let textColor = isRusty ? "text-red-400" : "text-orange-300";
+                
+                // Action Text
+                let actionLabel = "";
+                if(isRusty) actionLabel = isSelected ? "> RESTAURIEREN <" : "Restaurieren";
+                else actionLabel = isSelected ? "> MODIFIZIEREN <" : "Modifizieren";
 
-                    let actionText = "";
-                    let actionClass = "text-xs uppercase font-bold transition-all ";
-                    
-                    if (isRusty) {
-                        if (isSelected) {
-                            actionText = "> RESTAURIEREN (50 KK) <";
-                            actionClass += "text-blue-400 animate-pulse";
-                        } else {
-                            actionText = "Restaurieren";
-                            actionClass += "text-gray-600 opacity-50 group-hover:opacity-100 group-hover:text-blue-500";
-                        }
-                    } else {
-                        if (isSelected) {
-                            actionText = "> MODIFIZIEREN <";
-                            actionClass += "text-orange-400 animate-pulse";
-                        } else {
-                            actionText = "Modifizieren";
-                            actionClass += "text-gray-600 opacity-30 group-hover:opacity-100 group-hover:text-orange-500";
-                        }
-                    }
+                const div = document.createElement('div');
+                div.className = `flex justify-between items-center p-3 border-2 transition-all cursor-pointer select-none ${border}`;
+                
+                // CLICK LOGIC
+                div.onclick = function() {
+                    // Check Cooldown
+                    if(!SmithyCore.checkClick()) return;
 
-                    const div = document.createElement('div');
-                    div.className = containerClass;
-                    
-                    div.onclick = () => {
-                        const now = Date.now();
-                        
-                        // === GHOST CLICK SCHUTZ ===
-                        // Wenn die Waffe bereits selektiert ist, prüfen wir, wie lange das her ist.
-                        // Ist es weniger als 500ms her? Dann war es wahrscheinlich der Ghost-Click vom Auswählen.
-                        if (isSelected && (now - UI.selectionTime) < 500) {
-                            console.log("Ghost Click blocked.");
-                            return; 
-                        }
-
-                        if (isSelected) {
-                            // ZWEITER KLICK (Echter Klick)
-                            if (isRusty) {
-                                if (typeof Game.restoreWeapon === 'function') {
-                                    Game.restoreWeapon(w.idx);
-                                    UI.smithySelection = null; 
-                                    UI.renderSmithy();
-                                } else {
-                                    alert("Fehler: Logic nicht geladen.");
-                                }
-                            } else {
-                                try {
-                                    UI.renderModdingScreen(w.idx);
-                                } catch(err) {
-                                    alert("Fehler beim Öffnen: " + err.message);
-                                }
+                    if(isSelected) {
+                        // 2. Klick -> Ausführen
+                        if(isRusty) {
+                            if(typeof Game.restoreWeapon === 'function') {
+                                Game.restoreWeapon(w.idx);
+                                SmithyCore.reset();
+                                UI.renderSmithy();
                             }
                         } else {
-                            // ERSTER KLICK (Auswahl)
-                            UI.smithySelection = w.idx;
-                            UI.selectionTime = now; // Zeitstempel merken!
-                            UI.renderSmithy(); 
+                            UI.renderModdingScreen(w.idx);
                         }
-                    };
+                    } else {
+                        // 1. Klick -> Auswählen
+                        SmithyCore.selectedIdx = w.idx;
+                        UI.renderSmithy();
+                    }
+                };
 
-                    div.innerHTML = `
-                        <div>
-                            <div class="${isRusty ? 'text-red-400' : 'text-orange-300'} font-bold text-lg">${stats.name}</div>
-                            <div class="text-xs text-gray-500 font-mono">DMG: ${stats.dmg} | Mods: ${modCount}</div>
-                        </div>
-                        <div class="${actionClass}">${actionText}</div>
-                    `;
-                    content.appendChild(div);
-                });
-            }
-            wrapper.appendChild(content);
-
-            const footer = document.createElement('div');
-            footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-orange-900 z-50";
-            footer.innerHTML = `<button class="action-button w-full border-2 border-orange-800 text-orange-700 hover:border-orange-500 hover:text-orange-400 transition-colors py-3 font-bold tracking-widest uppercase bg-black" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>`;
-            wrapper.appendChild(footer);
-
-            view.appendChild(wrapper);
-
-        } catch(e) {
-            console.error("FATAL SMITHY ERROR:", e);
-            view.innerHTML = `<div class="p-6 text-red-500 border border-red-500">CRITICAL ERROR: ${e.message}<br><button onclick="UI.renderCity()" class="mt-4 border p-2">RESET</button></div>`;
+                div.innerHTML = `
+                    <div>
+                        <div class="${textColor} font-bold text-lg">${stats.name}</div>
+                        <div class="text-xs text-gray-500 font-mono">DMG: ${stats.dmg}</div>
+                    </div>
+                    <div class="text-xs uppercase font-bold ${isSelected ? 'text-white animate-pulse' : 'text-gray-600'}">${actionLabel}</div>
+                `;
+                content.appendChild(div);
+            });
         }
+        wrapper.appendChild(content);
+
+        // FOOTER
+        const footer = document.createElement('div');
+        footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-orange-900 z-50";
+        footer.innerHTML = `<button class="action-button w-full border-2 border-orange-800 text-orange-700 hover:border-orange-500 hover:text-orange-400 transition-colors py-3 font-bold tracking-widest uppercase bg-black" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>`;
+        wrapper.appendChild(footer);
+
+        view.appendChild(wrapper);
     },
 
-    // --- HILFE FENSTER (LANGVERSION) ---
-    renderSmithyHelp: function() {
-        const view = document.getElementById('view-container');
-        if(!view) return;
-
-        const overlay = document.createElement('div');
-        overlay.className = "absolute inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-6 animate-fade-in";
-        overlay.innerHTML = `
-            <div class="w-full max-w-lg border-2 border-orange-500 bg-[#1a0f00] shadow-[0_0_30px_rgba(255,100,0,0.3)] flex flex-col max-h-full">
-                <div class="p-4 border-b-2 border-orange-500 flex justify-between items-center bg-orange-900/30">
-                    <h2 class="text-2xl font-bold text-orange-400 font-vt323 tracking-widest">MODDING HANDBUCH</h2>
-                    <button onclick="this.closest('.absolute').remove()" class="text-orange-500 hover:text-white font-bold border border-orange-500 px-2">X</button>
-                </div>
-                
-                <div class="p-6 overflow-y-auto custom-scrollbar text-sm font-mono space-y-6 text-orange-200">
-                    
-                    <div>
-                        <h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">1. WAS IST MODDING?</h3>
-                        <p class="opacity-80">
-                            Hier kannst du deine Waffen verbessern. Jede Waffe hat bestimmte Slots (z.B. Lauf, Visier, Magazin), in die du Modifikationen einbauen kannst. Mods erhöhen Schaden, Präzision oder ändern den Munitionsverbrauch.
-                        </p>
-                    </div>
-
-                    <div>
-                        <h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">2. WIE FUNKTIONIERT ES?</h3>
-                        <ul class="list-disc pl-4 space-y-1 opacity-80">
-                            <li>Klicke eine Waffe <span class="text-orange-400">1x</span> an, um sie zu markieren.</li>
-                            <li>Klicke sie ein <span class="text-orange-400">2. Mal</span> an, um das Mod-Menü zu öffnen.</li>
-                            <li>Wähle einen Mod aus der Liste und klicke auf <span class="text-green-400 border border-green-500 px-1 text-xs">EINBAUEN</span>.</li>
-                            <li>Alte Mods im selben Slot werden dabei zerstört/ersetzt.</li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">3. FUNDORTE</h3>
-                        <p class="opacity-80 mb-2">Wo bekomme ich Mods her?</p>
-                        <div class="grid grid-cols-1 gap-2">
-                            <div class="bg-black/40 p-2 border-l-2 border-yellow-500 text-xs">
-                                <strong class="text-yellow-500">HANDELSPOSTEN:</strong> Der Händler verkauft oft Basis-Mods.
-                            </div>
-                            <div class="bg-black/40 p-2 border-l-2 border-red-500 text-xs">
-                                <strong class="text-red-500">BEUTE:</strong> Gegner im Ödland lassen selten Mods fallen. Legendäre Gegner haben höhere Chancen.
-                            </div>
-                            <div class="bg-black/40 p-2 border-l-2 border-blue-500 text-xs">
-                                <strong class="text-blue-500">WERKBANK:</strong> (Bald verfügbar) Zerlege Waffen, um Baupläne für Mods zu lernen.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 class="text-orange-400 font-bold border-b border-orange-800 mb-2">4. ROSTIGE WAFFEN</h3>
-                        <p class="opacity-80">
-                            Rostige Waffen ("Rusty ...") können nicht modifiziert werden. Du musst sie zuerst <span class="text-blue-400">Restaurieren</span>. Dafür benötigst du <span class="text-yellow-400">50 Kronkorken</span> und <span class="text-gray-400">Waffenöl</span>.
-                        </p>
-                    </div>
-
-                </div>
-
-                <div class="p-4 border-t-2 border-orange-500 bg-orange-900/20 text-center">
-                    <button onclick="this.closest('.absolute').remove()" class="w-full bg-orange-500 text-black font-bold py-2 hover:bg-white transition-colors uppercase tracking-widest">VERSTANDEN</button>
-                </div>
-            </div>
-        `;
-        view.appendChild(overlay);
-    },
-
-    // --- MODDING SCREEN (FAILSAFE) ---
+    // --- MODDING SCREEN (ULTRA SAFE VERSION) ---
     renderModdingScreen: function(weaponIdx) {
-        // Dieser Block verhindert den "Schwarzen Bildschirm" Fehler
-        // Wir bauen das UI zuerst in eine Variable, bevor wir view.innerHTML löschen
+        console.log("Modding Start:", weaponIdx);
         
+        // 1. Basic Check
         const weapon = Game.state.inventory[weaponIdx];
         if(!weapon) { 
-            alert("Fehler: Waffe nicht gefunden!");
+            SmithyCore.reset(); 
             this.renderSmithy(); 
             return; 
         }
@@ -341,85 +273,87 @@ Object.assign(UI, {
         const view = document.getElementById('view-container');
         if(!view) return;
 
+        // Versuche das UI zu bauen (In Memory string building)
         try {
-            // Def Safe laden
-            const wDef = (Game.items && Game.items[weapon.id]) ? Game.items[weapon.id] : { name: weapon.id, modSlots: [] };
+            const wDef = (Game.items && Game.items[weapon.id]) ? Game.items[weapon.id] : { name: weapon.id };
             
-            // Slots formatieren
-            const slotsText = (wDef.modSlots && Array.isArray(wDef.modSlots)) ? wDef.modSlots.join(', ') : 'Keine';
-            const installedCount = (weapon.mods && Array.isArray(weapon.mods)) ? weapon.mods.length : 0;
+            // Slots sicher auslesen
+            let slotsText = "Keine";
+            if(wDef.modSlots && Array.isArray(wDef.modSlots)) slotsText = wDef.modSlots.join(', ');
 
-            // Mods vorladen
-            let compatibleMods = [];
-            if (Game.items) {
-                compatibleMods = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(m => {
-                    const mDef = Game.items[m.id];
-                    if(!mDef) return false;
-                    return mDef.type === 'mod' && mDef.target === weapon.id;
-                });
-            }
+            // Mods sicher zählen
+            let modCount = 0;
+            if(weapon.mods && Array.isArray(weapon.mods)) modCount = weapon.mods.length;
 
-            // HTML BAUEN (Noch nicht einfügen!)
-            let contentHtml = '';
-            if(compatibleMods.length === 0) {
-                contentHtml = `
-                    <div class="text-red-500 text-sm text-center mt-10 border border-red-900 p-4">
-                        Keine passenden Mods im Inventar gefunden.<br>
-                        <span class="text-gray-500 text-xs block mt-2">Mods müssen exakt zur Waffe passen (z.B. "10mm Pistole").</span>
-                    </div>`;
-            } else {
-                compatibleMods.forEach(m => {
-                    const mDef = Game.items[m.id];
-                    let statsText = "Keine Werte";
-                    try {
-                        if(mDef.stats) statsText = JSON.stringify(mDef.stats).replace(/[{""}]/g,'').replace(/,/g, ', ');
-                    } catch(e) {}
-
-                    contentHtml += `
-                        <div class="flex justify-between items-center bg-black/40 p-3 border border-orange-500/30 hover:bg-orange-900/10 mb-2">
-                            <div>
-                                <div class="text-orange-300 font-bold">${mDef.name}</div>
-                                <div class="text-xs text-gray-400">${mDef.desc || ''}</div>
-                                <div class="text-xs text-green-500 mt-1">${statsText}</div>
-                            </div>
-                            <button onclick="Game.installMod(${weaponIdx}, ${m.idx}); UI.renderModdingScreen(${weaponIdx})" class="bg-green-900/30 text-xs px-3 py-2 border border-green-500 hover:bg-green-500 hover:text-black font-bold uppercase transition-colors">
-                                EINBAUEN
-                            </button>
-                        </div>
-                    `;
-                });
-            }
-
-            // ALLES OKAY? DANN JETZT ERST SCREEN LÖSCHEN
-            view.innerHTML = ''; 
-
-            const wrapper = document.createElement('div');
-            wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-30 overflow-hidden";
-
-            wrapper.innerHTML = `
+            // Header HTML vorbereiten
+            const htmlHeader = `
                 <div class="p-4 border-b-2 border-orange-500 bg-orange-900/20">
                     <h2 class="text-2xl text-orange-400 font-bold font-vt323 tracking-widest">MODIFIZIEREN</h2>
                     <div class="text-white font-bold">${weapon.name || wDef.name}</div>
                 </div>
                 <div class="p-4 bg-black/60 border-b border-gray-800 text-sm text-gray-400 font-mono">
                     <p>Verfügbare Slots: <span class="text-yellow-500">${slotsText}</span></p>
-                    <p>Installierte Mods: <span class="text-white">${installedCount}</span></p>
+                    <p>Installierte Mods: <span class="text-white">${modCount}</span></p>
                 </div>
+            `;
+
+            // Mods filtern (ganz vorsichtig)
+            let modHtml = "";
+            if(Game.items && Game.state.inventory) {
+                Game.state.inventory.forEach((item, idx) => {
+                    const mDef = Game.items[item.id];
+                    // Nur Mods, die existieren UND auf die Waffe passen
+                    if(mDef && mDef.type === 'mod' && mDef.target === weapon.id) {
+                        
+                        let statsStr = "";
+                        try { statsStr = JSON.stringify(mDef.stats || {}).replace(/[{}"]/g,''); } catch(e) {}
+
+                        modHtml += `
+                            <div class="flex justify-between items-center bg-black/40 p-3 border border-orange-500/30 hover:bg-orange-900/10 mb-2">
+                                <div>
+                                    <div class="text-orange-300 font-bold">${mDef.name}</div>
+                                    <div class="text-xs text-gray-400">${mDef.desc || ''}</div>
+                                    <div class="text-xs text-green-500 mt-1">${statsStr}</div>
+                                </div>
+                                <button onclick="Game.installMod(${weaponIdx}, ${idx}); UI.renderModdingScreen(${weaponIdx})" class="bg-green-900/30 text-xs px-3 py-2 border border-green-500 hover:bg-green-500 hover:text-black font-bold uppercase transition-colors">
+                                    EINBAUEN
+                                </button>
+                            </div>
+                        `;
+                    }
+                });
+            }
+
+            if(modHtml === "") {
+                modHtml = `<div class="text-red-500 text-sm text-center mt-10 border border-red-900 p-4">Keine passenden Mods im Inventar.</div>`;
+            }
+
+            // HTML fertig? Dann rendern!
+            view.innerHTML = '';
+            const wrapper = document.createElement('div');
+            wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-30 overflow-hidden";
+            
+            wrapper.innerHTML = `
+                ${htmlHeader}
                 <div class="flex-1 overflow-y-auto custom-scroll p-4 space-y-2 bg-[#0a0500]">
-                    ${contentHtml}
+                    ${modHtml}
                 </div>
                 <div class="p-4 bg-black border-t-2 border-gray-800">
                     <button onclick="UI.renderSmithy()" class="w-full text-gray-500 hover:text-white uppercase font-bold text-sm">ZURÜCK</button>
                 </div>
             `;
-
             view.appendChild(wrapper);
 
         } catch(e) {
-            console.error("Modding Screen Error:", e);
-            // Panic Mode: Zurück zum Schmied, aber mit Alert
-            alert("Fehler beim Öffnen des Mod-Menüs:\n" + e.message);
-            if(view) UI.renderSmithy();
+            console.error("CRASH IN MODDING:", e);
+            // Fallback UI bei Fehler
+            view.innerHTML = `
+                <div class="p-10 text-center text-red-500">
+                    <h2 class="font-bold text-xl mb-4">CRASH REPORT</h2>
+                    <p>${e.message}</p>
+                    <button onclick="UI.renderSmithy()" class="mt-6 border border-red-500 p-3 w-full">NOT-AUSGANG</button>
+                </div>
+            `;
         }
     },
 
