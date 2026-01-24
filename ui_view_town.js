@@ -1,11 +1,12 @@
-// [TIMESTAMP] 2026-01-25 15:00:00 - ui_view_town.js - Full Help Restore & Modding Fix
+// [TIMESTAMP] 2026-01-25 16:30:00 - ui_view_town.js - Touch Fix & Modding Safety
 
-console.log(">> UI VIEW TOWN (FINAL FIX) GELADEN");
+console.log(">> UI VIEW TOWN (TOUCH SAFE) GELADEN");
 
 Object.assign(UI, {
     
     shopQty: 1,
-    smithySelection: null, // Speichert die Auswahl für das 2-Klick-System
+    smithySelection: null, 
+    clickLock: 0, // Verhindert Ghost-Clicks auf Touch-Geräten
 
     renderCity: function(cityId = 'rusty_springs') {
         const view = document.getElementById('view-container');
@@ -104,7 +105,7 @@ Object.assign(UI, {
         view.appendChild(wrapper);
     },
 
-    // --- DER SCHMIED (2-CLICK SYSTEM) ---
+    // --- DER SCHMIED (TOUCH OPTIMIZED) ---
     renderSmithy: function() {
         console.log(">> Starte Schmied. Auswahl:", this.smithySelection);
         const view = document.getElementById('view-container');
@@ -167,6 +168,8 @@ Object.assign(UI, {
                     const stats = getWeaponStatsSafe(w);
                     const isRusty = w.id.startsWith('rusty_');
                     const isSelected = (UI.smithySelection === w.idx);
+                    // Sicherstellen, dass .mods existiert für die Anzeige
+                    const modCount = (w.mods && Array.isArray(w.mods)) ? w.mods.length : 0;
                     
                     let containerClass = "relative flex justify-between items-center bg-black/40 p-3 border transition-all cursor-pointer select-none group ";
                     if (isSelected) {
@@ -200,6 +203,13 @@ Object.assign(UI, {
                     div.className = containerClass;
                     
                     div.onclick = () => {
+                        const now = Date.now();
+                        // 1. GHOST CLICK PREVENTION
+                        if (UI.clickLock > now) {
+                            console.log("Click ignored (Cooldown)");
+                            return; 
+                        }
+
                         if (isSelected) {
                             // ZWEITER KLICK -> AKTION
                             if (isRusty) {
@@ -221,6 +231,8 @@ Object.assign(UI, {
                         } else {
                             // ERSTER KLICK -> SELEKTIEREN
                             UI.smithySelection = w.idx;
+                            // Setze Cooldown (300ms), damit der Klick nicht sofort durchschlägt
+                            UI.clickLock = Date.now() + 300; 
                             UI.renderSmithy(); 
                         }
                     };
@@ -228,7 +240,7 @@ Object.assign(UI, {
                     div.innerHTML = `
                         <div>
                             <div class="${isRusty ? 'text-red-400' : 'text-orange-300'} font-bold text-lg">${stats.name}</div>
-                            <div class="text-xs text-gray-500 font-mono">DMG: ${stats.dmg} | Mods: ${w.mods ? w.mods.length : 0}</div>
+                            <div class="text-xs text-gray-500 font-mono">DMG: ${stats.dmg} | Mods: ${modCount}</div>
                         </div>
                         <div class="${actionClass}">${actionText}</div>
                     `;
@@ -237,6 +249,7 @@ Object.assign(UI, {
             }
             wrapper.appendChild(content);
 
+            // Footer
             const footer = document.createElement('div');
             footer.className = "absolute bottom-0 left-0 w-full p-4 bg-black border-t-2 border-orange-900 z-50";
             footer.innerHTML = `<button class="action-button w-full border-2 border-orange-800 text-orange-700 hover:border-orange-500 hover:text-orange-400 transition-colors py-3 font-bold tracking-widest uppercase bg-black" onclick="UI.renderCity()">ZURÜCK ZUM ZENTRUM</button>`;
@@ -250,7 +263,7 @@ Object.assign(UI, {
         }
     },
 
-    // --- HILFE FENSTER (ORIGINAL LANGVERSION) ---
+    // --- HILFE FENSTER (FULL VERSION) ---
     renderSmithyHelp: function() {
         const view = document.getElementById('view-container');
         if(!view) return;
@@ -316,11 +329,10 @@ Object.assign(UI, {
         view.appendChild(overlay);
     },
 
-    // --- MODDING SCREEN (FIXED) ---
+    // --- MODDING SCREEN (SAFE) ---
     renderModdingScreen: function(weaponIdx) {
         console.log("Render Modding Screen for:", weaponIdx);
         
-        // Safety Check
         const weapon = Game.state.inventory[weaponIdx];
         if(!weapon) { 
             alert("Fehler: Waffe nicht gefunden!");
@@ -332,17 +344,17 @@ Object.assign(UI, {
         if(!view) return;
 
         try {
-            // Item Definition sicher abrufen
             const wDef = (Game.items && Game.items[weapon.id]) ? Game.items[weapon.id] : { name: weapon.id };
             
-            // Screen erst löschen, wenn wir bereit sind
             view.innerHTML = ''; 
 
             const wrapper = document.createElement('div');
             wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-30 overflow-hidden";
 
-            // CRASH FIX: modSlots safe access
+            // CRASH FIX: modSlots Safe Access
             const slotsText = (wDef.modSlots && Array.isArray(wDef.modSlots)) ? wDef.modSlots.join(', ') : 'Keine';
+            // CRASH FIX: mod count safe
+            const installedCount = (weapon.mods && Array.isArray(weapon.mods)) ? weapon.mods.length : 0;
 
             wrapper.innerHTML = `
                 <div class="p-4 border-b-2 border-orange-500 bg-orange-900/20">
@@ -351,20 +363,18 @@ Object.assign(UI, {
                 </div>
                 <div class="p-4 bg-black/60 border-b border-gray-800 text-sm text-gray-400 font-mono">
                     <p>Verfügbare Slots: <span class="text-yellow-500">${slotsText}</span></p>
-                    <p>Installierte Mods: <span class="text-white">${weapon.mods ? weapon.mods.length : 0}</span></p>
+                    <p>Installierte Mods: <span class="text-white">${installedCount}</span></p>
                 </div>
             `;
 
             const content = document.createElement('div');
             content.className = "flex-1 overflow-y-auto custom-scroll p-4 space-y-2 bg-[#0a0500]";
 
-            // Suche kompatible Mods
             let compatibleMods = [];
             if (Game.items) {
                 compatibleMods = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(m => {
-                    // FIX: Prüfen, ob Item Definition existiert
                     const mDef = Game.items[m.id];
-                    if(!mDef) return false; // Kaputtes Item überspringen
+                    if(!mDef) return false; // Schutz vor kaputten Items
                     return mDef.type === 'mod' && mDef.target === weapon.id;
                 });
             }
@@ -408,7 +418,7 @@ Object.assign(UI, {
         } catch(e) {
             console.error("Modding Screen Error:", e);
             alert("MODDING ERROR:\n" + e.message);
-            // Zurück zum Hauptmenü bei Crash
+            // Panic Button Logic
             UI.renderSmithy(); 
         }
     },
