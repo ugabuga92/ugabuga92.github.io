@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-24 12:00:00 - ui_view_town.js - Fixed Smithy Opening & Modding
+// [TIMESTAMP] 2026-01-24 12:30:00 - ui_view_town.js - Crash Proof Version
 
 Object.assign(UI, {
     
@@ -94,25 +94,39 @@ Object.assign(UI, {
 
     // --- SCHMIED UI ---
     renderSmithy: function() {
+        // [SICHERHEITS-CHECK] Verhindert Black-Screen, indem wir zuerst Daten prüfen
         try {
-            console.log("Öffne Schmied...");
+            console.log("Lade Schmied Daten...");
             
-            // Checks
-            if(typeof Game === 'undefined') throw new Error("Game Object fehlt");
-            if(!Game.items) throw new Error("Game.items Datenbank fehlt");
-            
-            // Fallback für fehlende Funktion
-            if(typeof Game.getWeaponStats !== 'function') {
-                console.error("Game.getWeaponStats fehlt! Nutze Notfall-Fallback.");
-                Game.getWeaponStats = function(item) { return { dmg: item.baseDmg || 1, name: item.name || "Error-Waffe" }; };
-                UI.log("Warnung: Logic-Update fehlt!", "text-red-500");
-            }
+            // Lokale Hilfsfunktion für Stats (falls Game.getWeaponStats fehlt)
+            const getStatsSafe = (wItem) => {
+                if (typeof Game.getWeaponStats === 'function') {
+                    return Game.getWeaponStats(wItem);
+                }
+                // Notfall-Berechnung
+                const def = Game.items[wItem.id] || { baseDmg: 0 };
+                return { 
+                    dmg: (wItem.dmg !== undefined ? wItem.dmg : (def.baseDmg || 0)), 
+                    name: wItem.name || def.name || wItem.id 
+                };
+            };
 
-            Game.state.view = 'smithy';
+            if(!Game.state.inventory) Game.state.inventory = [];
+            
+            // Erst Daten sammeln, BEVOR wir den View löschen!
+            const weapons = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(i => {
+                const def = Game.items[i.id];
+                return def && (def.type === 'weapon' || def.type === 'melee');
+            });
+
+            // Wenn wir hier ankommen, gab es keinen Crash beim Daten-Lesen.
+            // JETZT erst View löschen.
             const view = document.getElementById('view-container');
             if(!view) return;
             view.innerHTML = '';
-
+            
+            Game.state.view = 'smithy';
+            
             const wrapper = document.createElement('div');
             wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-20 overflow-hidden";
 
@@ -132,13 +146,6 @@ Object.assign(UI, {
             const content = document.createElement('div');
             content.className = "flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2 bg-[#0a0500]";
 
-            if(!Game.state.inventory) Game.state.inventory = [];
-
-            const weapons = Game.state.inventory.map((item, idx) => ({...item, idx})).filter(i => {
-                const def = Game.items[i.id];
-                return def && (def.type === 'weapon' || def.type === 'melee');
-            });
-
             if(weapons.length === 0) {
                 content.innerHTML = '<div class="text-center text-orange-800 mt-10 p-4 border-2 border-dashed border-orange-900">Keine Waffen im Inventar.</div>';
             } else {
@@ -148,14 +155,13 @@ Object.assign(UI, {
                     
                     const name = w.name || def.name;
                     const isRusty = w.id.startsWith('rusty_');
-                    const stats = Game.getWeaponStats(w);
+                    const stats = getStatsSafe(w); // Sichere Funktion nutzen
                     
                     let actionBtn = '';
                     
                     if(isRusty) {
                         actionBtn = `<button onclick="Game.restoreWeapon(${w.idx}); UI.renderSmithy()" class="bg-blue-900/30 text-xs px-3 py-2 border border-blue-500 hover:bg-blue-600 hover:text-black font-bold uppercase transition-colors">Restaurieren (50 KK + Öl)</button>`;
                     } else {
-                        // FIX: Stellen sicher, dass renderModdingScreen existiert
                         actionBtn = `<button onclick="UI.renderModdingScreen(${w.idx})" class="bg-orange-900/30 text-xs px-3 py-2 border border-orange-500 hover:bg-orange-500 hover:text-black font-bold uppercase transition-colors">Modifizieren</button>`;
                     }
 
@@ -181,8 +187,11 @@ Object.assign(UI, {
 
             view.appendChild(wrapper);
         } catch(e) {
-            console.error(e);
-            alert("FEHLER IM SCHMIED:\n" + e.message);
+            console.error("FATAL ERROR IM SCHMIED:", e);
+            if(typeof UI !== 'undefined' && UI.log) UI.log("Fehler im Schmied-System!", "text-red-500");
+            alert("Schmied-System Fehler:\n" + e.message + "\n\n(Das Spiel läuft weiter, aber das Menü konnte nicht laden.)");
+            // Falls es crasht, versuchen wir zumindest ins Stadtmenü zurückzukehren, falls view noch existiert
+            if(Game && Game.state) Game.state.view = 'city';
         }
     },
 
@@ -190,8 +199,7 @@ Object.assign(UI, {
         try {
             const view = document.getElementById('view-container');
             if(!view) return;
-            view.innerHTML = ''; 
-
+            
             const weapon = Game.state.inventory[weaponIdx];
             if(!weapon) { 
                 UI.log("Waffe nicht gefunden!", "text-red-500");
@@ -200,6 +208,8 @@ Object.assign(UI, {
             }
             
             const wDef = (Game.items && Game.items[weapon.id]) ? Game.items[weapon.id] : { name: weapon.id };
+            
+            view.innerHTML = ''; 
 
             const wrapper = document.createElement('div');
             wrapper.className = "absolute inset-0 w-full h-full flex flex-col bg-black z-30 overflow-hidden";
