@@ -1,33 +1,6 @@
-// [TIMESTAMP] 2026-01-24 20:00:00 - game_inv_logic.js - Context Safe Version
+// [2026-01-19 12:30:00] game_inv_logic.js - Legendary Loot & Full Item Support
 
 Object.assign(Game, {
-
-    // FIX: 'this' durch 'Game' ersetzt, um Scope-Probleme zu verhindern
-    getWeaponStats: function(item) {
-        if(!item) return { dmg: 1, ammoType: null, ammoCost: 0, name: "Unbekannt" };
-        
-        // Direkter Zugriff auf Game.items statt this.items
-        const dbItems = Game.items || {}; 
-        const dbItem = dbItems[item.id] ? dbItems[item.id] : {};
-        
-        let stats = {
-            dmg: (item.dmg !== undefined) ? item.dmg : (item.baseDmg || dbItem.baseDmg || dbItem.dmg || 1),
-            ammoType: item.ammoType || dbItem.ammo || null, 
-            ammoCost: (item.ammoCost !== undefined) ? item.ammoCost : (dbItem.ammoCost || 1),
-            name: item.name || dbItem.name || item.id
-        };
-
-        if (item.mods && Array.isArray(item.mods)) {
-            item.mods.forEach(modId => {
-                const modDef = dbItems[modId];
-                if (modDef && modDef.stats) {
-                    if (modDef.stats.dmg) stats.dmg += modDef.stats.dmg;
-                    if (modDef.stats.ammoCost) stats.ammoCost += modDef.stats.ammoCost;
-                }
-            });
-        }
-        return stats;
-    },
 
     getMaxSlots: function() {
         let base = 10;
@@ -41,24 +14,27 @@ Object.assign(Game, {
             let packBonus = 0;
             if (pack.bonus && pack.bonus.slots) packBonus = pack.bonus.slots;
             else if (pack.props && pack.props.bonus && pack.props.bonus.slots) packBonus = pack.props.bonus.slots;
-            else if (Game.items[pack.id] && Game.items[pack.id].bonus && Game.items[pack.id].bonus.slots) {
-                packBonus = Game.items[pack.id].bonus.slots;
+            else if (this.items[pack.id] && this.items[pack.id].bonus && this.items[pack.id].bonus.slots) {
+                packBonus = this.items[pack.id].bonus.slots;
             }
             base += packBonus;
         }
         return base;
     },
 
+    // [MODIFIED] addToInventory supports custom full item objects (for Legendaries)
     addToInventory: function(idOrItem, count=1, customData=null) { 
         if(!this.state.inventory) this.state.inventory = []; 
         let itemId, props = null, fullItemObj = null;
 
+        // Fall 1: idOrItem ist ein Objekt (alter Code) oder das neue Legendary Object
         if(typeof idOrItem === 'object') {
             itemId = idOrItem.id;
             props = idOrItem.props;
-            count = idOrItem.count || count || 1;
-            fullItemObj = idOrItem;
+            count = idOrItem.count || count || 1; // Count kann im Objekt oder als Parameter sein
+            fullItemObj = idOrItem; // Speichere das ganze Objekt für später
         } else { 
+            // Fall 2: ID String + optional customData
             itemId = idOrItem; 
             if(customData) fullItemObj = customData;
         }
@@ -73,9 +49,11 @@ Object.assign(Game, {
         let added = false;
         let isActuallyNew = false; 
 
-        if (!props && (!fullItemObj || (!fullItemObj.uid && !fullItemObj.mods))) {
+        // 1. Stacken (nur wenn es keine einzigartigen Eigenschaften hat)
+        // Legendaries mit UID sollten NICHT gestapelt werden
+        if (!props && (!fullItemObj || !fullItemObj.uid)) {
             for (let item of this.state.inventory) {
-                if (item.id === itemId && !item.props && !item.uid && !item.mods && item.count < limit) {
+                if (item.id === itemId && !item.props && !item.uid && item.count < limit) {
                     const space = limit - item.count;
                     const take = Math.min(space, remaining);
                     item.count += take;
@@ -86,6 +64,7 @@ Object.assign(Game, {
             }
         }
 
+        // 2. Neuer Slot
         if (remaining > 0) {
             const maxSlots = this.getMaxSlots();
             while (remaining > 0) {
@@ -97,12 +76,15 @@ Object.assign(Game, {
                 const take = Math.min(limit, remaining);
                 
                 let newItem;
-                if(fullItemObj && (fullItemObj.uid || fullItemObj.isLegendary || fullItemObj.mods)) {
+                if(fullItemObj && (fullItemObj.uid || fullItemObj.isLegendary)) {
+                    // [NEU] Wenn es ein Legendary/Custom Item ist, kopiere ALLES
                     newItem = JSON.parse(JSON.stringify(fullItemObj));
                     newItem.count = take;
                     newItem.isNew = true;
+                    // Sicherstellen, dass ID gesetzt ist
                     if(!newItem.id) newItem.id = itemId;
                 } else {
+                    // Standard Item
                     newItem = { id: itemId, count: take, isNew: true };
                     if (props) newItem.props = props;
                 }
@@ -115,8 +97,9 @@ Object.assign(Game, {
         }
 
         if (added) {
-            const itemDef = (Game.items && Game.items[itemId]) ? Game.items[itemId] : {name: itemId};
-            let name = (fullItemObj && fullItemObj.name) ? fullItemObj.name : ((props && props.name) ? props.name : itemDef.name);
+            const itemDef = this.items[itemId];
+            // Name kann vom Custom Object kommen
+            let name = (fullItemObj && fullItemObj.name) ? fullItemObj.name : ((props && props.name) ? props.name : (itemDef ? itemDef.name : itemId));
             const color = (props && props.color) ? props.color.split(' ')[0] : "text-green-400";
             
             if(itemId !== 'ammo' || count < 10) {
@@ -134,140 +117,11 @@ Object.assign(Game, {
             if(isActuallyNew && typeof UI !== 'undefined' && UI.triggerInventoryAlert) {
                 UI.triggerInventoryAlert();
             }
-            this.updateWeight(); 
+            this.updateWeight(); // Gewicht neu berechnen
             return true;
         }
         return false;
     }, 
-
-    restoreWeapon: function(invIndex) {
-        if(!this.state.inventory[invIndex]) return false;
-        const item = this.state.inventory[invIndex];
-        
-        if(!item.id.startsWith('rusty_')) {
-            UI.log("Das ist keine rostige Waffe.", "text-red-500");
-            return false;
-        }
-
-        const costCaps = 50;
-        if(this.state.caps < costCaps) { UI.log("Nicht genug Kronkorken (50).", "text-red-500"); return false; }
-        if(this.getItemCount('weapon_oil') < 1) { UI.log("Fehlt: Waffenöl", "text-red-500"); return false; }
-
-        this.state.caps -= costCaps;
-        this.removeFromInventory('weapon_oil', 1);
-        
-        const cleanId = item.id.replace('rusty_', '');
-        
-        let targetId = cleanId;
-        if(cleanId === 'pistol') targetId = 'pistol_10mm';
-        if(cleanId === 'rifle') targetId = 'hunting_rifle';
-        if(cleanId === 'shotgun') targetId = 'combat_shotgun';
-
-        this.state.inventory.splice(invIndex, 1);
-        this.addToInventory(targetId, 1);
-        
-        UI.log("Waffe erfolgreich restauriert!", "text-green-400 font-bold");
-        return true;
-    },
-
-    installMod: function(weaponInvIndex, modInvIndex) {
-        const weapon = this.state.inventory[weaponInvIndex];
-        const mod = this.state.inventory[modInvIndex];
-        
-        if(!weapon || !mod) return false;
-        
-        const wDef = Game.items[weapon.id];
-        const mDef = Game.items[mod.id];
-
-        if(!wDef || !mDef) return false;
-
-        if(mDef.target !== weapon.id) {
-            UI.log("Dieser Mod passt nicht auf diese Waffe.", "text-red-500");
-            return false;
-        }
-        
-        if(!wDef.modSlots || !wDef.modSlots.includes(mDef.slot)) {
-            UI.log("Diese Waffe hat keinen Slot dafür.", "text-red-500");
-            return false;
-        }
-
-        this.removeFromInventory(mod.id, 1);
-
-        if(!weapon.mods) weapon.mods = [];
-        
-        const existingModIndex = weapon.mods.findIndex(mid => {
-            const md = Game.items[mid];
-            return md && md.slot === mDef.slot;
-        });
-        
-        if(existingModIndex >= 0) {
-            weapon.mods.splice(existingModIndex, 1);
-        }
-        
-        weapon.mods.push(mod.id);
-        
-        if(!weapon.isLegendary) {
-            if(!weapon.name) weapon.name = wDef.name + " (+)";
-        }
-
-        if(!weapon.uid) weapon.uid = Date.now() + "_" + Math.floor(Math.random()*1000);
-
-        UI.log("Modifikation installiert!", "text-green-400 font-bold");
-        return true;
-    },
-
-    gambleLegendaryLoot: function(score) {
-        const roll = Math.random() * 100;
-        const chance = score * 2; 
-        
-        if(roll > chance) {
-            UI.log(`Kein Glück (${Math.floor(roll)} > ${chance})`, "text-gray-500");
-            this.state.caps += score;
-            return;
-        }
-
-        const bases = ['pistol_10mm', 'hunting_rifle', 'combat_shotgun', 'machete', 'super_sledge'];
-        const baseId = bases[Math.floor(Math.random() * bases.length)];
-        const baseItem = Game.items[baseId];
-
-        if(!baseItem) return;
-
-        const prefixes = [
-            { name: "Brutale", dmgMod: 1.3, desc: "+30% Schaden" },
-            { name: "Doppelschuss", dmgMod: 1.5, ammoMod: 2, desc: "Doppelter Schaden, doppelter Verbrauch" },
-            { name: "Vampir", hpDrain: 5, desc: "Heilt 5 TP pro Treffer" },
-            { name: "Atomare", dmgMod: 1.2, rads: 5, desc: "Verstrahlt den Gegner" },
-            { name: "Leichte", weightMod: 0.5, desc: "50% weniger Gewicht" }
-        ];
-
-        const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-        
-        const legendaryItem = JSON.parse(JSON.stringify(baseItem));
-        
-        legendaryItem.id = baseId; 
-        legendaryItem.uid = 'LEGEND_' + Date.now(); 
-        legendaryItem.name = `${prefix.name} ${baseItem.name} ★`;
-        legendaryItem.isLegendary = true;
-        legendaryItem.desc = prefix.desc;
-        legendaryItem.value = (baseItem.value || 10) * 5;
-        
-        const baseDmg = baseItem.baseDmg || 2;
-        if(prefix.dmgMod) legendaryItem.dmg = Math.floor(baseDmg * prefix.dmgMod);
-        else legendaryItem.dmg = baseDmg;
-
-        legendaryItem.ammoType = baseItem.ammo; 
-        if(prefix.ammoMod) legendaryItem.ammoCost = (baseItem.ammoCost || 1) * prefix.ammoMod;
-        else legendaryItem.ammoCost = baseItem.ammoCost || 1;
-
-        if(prefix.hpDrain) legendaryItem.effectHeal = prefix.hpDrain;
-        if(prefix.rads) legendaryItem.effectRad = prefix.rads;
-        if(prefix.weightMod) legendaryItem.weight = (baseItem.weight || 1) * prefix.weightMod;
-
-        this.addToInventory(legendaryItem, 1);
-        
-        UI.log("LEGENDÄRES ITEM ERHALTEN!", "text-yellow-400 font-bold animate-pulse");
-        if(typeof UI.showItemOverlay === 'function') UI.showItemOverlay(legendaryItem);
-    },
 
     removeFromInventory: function(itemId, amount=1) {
         if(!this.state) return false;
@@ -300,8 +154,8 @@ Object.assign(Game, {
             return;
         }
 
-        const def = (Game.items && Game.items[item.id]) ? Game.items[item.id] : {};
-        let name = (item.props && item.props.name) ? item.props.name : (item.name || def.name || item.id);
+        const def = this.items[item.id];
+        let name = (item.props && item.props.name) ? item.props.name : (item.name || def.name);
 
         this.state.inventory.splice(invIndex, 1);
         if(item.id === 'ammo') this.syncAmmo();
@@ -332,11 +186,12 @@ Object.assign(Game, {
             return;
         }
         
-        const def = (Game.items && Game.items[item.id]) ? Game.items[item.id] : null;
+        const def = this.items[item.id];
         if(!def) return;
         
         let name = (item.props && item.props.name) ? item.props.name : (item.name || def.name);
         let value = def.cost || 5;
+        // Legendaries geben mehr Schrott
         if(item.isLegendary) value *= 2;
         
         this.state.inventory.splice(invIndex, 1);
@@ -381,10 +236,7 @@ Object.assign(Game, {
         for(let reqId in recipe.req) {
             const countNeeded = recipe.req[reqId];
             const invItem = this.state.inventory.find(i => i.id === reqId);
-            if (!invItem || invItem.count < countNeeded) { 
-                const name = (Game.items && Game.items[reqId]) ? Game.items[reqId].name : reqId;
-                UI.log(`Material fehlt: ${name}`, "text-red-500"); return; 
-            }
+            if (!invItem || invItem.count < countNeeded) { UI.log(`Material fehlt: ${this.items[reqId].name}`, "text-red-500"); return; }
         }
         for(let reqId in recipe.req) {
             const countNeeded = recipe.req[reqId];
@@ -399,8 +251,7 @@ Object.assign(Game, {
             this.addToInventory(recipe.out, recipe.count); 
         }
         
-        const outName = (recipe.out === "AMMO") ? "Munition" : ((Game.items && Game.items[recipe.out]) ? Game.items[recipe.out].name : recipe.out);
-        UI.log(`Hergestellt: ${recipe.count}x ${outName}`, "text-green-400 font-bold");
+        UI.log(`Hergestellt: ${recipe.count}x ${recipe.out === "AMMO" ? "Munition" : this.items[recipe.out].name}`, "text-green-400 font-bold");
 
         if(typeof Game.updateQuestProgress === 'function' && recipe.out !== "AMMO") {
             Game.updateQuestProgress('collect', recipe.out, recipe.count);
@@ -429,13 +280,17 @@ Object.assign(Game, {
              return;
         }
 
+        // Ins Inventar legen
         let itemToAdd = item._fromInv || item.id;
         
-        if (item.uid || item.isLegendary || item.mods) {
+        // [FIX] Wenn es ein Legendary oder bearbeitetes Item ist, als Objekt speichern
+        if (item.uid || item.isLegendary) {
+            // Kopiere alle Eigenschaften außer _fromInv
             const { _fromInv, ...rest } = item;
             itemToAdd = rest;
             itemToAdd.count = 1;
         } else {
+            // Standard Item Fallback
             if (!itemToAdd && item.id) itemToAdd = item.id;
             let objToAdd = itemToAdd;
             if (!item._fromInv && item.props) objToAdd = { id: item.id, count: 1, props: item.props };
@@ -446,11 +301,11 @@ Object.assign(Game, {
         this.state.inventory.push(itemToAdd);
         
         if(slot === 'weapon') {
-            const fists = (Game.items && Game.items['fists']) ? { ...Game.items['fists'] } : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
+            const fists = this.items['fists'] ? { ...this.items['fists'] } : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
             this.state.equip.weapon = fists;
             UI.log(`${item.name || 'Waffe'} abgelegt. Du nutzt nun deine Fäuste.`, "text-yellow-400");
         } else if(slot === 'body') {
-            const suit = (Game.items && Game.items['vault_suit']) ? { ...Game.items['vault_suit'] } : { id: 'vault_suit', name: 'Vault-Anzug', def: 1, type: 'body' };
+            const suit = this.items['vault_suit'] ? { ...this.items['vault_suit'] } : { id: 'vault_suit', name: 'Vault-Anzug', def: 1, type: 'body' };
             this.state.equip.body = suit;
             UI.log(`${item.name || 'Rüstung'} abgelegt. Du trägst wieder deinen Vault-Anzug.`, "text-blue-400");
         } else {
@@ -475,7 +330,7 @@ Object.assign(Game, {
 
         if(index === -1 || !this.state.inventory[index]) return;
         invItem = this.state.inventory[index];
-        const itemDef = (Game.items && Game.items[invItem.id]) ? Game.items[invItem.id] : { name: invItem.id };
+        const itemDef = this.items[invItem.id];
         
         if (itemDef.type === 'back') {
             const slot = 'back';
@@ -484,6 +339,7 @@ Object.assign(Game, {
             this.state.inventory.splice(index, 1);
             
             if(oldEquip) {
+                // [FIX] Wenn alt Item custom war, als solches zurückgeben
                 if(oldEquip.uid || oldEquip.isLegendary) {
                      const { _fromInv, ...rest } = oldEquip;
                      const oldItem = { ...rest, count: 1, isNew: true };
@@ -494,7 +350,9 @@ Object.assign(Game, {
                 }
             }
             
+            // Neues Item ausrüsten (merge props/custom stats)
             this.state.equip[slot] = { ...itemDef, ...invItem, count: 1 };
+            
             UI.log(`Rucksack angelegt: ${invItem.name || itemDef.name}`, "text-yellow-400");
             
             if(this.getUsedSlots() > this.getMaxSlots()) UI.log("WARNUNG: Überladen!", "text-red-500 blink-red");
@@ -586,11 +444,13 @@ Object.assign(Game, {
                 if(oldEquip && oldEquip.id !== "fists" && oldEquip.id !== "vault_suit") {
                     if(oldEquip._fromInv) this.state.inventory.push(oldEquip._fromInv);
                     else {
+                        // Wenn oldEquip legendär war und kein _fromInv hat (sollte nicht passieren),
+                        // müssen wir es rekonstruieren
                         if(oldEquip.uid) {
                              const { _fromInv, ...rest } = oldEquip;
                              this.state.inventory.push({ ...rest, count: 1, isNew: true });
                         } else {
-                             const oldKey = Object.keys(Game.items).find(k => Game.items[k].name === oldEquip.name);
+                             const oldKey = Object.keys(this.items).find(k => this.items[k].name === oldEquip.name);
                              if(oldKey) this.state.inventory.push({id: oldKey, count: 1, isNew: true});
                         }
                     }
@@ -598,10 +458,11 @@ Object.assign(Game, {
                 
                 this.state.inventory.splice(index, 1);
                 
+                // [FIX] Speichere das ganze Inventar-Item im Slot (enthält Stats)
                 const equipObject = { ...itemDef, ...invItem, _fromInv: invItem, count: 1 }; 
                 this.state.equip[slot] = equipObject;
                 
-                const displayName = invItem.name || itemDef.name;
+                const displayName = invItem.name || itemDef.name; // Nimm Custom Namen zuerst
                 UI.log(`Ausgerüstet: ${displayName}`, "text-yellow-400"); 
                 
                 this.recalcStats();
@@ -623,7 +484,7 @@ Object.assign(Game, {
             : "Fernkampfwaffe";
 
         if(!this.state.inventory || this.state.inventory.length === 0) {
-            const fists = (Game.items && Game.items['fists']) ? { ...Game.items['fists'] } : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
+            const fists = this.items['fists'] ? { ...this.items['fists'] } : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
             this.state.equip.weapon = fists;
             UI.log("Waffe abgelegt. Nutze Fäuste.", "text-red-500 font-bold");
             if(typeof UI.renderChar === 'function') UI.renderChar();
@@ -635,7 +496,7 @@ Object.assign(Game, {
         let bestIndex = -1;
 
         this.state.inventory.forEach((item, idx) => {
-            const def = (Game.items && Game.items[item.id]) ? Game.items[item.id] : null;
+            const def = this.items[item.id];
             if (!def) return;
 
             const type = def.type ? def.type.toLowerCase() : '';
@@ -643,8 +504,8 @@ Object.assign(Game, {
             const needsAmmo = (item.ammoType || def.ammo) && (item.ammoType || def.ammo) !== 'none';
 
             if (isWeaponType && !needsAmmo) {
-                // Fallback falls getWeaponStats fehlt
-                let dmg = (typeof Game.getWeaponStats === 'function') ? Game.getWeaponStats(item).dmg : (def.baseDmg || 0);
+                // [FIX] Nutze echte Item Stats
+                let dmg = item.dmg || def.dmg || 0;
                 if (item.props && item.props.dmgMult) dmg *= item.props.dmgMult;
                 
                 if (dmg > bestDmg) {
@@ -657,14 +518,69 @@ Object.assign(Game, {
 
         if (bestWeapon) {
             this.useItem(bestIndex); 
-            const newName = bestWeapon.name || bestWeapon.props?.name || ((Game.items && Game.items[bestWeapon.id]) ? Game.items[bestWeapon.id].name : bestWeapon.id);
+            const newName = bestWeapon.name || bestWeapon.props?.name || this.items[bestWeapon.id].name;
             UI.log(`${newName} wurde statt ${oldName} angelegt (Munition leer)`, "text-yellow-400 blink-red");
         } else {
-            const fists = (Game.items && Game.items['fists']) ? { ...Game.items['fists'] } : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
+            const fists = this.items['fists'] ? { ...this.items['fists'] } : { id: 'fists', name: 'Fäuste', baseDmg: 2, type: 'weapon' };
             this.state.equip.weapon = fists;
             UI.log("Keine Nahkampfwaffe gefunden! Du kämpfst mit Fäusten!", "text-red-500");
         }
         if(typeof UI.renderChar === 'function') UI.renderChar();
+    },
+
+    // [NEU] Wichtig für Minigame Loot!
+    gambleLegendaryLoot: function(score) {
+        const roll = Math.random() * 100;
+        const chance = score * 2; 
+        
+        if(roll > chance) {
+            UI.log(`Kein Glück (${Math.floor(roll)} > ${chance})`, "text-gray-500");
+            this.state.caps += score;
+            return;
+        }
+
+        const bases = ['pistol', 'rifle', 'shotgun', 'machete', 'super_sledge'];
+        const baseId = bases[Math.floor(Math.random() * bases.length)];
+        const baseItem = this.items[baseId];
+
+        if(!baseItem) return;
+
+        const prefixes = [
+            { name: "Brutale", dmgMod: 1.3, desc: "+30% Schaden" },
+            { name: "Doppelschuss", dmgMod: 1.5, ammoMod: 2, desc: "Doppelter Schaden, doppelter Verbrauch" },
+            { name: "Vampir", hpDrain: 5, desc: "Heilt 5 TP pro Treffer" },
+            { name: "Atomare", dmgMod: 1.2, rads: 5, desc: "Verstrahlt den Gegner" },
+            { name: "Leichte", weightMod: 0.5, desc: "50% weniger Gewicht" }
+        ];
+
+        const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+        
+        // [WICHTIG] Das Legendäre Item bauen und Werte festschreiben
+        const legendaryItem = JSON.parse(JSON.stringify(baseItem));
+        
+        legendaryItem.id = baseId; 
+        legendaryItem.uid = 'LEGEND_' + Date.now(); 
+        legendaryItem.name = `${prefix.name} ${baseItem.name} ★`;
+        legendaryItem.isLegendary = true;
+        legendaryItem.desc = prefix.desc;
+        legendaryItem.value = (baseItem.value || 10) * 5;
+        
+        if(prefix.dmgMod) legendaryItem.dmg = Math.floor((baseItem.dmg || 1) * prefix.dmgMod);
+        else legendaryItem.dmg = baseItem.dmg;
+
+        legendaryItem.ammoType = baseItem.ammoType; 
+        if(prefix.ammoMod) legendaryItem.ammoCost = (baseItem.ammoCost || 1) * prefix.ammoMod;
+        else legendaryItem.ammoCost = baseItem.ammoCost || 1;
+
+        if(prefix.hpDrain) legendaryItem.effectHeal = prefix.hpDrain;
+        if(prefix.rads) legendaryItem.effectRad = prefix.rads;
+        if(prefix.weightMod) legendaryItem.weight = (baseItem.weight || 1) * prefix.weightMod;
+
+        // Custom Item hinzufügen
+        this.addToInventory(legendaryItem, 1);
+        
+        UI.log("LEGENDÄRES ITEM ERHALTEN!", "text-yellow-400 font-bold animate-pulse");
+        if(typeof UI.showItemOverlay === 'function') UI.showItemOverlay(legendaryItem);
     },
     
     updateWeight: function() {
@@ -672,21 +588,11 @@ Object.assign(Game, {
         let w = 0;
         if(this.state.inventory) {
             this.state.inventory.forEach(i => {
-                const itemDef = (Game.items && Game.items[i.id]) ? Game.items[i.id] : null;
-                const weight = (i.weight !== undefined) ? i.weight : (itemDef ? itemDef.weight : 0);
+                const weight = (i.weight !== undefined) ? i.weight : (this.items[i.id] ? this.items[i.id].weight : 0);
                 w += weight * (i.count || 1);
             });
         }
         this.state.player.carryWeight = Math.floor(w * 10) / 10;
-    },
-    
-    getItemCount: function(id) {
-        return this.state.inventory.reduce((acc, i) => i.id === id ? acc + i.count : acc, 0);
-    },
-
-    getUsedSlots: function() {
-        // Fallback implementation if not defined elsewhere
-        return this.state.inventory ? this.state.inventory.length : 0;
     }
 });
 
