@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-20 22:00:00 - game_combat.js - Fixed 'this' Context & Win Crash
+// [2026-01-19 12:30:00] game_combat.js - VATS Logic + Legendary Stats Fix
 
 window.Combat = {
     enemy: null,
@@ -15,50 +15,50 @@ window.Combat = {
     start: function(enemyEntity) {
         Game.state.enemy = JSON.parse(JSON.stringify(enemyEntity)); 
         Game.state.enemy.maxHp = Game.state.enemy.hp; 
-        Combat.enemy = Game.state.enemy; // Explizit Combat nutzen
+        this.enemy = Game.state.enemy;
 
         Game.state.view = 'combat';
         
-        Combat.logData = [];
-        Combat.turn = 'player';
-        Combat.selectedPart = 1; 
+        this.logData = [];
+        this.turn = 'player';
+        this.selectedPart = 1; 
         
-        Combat.log(`Kampf gestartet gegen: ${Combat.enemy.name}`, 'text-yellow-400 blink-red');
+        this.log(`Kampf gestartet gegen: ${this.enemy.name}`, 'text-yellow-400 blink-red');
         UI.switchView('combat').then(() => {
-            Combat.render();
-            Combat.moveSelection(0); 
+            this.render();
+            this.moveSelection(0); 
         });
     },
 
     log: function(msg, color='text-gray-300') {
-        Combat.logData.unshift({t: msg, c: color});
-        if(Combat.logData.length > 6) Combat.logData.pop();
-        Combat.renderLogs();
+        this.logData.unshift({t: msg, c: color});
+        if(this.logData.length > 6) this.logData.pop();
+        this.renderLogs();
     },
 
     renderLogs: function() {
         const el = document.getElementById('combat-log');
         if(!el) return;
-        el.innerHTML = Combat.logData.map(l => `<div class="${l.c}">${l.t}</div>`).join('');
+        el.innerHTML = this.logData.map(l => `<div class="${l.c}">${l.t}</div>`).join('');
     },
 
     render: function() {
         if(typeof UI.renderCombat === 'function') UI.renderCombat();
-        Combat.renderLogs();
+        this.renderLogs();
     },
 
     moveSelection: function(dir) {
-        if (typeof Combat.selectedPart === 'undefined') Combat.selectedPart = 1;
-        Combat.selectedPart += dir;
+        if (typeof this.selectedPart === 'undefined') this.selectedPart = 1;
+        this.selectedPart += dir;
         
-        if (Combat.selectedPart < 0) Combat.selectedPart = 2;
-        if (Combat.selectedPart > 2) Combat.selectedPart = 0;
+        if (this.selectedPart < 0) this.selectedPart = 2;
+        if (this.selectedPart > 2) this.selectedPart = 0;
 
         for(let i=0; i<3; i++) {
             const btn = document.getElementById(`btn-vats-${i}`);
             if(btn) {
                 btn.classList.remove('border-yellow-400', 'text-yellow-400', 'bg-yellow-900/40');
-                if(i === Combat.selectedPart) {
+                if(i === this.selectedPart) {
                     btn.classList.add('border-yellow-400', 'text-yellow-400', 'bg-yellow-900/40');
                 }
             }
@@ -66,13 +66,13 @@ window.Combat = {
     },
     
     selectPart: function(index) {
-        Combat.selectedPart = index;
-        Combat.moveSelection(0); 
+        this.selectedPart = index;
+        this.moveSelection(0); 
     },
 
     confirmSelection: function() {
-        if(Combat.turn === 'player') {
-            Combat.playerAttack();
+        if(this.turn === 'player') {
+            this.playerAttack();
         }
     },
 
@@ -130,14 +130,29 @@ window.Combat = {
         return wpn;
     },
 
+    // [NEU] Helper: Stats priorisieren (Instanz > DB)
+    getWeaponStats: function(item) {
+        const dbItem = Game.items[item.id] || {};
+        
+        // Werte priorisieren: Item-Instanz > Datenbank > Default
+        // WICHTIG: item.baseDmg aus alten Versionen wird auch berücksichtigt
+        const dmg = (item.dmg !== undefined) ? item.dmg : (item.baseDmg || dbItem.dmg || 2);
+        
+        const ammoType = item.ammoType || dbItem.ammoType || null;
+        // Munitionskosten: Standard 1, außer es steht anders im Item
+        const ammoCost = (item.ammoCost !== undefined) ? item.ammoCost : (dbItem.ammoCost || 1);
+        
+        return { dmg, ammoType, ammoCost };
+    },
+
     calculateHitChance: function(partIndex) {
-        const part = Combat.bodyParts[partIndex];
+        const part = this.bodyParts[partIndex];
         const perception = Game.getStat('PER');
         
         let chance = 50 + (perception * 5);
         chance *= part.hitMod;
         
-        const wpn = Combat.getSafeWeapon();
+        const wpn = this.getSafeWeapon();
         const wId = wpn.id.toLowerCase();
         
         const rangedKeywords = ['pistol', 'rifle', 'gun', 'shotgun', 'smg', 'minigun', 'blaster', 'sniper', 'cannon', 'gewehr', 'flinte', 'revolver'];
@@ -149,33 +164,37 @@ window.Combat = {
     },
 
     playerAttack: function() {
-        if(Combat.turn !== 'player') return;
+        if(this.turn !== 'player') return;
 
-        const partIndex = Combat.selectedPart;
-        const part = Combat.bodyParts[partIndex];
-        const hitChance = Combat.calculateHitChance(partIndex);
+        const partIndex = this.selectedPart;
+        const part = this.bodyParts[partIndex];
+        const hitChance = this.calculateHitChance(partIndex);
         
-        let wpn = Combat.getSafeWeapon();
-        const stats = Game.getWeaponStats(wpn); 
+        let wpn = this.getSafeWeapon();
+        const stats = this.getWeaponStats(wpn); // [NEU] Stats laden
         const wId = wpn.id.toLowerCase();
 
-        // Ammo Check
-        const dbItem = Game.items[wpn.id] || {};
-        const usesAmmo = (wpn.usesAmmo !== undefined) ? wpn.usesAmmo : dbItem.usesAmmo;
-
-        if(usesAmmo && stats.ammoType && wId !== 'alien_blaster') { 
+        // Munitions-Check mit neuen Stats
+        if(stats.ammoType && wId !== 'alien_blaster') { 
              const hasAmmo = Game.removeFromInventory(stats.ammoType, stats.ammoCost);
              if(!hasAmmo) {
-                 if(typeof UI.showCombatEffect === 'function') UI.showCombatEffect("* KLICK *", "LEER!", "red", 1000);
-                 Combat.log("WAFFE LEER! *KLICK*", "text-red-500 font-bold");
+                 if(typeof UI.showCombatEffect === 'function') {
+                     UI.showCombatEffect("* KLICK *", "MUNITION LEER!", "red", 2300);
+                 }
+                 this.log("WAFFE LEER! *KLICK*", "text-red-500 font-bold text-xl");
                  setTimeout(() => {
-                     if(typeof Game.switchToBestMelee === 'function') Game.switchToBestMelee();
+                     if (typeof Game.switchToBestMelee === 'function') {
+                         Game.switchToBestMelee();
+                     } else {
+                         this.log("Manuell wechseln!", "text-yellow-400");
+                     }
                  }, 800);
                  return; 
              }
         }
 
         const roll = Math.random() * 100;
+        
         const screen = document.getElementById('game-screen');
         if(screen) {
             screen.classList.add('shake-anim'); 
@@ -183,35 +202,48 @@ window.Combat = {
         }
 
         if(roll <= hitChance) {
+            // [NEU] Schaden basierend auf getWeaponStats
             let dmg = stats.dmg;
-            
             if(wpn.props && wpn.props.dmgMult) dmg *= wpn.props.dmgMult;
-            
-            if(!usesAmmo) dmg += Math.floor(Game.getStat('STR')/2); 
-            else {
+
+            const isRanged = stats.ammoType !== null; // Wenn Munition, dann Range
+
+            if(!isRanged || wpn.id === 'rifle_butt') {
+                dmg += Math.floor(Game.getStat('STR') / 2);
+                const sluggerLvl = Game.getPerkLevel('slugger');
+                if(sluggerLvl > 0) dmg = Math.floor(dmg * (1 + (sluggerLvl * 0.1)));
+            } else {
                 const gunLvl = Game.getPerkLevel('gunslinger');
                 if(gunLvl > 0) dmg = Math.floor(dmg * (1 + (gunLvl * 0.1)));
             }
-            
+
             dmg *= part.dmgMod;
 
             let isCrit = false;
-            if(Math.random()*100 <= (Game.state.critChance || 5)) {
-                dmg *= 2; isCrit = true;
-                Combat.log(">> CRIT! <<", "text-yellow-400 font-bold animate-pulse");
-                if (Game.getPerkLevel('mysterious_stranger') > 0) Combat.log("Der Fremde hilft...", "text-gray-400 text-xs");
+            let critChance = Game.state.critChance || 5; 
+            
+            if(Math.random() * 100 <= critChance) {
+                dmg *= 2;
+                isCrit = true;
+                this.log(">> KRITISCHER TREFFER! <<", "text-yellow-400 font-bold animate-pulse");
+                if(typeof UI.showCombatEffect === 'function') UI.showCombatEffect("CRITICAL!", "DOPPELTER SCHADEN", "yellow", 1500);
+                
+                if (Game.getPerkLevel('mysterious_stranger') > 0) {
+                    this.log("Der Fremde hilft dir...", "text-gray-400 text-xs");
+                }
             }
 
             dmg = Math.floor(dmg);
-            Combat.enemy.hp -= dmg;
+            this.enemy.hp -= dmg;
             
+            // Effekte (Vampir, etc)
             if(wpn.effectHeal) {
                 Game.state.hp = Math.min(Game.getMaxHp(), Game.state.hp + wpn.effectHeal);
-                Combat.log(`Vampir: +${wpn.effectHeal} HP`, "text-green-400");
+                this.log(`Vampir: +${wpn.effectHeal} HP`, "text-green-400");
             }
-
-            Combat.log(`Treffer: ${part.name} für ${dmg} Schaden`, 'text-green-400 font-bold');
-            Combat.triggerFeedback(isCrit ? 'crit' : 'hit', dmg);
+            
+            this.log(`Treffer: ${part.name} für ${dmg} Schaden!`, 'text-green-400 font-bold');
+            this.triggerFeedback(isCrit ? 'crit' : 'hit', dmg);
 
             const el = document.getElementById('enemy-img'); 
             if(el) {
@@ -219,29 +251,30 @@ window.Combat = {
                 setTimeout(() => el.classList.remove('animate-pulse'), 200);
             }
 
-            if(Combat.enemy.hp <= 0) { 
-                Combat.win(); 
-                return; 
+            if(this.enemy.hp <= 0) {
+                this.win();
+                return;
             }
         } else {
-            Combat.log("Daneben!", 'text-gray-500');
-            Combat.triggerFeedback('miss');
+            this.log("Daneben!", 'text-gray-500');
+            this.triggerFeedback('miss');
         }
 
-        Combat.turn = 'enemy';
-        Combat.render(); 
-        setTimeout(() => Combat.enemyTurn(), 1000);
+        this.turn = 'enemy';
+        this.render(); 
+        setTimeout(() => this.enemyTurn(), 1000);
     },
 
     enemyTurn: function() {
-        if(!Combat.enemy || Combat.enemy.hp <= 0) return;
+        if(!this.enemy || this.enemy.hp <= 0) return;
         
         const agi = Game.getStat('AGI');
         const enemyHitChance = 85 - (agi * 3); 
+        
         const roll = Math.random() * 100;
 
         if(roll <= enemyHitChance) {
-            let dmg = Combat.enemy.dmg;
+            let dmg = this.enemy.dmg;
             let armor = 0;
             const slots = ['body', 'head', 'legs', 'feet', 'arms'];
             slots.forEach(s => {
@@ -255,23 +288,30 @@ window.Combat = {
             
             let dmgTaken = Math.max(1, dmg - Math.floor(armor / 2));
             Game.state.hp -= dmgTaken;
-            Combat.log(`${Combat.enemy.name} trifft dich: -${dmgTaken} HP`, 'text-red-500 font-bold');
-            Combat.triggerFeedback('damage', dmgTaken);
+            this.log(`${this.enemy.name} trifft dich: -${dmgTaken} HP`, 'text-red-500 font-bold');
+            this.triggerFeedback('damage', dmgTaken);
 
             if(Game.state.hp <= 0) {
                 Game.state.hp = 0;
                 Game.state.isGameOver = true;
                 
-                console.log("☠️ PERMADEATH: Player died.");
+                console.log("☠️ PERMADEATH: Player died. Initiating deletion...");
                 
                 const slotToDelete = Game.state.saveSlot;
-                if(typeof Network !== 'undefined' && Network.active) Network.registerDeath(Game.state);
                 
-                if (typeof Network !== 'undefined' && slotToDelete !== undefined && slotToDelete !== null && slotToDelete !== -1) {
-                    Network.deleteSlot(slotToDelete).catch(err => console.error(err));
+                if(typeof Network !== 'undefined' && Network.active) {
+                    Network.registerDeath(Game.state);
                 }
                 
-                if(typeof UI !== 'undefined' && UI.showGameOver) UI.showGameOver();
+                if (typeof Network !== 'undefined' && slotToDelete !== undefined && slotToDelete !== null && slotToDelete !== -1) {
+                    Network.deleteSlot(slotToDelete)
+                        .then(() => console.log(`✅ Slot ${slotToDelete} permanent entfernt.`))
+                        .catch(err => console.error("❌ Firebase Delete Error:", err));
+                }
+                
+                if(typeof UI !== 'undefined' && UI.showGameOver) {
+                    UI.showGameOver();
+                }
                 
                 Game.state.saveSlot = -1; 
                 setTimeout(() => { 
@@ -281,28 +321,28 @@ window.Combat = {
                 return;
             }
         } else {
-            Combat.log(`${Combat.enemy.name} verfehlt dich!`, 'text-blue-300');
-            Combat.triggerFeedback('dodge');
+            this.log(`${this.enemy.name} verfehlt dich!`, 'text-blue-300');
+            this.triggerFeedback('dodge');
         }
-        Combat.turn = 'player';
+        this.turn = 'player';
         UI.update(); 
-        Combat.render();
+        this.render();
     },
 
     win: function() {
-        Combat.log(`${Combat.enemy.name} besiegt!`, 'text-yellow-400 font-bold');
+        this.log(`${this.enemy.name} besiegt!`, 'text-yellow-400 font-bold');
         
-        const xpBase = Array.isArray(Combat.enemy.xp) ? (Combat.enemy.xp[0] + Math.floor(Math.random()*(Combat.enemy.xp[1]-Combat.enemy.xp[0]))) : Combat.enemy.xp;
+        const xpBase = Array.isArray(this.enemy.xp) ? (this.enemy.xp[0] + Math.floor(Math.random()*(this.enemy.xp[1]-this.enemy.xp[0]))) : this.enemy.xp;
         Game.gainExp(xpBase);
         
-        if(Combat.enemy.loot > 0) {
-            let caps = Math.floor(Math.random() * Combat.enemy.loot) + 1;
+        if(this.enemy.loot > 0) {
+            let caps = Math.floor(Math.random() * this.enemy.loot) + 1;
             Game.state.caps += caps;
-            Combat.log(`Gefunden: ${caps} Kronkorken`, 'text-yellow-200');
+            this.log(`Gefunden: ${caps} Kronkorken`, 'text-yellow-200');
         }
         
-        if(Combat.enemy.drops) {
-            Combat.enemy.drops.forEach(d => {
+        if(this.enemy.drops) {
+            this.enemy.drops.forEach(d => {
                 if(Math.random() < d.c) {
                     Game.addToInventory(d.id, 1);
                 }
@@ -312,7 +352,7 @@ window.Combat = {
         let mobId = null;
         if(Game.monsters) {
             for(let k in Game.monsters) {
-                if(Game.monsters[k].name === Combat.enemy.name.replace('Legendäre ', '')) {
+                if(Game.monsters[k].name === this.enemy.name.replace('Legendäre ', '')) {
                     mobId = k;
                     break;
                 }
@@ -334,16 +374,16 @@ window.Combat = {
 
     flee: function() {
         if(Math.random() < 0.5) {
-            Combat.log("Flucht gelungen!", 'text-green-400');
-            Combat.triggerFeedback('dodge'); 
+            this.log("Flucht gelungen!", 'text-green-400');
+            this.triggerFeedback('dodge'); 
             setTimeout(() => {
                 Game.state.enemy = null;
                 UI.switchView('map');
             }, 800);
         } else {
-            Combat.log("Flucht fehlgeschlagen!", 'text-red-500');
-            Combat.turn = 'enemy';
-            setTimeout(() => Combat.enemyTurn(), 800);
+            this.log("Flucht fehlgeschlagen!", 'text-red-500');
+            this.turn = 'enemy';
+            setTimeout(() => this.enemyTurn(), 800);
         }
     }
 };
