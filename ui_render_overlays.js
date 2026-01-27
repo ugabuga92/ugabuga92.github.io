@@ -1,4 +1,4 @@
-// [TIMESTAMP] 2026-01-12 15:00:00 - ui_render_overlays.js - Added Generic Confirm Dialog
+// [TIMESTAMP] 2026-01-27 14:30:00 - ui_render_overlays.js - Complete with Epic Quest Animation
 
 Object.assign(UI, {
     
@@ -286,36 +286,48 @@ Object.assign(UI, {
 
     // --- SONSTIGE DIALOGE (Shop, Quest, etc.) ---
 
+    // [v3.1] Epic Quest Completion Overlay
     showQuestComplete: function(questDef) {
         let container = document.getElementById('hud-quest-overlay');
         if(!container) {
-             const view = document.getElementById('game-screen'); 
-             if(!view) return;
-             container = document.createElement('div');
-             container.id = 'hud-quest-overlay';
-             container.className = "absolute top-24 left-1/2 transform -translate-x-1/2 flex flex-col items-center pointer-events-none z-[60] w-full max-w-md";
-             view.appendChild(container);
+            const view = document.getElementById('game-screen'); 
+            if(!view) return;
+            container = document.createElement('div');
+            container.id = 'hud-quest-overlay';
+            container.className = "fixed top-24 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-[100] w-full max-w-sm";
+            view.appendChild(container);
         }
 
         const msg = document.createElement('div');
-        msg.className = "bg-black/90 border border-yellow-400 p-3 shadow-[0_0_15px_rgba(255,215,0,0.5)] mb-2 text-center transition-opacity duration-500 opacity-0 transform translate-y-2";
+        msg.className = "w-full bg-black/95 border-2 border-yellow-400 p-4 shadow-[0_0_30px_rgba(255,215,0,0.6)] mb-4 text-center transform transition-all duration-700 scale-0 opacity-0";
         
-        let rewardHtml = '';
-        if(questDef.reward) {
-             if(questDef.reward.xp) rewardHtml += `<div class="text-yellow-400 font-bold">+${questDef.reward.xp} XP</div>`;
-             if(questDef.reward.caps) rewardHtml += `<div class="text-yellow-200">+${questDef.reward.caps} Kronkorken</div>`;
-             if(questDef.reward.items) rewardHtml += `<div class="text-blue-300 text-xs">+ Items erhalten</div>`;
+        let rewardItems = "";
+        if(questDef.reward?.items) {
+            rewardItems = questDef.reward.items.map(it => `<div>📦 ${it.c || 1}x ${Game.items[it.id]?.name || it.id}</div>`).join("");
         }
 
         msg.innerHTML = `
-            <div class="text-yellow-400 font-bold tracking-widest text-sm border-b border-yellow-900/50 pb-1 mb-1">QUEST ERFÜLLT</div>
-            <div class="text-white font-bold mb-1">${questDef.title}</div>
-            ${rewardHtml}
+            <div class="text-yellow-500 font-bold tracking-[0.2em] text-[10px] mb-1 animate-pulse">QUEST ERFÜLLT</div>
+            <div class="text-2xl font-bold text-white mb-3 uppercase tracking-tighter shadow-black text-shadow-lg">${questDef.title}</div>
+            <div class="flex flex-col gap-1 py-2 border-t border-yellow-900/50 bg-yellow-900/10 font-mono text-xs">
+                ${questDef.reward?.xp ? `<div class="text-cyan-400">⚡ +${questDef.reward.xp} XP</div>` : ""}
+                ${questDef.reward?.caps ? `<div class="text-yellow-400">💰 +${questDef.reward.caps} KK</div>` : ""}
+                ${rewardItems}
+            </div>
+            <div class="absolute -inset-1 bg-yellow-400/5 animate-ping rounded-lg pointer-events-none"></div>
         `;
 
         container.appendChild(msg);
-        requestAnimationFrame(() => { msg.classList.remove('opacity-0', 'translate-y-2'); });
-        setTimeout(() => { msg.classList.add('opacity-0'); setTimeout(() => msg.remove(), 500); }, 4000);
+
+        requestAnimationFrame(() => {
+            msg.classList.remove('scale-0', 'opacity-0');
+            msg.classList.add('scale-100', 'opacity-100');
+        });
+
+        setTimeout(() => {
+            msg.classList.add('translate-y-[-20px]', 'opacity-0', 'scale-90');
+            setTimeout(() => msg.remove(), 700);
+        }, 4500);
     },
 
     showMapLegend: function() {
@@ -413,9 +425,7 @@ Object.assign(UI, {
                     else if(isDead) rowClass += "text-gray-500 italic ";
                     else rowClass += "text-green-400 ";
 
-                    // HIER GEÄNDERT: X statt Totenkopf für tote (gelöschte) Charaktere
                     const icon = isDead ? '❌' : (isTop3 ? '🏆' : '');
-                    
                     const nameDisplay = `${icon} ${entry.name}`;
 
                     const row = document.createElement('div');
