@@ -1,4 +1,4 @@
-// [2026-01-17 19:10:00] game_core.js - Removed Store-Bought Backpacks
+// [2026-01-27 13:45:00] game_core.js - Added Quest PreReqs & Multi-Item Support
 
 window.Game = {
     TILE: 30, MAP_W: 40, MAP_H: 40,
@@ -29,7 +29,6 @@ window.Game = {
         this.cacheCtx = this.cacheCanvas.getContext('2d'); 
     }, 
     
-    // [HiDPI Support]
     initCanvas: function() { 
         const cvs = document.getElementById('game-canvas'); 
         if(!cvs) return; 
@@ -208,14 +207,37 @@ window.Game = {
     checkNewQuests: function() {
         if(!this.questDefs || !this.state) return;
         this.questDefs.forEach(def => {
-            if(this.state.lvl >= def.minLvl) {
+            const lvlMet = this.state.lvl >= def.minLvl;
+            const preReqMet = !def.preReq || this.state.completedQuests.includes(def.preReq);
+
+            if(lvlMet && preReqMet) {
                 const active = this.state.activeQuests.find(q => q.id === def.id);
                 const completed = this.state.completedQuests.includes(def.id);
                 if(!active && !completed) {
-                    this.state.activeQuests.push({
-                        id: def.id, progress: 0, max: def.amount, type: def.type, target: def.target
-                    });
+                    const newQuest = {
+                        id: def.id, progress: 0, max: def.amount || 0, type: def.type, target: def.target || null
+                    };
+
+                    // Initialisierung für Multi-Sammel-Quests
+                    if(def.type === 'collect_multi' && def.reqItems) {
+                        newQuest.max = Object.values(def.reqItems).reduce((a, b) => a + b, 0);
+                        // Sofortigen Fortschritt prüfen falls Items bereits im Inventar
+                        let currentTotal = 0;
+                        for(let id in def.reqItems) {
+                            const inInv = this.state.inventory.filter(i => i.id === id).reduce((s, i) => s + i.count, 0);
+                            currentTotal += Math.min(inInv, def.reqItems[id]);
+                        }
+                        newQuest.progress = currentTotal;
+                    }
+
+                    this.state.activeQuests.push(newQuest);
                     UI.log(`QUEST: "${def.title}" erhalten!`, "text-cyan-400 font-bold animate-pulse");
+                    
+                    // Falls Sammelquest bereits beim Erhalt fertig ist
+                    if(newQuest.progress >= newQuest.max && newQuest.max > 0) {
+                        const idx = this.state.activeQuests.findIndex(q => q.id === def.id);
+                        if(idx !== -1) this.completeQuest(idx);
+                    }
                 }
             }
         });
@@ -226,17 +248,36 @@ window.Game = {
         let updated = false;
         for(let i = this.state.activeQuests.length - 1; i >= 0; i--) {
             const q = this.state.activeQuests[i];
-            if(q.type === type) {
-                let match = false;
-                if(type === 'collect' || type === 'kill' || type === 'visit') match = (q.target === target); 
-                if(match) {
-                    q.progress += value;
-                    updated = true;
-                    if(q.progress >= q.max) this.completeQuest(i);
+            const def = this.questDefs.find(d => d.id === q.id);
+            if(!def) continue;
+
+            let match = false;
+            
+            // Standard Ziele (Kill, Visit, einfaches Collect)
+            if(q.type === type && q.target === target) match = true;
+            
+            // Multi-Collect Ziel Prüfung
+            if(q.type === 'collect_multi' && type === 'collect' && def.reqItems && def.reqItems[target]) {
+                let currentTotal = 0;
+                for(let itemId in def.reqItems) {
+                    const countInInv = this.state.inventory.filter(item => item.id === itemId).reduce((sum, item) => sum + item.count, 0);
+                    currentTotal += Math.min(countInInv, def.reqItems[itemId]);
                 }
+                q.progress = currentTotal;
+                updated = true;
             }
+
+            if(match) {
+                q.progress += value;
+                updated = true;
+            }
+
+            if(q.progress >= q.max) this.completeQuest(i);
         }
-        if(updated) UI.update();
+        
+        // Immer prüfen, ob neue Quests durch Abschluss/Level getriggert wurden
+        this.checkNewQuests();
+        if(updated && typeof UI !== 'undefined') UI.update();
     },
 
     completeQuest: function(index) {
@@ -257,6 +298,9 @@ window.Game = {
         }
         this.state.activeQuests.splice(index, 1);
         this.saveGame(true);
+        
+        // Folgequests direkt prüfen
+        this.checkNewQuests();
     },
     
     checkShopRestock: function() {
@@ -279,7 +323,6 @@ window.Game = {
                 if(a) stock[a] = 1;
             }
             
-            // [FIX] Rucksäcke entfernt! Nur noch über Crafting.
             stock['camp_kit'] = 1;
             
             this.state.shop.merchantCaps = 500 + Math.floor(Math.random() * 1000);
@@ -330,7 +373,6 @@ window.Game = {
                 if(!this.state.quests) this.state.quests = [];
                 if(!this.state.camp) this.state.camp = null;
                 
-                // [FIX] Neue Rezepte für Rucksäcke automatisch lernen (für bestehende Saves)
                 const newRecs = ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp', 
                                  'craft_bp_frame', 'craft_bp_leather', 'craft_bp_metal', 'craft_bp_military', 'craft_bp_cargo'];
                 if(!this.state.knownRecipes) this.state.knownRecipes = [];
@@ -376,7 +418,6 @@ window.Game = {
                     explored: {}, visitedSectors: ["4,4"], tutorialsShown: { hacking: false, lockpicking: false },
                     activeQuests: [], completedQuests: [], quests: [], 
                     
-                    // [FIX] Start-Rezepte für Rucksäcke
                     knownRecipes: ['craft_ammo', 'craft_stimpack_simple', 'rcp_camp', 'craft_bp_frame', 'craft_bp_leather', 'craft_bp_metal', 'craft_bp_military', 'craft_bp_cargo'], 
                     
                     hiddenItems: {}, shop: { nextRestock: 0, stock: {}, merchantCaps: 1000 }, startTime: Date.now()
