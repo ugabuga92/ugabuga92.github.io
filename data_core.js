@@ -1,14 +1,8 @@
-// [2026-01-27 08:10:00] data_core.js - Überarbeitetes Quest-System & Erweiterte Lore
-/* Änderungen:
-   1. Einführung von 'preReq' (Voraussetzungen für Quests)
-   2. Neue Quest-Kette: "Der Geist in der Maschine"
-   3. Erweiterte Item-Liste für Crafting-Quests
-   4. Balancing der Belohnungen
-*/
+// [2026-01-28 12:00:00] data_core.js - Wiki Automation & Quest Fixes
 
 window.GameData = window.GameData || {};
 
-// --- PERK SYSTEM (Balanciert) ---
+// --- PERKS ---
 window.GameData.perks = [
     { id: 'toughness', name: 'Zähigkeit', desc: '+10 Max HP pro Stufe.', icon: '🛡️', max: 5 },
     { id: 'medic', name: 'Sanitäter', desc: '+20% Heilung durch Stimpacks pro Stufe.', icon: '💉', max: 5 },
@@ -23,110 +17,69 @@ window.GameData.perks = [
 ];
 
 // --- QUESTS ---
-// Struktur: preReq definiert die ID der Quest, die vorher abgeschlossen sein muss.
 window.GameData.questDefs = [
-    // --- AKT 1: DIE ANKUNFT ---
+    // AKT 1
     { 
-        id: "q_start", 
-        title: "Überleben 101", 
-        desc: "Das Ödland ist unerbittlich. Zeig den Kakerlaken, wer der Boss ist.", 
-        type: "kill", 
-        target: "radRoach", 
-        amount: 3, 
-        minLvl: 1, 
-        reward: { xp: 50, caps: 25 } 
+        id: "q_start", title: "Überleben 101", desc: "Das Ödland ist unerbittlich. Zeig den Kakerlaken, wer der Boss ist.", 
+        type: "kill", target: "radRoach", amount: 3, minLvl: 1, reward: { xp: 50, caps: 25 } 
     },
     { 
-        id: "q_backpack", 
-        title: "Der Packesel", 
-        desc: "Ohne Stauraum stirbst du hier draußen. Sammle Material für ein Rucksack-Gestell.", 
-        type: "collect", 
-        target: "backpack_frame", 
-        amount: 1, 
-        preReq: "q_start",
-        minLvl: 1, 
-        reward: { xp: 100, items: [{id:'leather', c:4}] }
+        id: "q_backpack", title: "Der Packesel", desc: "Sammle Material und crafte ein Rucksack-Gestell an der Werkbank.", 
+        type: "collect", target: "backpack_frame", amount: 1, preReq: "q_start", minLvl: 1, reward: { xp: 100, items: [{id:'leather', c:4}] }
     },
     { 
-        id: "q_explore", 
-        title: "Licht am Horizont", 
-        desc: "Gerüchten zufolge gibt es eine Siedlung namens 'Rusty Springs' bei [3,3].", 
-        type: "visit", 
-        target: "3,3", 
-        amount: 1, 
-        preReq: "q_backpack",
-        minLvl: 1, 
-        reward: { xp: 150, caps: 50, items: [{id:'stimpack', c:2}] } 
+        id: "q_explore", title: "Licht am Horizont", desc: "Gerüchten zufolge gibt es eine Siedlung namens 'Rusty Springs' bei [3,3].", 
+        type: "visit", target: "3,3", amount: 1, preReq: "q_backpack", minLvl: 1, reward: { xp: 150, caps: 50, items: [{id:'stimpack', c:2}] } 
     },
-
-    // --- AKT 2: RUSTY SPRINGS GEHEIMNISSE ---
+    // AKT 2
     {
-        id: "q_radio_silence",
-        title: "Funkstille",
-        desc: "Der alte Funkmast von Rusty Springs braucht Ersatzteile. Bring 5x Schrottmetall und 3x Schrauben.",
-        type: "collect_multi", 
-        reqItems: { junk_metal: 5, screws: 3 },
-        preReq: "q_explore",
-        minLvl: 3,
-        reward: { xp: 250, caps: 100, items: [{id:'radio_part', c:1}] }
+        id: "q_radio_silence", title: "Funkstille", desc: "Repariere den Funkmast in Rusty Springs. Du brauchst Schrott und Schrauben.",
+        type: "collect_multi", reqItems: { junk_metal: 5, screws: 3 }, preReq: "q_explore", minLvl: 3, reward: { xp: 250, caps: 100, items: [{id:'radio_part', c:1}] }
     },
     {
-        id: "q_ghost_machine",
-        title: "Geist in der Maschine",
-        desc: "Der Funkmast empfängt seltsame Signale von Maulwurfsratten. Untersuche die Nester.",
-        type: "kill",
-        target: "moleRat",
-        amount: 8,
-        preReq: "q_radio_silence",
-        minLvl: 4,
-        reward: { xp: 400, caps: 150, items: [{id:'fusion_core', c:1}] }
+        id: "q_ghost_machine", title: "Geist in der Maschine", desc: "Der Funkmast empfängt Signale von Maulwurfsratten. Untersuche das.",
+        type: "kill", target: "moleRat", amount: 8, preReq: "q_radio_silence", minLvl: 4, reward: { xp: 400, caps: 150, items: [{id:'fusion_core', c:1}] }
     },
-
-    // --- NEBENAUFGABEN & KOPFGELDER ---
+    // NEBENQUESTS
     { 
-        id: "q_hunter_bloat", 
-        title: "Kammerjäger", 
-        desc: "Blähfliegen sind eine Plage für die lokalen Händler.", 
-        type: "kill", 
-        target: "bloatfly", 
-        amount: 5, 
-        minLvl: 2, 
-        reward: { xp: 150, caps: 75 } 
+        id: "q_hunter_bloat", title: "Kammerjäger", desc: "Blähfliegen sind eine Plage. Töte 5 Stück.", 
+        type: "kill", target: "bloatfly", amount: 5, minLvl: 2, reward: { xp: 150, caps: 75 } 
     },
     { 
-        id: "q_collector_rare", 
-        title: "Seltene Funde", 
-        desc: "Ein Sammler sucht nach alten Klemmbrettern für seine 'Büro-Sammlung'.", 
-        type: "collect", 
-        target: "clipboard", 
-        amount: 3, 
-        minLvl: 2, 
-        reward: { xp: 120, caps: 200 } 
+        id: "q_collector_rare", title: "Seltene Funde", desc: "Ein Sammler sucht 3x Klemmbretter für seine Sammlung.", 
+        type: "collect", target: "clipboard", amount: 3, minLvl: 2, reward: { xp: 120, caps: 200 } 
     }
+];
+
+// --- LOCATIONS (NEU FÜR WIKI) ---
+window.GameData.locations = [
+    { name: "Vault 101", coord: "[START]", desc: "Dein Startpunkt. Ein sicherer Bunker unter der Erde. Bietet Schutz und kostenlose Heilung." },
+    { name: "Rusty Springs", coord: "[3,3]", desc: "Die größte bekannte Siedlung. Hier findest du Händler, einen Arzt und Werkbänke." },
+    { name: "Oasis", coord: "[NW]", desc: "Ein seltsam fruchtbares Gebiet im Nordwesten (Sektoren 0-2). Dichter Wald, aber gefährliche Flora." },
+    { name: "The Pitt", coord: "[SO]", desc: "Eine trostlose Wüste im Südosten (Sektoren 7-9). Hohe Strahlung und gefährliche Raider-Banden." },
+    { name: "Sumpf", coord: "[NO]", desc: "Nebeliges Feuchtgebiet im Nordosten. Heimat der Mirelurks." },
+    { name: "Gebirge", coord: "[SW]", desc: "Felsiges Terrain im Südwesten. Schwer passierbar." }
 ];
 
 // --- ITEMS ---
 window.GameData.items = Object.assign(window.GameData.items || {}, {
-    // Rohstoffe
     junk_metal: { name: "Schrottmetall", type: "junk", cost: 5, icon: "⚙️", desc: "Verrostet, aber brauchbar." },
     cloth: { name: "Stofffetzen", type: "component", cost: 3, icon: "🧶", desc: "Alte Kleidungsteile." },
     screws: { name: "Schrauben", type: "component", cost: 15, icon: "🔩", desc: "Immer Mangelware." },
-    duct_tape: { name: "Klebeband", type: "component", cost: 20, icon: "🩹", desc: "Das Allheilmittel für Maschinen." },
+    duct_tape: { name: "Klebeband", type: "component", cost: 20, icon: "🩹", desc: "Das Allheilmittel." },
     glue: { name: "Wunderkleber", type: "component", cost: 25, icon: "💧", desc: "Extrem stark." },
     gears: { name: "Zahnräder", type: "component", cost: 30, icon: "⚙️", desc: "Präzisionsteile." },
     springs: { name: "Federn", type: "component", cost: 30, icon: "🌀", desc: "Für Mechanik-Upgrades." },
     plastic: { name: "Plastik", type: "component", cost: 10, icon: "🧴", desc: "Wiederverwertete Flaschen." },
-    leather: { name: "Leder", type: "component", cost: 12, icon: "🐄", desc: "Gegerbte Haut von Ödland-Kreaturen." },
+    leather: { name: "Leder", type: "component", cost: 12, icon: "🐄", desc: "Gegerbte Haut." },
     
-    // Quest- & Spezial-Items
     backpack_frame: { name: "Rucksack-Gestell", type: "quest", cost: 0, icon: "🎒", desc: "Basis für mehr Tragekapazität." },
     radio_part: { name: "Frequenz-Chip", type: "quest", cost: 0, icon: "📟", desc: "Ein modifizierter Chip für den Funkmast." },
     fusion_core: { name: "Fusionskern", type: "valuable", cost: 500, icon: "🔋", desc: "Eine massive Energiequelle." },
     
-    // Schrott
     tin_can: { name: "Blechdose", type: "junk", cost: 2, icon: "🥫", desc: "Leere Konserve." },
     wrench: { name: "Schraubenschlüssel", type: "junk", cost: 15, icon: "🔧", desc: "Ein schweres Werkzeug." },
-    clipboard: { name: "Klemmbrett", type: "junk", cost: 10, icon: "📋", desc: "Alte Bürokratie." }
+    clipboard: { name: "Klemmbrett", type: "junk", cost: 10, icon: "📋", desc: "Alte Bürokratie." } // HIER: Das Item für die Quest
 });
 
 // --- MONSTERS ---
@@ -145,7 +98,8 @@ window.GameData.monsters = Object.assign(window.GameData.monsters || {}, {
     },
     raider: { 
         name: "Raider", hp: 65, dmg: 14, xp: [60,90], loot: 15, minLvl: 3,
-        drops: [ {id:'ammo', c: 0.6}, {id:'stimpack', c: 0.2}, {id:'junk_metal', c: 0.5} ]
+        // HIER: Raider droppen jetzt Klemmbretter (clipboard) zu 30%
+        drops: [ {id:'ammo', c: 0.6}, {id:'stimpack', c: 0.2}, {id:'junk_metal', c: 0.5}, {id:'clipboard', c: 0.3} ]
     }
 });
 
@@ -196,4 +150,4 @@ window.GameData.hackWords = {
     hard: ["FIREWALL", "PROTOCOL", "PASSWORD", "DATABASE", "SECURITY", "DOWNLOAD", "TERMINAL", "MAINFRAME", "OVERRIDE", "HARDWARE", "SOFTWARE", "ENCRYPTION", "NETWORK", "BACKDOOR"]
 };
 
-console.log("GameData Core überarbeitet.");
+console.log("GameData Core & Locations loaded.");
