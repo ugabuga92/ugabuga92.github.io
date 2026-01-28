@@ -1,12 +1,8 @@
-// [2026-01-28 14:30:00] ui_view_journal.js - High Visibility Update
-/* - Verbesserter Kontrast für bessere Lesbarkeit
-   - Schriftgrößen leicht erhöht
-   - Dunklere Hintergründe für Text-Boxen
-*/
+// [2026-01-28 16:00:00] ui_view_journal.js - Complete: High Vis Questlines + Pin Tracking + Full Wiki
 
 Object.assign(UI, {
 
-    // [v3.2] DYNAMISCHES WIKI (Beibehalten)
+    // [v3.2] DYNAMISCHES WIKI (Vollständig integriert)
     renderWiki: function(category = 'monsters') {
         const content = document.getElementById('wiki-content');
         if(!content) return;
@@ -52,6 +48,7 @@ Object.assign(UI, {
 
         let html = '';
 
+        // --- 👾 MONSTER ---
         if(category === 'monsters') {
             const list = Object.values(Game.monsters || {}).sort((a,b) => a.minLvl - b.minLvl);
             if(list.length === 0) html = '<div class="text-gray-400 text-center mt-10">Keine Daten verfügbar.</div>';
@@ -83,6 +80,7 @@ Object.assign(UI, {
                     </div>`;
             });
         } 
+        // --- 📦 ITEMS ---
         else if (category === 'items') {
             const groups = {};
             if (Game.items) {
@@ -117,6 +115,7 @@ Object.assign(UI, {
                 });
             }
         } 
+        // --- 🔧 CRAFTING ---
         else if (category === 'crafting') {
             if (Game.recipes && Game.recipes.length > 0) {
                 const list = [...Game.recipes].sort((a,b) => a.lvl - b.lvl);
@@ -144,6 +143,7 @@ Object.assign(UI, {
                 html = '<div class="text-center text-gray-400 mt-10">Keine Baupläne in Datenbank.</div>';
             }
         } 
+        // --- 🌟 PERKS ---
         else if (category === 'perks') {
             if(Game.perkDefs) {
                 Game.perkDefs.forEach(p => {
@@ -164,6 +164,7 @@ Object.assign(UI, {
                 html = '<div class="text-center text-gray-400 p-4">Keine Perks gefunden.</div>';
             }
         } 
+        // --- 🌍 LOCATIONS ---
         else if (category === 'locs') {
              const locs = Game.locations || window.GameData.locations || [];
              if(locs.length === 0) {
@@ -181,6 +182,7 @@ Object.assign(UI, {
                 });
              }
         }
+        // --- 📜 QUESTS (WIKI) ---
         else if (category === 'quests') {
             if(Game.questDefs) {
                 Game.questDefs.forEach(q => {
@@ -205,7 +207,7 @@ Object.assign(UI, {
         content.innerHTML = html;
     },
 
-    // [v4.1] QUEST SYSTEM REWORK - High Visibility Mode
+    // [v4.2] QUEST SYSTEM REWORK - High Visibility + Pin Tracking
     renderQuests: function() {
         const list = document.getElementById('quest-list');
         if(!list) return;
@@ -238,18 +240,19 @@ Object.assign(UI, {
             if(!processedIds.has(q.id)) sideQuests.push(q);
         });
 
-        // --- SCHRITT 2: Rendering Helper (High Contrast) ---
+        // --- SCHRITT 2: Rendering Helper (High Contrast + PIN) ---
         const renderQuestCard = (def, status, isCompact = false) => {
             const activeData = Game.state.activeQuests.find(q => q.id === def.id);
             const isDone = status === 'done';
             const isLocked = status === 'locked';
             
-            // HIER WICHTIG: Hellerer Text für gesperrte/erledigte Quests
+            // TRACKING LOGIC
+            const isTracked = Game.state.trackedQuestId === def.id;
+            
             let colorClass = isDone ? "text-gray-400 line-through" : (isLocked ? "text-gray-400" : "text-yellow-400");
             let iconColor = isDone ? "text-green-600" : (isLocked ? "text-red-500" : "text-yellow-400 animate-pulse");
             let icon = isDone ? "✔" : (isLocked ? "🔒" : "◉");
 
-            // Prozentberechnung
             let pct = 0;
             let detailHtml = "";
             if(activeData) {
@@ -266,28 +269,35 @@ Object.assign(UI, {
                 }
             }
 
-            // Locked Ansicht: Hellerer Text
             if(isLocked) return `
                 <div class="flex items-center gap-3 p-3 border-l-2 border-gray-600 ml-2 bg-black/40">
                     <div class="text-gray-400 font-mono text-lg">???</div>
                     <div class="text-sm text-gray-500 italic">Wird später freigeschaltet</div>
                 </div>`;
 
-            // Compact (Erledigt)
             if(isCompact && isDone) return `
                 <div class="flex items-center gap-2 mb-2 ml-1 bg-black/20 p-1">
                     <span class="text-green-500 text-sm font-bold">✔</span>
                     <span class="text-sm text-gray-400 line-through decoration-gray-600">${def.title}</span>
                 </div>`;
 
-            // Active Card (Voll)
+            // Active Card (Voll) mit PIN Button
             return `
-                <div class="border-l-4 ${isDone ? 'border-green-700 opacity-50' : 'border-yellow-400 bg-black/80'} pl-4 py-3 mb-3 ml-1 relative shadow-lg">
+                <div class="border-l-4 ${isDone ? 'border-green-700 opacity-50' : 'border-yellow-400 bg-black/80'} pl-4 py-3 mb-3 ml-1 relative shadow-lg group">
                     <div class="flex justify-between items-start">
                         <div class="font-bold ${colorClass} text-base flex items-center gap-2">
                             <span class="${iconColor}">${icon}</span> ${def.title}
                         </div>
-                        ${!isLocked && !isDone ? `<span class="text-[10px] bg-green-900 text-green-100 px-2 py-0.5 rounded border border-green-700">LVL ${def.minLvl}</span>` : ''}
+                        <div class="flex gap-2">
+                            ${activeData ? `
+                                <button class="text-lg hover:scale-125 transition-transform ${isTracked ? 'opacity-100' : 'opacity-20 hover:opacity-100'}" 
+                                        title="${isTracked ? 'Nicht mehr verfolgen' : 'Auf HUD anzeigen'}"
+                                        onclick="event.stopPropagation(); Game.state.trackedQuestId = '${isTracked ? '' : def.id}'; UI.renderQuests(); UI.updateQuestTracker();">
+                                    📌
+                                </button>
+                            ` : ''}
+                            ${!isLocked && !isDone ? `<span class="text-[10px] bg-green-900 text-green-100 px-2 py-0.5 rounded border border-green-700">LVL ${def.minLvl}</span>` : ''}
+                        </div>
                     </div>
                     
                     ${!isDone && !isLocked ? `<div class="text-sm text-green-100 mt-2 mb-3 leading-relaxed font-sans">${def.desc}</div>` : ''}
@@ -316,9 +326,9 @@ Object.assign(UI, {
         if(chains.length > 0) {
             list.innerHTML += `<h3 class="text-yellow-500 font-bold text-sm tracking-[0.2em] border-b-2 border-yellow-800 mb-4 pb-1 uppercase">Haupt-Missionen</h3>`;
             
-            chains.forEach((chain, idx) => {
+            chains.forEach((chain) => {
                 const chainContainer = document.createElement('div');
-                chainContainer.className = "mb-8 bg-black/40 p-3 rounded border border-green-900"; // Dunklerer Hintergrund für besseren Kontrast
+                chainContainer.className = "mb-8 bg-black/40 p-3 rounded border border-green-900"; 
                 
                 const isComplete = chain.every(q => Game.state.completedQuests.includes(q.id));
                 const isActive = chain.some(q => Game.state.activeQuests.find(aq => aq.id === q.id));
